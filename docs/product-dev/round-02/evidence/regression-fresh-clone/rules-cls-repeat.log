@@ -1,0 +1,31 @@
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+Running 20 tests using 5 workers
+
+  ✓   2 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (6.2s)
+  ✓   5 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (6.1s)
+  ✓   1 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (6.2s)
+  ✓   4 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (6.2s)
+  ✓   3 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (6.2s)
+  ✓   9 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓   7 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓  10 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓   8 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓   6 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓  15 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓  13 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓  12 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓  14 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓  11 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.7s)
+  ✓  18 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.5s)
+  ✓  20 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.5s)
+  ✓  19 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.5s)
+  ✓  17 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.5s)
+  ✓  16 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (5.5s)
+
+  20 passed (34.4s)

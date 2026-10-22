@@ -1,0 +1,58 @@
+{
+  "source_set_sha256": "9827338a8d8b2e05611f988ca78cf3fd461b98609f007b7c383e06e9ca8bbbeb",
+  "history_ids": [
+    "hist_c3f368ff77429a670e9fd0186922d18afe37d9a6bdd29b1a8d261b24232afce4",
+    "hist_1fb2188930c80e6a816f2b787e9422c338f64a78e5290c8a2006e2b8d907e3b1",
+    "hist_ff597582fc21a0603a28228b095e3b078989bece6a4405208c422babf048f5e4",
+    "hist_281974170955190d049ca1247fff4fc6b2f570d77d422e0c1bbc230699c5d609",
+    "hist_7d05b0dd25bc2191d42406dd9a63bed1883c8ccc1f118f58ba8bc1e0415b5a5e"
+  ],
+  "reused": false,
+  "evaluations": 5,
+  "publication_replays": 5
+}
+{
+  "source_set_sha256": "9827338a8d8b2e05611f988ca78cf3fd461b98609f007b7c383e06e9ca8bbbeb",
+  "history_ids": [
+    "hist_59bb0e28812eea2520925593a2fab3ed53409691f439ef6377409894092a8be9",
+    "hist_bcd43588125d1dde7a1e7000f68b8b0632709b9ed5c614a53c5ba7bb3deab2fb",
+    "hist_bf2814ee33b37e60e3b30ca38945b92cebf5077a6c049be1a268404c0fe33c5b",
+    "hist_44254e2986c4d9fff57a8215ff80451e2951a340eff2e1a35e6b921d7d79c292",
+    "hist_851601c9d255a6cd3a3698dfbafe25e1903fd2a2da01c26bcab6f16253628090"
+  ],
+  "reused": false,
+  "evaluations": 5,
+  "publication_replays": 5
+}
+{
+  "validated_archives": 10,
+  "schema_version": 1,
+  "integrity": "INTEGRITY_VERIFIED"
+}
+{
+  "source_set_sha256": "9827338a8d8b2e05611f988ca78cf3fd461b98609f007b7c383e06e9ca8bbbeb",
+  "history_ids": [
+    "hist_ab0e5fd15fa22692e3828f650f69d7c8dc6bbc49f79dd1bec8218694567fa052",
+    "hist_58dfd8b354f61b9168074a6e0ff34972585eb0995a38d090a276ad131981d2c5",
+    "hist_9d0e2847119b83870529e1ce224793fe2efe2c75c9487ada094e40729ea69cd7",
+    "hist_4dfc67649674869c9a47653c117a9d6f91b78499860dfa356093bf0257df750b",
+    "hist_04483a4e3168e420abaec067bc03ed78218a3cc7d314e5ef7e15eabd42a40642"
+  ],
+  "reused": false,
+  "evaluations": 5,
+  "publication_replays": 5
+}
+{
+  "validated_archives": 5,
+  "schema_version": 1,
+  "integrity": "INTEGRITY_VERIFIED"
+}
+{
+  "schema_version": 1,
+  "initialized": true
+}
+{
+  "validated_archives": 0,
+  "schema_version": 1,
+  "integrity": "INTEGRITY_VERIFIED"
+}

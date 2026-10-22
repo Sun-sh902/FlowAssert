@@ -1,0 +1,44 @@
+[
+  {
+    "event": "start",
+    "state": "dev-main",
+    "pid": 12214,
+    "at": "2026-10-22T14:04:16.242Z"
+  },
+  {
+    "event": "stop",
+    "state": "dev-main",
+    "pid": 12214,
+    "at": "2026-10-22T14:04:28.473Z",
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "event": "start",
+    "state": "dev-single",
+    "pid": 12343,
+    "at": "2026-10-22T14:04:29.049Z"
+  },
+  {
+    "event": "stop",
+    "state": "dev-single",
+    "pid": 12343,
+    "at": "2026-10-22T14:04:29.613Z",
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "event": "start",
+    "state": "dev-empty",
+    "pid": 12405,
+    "at": "2026-10-22T14:04:30.177Z"
+  },
+  {
+    "event": "stop",
+    "state": "dev-empty",
+    "pid": 12405,
+    "at": "2026-10-22T14:04:30.961Z",
+    "exit": 0,
+    "signal": null
+  }
+]

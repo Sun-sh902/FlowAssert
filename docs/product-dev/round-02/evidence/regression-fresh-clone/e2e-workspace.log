@@ -1,0 +1,44 @@
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+Running 32 tests using 1 worker
+
+  ✓   1 [chrome] › e2e-workspace/workspace.spec.ts:45:3 › archive: dev-main (2 archived evaluations per case) › Overview: live beside newest archived for each known case, bounded reads, own origin only (370ms)
+  ✓   2 [chrome] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Service status: reachable from the page's own reads, Check issues one permitted read (288ms)
+  ✓   3 [chrome] › e2e-workspace/workspace.spec.ts:76:3 › archive: dev-main (2 archived evaluations per case) › Verifications: capture and admission not implemented, live and archived verdicts, comparison (260ms)
+  ✓   4 [chrome] › e2e-workspace/workspace.spec.ts:88:3 › archive: dev-main (2 archived evaluations per case) › Detail: two archived evaluations of exactly this input — both listed, none chosen, both byte-identical (243ms)
+  ✓   5 [chrome] › e2e-workspace/workspace.spec.ts:105:3 › archive: dev-main (2 archived evaluations per case) › History entry: archived axes, and a link to the case's current result (282ms)
+  ✓   6 [chrome] › e2e-workspace/workspace.spec.ts:114:3 › archive: dev-main (2 archived evaluations per case) › Capture runs offers no action and sends nothing (159ms)
+  ✓   7 [chrome] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · light · 1440px · updated pages (1.5s)
+  ✓   8 [chrome] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · light · 375px · updated pages (1.4s)
+  ✓   9 [chrome] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · dark · 1440px · updated pages (1.4s)
+  ✓  10 [chrome] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · dark · 375px · updated pages (1.4s)
+  ✓  11 [chrome] › e2e-workspace/workspace.spec.ts:145:3 › archive: dev-main (2 archived evaluations per case) › no horizontal overflow at 375px on the updated pages (3.2s)
+  ✓  12 [chrome] › e2e-workspace/workspace.spec.ts:155:3 › archive: dev-main (2 archived evaluations per case) › screenshots of the implemented screens (after) (18.7s)
+  ✓  13 [chrome] › e2e-workspace/workspace.spec.ts:188:3 › archive: dev-single (exactly one archived evaluation per case) › Detail links to the one exactly matching archived evaluation (681ms)
+  ✓  14 [chrome] › e2e-workspace/workspace.spec.ts:212:3 › archive: dev-empty (valid, empty) › live verdicts still shown; every comparison is Not archived — never Unverified (208ms)
+  ✓  15 [chrome] › e2e-workspace/workspace.spec.ts:219:3 › archive: dev-empty (valid, empty) › Detail: no matching archived evaluation; the archive axis says Not archived (229ms)
+  ✓  16 [chrome] › e2e-workspace/workspace.spec.ts:230:3 › Service stopped › Overview and Verifications show Service unavailable — no verdict, no demo data; the status says so (544ms)
+  ✓  17 [webkit] › e2e-workspace/workspace.spec.ts:45:3 › archive: dev-main (2 archived evaluations per case) › Overview: live beside newest archived for each known case, bounded reads, own origin only (720ms)
+  ✓  18 [webkit] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Service status: reachable from the page's own reads, Check issues one permitted read (352ms)
+  ✓  19 [webkit] › e2e-workspace/workspace.spec.ts:76:3 › archive: dev-main (2 archived evaluations per case) › Verifications: capture and admission not implemented, live and archived verdicts, comparison (317ms)
+  ✓  20 [webkit] › e2e-workspace/workspace.spec.ts:88:3 › archive: dev-main (2 archived evaluations per case) › Detail: two archived evaluations of exactly this input — both listed, none chosen, both byte-identical (299ms)
+  ✓  21 [webkit] › e2e-workspace/workspace.spec.ts:105:3 › archive: dev-main (2 archived evaluations per case) › History entry: archived axes, and a link to the case's current result (351ms)
+  ✓  22 [webkit] › e2e-workspace/workspace.spec.ts:114:3 › archive: dev-main (2 archived evaluations per case) › Capture runs offers no action and sends nothing (200ms)
+  ✓  23 [webkit] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · light · 1440px · updated pages (1.4s)
+  ✓  24 [webkit] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · light · 375px · updated pages (1.5s)
+  ✓  25 [webkit] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · dark · 1440px · updated pages (1.4s)
+  ✓  26 [webkit] › e2e-workspace/workspace.spec.ts:125:7 › archive: dev-main (2 archived evaluations per case) › axe · dark · 375px · updated pages (1.4s)
+  ✓  27 [webkit] › e2e-workspace/workspace.spec.ts:145:3 › archive: dev-main (2 archived evaluations per case) › no horizontal overflow at 375px on the updated pages (3.3s)
+  -  28 [webkit] › e2e-workspace/workspace.spec.ts:155:3 › archive: dev-main (2 archived evaluations per case) › screenshots of the implemented screens (after)
+  ✓  29 [webkit] › e2e-workspace/workspace.spec.ts:188:3 › archive: dev-single (exactly one archived evaluation per case) › Detail links to the one exactly matching archived evaluation (348ms)
+  ✓  30 [webkit] › e2e-workspace/workspace.spec.ts:212:3 › archive: dev-empty (valid, empty) › live verdicts still shown; every comparison is Not archived — never Unverified (280ms)
+  ✓  31 [webkit] › e2e-workspace/workspace.spec.ts:219:3 › archive: dev-empty (valid, empty) › Detail: no matching archived evaluation; the archive axis says Not archived (264ms)
+  ✓  32 [webkit] › e2e-workspace/workspace.spec.ts:230:3 › Service stopped › Overview and Verifications show Service unavailable — no verdict, no demo data; the status says so (321ms)
+
+  1 skipped
+  31 passed (56.1s)

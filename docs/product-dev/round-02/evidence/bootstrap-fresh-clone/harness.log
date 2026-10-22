@@ -1,0 +1,162 @@
+{
+ "runtime": "/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/32c282f8-16e5-4e73-bd8f-549a3f7a0056/scratchpad/r2/clone/ui/.phase3a-runtime/FlowAssert-Phase3A-Service",
+ "backend_map": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+ "tree_files": 2042,
+ "problems": []
+}
+{
+ "ui-main": {
+  "initial": [
+   "hist_9e240d8a3743b063a4872c333e95e13e225ab93cf6e13cd53b633aa7efd0bd21",
+   "hist_fd02ae2617ed199f21bcdf4f585fcb12f9dddb35e6e761f89470e752766010d0",
+   "hist_5238e860993e5fa9a9a9a457e117348bbd7cb3702efd2ab6947e4a6d4e764878",
+   "hist_deb74dcd0ad973f307e060bd0d49598cc0ac1525d2848555772e74b94cf03822",
+   "hist_0c331cd5444ed12dcf965352a58a123a6725b23ad9723d701ab972f40df7dc08"
+  ],
+  "reevaluated": [
+   "hist_c27f25e95eb5c6b02cae646c1d8f8121959db2d1cd9ae7c5a4a95285c641a728",
+   "hist_e1411d47bdd7e56d8c954b8230ac19dd13738a7d224d04540cce8e0ee84d7210",
+   "hist_fb84424cea39fd5a1890a2ef5b6131c667b7ce88ee6e6df64a000b0ce7bde077",
+   "hist_9970649e99fd3acbc4f77f323ddd68fc36246ceb669535ef06051f85a1519de5",
+   "hist_78a5c5e81707805b139474faa9eb002db97f7f485d03c5ea0ba569e8972a8b26"
+  ],
+  "source_set_sha256": "9827338a8d8b2e05611f988ca78cf3fd461b98609f007b7c383e06e9ca8bbbeb",
+  "check": {
+   "validated_archives": 10,
+   "schema_version": 1,
+   "integrity": "INTEGRITY_VERIFIED"
+  }
+ },
+ "ui-empty": {
+  "check": {
+   "validated_archives": 0,
+   "schema_version": 1,
+   "integrity": "INTEGRITY_VERIFIED"
+  }
+ },
+ "ui-corrupt": {
+  "history_ids": [
+   "hist_45d55efb3cc56d4dc636b8cfa818c83bbccb6293e5dac5ffa14831baed41b79a",
+   "hist_6ac6612c3001a46296b6e653a58d27e26fdf9ccde92ecf3b70a3aaae44c32c5d",
+   "hist_0ea360261ae9d8976561a217fc73b379b8187e193dbdfe76c1f96a9988f1331e",
+   "hist_9c96e1512f34aadfcc85198fc284559009518a8ca7c5b4abed3300e7dd1afb88",
+   "hist_0fec250cce1f5277a2d0555330b105322994d42cf7e3ccde8533712dd0ef90b0"
+  ],
+  "damage": {
+   "label": "ui-corrupt-damage",
+   "state": "ui-corrupt",
+   "history_id": "hist_6ac6612c3001a46296b6e653a58d27e26fdf9ccde92ecf3b70a3aaae44c32c5d",
+   "verification_id": "SPEC-002",
+   "position": 0,
+   "reference_id": "SPEC-002-source",
+   "mode": "different-content",
+   "old_payload_sha256": "10f612193c2385c459ba6ab86f4008de11512723e60f185e17ced87454c102d1",
+   "new_payload_sha256": "13e3f5713fc59870f52dc87912ce285eaa05d8c15e5d1bab8f3db61d737665dd",
+   "db_mode_before": "0o600",
+   "db_mode_after": "0o600",
+   "nlink": 1,
+   "side_files": []
+  }
+ },
+ "ui-unverifiable": {
+  "history_ids": [
+   "hist_4507536140f9ae1fa50241a658a4cd13dab27f321473770da513ad39a38a16eb",
+   "hist_6ad8ab9fae99e0aa3943d1811e68c0d2a5037d3b07d023221dde46afe8a63a1d",
+   "hist_eb8978fac9ca9039211ac9fd2fa62d251477223ed65eed8a80a7750b19b91ea0",
+   "hist_8ddfb5d1a741387b1d602d3703808c696e643f3a91de5b977d7e35e9d51abfeb",
+   "hist_3c8006a9b37b743dfeca1118ec3edde97497a3d50c386b7eb2efe411c75dcfde"
+  ],
+  "damage": {
+   "label": "ui-unverifiable-damage",
+   "state": "ui-unverifiable",
+   "history_id": "hist_eb8978fac9ca9039211ac9fd2fa62d251477223ed65eed8a80a7750b19b91ea0",
+   "verification_id": "SPEC-003",
+   "position": 1,
+   "reference_id": "SPEC-003-destination",
+   "mode": "null-payload",
+   "old_payload_sha256": "cd7ce031d8aed9efe0c42b8f3d18976787a7d964c891c9ac4583ab85452fc612",
+   "new_payload_sha256": null,
+   "db_mode_before": "0o600",
+   "db_mode_after": "0o600",
+   "nlink": 1,
+   "side_files": []
+  }
+ }
+}
+{
+ "SPEC-001": {
+  "cohort_state": "Verified",
+  "records": [
+   "Verified"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-002": {
+  "cohort_state": "Mismatch",
+  "records": [
+   "Mismatch"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-003": {
+  "cohort_state": "Pending",
+  "records": [
+   "Pending"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-004": {
+  "cohort_state": "Unverified",
+  "records": [
+   "Unverified"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-005": {
+  "cohort_state": "Unverified",
+  "records": [
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified"
+  ],
+  "expected_total": null,
+  "source_population_known": false
+ }
+}
+{
+ "problems": [],
+ "backend_source_sha256": {
+  "handoff": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+  "recomputed_from_copy": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+  "pinned": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45"
+ },
+ "contract": {
+  "original": "59ac38631982147b547ed2dae57ab4e8b2d218e3fa718861eb0c5828befcd8ae",
+  "copied": "59ac38631982147b547ed2dae57ab4e8b2d218e3fa718861eb0c5828befcd8ae",
+  "pinned": "59ac38631982147b547ed2dae57ab4e8b2d218e3fa718861eb0c5828befcd8ae"
+ },
+ "venv": {
+  "entries": 1900,
+  "identical": true,
+  "aggregate_sha256": "9ec8e5830d3404c5addf9ba893bf85048b0b594d35136d5b7789edda5f460691"
+ }
+}
+{
+ "service_files": 34,
+ "all_match": true,
+ "venv_files": 3381,
+ "problems": []
+}

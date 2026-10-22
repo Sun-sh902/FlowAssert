@@ -1,0 +1,13 @@
+gate	exit	started_utc	command
+backend-pytest	0	2026-10-22T14:01:03Z	env LC_ALL=C PYTHONDONTWRITEBYTECODE=1 TMPDIR=/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/32c282f8-16e5-4e73-bd8f-549a3f7a0056/scratchpad/r2/clone/service/.runtime/tmp FLOWASSERT_PROTECTED_PARENT=/Users/zhangshenghe/Documents .venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/32c282f8-16e5-4e73-bd8f-549a3f7a0056/scratchpad/r2/clone/service/.runtime/tmp/regression-fresh-clone -q tests
+pinned-identities	0	2026-10-22T14:01:21Z	/usr/bin/python3 -I -B scripts/dev/check_identities.py
+ui-typecheck	0	2026-10-22T14:01:21Z	npx tsc -b
+ui-lint	0	2026-10-22T14:01:25Z	npx oxlint
+ui-vitest	0	2026-10-22T14:01:26Z	npx vitest run
+e2e-static	0	2026-10-22T14:01:36Z	env FA_BROWSERS=chrome,webkit npx playwright test
+rules-cls-repeat	0	2026-10-22T14:02:27Z	npx playwright test e2e/perf.spec.ts --repeat-each=20
+rules-cls-probe	0	2026-10-22T14:03:02Z	sh -c npx vite build >/dev/null && (npx vite preview --port 4184 --strictPort >/dev/null 2>&1 &);   for i in 1 2 3 4 5 6 7 8 9 10; do curl -s --noproxy '*' -o /dev/null http://127.0.0.1:4184/ && break; sleep 1; done;   node scripts/dev/cls-probe.mjs http://127.0.0.1:4184/ '#/rules' 30 '/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/32c282f8-16e5-4e73-bd8f-549a3f7a0056/scratchpad/r2/clone/.dev-runtime/regression/fresh-clone/rules-cls-probe.json'; rc=$?; pkill -f 'vite preview --port 4184';   node -e 'const r=require(process.argv[1]); process.exit(r.some(x=>x.cls>=0.1)?1:0)' '/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/32c282f8-16e5-4e73-bd8f-549a3f7a0056/scratchpad/r2/clone/.dev-runtime/regression/fresh-clone/rules-cls-probe.json' && exit $rc
+e2e-workspace	0	2026-10-22T14:03:34Z	env FA_BROWSERS=chrome,webkit npx playwright test -c playwright.workspace.config.ts
+e2e-history	0	2026-10-22T14:04:31Z	env FA_BROWSERS=chrome,webkit npx playwright test -c playwright.history.config.ts
+e2e-lookup	1	2026-10-22T14:06:29Z	env FA_BROWSERS=chrome,webkit npx playwright test -c playwright.lookup.config.ts
+e2e-local	1	2026-10-22T14:08:13Z	env FA_BROWSERS=chrome,webkit npx playwright test -c playwright.local.config.ts
