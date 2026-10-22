@@ -1,0 +1,33 @@
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+Running 21 tests using 1 worker
+
+  ✓   1 [chrome] › e2e-local/local-research.spec.ts:65:3 › SPEC-001 · real HTTP chain: service result = evaluator result = rendered result; evidence bound to the Detail (388ms)
+  ✓   2 [chrome] › e2e-local/local-research.spec.ts:65:3 › SPEC-002 · real HTTP chain: service result = evaluator result = rendered result; evidence bound to the Detail (288ms)
+  ✓   3 [chrome] › e2e-local/local-research.spec.ts:65:3 › SPEC-003 · real HTTP chain: service result = evaluator result = rendered result; evidence bound to the Detail (295ms)
+  ✓   4 [chrome] › e2e-local/local-research.spec.ts:65:3 › SPEC-004 · real HTTP chain: service result = evaluator result = rendered result; evidence bound to the Detail (250ms)
+  ✓   5 [chrome] › e2e-local/local-research.spec.ts:65:3 › SPEC-005 · real HTTP chain: service result = evaluator result = rendered result; evidence bound to the Detail (276ms)
+  ✓   6 [chrome] › e2e-local/local-research.spec.ts:148:1 › SPEC-004 · denied read and missing observation time stay unavailable in the browser (168ms)
+  ✓   7 [chrome] › e2e-local/local-research.spec.ts:156:1 › payload omission by request: include_payload=false, stored availability unchanged (229ms)
+  ✓   8 [chrome] › e2e-local/local-research.spec.ts:174:1 › 10 · a tampered cursor sent to the real Service is rejected 400 invalid_cursor — a request error, not a verdict (326ms)
+  ✓   9 [chrome] › e2e-local/local-research.spec.ts:200:1 › 11 · real Service restart between pages: old cursor → 409, nothing merged, explicit re-read takes the new snapshot (1.2s)
+  ✓  10 [chrome] › e2e-local/local-research.spec.ts:235:1 › 12 · Service stopped: SERVICE_UNAVAILABLE, no seal, no demo data — then a real read once it is back (825ms)
+  ✓  11 [chrome] › e2e-local/local-research.spec.ts:257:1 › 12 · real 503 from the Service (cursor key unusable) is SERVICE_UNAVAILABLE with its code — never Unverified (1.2s)
+  ✓  12 [chrome] › e2e-local/local-research.spec.ts:277:1 › 404 · an unknown ID is not found, answered by the real Service (160ms)
+  ✓  13 [chrome] › e2e-local/local-research.spec.ts:288:1 › 13 · malformed responses fail closed (a corrupted copy of a real Service body) (364ms)
+  ✓  14 [chrome] › e2e-local/local-research.spec.ts:322:1 › cancellation and late responses: nothing published after cancel or navigation (4.3s)
+  ✓  15 [chrome] › e2e-local/local-research.spec.ts:348:1 › 14 · UIA-009: a real response with n8n_label null renders, keeps search working, and searches no fallback (239ms)
+  ✓  16 [chrome] › e2e-local/local-research.spec.ts:369:1 › mode separation: demo pages stay MOCK and never call the Service; local pages always show their mode (478ms)
+  ✓  17 [chrome] › e2e-local/local-research.spec.ts:393:1 › accessibility and layout of the local pages (axe, both themes, 375–1440 px) (6.1s)
+  -  18 [chrome] › e2e-local/screenshots.spec.ts:31:3 › local pages · light
+  -  19 [chrome] › e2e-local/screenshots.spec.ts:50:3 › local failure states · light
+  -  20 [chrome] › e2e-local/screenshots.spec.ts:31:3 › local pages · dark
+  -  21 [chrome] › e2e-local/screenshots.spec.ts:50:3 › local failure states · dark
+
+  4 skipped
+  17 passed (24.3s)

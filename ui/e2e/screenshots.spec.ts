@@ -39,21 +39,21 @@ for (const theme of THEMES) {
 
   test(`detail not found · ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await open(page, "#/verifications/VR-9999", theme);
+    await open(page, "#/demo/verifications/VR-9999", theme);
     await page.waitForTimeout(400);
     await page.screenshot({ path: join(DIR, `${theme}-detail-not-found-1440x900.png`) });
   });
 
   test(`regression views · ${theme}`, async ({ page }) => {
     for (const [name, hash, w] of [
-      ["overview", "#/", 1440],
-      ["detail", "#/verifications/VR-2025", 1440],
-      ["verifications", "#/verifications", 1024],
+      ["overview", "#/demo", 1440],
+      ["detail", "#/demo/verifications/VR-2025", 1440],
+      ["verifications", "#/demo/verifications", 1024],
       ["connections", "#/connections", 768],
       ["rules", "#/rules", 1280],
       ["settings", "#/settings", 1440],
-      ["detail", "#/verifications/VR-2025", 375],
-      ["overview", "#/", 375],
+      ["detail", "#/demo/verifications/VR-2025", 375],
+      ["overview", "#/demo", 375],
     ] as const) {
       await page.setViewportSize({ width: w, height: w < 768 ? 812 : 900 });
       await open(page, hash, theme);
@@ -63,7 +63,7 @@ for (const theme of THEMES) {
 
   test(`mobile drawer · ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await open(page, "#/verifications/VR-2025", theme);
+    await open(page, "#/demo/verifications/VR-2025", theme);
     await page.getByRole("button", { name: "Open navigation" }).click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: join(DIR, `${theme}-drawer-focus-trap-375.png`) });

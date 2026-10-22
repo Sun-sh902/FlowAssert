@@ -227,7 +227,7 @@ describe("UIA-002 · drawer focus stays inside after a click on non-interactive 
   beforeEach(() => resetThemePreference());
 
   async function openDrawer() {
-    const app = renderApp("#/verifications");
+    const app = renderApp("#/demo/verifications");
     await app.user.click(screen.getByRole("button", { name: "Open navigation" }));
     const dialog = screen.getByRole("dialog", { name: "Navigation" });
     const panel = dialog.lastElementChild as HTMLElement;
@@ -304,7 +304,7 @@ describe("UIA-006 · scroll lock and breakpoint cleanup", () => {
 
   it("widening to desktop while open closes the drawer, restores scroll, removes its listeners and keeps focus in the page", async () => {
     const media = controllableMedia();
-    const { user } = renderApp("#/verifications");
+    const { user } = renderApp("#/demo/verifications");
     await user.click(screen.getByRole("button", { name: "Open navigation" }));
     expect(media.listeners(DESKTOP)).toBe(1);
     media.set(DESKTOP, true);
@@ -417,7 +417,7 @@ describe("UIA-007 · the evidence table is a reachable, named scroll region only
 
 describe("UIA-008 · Detail NOT_FOUND has a top-level heading", () => {
   it("names the missing run in the page's only h1, with the notice's existing type style", () => {
-    renderApp("#/verifications/VR-9999");
+    renderApp("#/demo/verifications/VR-9999");
     const h1s = screen.getAllByRole("heading", { level: 1 });
     expect(h1s).toHaveLength(1);
     expect(h1s[0]!.textContent).toBe("No verification run VR-9999");

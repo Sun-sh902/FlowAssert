@@ -50,21 +50,30 @@ interface NavItem {
   match: (r: Route) => boolean;
 }
 
+/** The product: pages that read the local Python service (LOCAL_RESEARCH). */
 const NAV: NavItem[] = [
-  { n: "01", label: "Overview", href: "#/", match: (r: Route) => r.name === "overview" },
-  { n: "02", label: "Verifications", href: "#/verifications", match: (r: Route) => r.name === "verifications" || r.name === "verification" },
-];
-/** Pages that read the local Python service (LOCAL_RESEARCH). Kept apart from the demo pages. */
-const LOCAL_NAV: NavItem[] = [
-  { n: "06", label: "Local research", href: "#/local/verifications", match: (r: Route) => r.name === "local-verifications" || r.name === "local-verification" || r.name === "local-lookup" },
+  { n: "01", label: "Overview", href: "#/", match: (r: Route) => r.name === "workspace" },
+  {
+    n: "02",
+    label: "Verifications",
+    href: "#/verifications",
+    match: (r: Route) => r.name === "local-verifications" || r.name === "local-verification" || r.name === "local-lookup",
+  },
   // Phase 3A: archived evaluations from the Service's local SQLite archive.
-  { n: "07", label: "History", href: "#/local/history", match: isHistoryRoute },
+  { n: "03", label: "History", href: "#/local/history", match: isHistoryRoute },
+  // Not implemented: the page says so and offers no action.
+  { n: "04", label: "Capture runs", href: "#/capture", match: (r: Route) => r.name === "capture" },
 ];
 /** Configuration pages: synthetic, nothing connected. */
 const DEMO_NAV: NavItem[] = [
-  { n: "03", label: "Connections", href: "#/connections", match: (r: Route) => r.name === "connections" },
-  { n: "04", label: "Rules", href: "#/rules", match: (r: Route) => r.name === "rules" },
-  { n: "05", label: "Settings", href: "#/settings", match: (r: Route) => r.name === "settings" || r.name === "states" },
+  { n: "05", label: "Connections", href: "#/connections", match: (r: Route) => r.name === "connections" },
+  { n: "06", label: "Rules", href: "#/rules", match: (r: Route) => r.name === "rules" },
+  { n: "07", label: "Settings", href: "#/settings", match: (r: Route) => r.name === "settings" || r.name === "states" },
+];
+/** The MOCK demo: synthetic fixtures, nothing read from any service. */
+const MOCK_NAV: NavItem[] = [
+  { n: "08", label: "Demo overview", href: "#/demo", match: (r: Route) => r.name === "demo-overview" },
+  { n: "09", label: "Demo runs", href: "#/demo/verifications", match: (r: Route) => r.name === "demo-verifications" || r.name === "demo-verification" },
 ];
 
 function NavItems({ items, route, onNavigate }: { items: NavItem[]; route: Route; onNavigate?: () => void }) {
@@ -98,18 +107,23 @@ function NavItems({ items, route, onNavigate }: { items: NavItem[]; route: Route
 function NavList({ route, onNavigate }: { route: Route; onNavigate?: () => void }) {
   return (
     <nav aria-label="Primary">
-      <NavItems items={NAV} route={route} onNavigate={onNavigate} />
+      <p id="nav-local" className="kicker mb-1 flex items-center justify-between text-ink-3">
+        Workspace <span className="rounded-[2px] bg-brand-soft px-1 text-[9px] tracking-[0.1em] text-brand-ink">local</span>
+      </p>
+      <div aria-labelledby="nav-local">
+        <NavItems items={NAV} route={route} onNavigate={onNavigate} />
+      </div>
       <p id="nav-demo" className="kicker mt-5 mb-1 flex items-center justify-between text-ink-3">
         Configure <span className="rounded-[2px] border border-dashed border-line-strong px-1 text-[9px] tracking-[0.1em] text-ink-3">demo</span>
       </p>
       <div aria-labelledby="nav-demo">
         <NavItems items={DEMO_NAV} route={route} onNavigate={onNavigate} />
       </div>
-      <p id="nav-local" className="kicker mt-5 mb-1 flex items-center justify-between text-ink-3">
-        Research <span className="rounded-[2px] bg-brand-soft px-1 text-[9px] tracking-[0.1em] text-brand-ink">local</span>
+      <p id="nav-mock" className="kicker mt-5 mb-1 flex items-center justify-between text-ink-3">
+        Demo register <span className="rounded-[2px] border border-dashed border-line-strong px-1 text-[9px] tracking-[0.1em] text-ink-3">mock</span>
       </p>
-      <div aria-labelledby="nav-local">
-        <NavItems items={LOCAL_NAV} route={route} onNavigate={onNavigate} />
+      <div aria-labelledby="nav-mock">
+        <NavItems items={MOCK_NAV} route={route} onNavigate={onNavigate} />
       </div>
     </nav>
   );
@@ -156,7 +170,7 @@ function RailFooter({ local }: { local: boolean }) {
         {local ? (
           <>
             <p className="kicker mb-0.5 text-ink-2">Local research register</p>
-            LOCAL_RESEARCH: read from the local Python service. Synthetic input. Demo pages stay MOCK.
+            LOCAL_RESEARCH: read from the local Python service. Synthetic input. Configure and Demo pages stay MOCK.
           </>
         ) : (
           <>
@@ -215,7 +229,7 @@ function TopBar({ crumbs, local }: { crumbs: ReactNode; local: boolean }) {
             </div>
             <div>
               <dt className="mb-1 font-semibold text-ink">Not shown or proven</dt>
-              <dd>No live n8n or HubSpot read, no authenticated evidence, no real customer verification, no workflow causality, no release approval. Overview and the other pages are the MOCK demo.</dd>
+              <dd>No capture run, no evidence admission, no live n8n or HubSpot read, no authenticated evidence, no real customer verification, no workflow causality, no release approval. The Configure and Demo pages are the MOCK demo.</dd>
             </div>
           </dl>
         ) : (
@@ -230,7 +244,7 @@ function TopBar({ crumbs, local }: { crumbs: ReactNode; local: boolean }) {
           </div>
           <div>
             <dt className="mb-1 font-semibold text-ink">Not implemented</dt>
-            <dd>n8n and HubSpot integrations, source connectors, authentication, scheduling and authenticated evidence acquisition. The Local research pages read a local synthetic research service.</dd>
+            <dd>n8n and HubSpot integrations, source connectors, authentication, scheduling and authenticated evidence acquisition. The Workspace pages read a local synthetic research service.</dd>
           </div>
         </dl>
         )}

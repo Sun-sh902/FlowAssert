@@ -362,13 +362,13 @@ test("14 · UIA-009: a real response with n8n_label null renders, keeps search w
   await expect(page.locator("[data-row-id]")).toHaveCount(1);
   await page.unroute("**/api/v1/verifications/SPEC-005");
   // The MOCK list search is null-safe as well.
-  await openLocal(page, "#/verifications?q=label%20unavailable");
+  await openLocal(page, "#/demo/verifications?q=label%20unavailable");
   await expect(page.getByText("No runs match")).toBeVisible();
 });
 
 test("mode separation: demo pages stay MOCK and never call the Service; local pages always show their mode", async ({ page }) => {
   const net = captureNetwork(page);
-  for (const hash of ["#/", "#/verifications", "#/verifications/VR-2025", "#/connections", "#/rules", "#/settings"]) {
+  for (const hash of ["#/demo", "#/demo/verifications", "#/demo/verifications/VR-2025", "#/connections", "#/rules", "#/settings"]) {
     await openLocal(page, hash);
     await expect(page.getByRole("region", { name: "Demo register" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Data provenance" })).toHaveCount(0);
@@ -379,10 +379,14 @@ test("mode separation: demo pages stay MOCK and never call the Service; local pa
     expect(total - inRegister, hash).toBe(0);
   }
   expect(net.all).toEqual([]);
+  // Product round 01: the case list is built from the Phase 3A archive. The Phase 2 Service has no history
+  // routes, so the list reads once, is answered without a FlowAssert envelope, and shows no verdict.
   await openLocal(page, "#/local/verifications");
   await expect(page.getByRole("region", { name: "Local research register" })).toBeVisible();
+  await expect(page.locator('[data-access="SERVICE_UNAVAILABLE"]')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".fa-seal")).toHaveCount(0); // no verdict without a read
-  expect(net.all).toEqual([]); // the case index makes no request
+  await net.settle();
+  expect(net.all.map((x) => x.pathAndQuery.split("?")[0])).toEqual(["/api/v1/history"]);
   expectOnlyAppOrigin(net.hosts);
 });
 

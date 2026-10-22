@@ -30,6 +30,8 @@ import { useEvidenceAcquisition } from "../lib/useEvidenceAcquisition";
 import { useHistoryList } from "../lib/useHistoryList";
 import { useProviderRead } from "../lib/useProviderRead";
 import { DetailBody } from "./VerificationDetail";
+import { StatusAxesLedger } from "../components/workspace/StatusAxes";
+import { ADMISSION_NOT_IMPLEMENTED, CAPTURE_NOT_IMPLEMENTED, archivedVerdict } from "../domain/statusAxes";
 
 type CaseFilter = "all" | (typeof HISTORY_CASE_FILTERS)[number];
 
@@ -331,6 +333,15 @@ function HistoryEntryLoaded({ detail, location, provider, onReread }: { detail: 
   return (
     <div data-history-entry={detail.historyId}>
       <HistoryProvenance detail={detail} evidence={evidenceState} onReread={onReread} />
+      <StatusAxesLedger
+        className="mb-10"
+        axes={{
+          capture: CAPTURE_NOT_IMPLEMENTED,
+          admission: ADMISSION_NOT_IMPLEMENTED,
+          archive: { axis: "archive", kind: "THIS_ENTRY", historyId: detail.historyId, archivedAt: detail.archivedAt, integrity: detail.integrity.status },
+          verdict: archivedVerdict(detail),
+        }}
+      />
       <DetailBody
         run={detail.run}
         location={location}

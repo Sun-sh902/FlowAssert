@@ -47,7 +47,7 @@ for (const theme of THEMES) {
 
   test(`axe · ${theme} · mobile drawer open`, async ({ page, browserName }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await open(page, "#/verifications/VR-2025", theme);
+    await open(page, "#/demo/verifications/VR-2025", theme);
     await page.getByRole("button", { name: "Open navigation" }).click();
     await page.getByRole("dialog", { name: "Navigation" }).waitFor();
     await page.waitForTimeout(400); // let the drawer's fade-in finish so contrast is measured at rest

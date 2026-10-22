@@ -103,7 +103,7 @@ function Exhibits() {
                 return (
                   <li key={run.id} className="border-b border-line-subtle last:border-0">
                     <a
-                      href={href(`/verifications/${run.id}`, { state: run.state === "Unverified" ? null : run.state })}
+                      href={href(`/demo/verifications/${run.id}`, { state: run.state === "Unverified" ? null : run.state })}
                       className="grid grid-cols-[40px_minmax(0,1fr)_auto] gap-3 px-4 py-4 transition-colors duration-(--fa-dur-fast) hover:bg-hover sm:grid-cols-[48px_minmax(0,1fr)_auto] sm:px-5"
                     >
                       <span className="font-display text-[28px] leading-[0.9] text-ink-4 italic" aria-hidden data-ornament>
@@ -168,7 +168,7 @@ export function Overview() {
 
       <div className="mt-11 mb-3.5 flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
         <h2 className="display text-2xl text-ink">Traces</h2>
-        <a href="#/verifications" className="fa-hit inline-flex items-center gap-1 rounded-xs text-xs font-medium text-ink-2 hover:text-ink">
+        <a href="#/demo/verifications" className="fa-hit inline-flex items-center gap-1 rounded-xs text-xs font-medium text-ink-2 hover:text-ink">
           All verifications <ArrowRight size={13} aria-hidden />
         </a>
       </div>

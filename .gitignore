@@ -13,3 +13,15 @@ __pycache__/
 service/.runtime/
 service/.state/
 .dev-runtime/
+# accepted Phase 3A E2E harness runtime and its generated evidence (recreated by ui/scripts/phase3a/*)
+ui/.phase3a-runtime/
+ui/.phase3a-lookup-runtime/
+ui/.phase3a-tmp/
+ui/docs/phase3a/
+ui/docs/phase3a/id-addressability-remediation-03/
+ui/test-results-history/
+ui/test-results-lookup/
+ui/test-results-workspace/
+ui/.phase2-runtime/
+ui/docs/phase2/
+ui/test-results-local/

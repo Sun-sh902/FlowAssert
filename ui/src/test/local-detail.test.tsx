@@ -257,26 +257,23 @@ describe.skipIf(!handoffPresent)("async safety with a provider that ignores Abor
 });
 
 describe("routing and mode separation", () => {
-  it("lists the five reviewed IDs with no verdict and links each to its local case", () => {
-    renderApp("#/local/verifications");
-    const links = screen.getAllByRole("link", { name: /SPEC-00\d/ });
-    expect(links.map((a) => (a as HTMLAnchorElement).hash)).toEqual(["SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-005"].map((id) => `#/local/verifications/${id}`));
-    expect(document.querySelector(".fa-seal")).toBeNull();
-    expect(screen.getByText(/no result is shown until a case is opened/i)).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Local research register" })).toBeTruthy();
-  });
-
   it("keeps the demo pages on MOCK with the demo register", () => {
-    renderApp("#/verifications");
+    renderApp("#/demo/verifications");
     expect(screen.getByRole("region", { name: "Demo register" })).toBeTruthy();
     expect(screen.queryByText("LOCAL_RESEARCH")).toBeNull();
   });
 
-  it("puts Local research in its own navigation group", () => {
-    renderApp("#/local/verifications");
-    const nav = screen.getAllByRole("navigation", { name: "Primary" })[0]!;
-    expect(within(nav).getByRole("link", { name: /Local research/ }).getAttribute("aria-current")).toBe("page");
-    expect(within(nav).getByRole("link", { name: /Verifications/ }).getAttribute("aria-current")).toBeNull();
+  it("marks Verifications current on local case routes and keeps the demo runs apart", () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    try {
+      renderApp("#/local/verifications/SPEC-001");
+      const nav = screen.getAllByRole("navigation", { name: "Primary" })[0]!;
+      expect(within(nav).getByRole("link", { name: "Verifications" }).getAttribute("aria-current")).toBe("page");
+      expect(within(nav).getByRole("link", { name: /Demo runs/ }).getAttribute("aria-current")).toBeNull();
+      expect(screen.getByRole("region", { name: "Local research register" })).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

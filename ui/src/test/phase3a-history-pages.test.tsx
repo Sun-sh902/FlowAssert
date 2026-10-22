@@ -387,25 +387,35 @@ describe.skipIf(!historyExamplesPresent)("async and snapshot safety across histo
 });
 
 describe("navigation and mode separation", () => {
-  it("adds one History entry to the Research group; it is current only on history routes", () => {
+  it("puts History in the Workspace group; it is current only on history routes", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
     try {
       renderApp("#/local/history");
       const nav = screen.getAllByRole("navigation", { name: "Primary" })[0]!;
       expect(within(nav).getByRole("link", { name: /History/ }).getAttribute("aria-current")).toBe("page");
-      expect(within(nav).getByRole("link", { name: /Local research/ }).getAttribute("aria-current")).toBeNull();
-      expect(within(nav).getAllByRole("link").map((a) => a.textContent)).toEqual(["01Overview", "02Verifications", "03Connections", "04Rules", "05Settings", "06Local research", "07History"]);
+      expect(within(nav).getByRole("link", { name: "Verifications" }).getAttribute("aria-current")).toBeNull();
+      expect(within(nav).getAllByRole("link").map((a) => a.textContent)).toEqual([
+        "01Overview",
+        "02Verifications",
+        "03History",
+        "04Capture runs",
+        "05Connections",
+        "06Rules",
+        "07Settings",
+        "08Demo overview",
+        "09Demo runs",
+      ]);
       expect(screen.getByRole("region", { name: "Local research register" })).toBeTruthy();
     } finally {
       vi.unstubAllGlobals();
     }
   });
 
-  it("demo pages and the local case index never call the history API (or any API)", () => {
+  it("demo pages and Capture runs never call the history API (or any API)", () => {
     const stub = vi.fn(() => new Promise(() => {}));
     vi.stubGlobal("fetch", stub);
     try {
-      for (const hash of ["#/", "#/verifications", "#/verifications/VR-2025", "#/connections", "#/rules", "#/settings", "#/local/verifications"]) {
+      for (const hash of ["#/demo", "#/demo/verifications", "#/demo/verifications/VR-2025", "#/connections", "#/rules", "#/settings", "#/capture"]) {
         const { unmount } = renderApp(hash);
         unmount();
       }

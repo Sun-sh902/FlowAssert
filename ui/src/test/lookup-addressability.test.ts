@@ -197,8 +197,16 @@ describe("router: #/local/verification-lookup", () => {
     expect(parseHash("#/local/verifications/SPEC-001").route).toEqual({ name: "local-verification", id: "SPEC-001" });
     expect(parseHash("#/local/verifications/x%2Fevidence").route).toEqual({ name: "local-verification", id: "x/evidence" });
     expect(parseHash("#/local/verifications/100%").route).toEqual({ name: "local-verification", id: "100%", malformed: true });
-    expect(parseHash("#/verifications/VR-2025?record=r1").route).toEqual({ name: "verification", id: "VR-2025" });
-    expect(parseHash("#/verifications/VR-2025?record=r1").params.get("record")).toBe("r1");
+    expect(parseHash("#/demo/verifications/VR-2025?record=r1").route).toEqual({ name: "demo-verification", id: "VR-2025" });
+    expect(parseHash("#/demo/verifications/VR-2025?record=r1").params.get("record")).toBe("r1");
+    // Product round 01: the workspace pages are LOCAL_RESEARCH; the MOCK demo moved under #/demo.
+    expect(parseHash("#/").route).toEqual({ name: "workspace" });
+    expect(parseHash("#/verifications").route).toEqual({ name: "local-verifications" });
+    expect(parseHash("#/local/verifications").route).toEqual({ name: "local-verifications" });
+    expect(parseHash("#/capture").route).toEqual({ name: "capture" });
+    expect(parseHash("#/demo").route).toEqual({ name: "demo-overview" });
+    expect(parseHash("#/demo/verifications").route).toEqual({ name: "demo-verifications" });
+    expect(parseHash("#/verifications/VR-2025").route).toEqual({ name: "not-found" });
     expect(parseHash("#/local/verification-lookup/x").route).toEqual({ name: "not-found" });
     expect(parseHash("#/local/history?case=SPEC-005").route).toEqual({ name: "local-history" });
   });

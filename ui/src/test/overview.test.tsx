@@ -11,7 +11,7 @@ const cellStates = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>
 
 describe("Overview", () => {
   it("states the day's finding from cohort counts of the latest runs", () => {
-    renderApp("#/");
+    renderApp("#/demo");
     const c = cohortCounts(latestRuns);
     // Fixture shape: 1 Mismatch, 2 Unverified, 1 Pending, 1 Verified among the five latest runs.
     expect(c).toEqual({ Verified: 1, Mismatch: 1, Pending: 1, Unverified: 2 });
@@ -20,7 +20,7 @@ describe("Overview", () => {
   });
 
   it("totals record results in the ledger, by state, with percentages", () => {
-    renderApp("#/");
+    renderApp("#/demo");
     const r = sumCounts(latestRuns);
     const total = STATES.reduce((n, s) => n + r[s], 0);
     const ledger = screen.getByRole("heading", { name: `Record results · ${total} records` }).parentElement!;
@@ -31,15 +31,15 @@ describe("Overview", () => {
   });
 
   it("draws one trace per workflow, with an accessible description of its record results", () => {
-    renderApp("#/");
+    renderApp("#/demo");
     const traces = screen.getByRole("region", { name: /Workflow traces/ });
     const imgs = within(traces).getAllByRole("img");
     expect(imgs).toHaveLength(latestRuns.length);
-    for (const run of latestRuns) expect(within(traces).getByRole("link", { name: `Open ${run.id} →` })).toHaveProperty("hash", `#/verifications/${run.id}`);
+    for (const run of latestRuns) expect(within(traces).getByRole("link", { name: `Open ${run.id} →` })).toHaveProperty("hash", `#/demo/verifications/${run.id}`);
   });
 
   it("groups exhibits by what to do, and never lists a Verified run", () => {
-    renderApp("#/");
+    renderApp("#/demo");
     expect(screen.getByRole("region", { name: "Contradicted by evidence" })).toBeTruthy();
     expect(screen.getByText("Contradicted by evidence · 1")).toBeTruthy();
     expect(screen.getByText("Inconclusive · 2")).toBeTruthy();

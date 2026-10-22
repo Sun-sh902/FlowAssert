@@ -20,7 +20,7 @@ export function searchRuns(list: readonly RunView[], q: string): RunView[] {
 }
 
 export function Verifications({ location }: { location: Location }) {
-  const setParams = useReplaceParams("/verifications");
+  const setParams = useReplaceParams("/demo/verifications");
   const stateParam = location.params.get("state");
   const filter: Filter = STATES.includes(stateParam as VerificationState) ? (stateParam as VerificationState) : "all";
   const q = location.params.get("q") ?? "";

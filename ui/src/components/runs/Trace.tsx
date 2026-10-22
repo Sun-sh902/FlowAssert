@@ -50,7 +50,7 @@ export function Trace({ run }: { run: RunView }) {
         <span className="hidden lg:inline-flex">
           <Seal state={run.state} />
         </span>
-        <a href={href(`/verifications/${run.id}`)} className="fa-hit rounded-xs text-xs text-ink-3 hover:text-brand">
+        <a href={href(`/demo/verifications/${run.id}`)} className="fa-hit rounded-xs text-xs text-ink-3 hover:text-brand">
           Open <span className="mono-id">{run.id}</span> →
         </a>
       </div>

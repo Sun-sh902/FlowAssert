@@ -6,6 +6,7 @@ import { LocalEvidencePanel, LocalProvenance, LocalReadState } from "../componen
 import { AccessNotice } from "../components/states/AccessStates";
 import { Disclosure, EmptyState, FilterChips, Panel, SearchField, buttonClass } from "../components/ui/primitives";
 import { STATE_COPY, Seal, StatusGlyph, stateTone } from "../components/ui/status";
+import { CaseStatusAxes } from "../components/workspace/StatusAxes";
 import { STATES, type RecordView, type RunView, type VerificationState } from "../domain/view";
 import { checkLookupVerificationId, checkVerificationId, encodeIdSegment } from "../data/local/ids";
 import { localLookupProvider, localResearchProvider, type LocalAddressing } from "../data/local/provider";
@@ -136,7 +137,8 @@ function Procession({ run }: { run: RunView }) {
   const steps = [
     {
       k: "Source",
-      h: `${run.recordsEvaluated} rows captured`,
+      // LOCAL_RESEARCH rows come from a reviewed fixture: no capture run exists (Capture status: not implemented).
+      h: `${run.recordsEvaluated} rows ${run.local ? "supplied" : "captured"}`,
       p: provenance
         ? run.local
           ? "Supplied as an independent source read, not workflow output — synthetic, not authenticated."
@@ -483,7 +485,7 @@ function TimeAxis({ run, previousRunLink = true }: { run: RunView; previousRunLi
         ))}
       </ol>
       {previousRunLink && run.previousRunId && (
-        <a href={href(`${run.local ? "/local" : ""}/verifications/${run.previousRunId}`)} className="fa-hit mt-5 inline-flex items-center gap-1.5 rounded-xs text-xs font-medium text-ink-2 hover:text-ink">
+        <a href={href(`${run.local ? "/local" : "/demo"}/verifications/${run.previousRunId}`)} className="fa-hit mt-5 inline-flex items-center gap-1.5 rounded-xs text-xs font-medium text-ink-2 hover:text-ink">
           <ArrowLeft size={13} aria-hidden /> Previous run for this workflow <span className="mono-id text-ink-3">{run.previousRunId}</span>
         </a>
       )}
@@ -597,7 +599,7 @@ export function LocalVerificationDetail({
   provider?: FlowAssertReadProvider;
 }) {
   // P2-AUD-003 / P3A-AUD-001: the route ID is admitted before any read exists; a refused ID never reaches the provider.
-  const back = { href: "#/local/verifications", label: "Local research cases" };
+  const back = { href: "#/verifications", label: "Verifications" };
   if (addressing === "query") {
     if (malformed) return <InvalidIdNotice kind="verification" raw={id} reason={`the address query is refused: ${String(malformed)}`} back={back} addressing="query" />;
     const admitted = checkLookupVerificationId(id);
@@ -632,6 +634,16 @@ function LocalVerificationRead({ id, location, provider, basePath, baseParams }:
   return (
     <div>
       <LocalProvenance run={run} snapshotGone={snapshotGone} onReread={reread} />
+      <CaseStatusAxes
+        className="mb-10"
+        id={id}
+        verdict={{
+          axis: "verdict",
+          kind: "VERDICT",
+          state: run.state,
+          source: { kind: "live", request: basePath === LOOKUP_PATH ? "GET /api/v1/verification-lookup (live read)" : `GET /api/v1/verifications/${id} (live read)` },
+        }}
+      />
       <DetailBody
         run={run}
         location={location}
@@ -673,7 +685,7 @@ export function VerificationDetail({ id, location }: { id: string; location: Loc
           ["Provider", "MOCK · synthetic fixtures"],
         ]}
         actions={
-          <a className={buttonClass("default", "sm")} href="#/verifications">
+          <a className={buttonClass("default", "sm")} href="#/demo/verifications">
             All verifications
           </a>
         }
@@ -681,5 +693,5 @@ export function VerificationDetail({ id, location }: { id: string; location: Loc
     );
   }
 
-  return <DetailBody run={run} location={location} basePath={`/verifications/${run.id}`} />;
+  return <DetailBody run={run} location={location} basePath={`/demo/verifications/${run.id}`} />;
 }

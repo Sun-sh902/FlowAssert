@@ -1,0 +1,44 @@
+{
+ "FlowAssert-Phase3A-UI": {
+  "files_before": 23253,
+  "files_after": 23253,
+  "map_sha256_before": "20f13b0275dd92cc74213c46a4a3852fffe2b40c0f67acc1824abc73bdea563b",
+  "map_sha256_after": "20f13b0275dd92cc74213c46a4a3852fffe2b40c0f67acc1824abc73bdea563b",
+  "equal": true
+ },
+ "FlowAssert-Phase3A-Service": {
+  "files_before": 5141,
+  "files_after": 5141,
+  "map_sha256_before": "ba5677c276b011c8f960fbf74b45ad4aa2143a20afe1b1e65bd8ca1c91395af0",
+  "map_sha256_after": "ba5677c276b011c8f960fbf74b45ad4aa2143a20afe1b1e65bd8ca1c91395af0",
+  "equal": true
+ },
+ "FlowAssert-Phase3A-Review/PHASE3A_FINAL_OWNER_ACCEPTANCE": {
+  "files_before": 8,
+  "files_after": 8,
+  "map_sha256_before": "61d193ee65b876b72e6041b9207ad5feb92805c8b65fcd7e2579b86d526c4e02",
+  "map_sha256_after": "61d193ee65b876b72e6041b9207ad5feb92805c8b65fcd7e2579b86d526c4e02",
+  "equal": true
+ },
+ "FlowAssert-round03-oracle-fix": {
+  "files_before": 996,
+  "files_after": 996,
+  "map_sha256_before": "cafc738e6e369eb151a50864519426262ae82d8703bb4777c26f47ccd074aab2",
+  "map_sha256_after": "cafc738e6e369eb151a50864519426262ae82d8703bb4777c26f47ccd074aab2",
+  "equal": true
+ },
+ "FlowAssert-Phase3B-Planning-Review/PHASE3BP_FINAL_OWNER_ACCEPTANCE": {
+  "files_before": 49,
+  "files_after": 49,
+  "map_sha256_before": "33bcb40fa8e56699db2f65eb93da046516581a94a3da265f4dfe20cbaf05506a",
+  "map_sha256_after": "33bcb40fa8e56699db2f65eb93da046516581a94a3da265f4dfe20cbaf05506a",
+  "equal": true
+ },
+ "FlowAssert-Phase3B-Planning": {
+  "files_before": 1106,
+  "files_after": 1106,
+  "map_sha256_before": "44ca7cdf64a2fd31fd9d4ae8e03cf54313300f2f5c0aa981e8997e954f995572",
+  "map_sha256_after": "44ca7cdf64a2fd31fd9d4ae8e03cf54313300f2f5c0aa981e8997e954f995572",
+  "equal": true
+ }
+}

@@ -91,7 +91,7 @@ function ReadyCase({ run, snapshot }: { run: RunView; snapshot: string | null })
       <div className="mt-4 max-w-[520px]">
         <RecordCells run={run} />
       </div>
-      <a href={href(`/verifications/${run.id}`)} className="fa-hit mt-4 inline-flex items-center gap-1 rounded-xs text-xs font-medium text-ink-2 hover:text-ink">
+      <a href={href(`/demo/verifications/${run.id}`)} className="fa-hit mt-4 inline-flex items-center gap-1 rounded-xs text-xs font-medium text-ink-2 hover:text-ink">
         Open <span className="mono-id">{run.id}</span> <ArrowRight size={12} aria-hidden />
       </a>
     </article>
@@ -279,7 +279,7 @@ export function States() {
             ["Scope", "MOCK · demo workspace"],
           ]}
           actions={
-            <a className={buttonClass("default", "sm")} href="#/verifications">
+            <a className={buttonClass("default", "sm")} href="#/demo/verifications">
               All verifications
             </a>
           }

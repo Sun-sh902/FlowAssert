@@ -107,7 +107,7 @@ test("every keyboard-focusable element shows a visible focus indicator", async (
 });
 
 test("the first Tab stop is the skip link, and it moves focus to main", async ({ page, browserName }) => {
-  await open(page, "#/verifications/VR-2025");
+  await open(page, "#/demo/verifications/VR-2025");
   await page.keyboard.press(tabKey(browserName));
   const skip = page.getByRole("link", { name: "Skip to content" });
   await expect(skip).toBeFocused();
@@ -118,7 +118,7 @@ test("the first Tab stop is the skip link, and it moves focus to main", async ({
 
 test("mobile drawer traps focus, closes on Escape and restores focus", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await open(page, "#/");
+  await open(page, "#/demo");
   const menu = page.getByRole("button", { name: "Open navigation" });
   await menu.click();
   const dialog = page.getByRole("dialog", { name: "Navigation" });

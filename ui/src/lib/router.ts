@@ -1,12 +1,15 @@
 /**
  * Minimal hash router. Hash routing keeps the demo working from any static host
  * without server rewrites. Routes:
- *   #/                         Overview
- *   #/verifications            Runs list
- *   #/verifications/:id        Verification detail (?record=KEY&state=STATE)
+ *   #/                         LOCAL_RESEARCH workspace Overview, read from the local Service's archive (product round 01)
+ *   #/verifications            LOCAL_RESEARCH Verifications: the five reviewed cases with their four status axes
+ *                              (#/local/verifications is the same page, kept so earlier links keep working)
+ *   #/capture                  Capture runs — not implemented in this build; states so and offers no action
+ *   #/demo                     MOCK demo Overview (synthetic fixtures, nothing read from any service)
+ *   #/demo/verifications       MOCK demo runs list
+ *   #/demo/verifications/:id   MOCK demo Verification detail (?record=KEY&state=STATE)
  *   #/connections | #/rules | #/settings   Demo configuration pages (synthetic, nothing connected)
  *   #/states                   Interface-state specimens (simulated data-access states; linked from Settings §4)
- *   #/local/verifications      LOCAL_RESEARCH: the five reviewed synthetic case IDs (no list endpoint is called)
  *   #/local/verifications/:id  LOCAL_RESEARCH Detail, read over HTTP from the local Python service
  *   #/local/history            LOCAL_RESEARCH (Phase 3A): archived evaluations listed from the local SQLite archive (?case=SPEC-00N)
  *   #/local/history/:historyId LOCAL_RESEARCH (Phase 3A): one archived evaluation and its archived evidence
@@ -31,9 +34,11 @@ import { useCallback, useEffect, useState } from "react";
 import { decodeStrictQuery } from "../data/local/ids";
 
 export type Route =
-  | { name: "overview" }
-  | { name: "verifications" }
-  | { name: "verification"; id: string }
+  | { name: "workspace" }
+  | { name: "capture" }
+  | { name: "demo-overview" }
+  | { name: "demo-verifications" }
+  | { name: "demo-verification"; id: string }
   | { name: "connections" }
   | { name: "rules" }
   | { name: "settings" }
@@ -49,7 +54,14 @@ export type Route =
 export const isHistoryRoute = (r: Route) => r.name === "local-history" || r.name === "local-history-entry";
 
 /** Routes whose data comes from LOCAL_RESEARCH. Every other route is the MOCK demo. */
-export const isLocalRoute = (r: Route) => r.name === "local-verifications" || r.name === "local-verification" || r.name === "local-lookup" || isHistoryRoute(r);
+export const isLocalRoute = (r: Route) =>
+  r.name === "workspace" || r.name === "capture" || r.name === "local-verifications" || r.name === "local-verification" || r.name === "local-lookup" || isHistoryRoute(r);
+
+/** The MOCK demo routes (synthetic fixtures; nothing is read from any service). */
+export const isDemoRunRoute = (r: Route) => r.name === "demo-overview" || r.name === "demo-verifications" || r.name === "demo-verification";
+
+/** Where the MOCK demo lives. */
+export const DEMO_RUNS_PATH = "/demo/verifications";
 
 /** The exact-ID lookup route's static path and its only query keys. */
 export const LOOKUP_PATH = "/local/verification-lookup";
@@ -88,10 +100,13 @@ function parse(hash: string): Location {
   const params = new URLSearchParams(query);
   const parts = path.split("/").filter(Boolean);
   let route: Route = { name: "not-found" };
-  if (parts.length === 0) route = { name: "overview" };
-  else if (parts[0] === "verifications" && parts.length === 1) route = { name: "verifications" };
-  else if (parts[0] === "verifications" && parts[1] && parts.length === 2)
-    route = { name: "verification", id: decodeSegment(parts[1]) };
+  if (parts.length === 0) route = { name: "workspace" };
+  else if (parts[0] === "verifications" && parts.length === 1) route = { name: "local-verifications" };
+  else if (parts[0] === "capture" && parts.length === 1) route = { name: "capture" };
+  else if (parts[0] === "demo" && parts.length === 1) route = { name: "demo-overview" };
+  else if (parts[0] === "demo" && parts[1] === "verifications" && parts.length === 2) route = { name: "demo-verifications" };
+  else if (parts[0] === "demo" && parts[1] === "verifications" && parts[2] && parts.length === 3)
+    route = { name: "demo-verification", id: decodeSegment(parts[2]) };
   else if (parts.length === 1 && (parts[0] === "connections" || parts[0] === "rules" || parts[0] === "settings" || parts[0] === "states"))
     route = { name: parts[0] };
   else if (parts[0] === "local" && (parts.length === 1 || (parts.length === 2 && parts[1] === "verifications"))) route = { name: "local-verifications" };

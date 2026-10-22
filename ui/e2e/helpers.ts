@@ -7,9 +7,9 @@ export const OUT = join(process.cwd(), "e2e", ".output");
 
 /** Every route of the app, plus the specimen page and a deep Detail link. */
 export const ROUTES = [
-  { name: "overview", hash: "#/" },
-  { name: "verifications", hash: "#/verifications" },
-  { name: "detail", hash: "#/verifications/VR-2025" },
+  { name: "overview", hash: "#/demo" },
+  { name: "verifications", hash: "#/demo/verifications" },
+  { name: "detail", hash: "#/demo/verifications/VR-2025" },
   { name: "connections", hash: "#/connections" },
   { name: "rules", hash: "#/rules" },
   { name: "settings", hash: "#/settings" },

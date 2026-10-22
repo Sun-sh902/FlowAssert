@@ -116,7 +116,7 @@ describe("UIA-009 · pages", () => {
   const rowIds = () => within(table()).getAllByRole("link").map((a) => a.textContent);
 
   it("renders the Verifications list with null and empty labels, and searches without throwing", async () => {
-    const { user } = renderApp("#/verifications");
+    const { user } = renderApp("#/demo/verifications");
     expect(rowIds()).toEqual(ids(runs));
     const box = screen.getByRole("searchbox", { name: "Search runs" });
     await user.type(box, "label unavailable");
@@ -127,7 +127,7 @@ describe("UIA-009 · pages", () => {
   });
 
   it("combines a null-safe search with the cohort filter", () => {
-    renderApp(`#/verifications?state=${nullRun.state}&q=label flow`);
+    renderApp(`#/demo/verifications?state=${nullRun.state}&q=label flow`);
     const expected = runs.filter((r) => r.state === nullRun.state && /label flow/i.test(r.workflow.name)).map((r) => r.id);
     expect(expected).toContain("VR-N001");
     expect(rowIds()).toEqual(expected);

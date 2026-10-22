@@ -58,8 +58,8 @@ interface FocusCase {
 }
 
 const FOCUS_CASES: FocusCase[] = [
-  { name: "rail · current-page link", hash: "#/verifications", target: (p) => p.locator('aside a[aria-current="page"]') },
-  { name: "rail · other link (control)", hash: "#/verifications", target: (p) => p.locator('aside a[href="#/rules"]') },
+  { name: "rail · current-page link", hash: "#/demo/verifications", target: (p) => p.locator('aside a[aria-current="page"]') },
+  { name: "rail · other link (control)", hash: "#/demo/verifications", target: (p) => p.locator('aside a[href="#/rules"]') },
   {
     name: "drawer · current-page link",
     hash: "#/settings",
@@ -142,7 +142,7 @@ for (const theme of THEMES) {
 
 /* ---------- UIA-002 · drawer containment after a click on blank drawer space ---------- */
 
-async function openDrawer(page: Page, hash = "#/verifications", width = 375) {
+async function openDrawer(page: Page, hash = "#/demo/verifications", width = 375) {
   await page.setViewportSize({ width, height: 812 });
   await open(page, hash);
   await page.getByRole("button", { name: "Open navigation" }).click();
@@ -150,13 +150,21 @@ async function openDrawer(page: Page, hash = "#/verifications", width = 375) {
   await expect(dialog).toBeVisible();
   return { dialog, panel: dialog.locator("> div").last() };
 }
+/**
+ * A point on non-interactive drawer content: the "Configure" group label. Chosen by element, not by a fixed
+ * fraction of the drawer height, so adding navigation items cannot turn the "blank" click into a link click.
+ */
+async function blankPoint(panel: Locator) {
+  const b = (await panel.locator("p.kicker").filter({ hasText: "Configure" }).boundingBox())!;
+  return { x: b.x + Math.min(40, b.width / 4), y: b.y + b.height / 2 };
+}
 const where = (page: Page) => page.evaluate(() => `${document.activeElement?.tagName}:${(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent ?? "").trim().slice(0, 30)}`);
 const inside = (dialog: Locator) => dialog.evaluate((d) => d.contains(document.activeElement));
 
 test("UIA-002 audit H3 · click non-interactive drawer content, then Tab ×6 — focus never leaves", async ({ page }) => {
   const { dialog, panel } = await openDrawer(page);
-  const box = (await panel.boundingBox())!;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.62);
+  const blank = await blankPoint(panel);
+  await page.mouse.click(blank.x, blank.y);
   const trail: string[] = [];
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press("Tab");
@@ -177,14 +185,14 @@ test("UIA-002 audit H3b · click just below the last drawer control, then one Ta
 
 test("UIA-002 · blank click, then Shift+Tab ×20 and (WebKit) Option+Tab ×20 stay inside", async ({ page, browserName }) => {
   const { dialog, panel } = await openDrawer(page);
-  const box = (await panel.boundingBox())!;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.62);
+  const blank = await blankPoint(panel);
+  await page.mouse.click(blank.x, blank.y);
   for (let i = 0; i < 20; i++) {
     await page.keyboard.press("Shift+Tab");
     expect(await inside(dialog), `Shift+Tab #${i + 1} → ${await where(page)}`).toBe(true);
   }
   if (browserName === "webkit") {
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.62);
+    await page.mouse.click(blank.x, blank.y);
     for (let i = 0; i < 20; i++) {
       await page.keyboard.press("Alt+Tab");
       expect(await inside(dialog), `Option+Tab #${i + 1} → ${await where(page)}`).toBe(true);
@@ -216,8 +224,8 @@ test("UIA-002 · the page behind the open drawer cannot take focus, even by clic
 
 test("UIA-002 · Escape closes, returns focus to the menu button, and Tab is the page's own again", async ({ page }) => {
   const { dialog, panel } = await openDrawer(page);
-  const box = (await panel.boundingBox())!;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.62);
+  const blank = await blankPoint(panel);
+  await page.mouse.click(blank.x, blank.y);
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   const menu = page.getByRole("button", { name: "Open navigation" });
@@ -230,8 +238,8 @@ test("UIA-002 · containment survives a resize within the mobile range", async (
   await page.setViewportSize({ width: 700, height: 900 });
   await page.waitForTimeout(150);
   await expect(dialog).toBeVisible();
-  const box = (await panel.boundingBox())!;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.62);
+  const blank = await blankPoint(panel);
+  await page.mouse.click(blank.x, blank.y);
   for (let i = 0; i < 8; i++) {
     await page.keyboard.press("Tab");
     expect(await inside(dialog)).toBe(true);
@@ -242,7 +250,7 @@ test("UIA-002 · containment survives a resize within the mobile range", async (
 /* ---------- UIA-006 · scroll lock across the lg breakpoint ---------- */
 
 test("UIA-006 · open at 768, widen to 1280: drawer closes, scroll is released, the page scrolls", async ({ page }) => {
-  await openDrawer(page, "#/verifications", 768);
+  await openDrawer(page, "#/demo/verifications", 768);
   expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -306,7 +314,7 @@ test("UIA-007 · at 1440px the table fits: no extra Tab stop, same rows in the s
 /* ---------- UIA-008 · NOT_FOUND heading, and axe at 375 (where UIA-007 was found) ---------- */
 
 test("UIA-008 · Detail NOT_FOUND has exactly one h1 naming the missing run", async ({ page }) => {
-  await open(page, "#/verifications/VR-9999");
+  await open(page, "#/demo/verifications/VR-9999");
   const h1 = page.locator("h1");
   await expect(h1).toHaveCount(1);
   await expect(h1).toHaveText("No verification run VR-9999");
@@ -326,7 +334,7 @@ for (const theme of THEMES as readonly Theme[]) {
   test(`axe at 375px · ${theme} · every route and Detail NOT_FOUND`, async ({ page, browserName }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     const results: Record<string, string[]> = {};
-    for (const hash of ["#/", "#/verifications", "#/verifications/VR-2025", "#/verifications/VR-9999", "#/connections", "#/rules", "#/settings", "#/states"]) {
+    for (const hash of ["#/demo", "#/demo/verifications", "#/demo/verifications/VR-2025", "#/demo/verifications/VR-9999", "#/connections", "#/rules", "#/settings", "#/states"]) {
       await open(page, hash, theme);
       await page.waitForTimeout(400);
       results[hash] = await axeViolations(page);

@@ -454,7 +454,8 @@ test("F17 F18 · cancellation and late responses: nothing published after cancel
 
 test("F19 · MOCK / LOCAL_RESEARCH separation: demo pages never call the Service; history pages call only the history routes", async ({ page, browserName }) => {
   const net = captureNetwork(page);
-  for (const hash of ["#/", "#/verifications", "#/verifications/VR-2025", "#/connections", "#/rules", "#/settings", "#/local/verifications"]) {
+  // Product round 01: the MOCK demo moved under #/demo; #/capture is LOCAL_RESEARCH but reads nothing.
+  for (const hash of ["#/demo", "#/demo/verifications", "#/demo/verifications/VR-2025", "#/connections", "#/rules", "#/settings", "#/capture"]) {
     await openApp(page, hash);
     await page.locator("main :is(h1, h2)").first().waitFor();
   }
@@ -465,10 +466,10 @@ test("F19 · MOCK / LOCAL_RESEARCH separation: demo pages never call the Service
   await expect(page.getByRole("region", { name: "Local research register" })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Primary" }).first();
   await expect(nav.getByRole("link", { name: /History/ })).toHaveAttribute("aria-current", "page");
-  await expect(nav.getByRole("link", { name: /Local research/ })).not.toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "Verifications", exact: true })).not.toHaveAttribute("aria-current", "page");
   await net.settle();
   expect(net.all.map((x) => x.pathAndQuery.split("?")[0])).toEqual(["/api/v1/history"]);
-  await openApp(page, "#/");
+  await openApp(page, "#/demo");
   await expect(page.getByRole("region", { name: "Demo register" })).toBeVisible();
   await expect(page.getByText(/hist_[a-f0-9]{8}/)).toHaveCount(0);
   writeEvidence(`${browserName}/F19-mode-separation`, { demo_requests: 0, history_requests: net.all.map((x) => x.pathAndQuery.split("?")[0]) });
@@ -489,7 +490,11 @@ test("F20 · the accepted Phase 2 Detail/Evidence paths still work on the Phase 
     const detail = net.api().find((x) => x.pathAndQuery === `/api/v1/verifications/${id}`)!;
     expect(detail.server).toBe("uvicorn");
     expect(JSON.parse(detail.body!).result).toEqual(evaluatorComputed(id));
-    expect(net.all.every((x) => x.pathAndQuery.startsWith(`/api/v1/verifications/${id}`))).toBe(true);
+    // Product round 01: besides its own verification reads, the Detail reads ONLY this case's archive list
+    // (Archive status axis) — scoped by verification_id, never another case, never a Detail or evidence of history.
+    const ownArchive = new RegExp(`^/api/v1/history\\?limit=4&verification_id=${id}(&cursor=[^&]+)?$`);
+    expect(net.all.filter((x) => !x.pathAndQuery.startsWith(`/api/v1/verifications/${id}`)).map((x) => x.pathAndQuery).filter((q) => !ownArchive.test(q))).toEqual([]);
+    expect(net.all.some((x) => ownArchive.test(x.pathAndQuery))).toBe(true);
     report[id] = { cohort: EXPECTED[id].cohort, requests: net.all.map((x) => x.pathAndQuery.replace(/cursor=[^&]+/, "cursor=<opaque>")) };
   }
   writeEvidence(`${browserName}/F20-phase2-paths`, report);

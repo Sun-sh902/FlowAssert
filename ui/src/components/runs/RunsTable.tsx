@@ -41,7 +41,7 @@ export function RunsTable({ runs, caption }: { runs: RunView[]; caption: string 
               <tr key={run.id} className="fa-row group relative border-b border-line-subtle transition-colors duration-(--fa-dur-fast) last:border-0 hover:bg-hover">
                 <td className="h-[58px] py-2 pr-4 pl-5 align-middle">
                   <a
-                    href={href(`/verifications/${run.id}`)}
+                    href={href(`/demo/verifications/${run.id}`)}
                     className="mono-id font-medium whitespace-nowrap text-ink-2 group-hover:text-ink after:absolute after:inset-0 after:content-[''] focus-visible:shadow-none focus-visible:after:shadow-(--fa-ring-inset)"
                   >
                     {run.id}
@@ -77,7 +77,7 @@ export function RunsTable({ runs, caption }: { runs: RunView[]; caption: string 
       <ul className="divide-y divide-line-subtle md:hidden" aria-label={caption}>
         {runs.map((run) => (
           <li key={run.id}>
-            <a href={href(`/verifications/${run.id}`)} className="block px-4 py-3.5 active:bg-active">
+            <a href={href(`/demo/verifications/${run.id}`)} className="block px-4 py-3.5 active:bg-active">
               <div className="flex items-start justify-between gap-3">
                 <span className="min-w-0">
                   <span className="block truncate text-md font-semibold text-ink">{run.workflow.name}</span>

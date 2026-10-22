@@ -5,44 +5,65 @@ import { getRun } from "./data/store";
 import { useLocation, type Route } from "./lib/router";
 import { Connections } from "./pages/Connections";
 import { HistoryEntry, HistoryList } from "./pages/History";
-import { LocalCases } from "./pages/LocalCases";
 import { Overview } from "./pages/Overview";
 import { Rules } from "./pages/Rules";
 import { Settings } from "./pages/Settings";
 import { LocalVerificationDetail, VerificationDetail } from "./pages/VerificationDetail";
 import { Verifications } from "./pages/Verifications";
+import { CaptureRuns, WorkspaceOverview, WorkspaceVerifications } from "./pages/Workspace";
 
 // The interface-state specimens are a reference page few visits open; keep them out of the main bundle.
 const States = lazy(() => import("./pages/States").then((m) => ({ default: m.States })));
 
 const TITLES: Record<string, string> = {
-  overview: "Overview — FlowAssert",
-  verifications: "Verifications — FlowAssert",
+  workspace: "Overview — FlowAssert",
+  capture: "Capture runs — FlowAssert",
+  "demo-overview": "Demo overview — FlowAssert",
+  "demo-verifications": "Demo runs — FlowAssert",
   connections: "Connections — FlowAssert",
   rules: "Rules — FlowAssert",
   settings: "Settings — FlowAssert",
   states: "Interface states — FlowAssert",
-  "local-verifications": "Local research — FlowAssert",
+  "local-verifications": "Verifications — FlowAssert",
   "local-history": "History — Local research — FlowAssert",
   "not-found": "Not found — FlowAssert",
 };
 
 function Crumbs({ route }: { route: Route }) {
   switch (route.name) {
-    case "overview":
+    case "workspace":
       return (
         <>
           <b className="font-semibold text-ink">Overview</b>
-          <span className="truncate">Lead synchronisation · n8n → HubSpot</span>
+          <span className="truncate">LOCAL_RESEARCH · local Service archive · synthetic</span>
         </>
       );
-    case "verifications":
-      return <b className="font-semibold text-ink">Verifications</b>;
-    case "verification":
+    case "capture":
       return (
         <>
-          <a href="#/verifications" className="fa-hit hover:text-ink">
-            Verifications
+          <b className="font-semibold text-ink">Capture runs</b>
+          <span className="truncate">not implemented in this build</span>
+        </>
+      );
+    case "demo-overview":
+      return (
+        <>
+          <b className="font-semibold text-ink">Demo overview</b>
+          <span className="truncate">MOCK · lead synchronisation · n8n → HubSpot</span>
+        </>
+      );
+    case "demo-verifications":
+      return (
+        <>
+          <b className="font-semibold text-ink">Demo runs</b>
+          <span className="truncate">MOCK · synthetic fixtures</span>
+        </>
+      );
+    case "demo-verification":
+      return (
+        <>
+          <a href="#/demo/verifications" className="fa-hit hover:text-ink">
+            Demo runs
           </a>
           <span aria-hidden>/</span>
           <b className="mono-id font-medium text-ink">{route.id}</b>
@@ -61,15 +82,15 @@ function Crumbs({ route }: { route: Route }) {
     case "local-verifications":
       return (
         <>
-          <b className="font-semibold text-ink">Local research</b>
+          <b className="font-semibold text-ink">Verifications</b>
           <span className="truncate">LOCAL_RESEARCH · synthetic · unapproved research version</span>
         </>
       );
     case "local-verification":
       return (
         <>
-          <a href="#/local/verifications" className="fa-hit hover:text-ink">
-            Local research
+          <a href="#/verifications" className="fa-hit hover:text-ink">
+            Verifications
           </a>
           <span aria-hidden>/</span>
           <b className="mono-id font-medium text-ink">{route.id}</b>
@@ -79,8 +100,8 @@ function Crumbs({ route }: { route: Route }) {
     case "local-lookup":
       return (
         <>
-          <a href="#/local/verifications" className="fa-hit hover:text-ink">
-            Local research
+          <a href="#/verifications" className="fa-hit hover:text-ink">
+            Verifications
           </a>
           <span aria-hidden>/</span>
           <b className="mono-id truncate font-medium text-ink" title={route.malformed ? undefined : route.id}>
@@ -139,18 +160,20 @@ export function App() {
   }, [location.path]);
 
   useEffect(() => {
-    if (route.name !== "verification" && route.name !== "local-verification" && route.name !== "local-lookup" && route.name !== "local-history-entry") document.title = TITLES[route.name] ?? "FlowAssert";
+    if (route.name !== "demo-verification" && route.name !== "local-verification" && route.name !== "local-lookup" && route.name !== "local-history-entry") document.title = TITLES[route.name] ?? "FlowAssert";
   }, [route.name]);
 
   return (
     <AppShell route={route} crumbs={<Crumbs route={route} />}>
-      {route.name === "overview" && <Overview />}
-      {route.name === "verifications" && <Verifications location={location} />}
-      {route.name === "verification" && <VerificationDetail key={route.id} id={route.id} location={location} />}
+      {route.name === "workspace" && <WorkspaceOverview />}
+      {route.name === "capture" && <CaptureRuns />}
+      {route.name === "demo-overview" && <Overview />}
+      {route.name === "demo-verifications" && <Verifications location={location} />}
+      {route.name === "demo-verification" && <VerificationDetail key={route.id} id={route.id} location={location} />}
       {route.name === "connections" && <Connections location={location} />}
       {route.name === "rules" && <Rules location={location} />}
       {route.name === "settings" && <Settings />}
-      {route.name === "local-verifications" && <LocalCases />}
+      {route.name === "local-verifications" && <WorkspaceVerifications />}
       {route.name === "local-verification" && <LocalVerificationDetail key={route.id} id={route.id} malformed={route.malformed} location={location} />}
       {route.name === "local-lookup" && <LocalVerificationDetail key={route.malformed ? `lookup-malformed:${route.id}` : `lookup:${route.id}`} id={route.id} malformed={route.malformed} location={location} addressing="query" />}
       {route.name === "local-history" && <HistoryList location={location} />}

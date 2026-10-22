@@ -11,14 +11,14 @@ const chip = (name: string) => within(screen.getByRole("group", { name: "Filter 
 
 describe("Verifications list", () => {
   it("lists every run newest first, each linking to its case", () => {
-    renderApp("#/verifications");
+    renderApp("#/demo/verifications");
     expect(rowIds()).toEqual(runs.map((r) => r.id));
-    for (const link of within(table()).getAllByRole("link")) expect((link as HTMLAnchorElement).hash).toBe(`#/verifications/${link.textContent}`);
+    for (const link of within(table()).getAllByRole("link")) expect((link as HTMLAnchorElement).hash).toBe(`#/demo/verifications/${link.textContent}`);
     expect(screen.getByText(`of ${runs.length} runs`)).toBeTruthy();
   });
 
   it("filters by cohort result, with chip counts that match", async () => {
-    const { user } = renderApp("#/verifications");
+    const { user } = renderApp("#/demo/verifications");
     for (const s of STATES) {
       const n = runs.filter((r) => r.state === s).length;
       expect(chip(s).textContent).toBe(`${s}${n}`);
@@ -27,35 +27,35 @@ describe("Verifications list", () => {
     const expected = runs.filter((r) => r.state === "Mismatch").map((r) => r.id);
     expect(rowIds()).toEqual(expected);
     expect(chip("Mismatch").getAttribute("aria-pressed")).toBe("true");
-    expect(currentHash()).toBe("#/verifications?state=Mismatch");
+    expect(currentHash()).toBe("#/demo/verifications?state=Mismatch");
   });
 
   it("searches run ID, workflow name and source namespace, and keeps the query in the URL", async () => {
-    const { user } = renderApp("#/verifications");
+    const { user } = renderApp("#/demo/verifications");
     await user.type(screen.getByRole("searchbox", { name: "Search runs" }), "partner");
     const expected = runs.filter((r) => r.workflow.name.toLowerCase().includes("partner") || r.workflow.sourceNamespace.includes("partner")).map((r) => r.id);
     expect(expected.length).toBeGreaterThan(0);
     expect(rowIds()).toEqual(expected);
-    expect(currentHash()).toBe("#/verifications?q=partner");
+    expect(currentHash()).toBe("#/demo/verifications?q=partner");
   });
 
   it("restores filter and search from the URL on arrival", () => {
-    renderApp("#/verifications?state=Unverified&q=webinar");
+    renderApp("#/demo/verifications?state=Unverified&q=webinar");
     const expected = runs.filter((r) => r.state === "Unverified" && r.workflow.name.toLowerCase().includes("webinar")).map((r) => r.id);
     expect(rowIds()).toEqual(expected);
     expect((screen.getByRole("searchbox", { name: "Search runs" }) as HTMLInputElement).value).toBe("webinar");
   });
 
   it("shows an empty state that can clear filters", async () => {
-    const { user } = renderApp("#/verifications?q=no-such-run");
+    const { user } = renderApp("#/demo/verifications?q=no-such-run");
     expect(screen.getByText("No runs match")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(rowIds()).toHaveLength(runs.length);
-    expect(currentHash()).toBe("#/verifications");
+    expect(currentHash()).toBe("#/demo/verifications");
   });
 
   it("clears the search with Escape", async () => {
-    const { user } = renderApp("#/verifications?q=partner");
+    const { user } = renderApp("#/demo/verifications?q=partner");
     const box = screen.getByRole("searchbox", { name: "Search runs" });
     box.focus();
     await user.keyboard("{Escape}");
@@ -64,10 +64,10 @@ describe("Verifications list", () => {
   });
 
   it("opens Verification Detail from a row and moves focus to the main region", async () => {
-    const { user } = renderApp("#/verifications");
+    const { user } = renderApp("#/demo/verifications");
     const target = runs[2]!;
     await user.click(within(table()).getByRole("link", { name: target.id }));
-    await waitForHash((h) => h === `#/verifications/${target.id}`);
+    await waitForHash((h) => h === `#/demo/verifications/${target.id}`);
     expect(await screen.findByRole("article")).toBeTruthy();
     expect(screen.getByRole("button", { name: `Copy run ID ${target.id}` })).toBeTruthy();
     expect(document.activeElement?.id).toBe("main");
