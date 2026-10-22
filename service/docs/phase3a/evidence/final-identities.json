@@ -1,0 +1,26 @@
+{
+  "source_snapshot_sha256": "2249569fa3a97fa3ab44aa0ba2088e5fc7ffd264cc8c824d062ae270d7ba6a65",
+  "implementation_sha256": "fcf0d1ecda2e5cba67e9298ad8ac8a0bb05ee91833cc45e85ac7fa22ec9ed2fa",
+  "source_set_sha256": "f042f02d7185371a02af18b9d61d3bc7d357910e38ca2bb4824239862bebdd84",
+  "history_contract_version": "phase3a-1.0.0",
+  "history_contract_sha256": "f341d8d5ec9da1b933b06efe998c07a1045226500a6b5837e9c8a9ead74bd69f",
+  "frozen_contract_sha256": "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230",
+  "evaluator_sha256": "b61779e198dd0213b67f8319b77a2daf9feb502dc553784df6d6600e8e3a842d",
+  "schema_version": 1,
+  "migration_sha256": "b6a09e4f7e79f76f169beac713c9793349ff8012a27b04ddd90705e1b7158f2a",
+  "sqlite_schema_signature_sha256": "532cc799b791594006fae05ec53cbe6610088ac9676c31184d0e66701a395801",
+  "database": "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/.runtime/delivery/history.sqlite3",
+  "archive_count": 10,
+  "initial_history_ids": {
+    "SPEC-001": "hist_230c08845a2e81335c63d9f4876be867828d0bc0cf8b9cbda155782372c84f12",
+    "SPEC-002": "hist_51a4d6305b0e7b4b82dbe8b757ecf14060189fc47dd2e2f11e933d4613855425",
+    "SPEC-003": "hist_8c50b8a8a684c221be99f719292c660acad02d84a90a933991dcf3b39f125d1b",
+    "SPEC-004": "hist_da374150e1a47d18302f6a56a3eaf1001f185155505c6bf761183459180dfc09",
+    "SPEC-005": "hist_22ad2174cef10586aedf65dd5d734cc009af28e16cd57df2c7170a5863213c61"
+  },
+  "git": {
+    "repository": false,
+    "branch": null,
+    "head": null
+  }
+}

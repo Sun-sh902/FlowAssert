@@ -1,0 +1,53 @@
+{
+ "recorded_at": "2026-10-22T12:33:28.488981+00:00",
+ "note": "Accepted Phase 3A candidate roots have no Git HEAD; identity is by content maps as defined in PHASE3A_FINAL_OWNER_ACCEPTANCE/ACCEPTED_SOURCE_BASELINE.md (map algorithm from reassessment-04/evidence/identities.py, recomputed read-only).",
+ "sources": {
+  "service": {
+   "root": "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service",
+   "map": "backend 39-file",
+   "sha256": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+   "accepted_root_recomputed": true,
+   "copy_recomputed": true
+  },
+  "ui": {
+   "root": "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-UI",
+   "map": "frontend 166-file source-only",
+   "sha256": "0ff0200e569b9b592569df22f4d9c068467187f4ddb6d766a02eef92832bb134",
+   "accepted_root_recomputed": true,
+   "copy_note": "copy omits src/.DS_Store (Finder metadata); with that one digest re-added the copy reproduces the accepted identity exactly; no other file differs"
+  },
+  "ui_broad": {
+   "map": "frontend 182-file broad",
+   "sha256": "a7b706784ac89677d4857a87c605d90e246ea57110e14cc07f89648713b3c527",
+   "accepted_root_recomputed": true
+  }
+ },
+ "pinned": {
+  "evaluator vendor/model.py": "b61779e198dd0213b67f8319b77a2daf9feb502dc553784df6d6600e8e3a842d",
+  "research evaluator": "b61779e198dd0213b67f8319b77a2daf9feb502dc553784df6d6600e8e3a842d",
+  "oracle": "eeaae0001e098b0478ed804b3d45877476021f6a71e2e1a5dcdf1849566d61cc",
+  "contract openapi-v1-proposed (frozen Phase 0, 0.1.1-proposed)": "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230",
+  "contract openapi-history-v1 (phase3a-1.0.0)": "f341d8d5ec9da1b933b06efe998c07a1045226500a6b5837e9c8a9ead74bd69f",
+  "contract openapi-id-addressability-v1": "59ac38631982147b547ed2dae57ab4e8b2d218e3fa718861eb0c5828befcd8ae"
+ },
+ "governance": {
+  "phase3a_acceptance": {
+   "path": "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Review/PHASE3A_FINAL_OWNER_ACCEPTANCE",
+   "record": "P3A-FINAL-OWNER-ACCEPTANCE-2026-10-20-01",
+   "signed_statement_sha256": "de56e9c9ed561dd182c044ade90e79836d6e06ec0678afde8cd1e8a92ea3127d"
+  },
+  "phase3bp_acceptance": {
+   "path": "/Users/zhangshenghe/Documents/FlowAssert-Phase3B-Planning-Review/PHASE3BP_FINAL_OWNER_ACCEPTANCE",
+   "identity": "PHASE3BP-OA-20261022-SG-8d58c1f0-989f-4615-ac76-a0e3f512e1fb",
+   "sha256sums_sha256": "25279121ae7f0b38ce5fd9225b86664e2ac9208595f0b56b2d944211faa2b970",
+   "use_in_this_workspace": "vocabulary reference only (capture / admission are DRAFT, not implemented); no 3B-1 implementation"
+  }
+ },
+ "excluded_from_copy": [
+  "runtime state (.runtime, .phase*-runtime)",
+  "historical evidence trees (docs/phase3a/*, service evidence/, ui docs/screenshots etc.)",
+  "build/test output",
+  ".DS_Store"
+ ],
+ "dependencies": "ui/node_modules and service/.venv copied byte-for-byte from the accepted roots (gitignored)"
+}

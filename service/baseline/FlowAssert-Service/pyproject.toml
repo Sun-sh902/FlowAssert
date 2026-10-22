@@ -1,0 +1,8 @@
+[project]
+name = "flowassert-offline-service"
+version = "0.1.0"
+description = "Local synthetic research evaluator service; not a production release"
+requires-python = ">=3.14,<3.15"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

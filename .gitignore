@@ -1,0 +1,15 @@
+.DS_Store
+# dependencies (copied from the accepted Phase 3A candidates; not product source)
+ui/node_modules/
+service/.venv/
+# build / test output
+ui/dist/
+ui/test-results*/
+ui/playwright-report/
+ui/e2e/.output/
+__pycache__/
+.pytest_cache/
+# local runtime state: SQLite archives, cursor keys, network audits
+service/.runtime/
+service/.state/
+.dev-runtime/

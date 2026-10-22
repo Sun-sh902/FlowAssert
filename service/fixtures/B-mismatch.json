@@ -1,0 +1,308 @@
+{
+  "case_id": "B-mismatch",
+  "synthetic": true,
+  "manual_expectation": {
+    "cohort_state": "Mismatch",
+    "record_states": [
+      "Mismatch"
+    ],
+    "counts": {
+      "Verified": 0,
+      "Mismatch": 1,
+      "Pending": 0,
+      "Unverified": 0
+    },
+    "expected_total": 1,
+    "source_population_known": true,
+    "destination_coverage_sufficient": true
+  },
+  "manual_expectation_sha256": "cfb8ced802648a359ab80ee5c5ef9075fff03945f2002cd1cb9f5bc3423a1284",
+  "input_evidence": {
+    "source": {
+      "namespace": "synthetic/intake",
+      "version": "synthetic-v1",
+      "captured_at": 0,
+      "basis_bound": true,
+      "independent": true,
+      "complete": true,
+      "rows": [
+        {
+          "key": "SYN-001",
+          "phone": "+1 212 555 0101"
+        }
+      ],
+      "provenance": {
+        "channel": "independent-source-read",
+        "acquired_at": 0,
+        "rows_sha256": "3157e499c1e15370161b92f7f3cd7274550bc31e1353e2a706edee88353e822f"
+      },
+      "inventory": {
+        "method": "independent-enumeration",
+        "eligible_count": 1,
+        "eligible_keys_sha256": "e2b0e40b4f8dae62333721de9ad77ee4c51bfba5e4d89b12fedba9450652a5cc"
+      }
+    },
+    "destination": {
+      "account": "synthetic-portal",
+      "object": "contacts",
+      "observed_at": 5,
+      "observed_at_trusted": true,
+      "access": "ok",
+      "coherent": true,
+      "partial": false,
+      "errors": [],
+      "visibility_complete": true,
+      "predicate_valid": true,
+      "negative_reliable": true,
+      "query_total": 1,
+      "pages": [
+        {
+          "cursor": "start",
+          "next": null,
+          "rows": [
+            {
+              "id": "SYN-HS-001",
+              "key": "SYN-001",
+              "namespace": "synthetic/intake",
+              "phone": "different supplied phone"
+            }
+          ]
+        }
+      ]
+    },
+    "policy": {
+      "version": "copy-phone-v1",
+      "approved": true,
+      "comparison": "exact-string",
+      "approval": {
+        "version": "copy-phone-v1",
+        "comparison": "exact-string"
+      },
+      "identity_reliable": true,
+      "deadline": 10,
+      "retry_viable": true,
+      "max_age": 2,
+      "account": "synthetic-portal",
+      "object": "contacts",
+      "settling_allowed": false,
+      "require_historical_deadline": false,
+      "require_execution": false
+    },
+    "now": 5
+  },
+  "proposed_response": {
+    "meta": {
+      "api_version": "v1",
+      "provider_mode": "LOCAL_RESEARCH",
+      "synthetic": true,
+      "generated_at": "2026-10-16T14:30:00Z",
+      "contract_version": "0.1.1-proposed",
+      "workspace_id": "ws-synthetic-01"
+    },
+    "identity": {
+      "id": "SPEC-002",
+      "workspace_id": "ws-synthetic-01",
+      "previous_run_id": null,
+      "created_at": "2026-10-16T14:22:00Z"
+    },
+    "workflow": {
+      "id": "wf-synthetic-leads",
+      "name": "Synthetic lead comparison",
+      "n8n_label": "Proposed n8n lead sync \u2014 no execution evidence",
+      "source_label": "Synthetic independent-source fixture",
+      "source_namespace": "synthetic/intake",
+      "destination_system": "HubSpot",
+      "destination_object": "contacts"
+    },
+    "evaluation_context": {
+      "evaluator": {
+        "version_label": "Round03.5 research \u2014 unapproved",
+        "source_commit": "4deddb323ad0f1f00b2c369a7b141dc04c95f8fa",
+        "model_sha256": "b61779e198dd0213b67f8319b77a2daf9feb502dc553784df6d6600e8e3a842d",
+        "workspace_dirty": true
+      },
+      "input_evidence_sha256": "7f2347995250fb8cd69ce9ef9f4a159128aa6ab937d8e624ba7be4c0af8d24e4",
+      "time_mapping": {
+        "kind": "synthetic_affine_v1",
+        "origin_iso": "2026-10-16T14:00:00Z",
+        "seconds_per_tick": 60
+      },
+      "event_times": {
+        "business_obligation_at": "2026-10-16T14:00:00Z",
+        "observed_at": "2026-10-16T14:05:00Z",
+        "evaluation_at": "2026-10-16T14:05:00Z",
+        "deadline": "2026-10-16T14:10:00Z"
+      },
+      "service_executed_at": null
+    },
+    "source_snapshot": {
+      "evidence_reference_id": "SPEC-002-source",
+      "namespace": "synthetic/intake",
+      "version": "synthetic-v1",
+      "provenance_channel": "independent-source-read",
+      "inventory_method": "independent-enumeration",
+      "inventory_eligible_count": 1,
+      "rows": [
+        {
+          "source_row": 0,
+          "key": "SYN-001",
+          "phone": {
+            "state": "present",
+            "value": "+1 212 555 0101"
+          },
+          "display_name": null,
+          "company": null
+        }
+      ]
+    },
+    "destination_observation": {
+      "evidence_reference_id": "SPEC-002-destination",
+      "account": "synthetic-portal",
+      "object": "contacts",
+      "access": "ok",
+      "page_count": 1,
+      "query_total": 1,
+      "distinct_ids_returned": 1
+    },
+    "policy_context": {
+      "evidence_reference_id": "SPEC-002-policy",
+      "version": "copy-phone-v1",
+      "comparison": "exact-string",
+      "deadline": 10,
+      "max_age": 2,
+      "retry_viable": true,
+      "settling_allowed": false,
+      "identity_reliable": true,
+      "require_historical_deadline": false,
+      "require_execution": false,
+      "account": "synthetic-portal",
+      "object": "contacts"
+    },
+    "result": {
+      "cohort_state": "Mismatch",
+      "counts": {
+        "Verified": 0,
+        "Mismatch": 1,
+        "Pending": 0,
+        "Unverified": 0
+      },
+      "records": [
+        {
+          "key": "SYN-001",
+          "source_row": 0,
+          "state": "Mismatch",
+          "candidate_ids": [
+            "SYN-HS-001"
+          ],
+          "rules": {
+            "existence": {
+              "status": "pass",
+              "reason": "reliable candidate observed"
+            },
+            "phone": {
+              "status": "fail",
+              "reason": "exact string comparison",
+              "expected": "+1 212 555 0101",
+              "actual": "different supplied phone"
+            },
+            "uniqueness": {
+              "status": "pass",
+              "reason": "complete relevant synthetic inventory"
+            }
+          }
+        }
+      ],
+      "expected_total": 1,
+      "source_rows_observed": 1,
+      "source_population_known": true,
+      "destination_coverage_sufficient": true,
+      "source_basis_sha256": "10f612193c2385c459ba6ab86f4008de11512723e60f185e17ced87454c102d1",
+      "rule_basis_sha256": "d00a9d93c0f547cbc99905f2d567e05e0f458f9e7ffb877c34d8e12c20401d57",
+      "observed_at": 5,
+      "deadline": 10,
+      "business_obligation_at": 0,
+      "evaluation_at": 5,
+      "observation_time_valid": true,
+      "destination_page_sequence_valid": true,
+      "destination_page_sequence_reason": "valid reachable page sequence",
+      "premise_evidence": {
+        "source_provenance_record": true,
+        "source_inventory_record": true,
+        "rule_approval_record": true,
+        "destination_query_total_consistent": true,
+        "observation_clock_trusted": true
+      },
+      "workflow_execution": "Not assessed",
+      "business_truth": "Not assessed",
+      "absence_cause": "Not inferred"
+    },
+    "retry_context": {
+      "window_open_at_evaluation": true,
+      "policy_retry_viable": true,
+      "pending_source_rows": [],
+      "automatic_retry_enabled": false,
+      "next_attempt_at": null
+    },
+    "evidence_references": [
+      {
+        "id": "SPEC-002-source",
+        "role": "source",
+        "media_type": "application/json",
+        "sha256": "10f612193c2385c459ba6ab86f4008de11512723e60f185e17ced87454c102d1",
+        "canonicalization": "python-json-sortkeys-ascii-v1",
+        "availability": "available",
+        "reason": null,
+        "acquisition_kind": "synthetic_local",
+        "external_authenticity": "not_authenticated"
+      },
+      {
+        "id": "SPEC-002-destination",
+        "role": "destination",
+        "media_type": "application/json",
+        "sha256": "a438e52ba54db90729f07e324d5019475fb47835f099a3f47261e385d6a8a75d",
+        "canonicalization": "python-json-sortkeys-ascii-v1",
+        "availability": "available",
+        "reason": null,
+        "acquisition_kind": "synthetic_local",
+        "external_authenticity": "not_authenticated"
+      },
+      {
+        "id": "SPEC-002-policy",
+        "role": "policy",
+        "media_type": "application/json",
+        "sha256": "d00a9d93c0f547cbc99905f2d567e05e0f458f9e7ffb877c34d8e12c20401d57",
+        "canonicalization": "python-json-sortkeys-ascii-v1",
+        "availability": "available",
+        "reason": null,
+        "acquisition_kind": "synthetic_local",
+        "external_authenticity": "not_authenticated"
+      },
+      {
+        "id": "SPEC-002-evaluation_input",
+        "role": "evaluation_input",
+        "media_type": "application/json",
+        "sha256": "7f2347995250fb8cd69ce9ef9f4a159128aa6ab937d8e624ba7be4c0af8d24e4",
+        "canonicalization": "python-json-sortkeys-ascii-v1",
+        "availability": "available",
+        "reason": null,
+        "acquisition_kind": "synthetic_local",
+        "external_authenticity": "not_authenticated"
+      }
+    ],
+    "assurance": {
+      "research_authorization": "research_only",
+      "acquisition_authenticity": "not_authenticated",
+      "limitations": [
+        "SYNTHETIC specification example; no live source, n8n or HubSpot acquisition occurred.",
+        "Verified is conditional consistency with supplied evidence; internally consistent fabricated acquisition can still pass.",
+        "SHA-256 identifies supplied values and code, not authentic origin, independent collection or complete external population.",
+        "Workflow execution and business truth are not assessed; absence cause and causality are not inferred.",
+        "A present-time read does not reconstruct historical delivery by deadline or prove later correctness.",
+        "Current research source is unapproved for product release; research_only metadata is not release authorization."
+      ],
+      "release_approval_reference": null
+    },
+    "diagnostics": [],
+    "snapshot_id": "catalog-synthetic-01"
+  }
+}

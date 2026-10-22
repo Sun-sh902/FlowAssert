@@ -1,0 +1,212 @@
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "./tokens.css";
+@import "tailwindcss";
+@import "./atelier.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Type rule: conclusions are set in the serif, the interface in the sans, evidence in mono.
+ *   Instrument Serif — verdict sentences and section titles (≥ 20px only)
+ *   Instrument Sans  — interface
+ *   IBM Plex Mono    — observed values, identifiers, times, namespaces
+ */
+@theme inline {
+  --font-sans: "Instrument Sans Variable", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  /* 11 / 12 / 13 / 13.5 / 15 / 18 / 22 / 28 ; serif display 40 / 44 */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.84375rem;
+  --text-base--line-height: 1.375rem;
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2rem;
+
+  --color-canvas: var(--fa-canvas);
+  --color-surface: var(--fa-surface);
+  --color-sunken: var(--fa-surface-sunken);
+  --color-raised: var(--fa-surface-raised);
+  --color-hover: var(--fa-hover);
+  --color-active: var(--fa-active);
+  --color-nav-active: var(--fa-nav-active);
+  --color-line: var(--fa-border);
+  --color-line-subtle: var(--fa-border-subtle);
+  --color-line-strong: var(--fa-border-strong);
+  --color-rule: var(--fa-rule);
+  --color-ink: var(--fa-ink);
+  --color-ink-2: var(--fa-ink-2);
+  --color-ink-3: var(--fa-ink-3);
+  --color-ink-4: var(--fa-ink-4);
+  --color-brand: var(--fa-brand);
+  --color-brand-ink: var(--fa-brand-ink);
+  --color-brand-soft: var(--fa-brand-soft);
+  --color-brand-line: var(--fa-brand-line);
+  --color-on-brand: var(--fa-on-brand);
+  --color-verified: var(--fa-verified);
+  --color-verified-ink: var(--fa-verified-ink);
+  --color-verified-soft: var(--fa-verified-soft);
+  --color-verified-line: var(--fa-verified-line);
+  --color-mismatch: var(--fa-mismatch);
+  --color-mismatch-ink: var(--fa-mismatch-ink);
+  --color-mismatch-soft: var(--fa-mismatch-soft);
+  --color-mismatch-line: var(--fa-mismatch-line);
+  --color-pending: var(--fa-pending);
+  --color-pending-ink: var(--fa-pending-ink);
+  --color-pending-soft: var(--fa-pending-soft);
+  --color-pending-line: var(--fa-pending-line);
+  --color-unverified: var(--fa-unverified);
+  --color-unverified-ink: var(--fa-unverified-ink);
+  --color-unverified-soft: var(--fa-unverified-soft);
+  --color-unverified-line: var(--fa-unverified-line);
+  --color-demo: var(--fa-demo);
+  --color-demo-soft: var(--fa-demo-soft);
+
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 7px;
+
+  --shadow-sm: var(--fa-shadow-sm);
+  --shadow-pop: var(--fa-shadow-pop);
+  --ease-fa: var(--fa-ease);
+}
+
+@layer base {
+  html {
+    background: var(--fa-canvas);
+    color: var(--fa-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    margin: 0;
+    background: var(--fa-paper-light), var(--fa-canvas);
+    background-attachment: fixed;
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+  ::selection {
+    background: var(--fa-brand-soft);
+    color: var(--fa-ink);
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--fa-ring);
+    border-radius: var(--radius-sm);
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Interface labels — sentence case sans */
+  .label {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    font-weight: 500;
+    color: var(--fa-ink-3);
+  }
+  /* Evidence metadata kicker — mono caps, used sparingly */
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fa-ink-3);
+  }
+
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .serif {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .metric {
+    font-family: var(--font-display);
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--fa-ink);
+  }
+  .surface {
+    background: var(--fa-surface);
+    border: 1px solid var(--fa-border);
+    box-shadow: var(--fa-highlight), var(--fa-shadow-sm);
+  }
+  .mono-id {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: -0.01em;
+    font-variant-ligatures: none;
+  }
+  .hatch {
+    background-image: var(--fa-hatch);
+  }
+  .hatch-soft {
+    background-image: var(--fa-hatch-soft);
+  }
+  .fade-in {
+    animation: fa-fade-in var(--fa-dur) var(--fa-ease) both;
+  }
+}
+
+@keyframes fa-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

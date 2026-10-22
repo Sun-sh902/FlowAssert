@@ -1,0 +1,344 @@
+/*
+ * Evidence Atelier — shared component classes (production).
+ * Everything references --fa-* tokens so the paper and night-ledger themes both apply.
+ */
+@layer components {
+  /* ---------- Record cells: one square per record ---------- */
+  .fa-cells { display: flex; flex-wrap: wrap; gap: 2.5px; }
+  .fa-cell { width: var(--fa-cell, 8px); height: var(--fa-cell, 8px); border-radius: 1.5px; flex: none; }
+  .fa-cell[data-s="Verified"] { background: var(--fa-verified); opacity: 0.85; }
+  .fa-cell[data-s="Mismatch"] { background: var(--fa-mismatch); }
+  .fa-cell[data-s="Pending"] { background: transparent; box-shadow: inset 0 0 0 1.5px var(--fa-pending); }
+  .fa-cell[data-s="Unverified"] { background: var(--fa-hatch); box-shadow: inset 0 0 0 1px var(--fa-unverified); }
+  .fa-cell[data-s="unknown"] { background: transparent; box-shadow: inset 0 0 0 1px var(--fa-ink-4); border-radius: 50%; transform: scale(0.6); }
+
+  /* Aggregate strip (large cohorts) */
+  .fa-strip { display: flex; gap: 2px; height: 10px; }
+  .fa-strip > span { height: 100%; border-radius: 1.5px; min-width: 3px; }
+  .fa-strip > [data-s="Verified"] { background: var(--fa-verified); opacity: 0.85; }
+  .fa-strip > [data-s="Mismatch"] { background: var(--fa-mismatch); }
+  .fa-strip > [data-s="Pending"] { box-shadow: inset 0 0 0 1.5px var(--fa-pending); }
+  .fa-strip > [data-s="Unverified"] { background: var(--fa-hatch); box-shadow: inset 0 0 0 1px var(--fa-unverified); }
+  .fa-strip > [data-s="unknown"] { flex: 0 0 28px; box-shadow: inset 0 0 0 1px var(--fa-ink-4); background: transparent; border-radius: 0 999px 999px 0; border: 0; }
+
+  /* ---------- Verdict seal (cohort result) ---------- */
+  .fa-seal {
+    display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px 4px 8px;
+    border: 1.5px solid currentColor; border-radius: 3px; white-space: nowrap;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .fa-seal[data-size="lg"] { padding: 6px 12px 6px 10px; font-size: 11.5px; }
+  .fa-seal[data-s="Verified"] { color: var(--fa-verified-ink); background: var(--fa-verified-soft); }
+  .fa-seal[data-s="Mismatch"] { color: var(--fa-mismatch-ink); background: var(--fa-mismatch-soft); }
+  .fa-seal[data-s="Pending"] { color: var(--fa-pending-ink); background: var(--fa-pending-soft); }
+  .fa-seal[data-s="Unverified"] { color: var(--fa-unverified-ink); background: var(--fa-hatch-soft), var(--fa-surface); }
+
+  /* ---------- Ledger: ruled rows between ink rules ---------- */
+  .fa-ledger { border-top: 1.5px solid var(--fa-rule); border-bottom: 1.5px solid var(--fa-rule); }
+  .fa-ledger > * + * { border-top: 1px solid var(--fa-border); }
+
+  /* ---------- Trace: source node → cells → destination node ---------- */
+  .fa-trace-line { display: grid; grid-template-columns: 10px minmax(0, 1fr) 12px; align-items: center; gap: 10px; }
+  .fa-node-src { width: 10px; height: 10px; border: 1.5px solid var(--fa-ink); border-radius: 2px; background: var(--fa-surface); }
+  .fa-node-dst { width: 12px; height: 12px; background: var(--fa-ink); border-radius: 2px; }
+  .fa-track { position: relative; padding: 6px 0; min-width: 0; }
+  .fa-track::before { content: ""; position: absolute; left: -10px; right: -10px; top: 50%; border-top: 1px solid var(--fa-ink-4); }
+  .fa-track > * { position: relative; background: var(--fa-surface); padding: 0 6px; width: fit-content; max-width: 100%; }
+  .fa-track > .fa-strip { width: auto; }
+
+  /* ---------- Operator spine ---------- */
+  .fa-op {
+    position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--fa-surface); border: 1.5px solid var(--fa-ink-2);
+  }
+  .fa-op[data-s="pass"] { color: var(--fa-verified); border-color: var(--fa-verified); }
+  .fa-op[data-s="fail"] { color: var(--fa-surface); background: var(--fa-mismatch); border-color: var(--fa-mismatch); }
+  .fa-op[data-s="unknown"] { color: var(--fa-unverified-ink); border-style: dashed; background: var(--fa-hatch-soft), var(--fa-surface); }
+  .fa-spine { position: relative; display: grid; justify-items: center; align-content: start; }
+  .fa-spine::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; border-left: 1px solid var(--fa-border); }
+
+  .fa-diff mark { background: none; color: var(--fa-diff-dest); border-bottom: 2px solid var(--fa-diff-dest); padding: 0 1px; }
+  .fa-diff[data-side="src"] mark { color: var(--fa-diff-source); border-bottom-color: var(--fa-diff-source); }
+
+  /* ---------- Procession ---------- */
+  .fa-procession { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1.5px solid var(--fa-rule); border-bottom: 1px solid var(--fa-border); }
+  .fa-step { position: relative; padding: 14px 18px 16px 0; }
+  .fa-step + .fa-step { padding-left: 18px; border-left: 1px solid var(--fa-border); }
+  .fa-step-arrow { position: absolute; right: -7px; top: 16px; width: 13px; height: 13px; z-index: 1; display: grid; place-items: center; background: var(--fa-canvas); color: var(--fa-ink-3); font-family: var(--font-mono); font-size: 11px; }
+  @media (max-width: 1023px) {
+    .fa-procession { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fa-step, .fa-step + .fa-step { padding: 14px 16px; border-left: 0; border-top: 1px solid var(--fa-border); }
+    .fa-step:nth-child(even) { border-left: 1px solid var(--fa-border); }
+    .fa-step:nth-child(-n + 2) { border-top: 0; }
+    .fa-step:last-child { grid-column: 1 / -1; }
+    .fa-step-arrow { display: none; }
+  }
+  @media (max-width: 639px) {
+    .fa-procession { grid-template-columns: 1fr; }
+    .fa-step:nth-child(even) { border-left: 0; }
+    .fa-step:nth-child(2) { border-top: 1px solid var(--fa-border); }
+  }
+
+  /* ---------- Hatched "unknown" sheet ---------- */
+  .fa-unknown { position: relative; overflow: hidden; }
+  .fa-unknown::before { content: ""; position: absolute; inset: 0; background: var(--fa-hatch-soft); pointer-events: none; }
+  .fa-unknown > * { position: relative; }
+
+  /* ---------- Proportional evidence axis ---------- */
+  .fa-axis { position: relative; height: 44px; margin: 0 8px; }
+  .fa-axis::before { content: ""; position: absolute; left: 0; right: 0; top: 22px; border-top: 1.5px solid var(--fa-rule); }
+  .fa-axis-window { position: absolute; top: 17px; height: 11px; background: var(--fa-hatch-soft); border: 1px solid var(--fa-border); }
+  .fa-axis-ev { position: absolute; top: 12px; transform: translateX(-50%); display: grid; justify-items: center; gap: 4px; }
+  .fa-axis-ev i { display: block; width: 1.5px; height: 20px; background: var(--fa-ink); }
+  .fa-axis-ev[data-kind="deadline"] i { background: var(--fa-mismatch); }
+  .fa-axis-ev b { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; color: var(--fa-ink-2); }
+
+  /* ============ Phase 2 — configuration pages ============ */
+
+  /* Demo stamp: register mark for preview-only content */
+  .fa-stamp {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; white-space: nowrap;
+    border: 1px dashed var(--fa-border-strong); border-radius: 2px; color: var(--fa-ink-2);
+    font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase;
+  }
+
+  /* Not-connected seal: dashed, neutral — no state colour, no hatch */
+  .fa-openseal {
+    display: inline-flex; align-items: center; gap: 7px; padding: 3px 9px; white-space: nowrap;
+    border: 1.5px dashed var(--fa-border-strong); border-radius: 3px; color: var(--fa-ink-3);
+    font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .fa-openseal::before { content: ""; width: 7px; height: 7px; border: 1.25px solid currentColor; border-radius: 1px; }
+
+  /* Rule provenance: solid ink = research, indigo outline = proposed, dotted = demo draft */
+  .fa-prov {
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fa-ink-3);
+  }
+  .fa-prov i { width: 8px; height: 8px; border-radius: 1px; }
+  .fa-prov[data-p="research"] i { background: var(--fa-ink); }
+  .fa-prov[data-p="research"] { color: var(--fa-ink-2); }
+  .fa-prov[data-p="proposed"] i { box-shadow: inset 0 0 0 1.5px var(--fa-brand); }
+  .fa-prov[data-p="proposed"] { color: var(--fa-brand-ink); }
+  .fa-prov[data-p="draft"] i { border: 1.25px dotted var(--fa-ink-3); }
+
+  /* Segmented control */
+  .fa-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border: 1px solid var(--fa-border); border-radius: 5px; background: var(--fa-surface-sunken); }
+  .fa-seg > button {
+    min-height: 30px; padding: 0 12px; border-radius: 3px; font-size: var(--text-sm); font-weight: 500; color: var(--fa-ink-2);
+    transition: background-color var(--fa-dur-fast), color var(--fa-dur-fast);
+  }
+  .fa-seg > button:hover:not(:disabled) { color: var(--fa-ink); background: var(--fa-hover); }
+  .fa-seg > button[aria-checked="true"] { background: var(--fa-surface-raised); color: var(--fa-ink); box-shadow: 0 0 0 1px var(--fa-border-strong), var(--fa-shadow-sm); }
+  .fa-seg > button:disabled { color: var(--fa-ink-4); text-decoration: line-through; text-decoration-color: var(--fa-ink-4); }
+
+  /* Switch */
+  .fa-switch { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; border-radius: 3px; color: var(--fa-ink-3); }
+  .fa-switch > i { position: relative; width: 30px; height: 16px; border-radius: 999px; border: 1.5px solid var(--fa-border-strong); background: var(--fa-surface-sunken); transition: background-color var(--fa-dur-fast), border-color var(--fa-dur-fast); }
+  .fa-switch > i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--fa-ink-3); transition: transform var(--fa-dur) var(--fa-ease), background-color var(--fa-dur-fast); }
+  .fa-switch[aria-checked="true"] { color: var(--fa-ink); }
+  .fa-switch[aria-checked="true"] > i { background: var(--fa-ink); border-color: var(--fa-ink); }
+  .fa-switch[aria-checked="true"] > i::after { transform: translateX(14px); background: var(--fa-canvas); }
+  .fa-switch:hover:not(:disabled) > i { border-color: var(--fa-ink-2); }
+  .fa-switch:disabled { opacity: 0.5; }
+
+  /* Read-only "field" in a configuration preview: mono value on a dotted baseline */
+  .fa-field { display: grid; gap: 3px; padding: 11px 0; }
+  .fa-field + .fa-field { border-top: 1px solid var(--fa-border-subtle); }
+  .fa-field output, .fa-field input, .fa-field select {
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--fa-ink); background: transparent;
+    border: 0; border-bottom: 1px dotted var(--fa-border-strong); padding: 3px 0 4px; border-radius: 0; width: 100%;
+  }
+  .fa-field input:hover, .fa-field select:hover { border-bottom-color: var(--fa-ink-3); }
+  /* 2px, not 1.5px: Chrome snaps 1.5px borders to 1px at device-pixel-ratio 1, which made focus too faint. */
+  .fa-field input:focus, .fa-field select:focus { outline: none; border-bottom: 2px solid var(--fa-brand); padding-bottom: 3px; box-shadow: none; }
+  .fa-field[data-invalid] input, .fa-field[data-invalid] select { border-bottom: 1.5px solid var(--fa-mismatch); }
+
+  /* ---------- Custody diagram (Connections hero) ---------- */
+  .fa-custody { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+  .fa-custody-arc { position: absolute; left: calc(100% / 6.2); width: calc(100% - 200% / 6.2); top: 0; height: 92px; z-index: 2; pointer-events: none; }
+  .fa-custody-flow { position: absolute; left: calc(100% / 6.2); right: calc(100% / 6.2); top: 110px; border-top: 1px solid var(--fa-ink-4); pointer-events: none; }
+  .fa-party {
+    position: relative; z-index: 1; display: grid; justify-items: center; text-align: center; gap: 0; padding: 92px 14px 4px;
+    border-radius: 5px; transition: background-color var(--fa-dur-fast);
+  }
+  .fa-party:hover { background: var(--fa-hover); }
+  .fa-party[aria-pressed="true"] { background: var(--fa-hover); box-shadow: inset 0 -2px 0 var(--fa-brand); }
+  .fa-party:focus-visible { box-shadow: var(--fa-ring-inset); }
+  .fa-party-node { display: grid; place-items: center; width: 36px; height: 36px; margin-bottom: 14px; background: var(--fa-surface); }
+  .fa-party-node[data-role="source"] { border: 2px solid var(--fa-ink); border-radius: 4px; }
+  .fa-party-node[data-role="destination"] { background: var(--fa-ink); border-radius: 4px; }
+  .fa-party-node[data-role="workflow"] { width: 120px; border: 1.5px dashed var(--fa-border-strong); border-radius: 4px; color: var(--fa-ink-3); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+  @media (max-width: 767px) {
+    .fa-custody { grid-template-columns: 1fr; padding-left: 30px; }
+    .fa-custody-arc, .fa-custody-flow { display: none; }
+    .fa-custody::before { content: ""; position: absolute; left: 9px; top: 26px; bottom: 26px; width: 12px; border: 1.5px solid var(--fa-brand); border-right: 0; border-radius: 6px 0 0 6px; }
+    .fa-party { justify-items: start; text-align: left; padding: 14px 10px; grid-template-columns: 44px minmax(0, 1fr); column-gap: 12px; }
+    .fa-party > :not(.fa-party-node) { grid-column: 2; }
+    .fa-party-node { grid-row: span 5; margin: 0; }
+    .fa-party-node[data-role="workflow"] { width: 36px; font-size: 0; }
+  }
+
+  /* ---------- Theme specimen (Settings) ---------- */
+  .fa-specimen {
+    position: relative; display: grid; text-align: left; overflow: hidden; border-radius: 6px;
+    border: 1px solid var(--fa-border); background: var(--fa-surface); transition: box-shadow var(--fa-dur-fast), border-color var(--fa-dur-fast);
+  }
+  .fa-specimen:hover { border-color: var(--fa-border-strong); }
+  .fa-specimen[aria-checked="true"] { border-color: var(--fa-rule); box-shadow: 0 0 0 1px var(--fa-rule); }
+  .fa-specimen-plate { background: var(--fa-paper-light), var(--fa-canvas); color: var(--fa-ink); padding: 16px 16px 14px; min-height: 148px; }
+
+  /* Future (not implemented) — dashed sheet, no controls */
+  .fa-future { border: 1.5px dashed var(--fa-border-strong); border-radius: 7px; }
+
+  /* ============ Phase 2.5 — data-access states (never verdicts) ============
+   * Neutral ink only: no state colour, no hatch (hatch means "evidence insufficient", a verdict).
+   * A broken or dotted trace is the access vocabulary; the seal and record cells stay reserved.
+   */
+
+  /* Skeleton bars: sunken paper, a slow breath that reduced motion stops */
+  .fa-skel { display: block; height: 10px; border-radius: 2px; background: var(--fa-surface-sunken); box-shadow: inset 0 0 0 1px var(--fa-border-subtle); }
+  .fa-skel[data-size="display"] { height: 30px; border-radius: 3px; }
+  .fa-skel[data-size="title"] { height: 16px; }
+  .fa-skel[data-size="text"] { height: 8px; }
+  .fa-breathe { animation: fa-breathe 1.8s ease-in-out infinite alternate; }
+
+  /* An unread seal: same box as the verdict seal, dashed and colourless */
+  .fa-seal[data-s="reading"] { color: var(--fa-ink-3); border-style: dashed; border-color: var(--fa-border-strong); background: transparent; }
+
+  /* An unread track: the trace line with no record cells drawn */
+  .fa-void-track { position: relative; height: 20px; min-width: 0; }
+  .fa-void-track::before { content: ""; position: absolute; left: -10px; right: -10px; top: 50%; border-top: 1px dashed var(--fa-ink-4); }
+  .fa-void-track[data-kind="broken"]::before {
+    border-top-style: solid; border-color: var(--fa-ink-3);
+    mask: linear-gradient(90deg, #000 0 44%, transparent 44% 56%, #000 56%);
+  }
+  .fa-void-track > span {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 0 8px; white-space: nowrap;
+    background: var(--fa-surface); color: var(--fa-ink-3); font-family: var(--font-mono); font-size: 10.5px;
+  }
+
+  /* Access notice: a ruled slip. Unavailability is dashed; a failed request is solid. */
+  .fa-access {
+    position: relative; background: var(--fa-surface); box-shadow: var(--fa-highlight), var(--fa-shadow-sm);
+    border: 1px solid var(--fa-border); border-top: 1.5px solid var(--fa-rule);
+  }
+  .fa-access[data-line="dashed"] { border-style: dashed; border-color: var(--fa-border-strong); border-top-style: solid; border-top-color: var(--fa-rule); }
+  .fa-access-mark { color: var(--fa-ink-2); }
+
+  /* "Data access · not a verdict" stamp: solid hairline, rounded ends — never the dashed demo stamp */
+  .fa-accessstamp {
+    display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; white-space: nowrap;
+    border: 1px solid var(--fa-border-strong); border-radius: 999px; color: var(--fa-ink-3);
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase;
+  }
+  .fa-accessstamp::before { content: ""; width: 8px; border-top: 1.5px solid currentColor; }
+
+  /* Evidence availability chip: shape + word, no state colour */
+  .fa-avail { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10.5px; color: var(--fa-ink-2); white-space: nowrap; }
+  .fa-avail i { width: 9px; height: 9px; border-radius: 1.5px; flex: none; }
+  .fa-avail[data-a="available"] i { background: var(--fa-ink-2); }
+  .fa-avail[data-a="not_collected"] i { box-shadow: inset 0 0 0 1.25px var(--fa-ink-3); }
+  .fa-avail[data-a="unavailable"] i { border: 1.25px dotted var(--fa-ink-2); }
+  .fa-avail[data-a="redacted"] i { background: linear-gradient(var(--fa-ink-2), var(--fa-ink-2)) center / 100% 3px no-repeat; box-shadow: inset 0 0 0 1.25px var(--fa-ink-3); }
+  .fa-avail[data-a="expired"] i { box-shadow: inset 0 0 0 1.25px var(--fa-ink-3); clip-path: polygon(0 0, 65% 0, 100% 35%, 100% 100%, 0 100%); }
+  .fa-avail[data-a="unavailable"], .fa-avail[data-a="expired"], .fa-avail[data-a="redacted"] { color: var(--fa-ink); }
+
+  /* Invisible hit-area extension for small text links/buttons: ≥ 24px tall targets without moving the type */
+  .fa-hit { position: relative; }
+  .fa-hit::before { content: ""; position: absolute; inset: -4px -3px; }
+
+  /* Partial set: loaded cells are drawn, unread ones are dotted voids */
+  .fa-cell[data-s="void"] { background: transparent; box-shadow: none; border: 1px dotted var(--fa-ink-4); }
+}
+
+@keyframes fa-breathe {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+/*
+ * Preferences (src/lib/prefs.ts). Unlayered on purpose so they override utility classes.
+ * They change how evidence is drawn, never what it says.
+ */
+:root[data-ring="heavy"] {
+  --fa-ring: 0 0 0 2px var(--fa-canvas), 0 0 0 5px var(--fa-brand);
+  --fa-ring-inset: inset 0 0 0 3px var(--fa-brand);
+}
+:root[data-pattern="strong"] {
+  --fa-hatch: repeating-linear-gradient(135deg, var(--fa-unverified-ink) 0 1.6px, transparent 1.6px 3.4px);
+  --fa-hatch-soft: repeating-linear-gradient(135deg, rgb(87 83 74 / 0.4) 0 1.2px, transparent 1.2px 4.5px);
+}
+:root[data-theme="dark"][data-pattern="strong"] {
+  --fa-hatch-soft: repeating-linear-gradient(135deg, rgb(182 174 157 / 0.24) 0 1.2px, transparent 1.2px 4.5px);
+}
+:root[data-pattern="strong"] .fa-cell[data-s="Unverified"] { box-shadow: inset 0 0 0 1.5px var(--fa-unverified-ink); }
+:root[data-underline="true"] :is(main, nav) a { text-decoration: underline; text-decoration-color: var(--fa-border-strong); text-underline-offset: 3px; }
+:root[data-density="compact"] .fa-ledger > * { padding-top: 4px; padding-bottom: 4px; }
+:root[data-density="compact"] li.fa-row { padding-top: 10px; padding-bottom: 10px; }
+:root[data-density="compact"] tr.fa-row > td { height: 42px; }
+:root[data-density="compact"] button.fa-row { height: 32px; }
+:root[data-density="compact"] .fa-row-pad { padding-top: 7px; padding-bottom: 7px; }
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/*
+ * The base :focus-visible ring lives in @layer base, so any resting box-shadow set in a later layer
+ * replaces it and the element looks the same focused and unfocused. Unlayered, these restore the ring:
+ * .surface buttons (shadow utility), the current-page nav link (ring-1 utility), the checked option of a
+ * segmented control (its only Tab stop, roving tabindex) and the selected theme specimen.
+ */
+.surface:focus-visible,
+[aria-current="page"]:focus-visible,
+.fa-seg > button[aria-checked="true"]:focus-visible,
+.fa-specimen[aria-checked="true"]:focus-visible { box-shadow: var(--fa-ring); }
+
+/*
+ * ============ Phase 3A — evidence integrity (never a verdict, never an access state) ============
+ * Integrity is its own vocabulary, drawn as two linked evidence squares (stored bytes → digest).
+ * It never uses a verdict seal, a verdict colour or the hatch:
+ *   verified      indigo ink, double rule ("=" between the squares) — not Verified green
+ *   failed        inverted ink slab, the link crossed — conspicuous, not Mismatch red
+ *   unverifiable  dashed rule, second square dashed
+ *   pending       dotted rule, second square dotted (not established yet)
+ */
+@layer components {
+  .fa-iseal {
+    display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px 4px 8px; white-space: nowrap; border-radius: 2px;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .fa-iseal[data-i="verified"] { color: var(--fa-brand-ink); background: var(--fa-surface); border: 3px double var(--fa-brand); padding: 3px 8px 3px 7px; }
+  .fa-iseal[data-i="failed"] { color: var(--fa-canvas); background: var(--fa-ink); border: 1.5px solid var(--fa-ink); }
+  .fa-iseal[data-i="unverifiable"] { color: var(--fa-ink-2); background: var(--fa-surface); border: 1.5px dashed var(--fa-border-strong); }
+  .fa-iseal[data-i="pending"] { color: var(--fa-ink-3); background: transparent; border: 1.5px dotted var(--fa-border-strong); }
+
+  /* Inline integrity word in ledgers */
+  .fa-itag { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; }
+  .fa-itag[data-i="verified"] { color: var(--fa-brand-ink); }
+  .fa-itag[data-i="failed"] { color: var(--fa-canvas); background: var(--fa-ink); padding: 1px 6px; border-radius: 2px; font-weight: 600; }
+  .fa-itag[data-i="unverifiable"] { color: var(--fa-ink-2); }
+  .fa-itag[data-i="pending"] { color: var(--fa-ink-3); }
+
+  /* Integrity notice: a ruled slip like the access notice. Failed carries an inverted band. */
+  .fa-inotice { position: relative; background: var(--fa-surface); box-shadow: var(--fa-highlight), var(--fa-shadow-sm); border: 1px solid var(--fa-border); overflow: hidden; }
+  .fa-inotice[data-i="failed"] { border: 1.5px solid var(--fa-ink); }
+  .fa-inotice[data-i="unverifiable"] { border-style: dashed; border-color: var(--fa-border-strong); border-top: 1.5px solid var(--fa-rule); }
+  .fa-inotice-band {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; padding: 8px 20px;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase;
+  }
+  .fa-inotice[data-i="failed"] .fa-inotice-band { background: var(--fa-ink); color: var(--fa-canvas); }
+  .fa-inotice[data-i="unverifiable"] .fa-inotice-band { color: var(--fa-ink-2); border-bottom: 1px dashed var(--fa-border-strong); }
+
+  /* Retrieval / integrity status pair under an evidence ledger: two rows, two vocabularies */
+  .fa-evstatus { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
+  .fa-evstatus > dt { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fa-ink-3); }
+  .fa-evstatus > dd { font-family: var(--font-mono); font-size: 11px; color: var(--fa-ink-2); min-width: 0; }
+  .fa-evstatus > dd[data-i="failed"] { color: var(--fa-ink); font-weight: 600; }
+}

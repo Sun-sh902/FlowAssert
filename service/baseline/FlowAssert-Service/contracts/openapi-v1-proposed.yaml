@@ -1,0 +1,2300 @@
+{
+  "openapi": "3.1.1",
+  "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "info": {
+    "title": "FlowAssert API v1 — PROPOSED — NOT IMPLEMENTED",
+    "version": "0.1.1-proposed",
+    "description": "Phase 0 architecture contract. No backend exists. JSON-compatible YAML 1.2 serialization is intentional so the contract can be parsed without installing YAML packages. Phase 1 is loopback-only LOCAL_RESEARCH, synthetic data, no auth, connectors, database, scheduler or write API. Production authorization is separate from API version and code hashes."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8000",
+      "description": "Proposed offline loopback address; no listener created by Phase 0."
+    }
+  ],
+  "security": [],
+  "x-contract-status": "PROPOSED — NOT IMPLEMENTED",
+  "x-phase1-scope": {
+    "provider_mode": "LOCAL_RESEARCH",
+    "synthetic": true,
+    "research_authorization": "research_only",
+    "max_source_rows": 200,
+    "max_input_bytes": 1048576,
+    "max_overview_workflows": 100,
+    "live_available": false,
+    "first_slice": [
+      "GET /api/v1/verifications/{id}",
+      "GET /api/v1/verifications/{id}/evidence"
+    ],
+    "overview_hydration_max_concurrency": 4
+  },
+  "x-behavioral-invariants": [
+    "Raw ResearchResult is copied unchanged from Python evaluate(e).",
+    "Mismatch outranks waiting; row and cohort verdicts are independent returned fields.",
+    "Unknown population implies expected_total=null, never an inferred zero.",
+    "No GET executes evaluation/acquisition or mutates history.",
+    "Query cursors bind immutable snapshot, workspace, mode and full query; expired snapshot returns 409.",
+    "Backend errors never render as Verified; no fallback to mocks.",
+    "A code digest is identity, not research approval or evidence authenticity."
+  ],
+  "paths": {
+    "/api/v1/overview": {
+      "get": {
+        "operationId": "getOverview",
+        "summary": "Latest workflow observations and separately scoped row/cohort summaries",
+        "description": "PROPOSED — NOT IMPLEMENTED. Read only; GET never acquires evidence or executes a new verification.",
+        "parameters": [
+          {
+            "name": "evaluated_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Inclusive mapped evaluation instant; RFC3339 offset required. Not service receipt/execution time."
+          },
+          {
+            "name": "evaluated_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Exclusive mapped evaluation instant; must be later than evaluated_from. Null/unmapped evaluation times excluded when filtering."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful read of completed immutable data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Offline prototype: no-store. Later retention/cache policy needs review.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor, unknown parameter or unsupported sort",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Reserved future authenticated deployment: authentication required; not implemented in Phase 1",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reserved future authenticated deployment: authorization denied; cross-workspace resource lookup uses 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in the configured workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Expired query snapshot, unavailable provider mode or version-policy conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter, unsupported time range or offline scope limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header applies when present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until an operational request retry may be attempted. Does not imply verification Pending.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected sanitized service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Run/evidence integrity or version lock unavailable; no result may be invented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/verifications": {
+      "get": {
+        "operationId": "listVerifications",
+        "summary": "Completed verification runs",
+        "description": "PROPOSED — NOT IMPLEMENTED. Read only; GET never acquires evidence or executes a new verification.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": "Maximum items per page; never implicitly truncate a complete evaluator result."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            },
+            "description": "Opaque continuation. Omit for first page. Changing filters/sort or mode with a cursor is rejected."
+          },
+          {
+            "name": "workflow_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by exact workflow ID"
+          },
+          {
+            "name": "cohort_state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/State"
+            },
+            "description": "Filter cohort verdict only, never record state"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Trim and case-insensitive substring over run ID, workflow name, n8n label and source namespace; no implicit search over PII. Skip null n8n_label values; never search derived unavailable-label fallback text."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "evaluated_at:desc",
+                "evaluated_at:asc",
+                "created_at:desc"
+              ],
+              "default": "evaluated_at:desc"
+            },
+            "description": "Mapped evaluation instant or creation time. Null evaluation times last in either direction; ID tie-break in sort direction."
+          },
+          {
+            "name": "evaluated_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Inclusive mapped evaluation instant; RFC3339 offset required. Not service receipt/execution time."
+          },
+          {
+            "name": "evaluated_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Exclusive mapped evaluation instant; must be later than evaluated_from. Null/unmapped evaluation times excluded when filtering."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful read of completed immutable data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationList"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Offline prototype: no-store. Later retention/cache policy needs review.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor, unknown parameter or unsupported sort",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Reserved future authenticated deployment: authentication required; not implemented in Phase 1",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reserved future authenticated deployment: authorization denied; cross-workspace resource lookup uses 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in the configured workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Expired query snapshot, unavailable provider mode or version-policy conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter, unsupported time range or offline scope limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header applies when present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until an operational request retry may be attempted. Does not imply verification Pending.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected sanitized service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Run/evidence integrity or version lock unavailable; no result may be invented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/verifications/{id}": {
+      "get": {
+        "operationId": "getVerification",
+        "summary": "Complete evaluator result with bound source/policy/observation context",
+        "description": "PROPOSED — NOT IMPLEMENTED. Read only; GET never acquires evidence or executes a new verification.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Opaque run identity scoped by server workspace. It is not a provider record ID or path."
+          },
+          {
+            "name": "snapshot_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Pin to the parent Overview/list/Detail immutable catalog snapshot. Omit only for a standalone first read. Bind workspace, mode and contract version; 409 if expired/unavailable or conflicting, 404 if run is not a member. Echo the selected snapshot in Detail.snapshot_id or evidence.page.snapshot_id. Never fall forward to a newer snapshot."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful read of completed immutable data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationRun"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Offline prototype: no-store. Later retention/cache policy needs review.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor, unknown parameter or unsupported sort",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Reserved future authenticated deployment: authentication required; not implemented in Phase 1",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reserved future authenticated deployment: authorization denied; cross-workspace resource lookup uses 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in the configured workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Expired query snapshot, unavailable provider mode or version-policy conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter, unsupported time range or offline scope limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header applies when present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until an operational request retry may be attempted. Does not imply verification Pending.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected sanitized service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Run/evidence integrity or version lock unavailable; no result may be invented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/verifications/{id}/evidence": {
+      "get": {
+        "operationId": "getVerificationEvidence",
+        "summary": "Run-scoped evidence references and bounded synthetic payloads",
+        "description": "PROPOSED — NOT IMPLEMENTED. Read only; GET never acquires evidence or executes a new verification.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Opaque run identity scoped by server workspace. It is not a provider record ID or path."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": "Maximum items per page; never implicitly truncate a complete evaluator result."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            },
+            "description": "Opaque continuation. Omit for first page. Changing filters/sort or mode with a cursor is rejected."
+          },
+          {
+            "name": "include_payload",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "description": "false returns null payload with omitted_by_request reason; availability remains the stored reference state."
+          },
+          {
+            "name": "snapshot_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Pin to the parent Overview/list/Detail immutable catalog snapshot. Omit only for a standalone first read. Bind workspace, mode and contract version; 409 if expired/unavailable or conflicting, 404 if run is not a member. Echo the selected snapshot in Detail.snapshot_id or evidence.page.snapshot_id. Never fall forward to a newer snapshot."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful read of completed immutable data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidencePage"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Offline prototype: no-store. Later retention/cache policy needs review.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor, unknown parameter or unsupported sort",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Reserved future authenticated deployment: authentication required; not implemented in Phase 1",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reserved future authenticated deployment: authorization denied; cross-workspace resource lookup uses 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in the configured workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Expired query snapshot, unavailable provider mode or version-policy conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter, unsupported time range or offline scope limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header applies when present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until an operational request retry may be attempted. Does not imply verification Pending.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected sanitized service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Run/evidence integrity or version lock unavailable; no result may be invented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows": {
+      "get": {
+        "operationId": "listWorkflows",
+        "summary": "Configured synthetic workflow display metadata",
+        "description": "PROPOSED — NOT IMPLEMENTED. Read only; GET never acquires evidence or executes a new verification.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": "Maximum items per page; never implicitly truncate a complete evaluator result."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            },
+            "description": "Opaque continuation. Omit for first page. Changing filters/sort or mode with a cursor is rejected."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Trim and case-insensitive substring over ID, name, n8n label and source namespace. Skip null n8n_label values; never search derived unavailable-label fallback text."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name:asc",
+                "name:desc"
+              ],
+              "default": "name:asc"
+            },
+            "description": "Case-insensitive display-name order, ID tie-break in the same direction."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful read of completed immutable data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowList"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Offline prototype: no-store. Later retention/cache policy needs review.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor, unknown parameter or unsupported sort",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Reserved future authenticated deployment: authentication required; not implemented in Phase 1",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reserved future authenticated deployment: authorization denied; cross-workspace resource lookup uses 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found in the configured workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Expired query snapshot, unavailable provider mode or version-policy conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter, unsupported time range or offline scope limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After header applies when present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until an operational request retry may be attempted. Does not imply verification Pending.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected sanitized service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Run/evidence integrity or version lock unavailable; no result may be invented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "State": {
+        "type": "string",
+        "enum": [
+          "Verified",
+          "Mismatch",
+          "Pending",
+          "Unverified"
+        ]
+      },
+      "RuleStatus": {
+        "type": "string",
+        "enum": [
+          "pass",
+          "fail",
+          "unknown"
+        ]
+      },
+      "Digest": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$",
+        "description": "SHA-256 identity only. Does not authenticate acquisition or prove truth."
+      },
+      "Timestamp": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "format": "date-time",
+        "description": "RFC3339 instant with explicit offset; canonical output UTC Z; null means unavailable. Never substitute epoch/tick zero."
+      },
+      "RawJSON": {
+        "description": "An unchanged supplied JSON value, including malformed evidence values. No coercion is authorized."
+      },
+      "RawTick": {
+        "description": "Raw evaluator echo: normally a plain safe integer tick or null; malformed JSON values may be retained on fail-closed paths. Only validated integer ticks may be mapped to timestamps."
+      },
+      "Counts": {
+        "type": "object",
+        "properties": {
+          "Verified": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "Mismatch": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "Pending": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "Unverified": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "Verified",
+          "Mismatch",
+          "Pending",
+          "Unverified"
+        ],
+        "additionalProperties": false
+      },
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "api_version": {
+            "type": "string",
+            "const": "v1"
+          },
+          "provider_mode": {
+            "type": "string",
+            "enum": [
+              "LOCAL_RESEARCH",
+              "LIVE"
+            ],
+            "description": "LIVE reserved for future authorized acquisition. Phase 1 emits LOCAL_RESEARCH only."
+          },
+          "synthetic": {
+            "type": "boolean",
+            "description": "Must be true for every Phase 1 response."
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contract_version": {
+            "type": "string",
+            "const": "0.1.1-proposed",
+            "description": "Reviewed schema/provider identity; mismatches fail before mapping."
+          },
+          "workspace_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Configured workspace, including for empty collections; must match every contained run identity."
+          }
+        },
+        "required": [
+          "api_version",
+          "provider_mode",
+          "synthetic",
+          "generated_at",
+          "contract_version",
+          "workspace_id"
+        ],
+        "additionalProperties": false
+      },
+      "Identity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "workspace_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "previous_run_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "previous_run_id",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "Workflow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "n8n_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required wire key. Configured string is copied verbatim; explicit null means unavailable label metadata. Missing key is a contract error. The provider preserves null and may separately derive display text \"Workflow label unavailable\"; no execution or source provenance is inferred."
+          },
+          "source_label": {
+            "type": "string"
+          },
+          "source_namespace": {
+            "type": "string"
+          },
+          "destination_system": {
+            "type": "string",
+            "const": "HubSpot"
+          },
+          "destination_object": {
+            "type": "string",
+            "const": "contacts"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "n8n_label",
+          "source_label",
+          "source_namespace",
+          "destination_system",
+          "destination_object"
+        ],
+        "additionalProperties": false
+      },
+      "EvaluatorIdentity": {
+        "type": "object",
+        "properties": {
+          "version_label": {
+            "type": "string"
+          },
+          "source_commit": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "model_sha256": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "workspace_dirty": {
+            "type": "boolean",
+            "description": "Whole selected research checkout status; not just the evaluator file."
+          }
+        },
+        "required": [
+          "version_label",
+          "source_commit",
+          "model_sha256",
+          "workspace_dirty"
+        ],
+        "additionalProperties": false
+      },
+      "TimeMapping": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "synthetic_affine_v1",
+              "unmapped"
+            ]
+          },
+          "origin_iso": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "seconds_per_tick": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kind",
+          "origin_iso",
+          "seconds_per_tick"
+        ],
+        "additionalProperties": false,
+        "description": "synthetic_affine_v1 requires nonnull origin and positive integer seconds_per_tick. unmapped requires both null. This is a display mapping, not observed calendar authenticity."
+      },
+      "EventTimes": {
+        "type": "object",
+        "properties": {
+          "business_obligation_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "observed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "evaluation_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deadline": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "business_obligation_at",
+          "observed_at",
+          "evaluation_at",
+          "deadline"
+        ],
+        "additionalProperties": false,
+        "description": "All four keys are required and nullable. Missing/invalid research ticks stay null with missing_time_tick/invalid_time_tick diagnostics at result.<field>; never zero, generated_at or service_executed_at. Valid ticks under unmapped mapping also produce null times with time_mapping_unavailable diagnostic. These are synthetic display instants, not observed wall-clock evidence."
+      },
+      "EvaluationContext": {
+        "type": "object",
+        "properties": {
+          "evaluator": {
+            "$ref": "#/components/schemas/EvaluatorIdentity"
+          },
+          "input_evidence_sha256": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "time_mapping": {
+            "$ref": "#/components/schemas/TimeMapping"
+          },
+          "event_times": {
+            "$ref": "#/components/schemas/EventTimes"
+          },
+          "service_executed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "evaluator",
+          "input_evidence_sha256",
+          "time_mapping",
+          "event_times",
+          "service_executed_at"
+        ],
+        "additionalProperties": false,
+        "description": "Raw evaluator ticks remain in result. service_executed_at is actual backend execution time in an implemented service; null in these proposed static examples, which are not HTTP execution receipts."
+      },
+      "RuleResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/RuleStatus"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "actual": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "RuleMap": {
+        "type": "object",
+        "properties": {
+          "existence": {
+            "$ref": "#/components/schemas/RuleResult"
+          },
+          "phone": {
+            "$ref": "#/components/schemas/RuleResult"
+          },
+          "uniqueness": {
+            "$ref": "#/components/schemas/RuleResult"
+          },
+          "existed_by_deadline": {
+            "$ref": "#/components/schemas/RuleResult"
+          },
+          "workflow_execution": {
+            "$ref": "#/components/schemas/RuleResult"
+          }
+        },
+        "required": [
+          "existence",
+          "phone",
+          "uniqueness"
+        ],
+        "additionalProperties": false,
+        "description": "Only evaluator-produced required rules. Email is absent from the current evaluator contract; do not inject it or synthesize a pass."
+      },
+      "RecordResult": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/RawJSON"
+          },
+          "source_row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {
+            "$ref": "#/components/schemas/State"
+          },
+          "candidate_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rules": {
+            "$ref": "#/components/schemas/RuleMap"
+          }
+        },
+        "required": [
+          "key",
+          "source_row",
+          "state",
+          "candidate_ids",
+          "rules"
+        ],
+        "additionalProperties": false,
+        "description": "Raw key may be duplicate, missing/null, or non-string. UI row identity is run ID plus source_row, never an assumption of unique key."
+      },
+      "PremiseEvidence": {
+        "type": "object",
+        "properties": {
+          "source_provenance_record": {
+            "type": "boolean"
+          },
+          "source_inventory_record": {
+            "type": "boolean"
+          },
+          "rule_approval_record": {
+            "type": "boolean"
+          },
+          "destination_query_total_consistent": {
+            "type": "boolean"
+          },
+          "observation_clock_trusted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "source_provenance_record",
+          "source_inventory_record",
+          "rule_approval_record",
+          "destination_query_total_consistent",
+          "observation_clock_trusted"
+        ],
+        "additionalProperties": false,
+        "description": "Consistency checks on supplied records, not authentication. None alone establishes population, coverage, or approval."
+      },
+      "ResearchResult": {
+        "type": "object",
+        "properties": {
+          "cohort_state": {
+            "$ref": "#/components/schemas/State"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordResult"
+            },
+            "maxItems": 200
+          },
+          "expected_total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "source_rows_observed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_population_known": {
+            "type": "boolean"
+          },
+          "destination_coverage_sufficient": {
+            "type": "boolean"
+          },
+          "source_basis_sha256": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "rule_basis_sha256": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "observed_at": {
+            "$ref": "#/components/schemas/RawTick"
+          },
+          "deadline": {
+            "$ref": "#/components/schemas/RawTick"
+          },
+          "business_obligation_at": {
+            "$ref": "#/components/schemas/RawTick"
+          },
+          "evaluation_at": {
+            "$ref": "#/components/schemas/RawTick"
+          },
+          "observation_time_valid": {
+            "type": "boolean"
+          },
+          "destination_page_sequence_valid": {
+            "type": "boolean"
+          },
+          "destination_page_sequence_reason": {
+            "type": "string"
+          },
+          "premise_evidence": {
+            "$ref": "#/components/schemas/PremiseEvidence"
+          },
+          "workflow_execution": {
+            "type": "string",
+            "const": "Not assessed"
+          },
+          "business_truth": {
+            "type": "string",
+            "const": "Not assessed"
+          },
+          "absence_cause": {
+            "type": "string",
+            "const": "Not inferred"
+          }
+        },
+        "required": [
+          "cohort_state",
+          "counts",
+          "records",
+          "expected_total",
+          "source_rows_observed",
+          "source_population_known",
+          "destination_coverage_sufficient",
+          "source_basis_sha256",
+          "rule_basis_sha256",
+          "observed_at",
+          "deadline",
+          "business_obligation_at",
+          "evaluation_at",
+          "observation_time_valid",
+          "destination_page_sequence_valid",
+          "destination_page_sequence_reason",
+          "premise_evidence",
+          "workflow_execution",
+          "business_truth",
+          "absence_cause"
+        ],
+        "additionalProperties": false,
+        "description": "Unchanged evaluate(e) return object. Transport cap of 200 source rows is an offline service scope limit, not a research capability limit. Never truncate a result; reject oversized import before publication."
+      },
+      "ResultSummary": {
+        "type": "object",
+        "properties": {
+          "cohort_state": {
+            "$ref": "#/components/schemas/State"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "expected_total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "source_rows_observed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_population_known": {
+            "type": "boolean"
+          },
+          "records_not_fully_assessed": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "cohort_state",
+          "counts",
+          "expected_total",
+          "source_rows_observed",
+          "source_population_known",
+          "records_not_fully_assessed"
+        ],
+        "additionalProperties": false,
+        "description": "Projection/count of returned rows and statuses, not cohort recomputation. Counts are row verdict counts; cohort_state is copied."
+      },
+      "EvidenceValue": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "present",
+              "null",
+              "missing",
+              "inaccessible",
+              "unsupported",
+              "redacted"
+            ]
+          },
+          "value": {
+            "$ref": "#/components/schemas/RawJSON"
+          }
+        },
+        "required": [
+          "state",
+          "value"
+        ],
+        "additionalProperties": false,
+        "description": "present means readable string (including empty string). null, missing, inaccessible and redacted carry null value but distinct state; unsupported retains raw JSON. This describes display availability, never a rule verdict."
+      },
+      "SourceRowContext": {
+        "type": "object",
+        "properties": {
+          "source_row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "key": {
+            "$ref": "#/components/schemas/RawJSON"
+          },
+          "phone": {
+            "$ref": "#/components/schemas/EvidenceValue"
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "company": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "source_row",
+          "key",
+          "phone",
+          "display_name",
+          "company"
+        ],
+        "additionalProperties": false,
+        "description": "Names/company are optional presentation annotations with no effect on evaluation. No invented names in LOCAL_RESEARCH."
+      },
+      "SourceSnapshot": {
+        "type": "object",
+        "properties": {
+          "evidence_reference_id": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance_channel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inventory_method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inventory_eligible_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceRowContext"
+            },
+            "maxItems": 200
+          }
+        },
+        "required": [
+          "evidence_reference_id",
+          "namespace",
+          "version",
+          "provenance_channel",
+          "inventory_method",
+          "inventory_eligible_count",
+          "rows"
+        ],
+        "additionalProperties": false
+      },
+      "DestinationObservation": {
+        "type": "object",
+        "properties": {
+          "evidence_reference_id": {
+            "type": "string"
+          },
+          "account": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "object": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "access": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "denied",
+              "timeout",
+              "unknown"
+            ]
+          },
+          "page_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of supplied page entries; does not imply valid/reachable pages."
+          },
+          "query_total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Provider-reported total if a valid nonnegative integer was supplied, otherwise null. Raw supplied value remains in bound evidence."
+          },
+          "distinct_ids_returned": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Distinct nonempty string IDs in supplied rows, before admissibility; not proof of evaluator coverage."
+          }
+        },
+        "required": [
+          "evidence_reference_id",
+          "account",
+          "object",
+          "access",
+          "page_count",
+          "query_total",
+          "distinct_ids_returned"
+        ],
+        "additionalProperties": false
+      },
+      "PolicyContext": {
+        "type": "object",
+        "properties": {
+          "evidence_reference_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "comparison": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadline": {
+            "$ref": "#/components/schemas/RawTick"
+          },
+          "max_age": {
+            "$ref": "#/components/schemas/RawTick"
+          },
+          "retry_viable": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "settling_allowed": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "identity_reliable": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "require_historical_deadline": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "require_execution": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "account": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "object": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "evidence_reference_id",
+          "version",
+          "comparison",
+          "deadline",
+          "max_age",
+          "retry_viable",
+          "settling_allowed",
+          "identity_reliable",
+          "require_historical_deadline",
+          "require_execution",
+          "account",
+          "object"
+        ],
+        "additionalProperties": false,
+        "description": "Typed presentation subset, not full evaluator input. Missing/invalid string/boolean values project to null with diagnostics; original input is retained unchanged in evidence. Do not interpret null as False in evaluator policy."
+      },
+      "RetryContext": {
+        "type": "object",
+        "properties": {
+          "window_open_at_evaluation": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Timing-only display: valid capture/evaluation/deadline and evaluation < deadline. This is not can_wait or scheduling authority."
+          },
+          "policy_retry_viable": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "pending_source_rows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uniqueItems": true
+          },
+          "automatic_retry_enabled": {
+            "type": "boolean",
+            "const": false
+          },
+          "next_attempt_at": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "window_open_at_evaluation",
+          "policy_retry_viable",
+          "pending_source_rows",
+          "automatic_retry_enabled",
+          "next_attempt_at"
+        ],
+        "additionalProperties": false,
+        "description": "Pending rows are selected by the returned state, not re-derived from evidence. Phase 1 has no scheduler. Expired display time never rewrites saved Pending; a new evaluator run is needed."
+      },
+      "Assurance": {
+        "type": "object",
+        "properties": {
+          "research_authorization": {
+            "type": "string",
+            "enum": [
+              "research_only",
+              "approved_for_product_use"
+            ],
+            "description": "Phase 1 experimental default research_only. approved_for_product_use requires exact reviewed release identity plus separate Owner authorization; no current approval is inferred."
+          },
+          "acquisition_authenticity": {
+            "type": "string",
+            "enum": [
+              "not_authenticated",
+              "not_assessed"
+            ]
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "release_approval_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque reviewed release/product-use authorization reference, not a filesystem path. Null for research_only. A future approved_for_product_use claim must bind exact code/contract identity to separately verified outside authorization."
+          }
+        },
+        "required": [
+          "research_authorization",
+          "acquisition_authenticity",
+          "limitations",
+          "release_approval_reference"
+        ],
+        "additionalProperties": false
+      },
+      "EvidenceReference": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "source",
+              "destination",
+              "policy",
+              "evaluation_input"
+            ]
+          },
+          "media_type": {
+            "type": "string",
+            "const": "application/json"
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "canonicalization": {
+            "type": "string",
+            "const": "python-json-sortkeys-ascii-v1"
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "available",
+              "not_collected",
+              "unavailable",
+              "redacted",
+              "expired"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "acquisition_kind": {
+            "type": "string",
+            "enum": [
+              "synthetic_local",
+              "independent_source_read",
+              "destination_read",
+              "workflow_context"
+            ]
+          },
+          "external_authenticity": {
+            "type": "string",
+            "enum": [
+              "not_authenticated",
+              "not_assessed"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "media_type",
+          "sha256",
+          "canonicalization",
+          "availability",
+          "reason",
+          "acquisition_kind",
+          "external_authenticity"
+        ],
+        "additionalProperties": false,
+        "description": "Opaque run-scoped logical reference, never a local filesystem locator or credential. available means payload/receipt available, not a usable positive observation. Missing payload never hashes as an empty success."
+      },
+      "Diagnostic": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "VerificationRun": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/Workflow"
+          },
+          "evaluation_context": {
+            "$ref": "#/components/schemas/EvaluationContext"
+          },
+          "source_snapshot": {
+            "$ref": "#/components/schemas/SourceSnapshot"
+          },
+          "destination_observation": {
+            "$ref": "#/components/schemas/DestinationObservation"
+          },
+          "policy_context": {
+            "$ref": "#/components/schemas/PolicyContext"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ResearchResult"
+          },
+          "retry_context": {
+            "$ref": "#/components/schemas/RetryContext"
+          },
+          "evidence_references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceReference"
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "assurance": {
+            "$ref": "#/components/schemas/Assurance"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Diagnostic"
+            }
+          },
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Immutable catalog snapshot used for this read. Echo a requested snapshot_id exactly; never silently substitute a current snapshot."
+          }
+        },
+        "required": [
+          "meta",
+          "identity",
+          "workflow",
+          "evaluation_context",
+          "source_snapshot",
+          "destination_observation",
+          "policy_context",
+          "result",
+          "retry_context",
+          "evidence_references",
+          "assurance",
+          "diagnostics",
+          "snapshot_id"
+        ],
+        "additionalProperties": false,
+        "description": "A proposed product envelope around actual evaluator output; no duplicate top-level row/cohort/rule verdicts. All five examples are synthetic specifications, not implemented service responses. Detail is complete (at most 200 source rows), in original source_row capture order; no record pagination. A summary must be hydrated by identity.id using the parent snapshot_id. Stored run identities/content are never overwritten or reused."
+      },
+      "RunSummary": {
+        "type": "object",
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/Identity"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/Workflow"
+          },
+          "evaluation_context": {
+            "$ref": "#/components/schemas/EvaluationContext"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ResultSummary"
+          },
+          "assurance": {
+            "$ref": "#/components/schemas/Assurance"
+          }
+        },
+        "required": [
+          "identity",
+          "workflow",
+          "evaluation_context",
+          "result",
+          "assurance"
+        ],
+        "additionalProperties": false,
+        "description": "Selection/aggregate metadata only, not a complete RunView. Overview traces/exhibits hydrate GET /verifications/{identity.id}?snapshot_id={parent snapshot_id}, validate identity/workflow/evaluation_context/assurance/result-summary equality, then map ordered records and bound context. No verdict sequence can be reconstructed from counts."
+      },
+      "Page": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "next_cursor",
+          "total"
+        ],
+        "additionalProperties": false,
+        "description": "Stable immutable catalog snapshot scoped by workspace, mode and contract version. Cursor additionally binds the full normalized query, sort and evidence run/include_payload option. total=null means not computed, not zero. Evidence pages for a pinned Detail must echo its snapshot, contain references in Detail.evidence_references order, and terminate explicitly; a page is never a partial record verdict inventory."
+      },
+      "VerificationList": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "maxItems": 100
+          },
+          "page": {
+            "$ref": "#/components/schemas/Page"
+          },
+          "filter_counts": {
+            "$ref": "#/components/schemas/Counts"
+          }
+        },
+        "required": [
+          "meta",
+          "items",
+          "page",
+          "filter_counts"
+        ],
+        "additionalProperties": false,
+        "description": "filter_counts counts cohorts after workspace/workflow/search/time filters, before the cohort-state filter. No verdict aggregation is implied."
+      },
+      "WorkflowList": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Workflow"
+            },
+            "maxItems": 100
+          },
+          "page": {
+            "$ref": "#/components/schemas/Page"
+          }
+        },
+        "required": [
+          "meta",
+          "items",
+          "page"
+        ],
+        "additionalProperties": false
+      },
+      "TrendDay": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "runs": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "day",
+          "counts",
+          "runs"
+        ],
+        "additionalProperties": false
+      },
+      "OverviewScope": {
+        "type": "object",
+        "properties": {
+          "latest_selection": {
+            "type": "string",
+            "const": "latest_run_per_workflow"
+          },
+          "trend_selection": {
+            "type": "string",
+            "const": "all_runs_in_range"
+          },
+          "evaluated_from": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "evaluated_to": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "latest_selection",
+          "trend_selection",
+          "evaluated_from",
+          "evaluated_to"
+        ],
+        "additionalProperties": false
+      },
+      "Overview": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Pins all latest summaries, aggregates and trend to one immutable catalog view. Pass unchanged to Detail and then evidence hydration reads."
+          },
+          "scope": {
+            "$ref": "#/components/schemas/OverviewScope"
+          },
+          "workflow_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cohort_counts": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "record_counts": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "last_evaluated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "latest_runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "maxItems": 100
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendDay"
+            }
+          },
+          "unbucketed_run_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "meta",
+          "snapshot_id",
+          "scope",
+          "workflow_count",
+          "cohort_counts",
+          "record_counts",
+          "last_evaluated_at",
+          "latest_runs",
+          "trend",
+          "unbucketed_run_count"
+        ],
+        "additionalProperties": false,
+        "description": "Latest-per-workflow aggregates and all-in-range UTC evaluation-day trends are distinct. Unknown/unmapped evaluation times are excluded from time-filter/trend calculations and reported via separate unbucketed_run_count. Empty dataset has no verification verdict. Option B hydration: latest_runs are summaries only; preserve their selection/order and fetch each full Detail by ID with snapshot_id, concurrency <=4. Render traces/exhibits only from validated complete Details; loading/failed entries are explicit unavailable slots, never fabricated records or business verdicts. All-ready requires every selected Detail; counts can display separately as snapshot summaries."
+      },
+      "EvidenceItem": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/EvidenceReference"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/RawJSON"
+          },
+          "payload_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "reference",
+          "payload",
+          "payload_reason"
+        ],
+        "additionalProperties": false,
+        "description": "Payload is bound JSON for available references when include_payload=true, otherwise null with reason. An available denied-read receipt does not mean a destination observation succeeded."
+      },
+      "EvidencePage": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItem"
+            },
+            "maxItems": 100
+          },
+          "page": {
+            "$ref": "#/components/schemas/Page"
+          }
+        },
+        "required": [
+          "meta",
+          "run_id",
+          "items",
+          "page"
+        ],
+        "additionalProperties": false,
+        "description": "Bind run_id, meta workspace/mode/contract and page.snapshot_id to the hydrated Detail. Paginate only evidence references/payloads, never result.records. Concatenated pages must match the complete Detail reference inventory exactly, with no duplicates/omissions/reordering. Each payload/availability/hash is bound to its reference. Until next_cursor=null, payload inspection is partial, not complete."
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "request_id",
+              "retryable",
+              "details"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "description": "Operational failure only; never include a fabricated verification result, secrets, raw lead values, provider response body or local paths."
+      }
+    }
+  }
+}

@@ -1,0 +1,145 @@
+/*
+ * FlowAssert design tokens — v1.0 "Evidence Atelier" (approved Direction C).
+ *
+ * Light: "paper" — warm paper canvas, near-white sheets, carbon ink, indigo-ink assertion accent.
+ * Dark:  "night ledger" — warm graphite paper, raised sheets lighter than the canvas, bone ink.
+ * The dark theme is composed separately (its own steps), not inverted.
+ *
+ * Status encoding is never colour alone:
+ *   Verified   solid round mark / solid square cell
+ *   Mismatch   solid diamond / solid square cell
+ *   Pending    quarter-filled ring / OUTLINED cell
+ *   Unverified dashed ring / HATCHED cell — graphite is deliberately neutral: the hatch is the code.
+ * Palette checked with the dataviz validator (stacking order Verified → Pending → Unverified →
+ * Mismatch). Remaining CVD warnings sit in the "legal with secondary encoding" band and every pair
+ * also differs in form (fill vs outline vs hatch vs diamond). See docs/DESIGN_SYSTEM.md.
+ */
+
+/* `[data-theme]` on any element re-scopes the palette — used by the theme specimens in Settings. */
+:root,
+[data-theme="light"] {
+  --fa-dur-fast: 110ms;
+  --fa-dur: 180ms;
+  --fa-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  color-scheme: light;
+
+  --fa-canvas: #f3efe6;
+  --fa-surface: #fbf9f4;
+  --fa-surface-sunken: #ece6d9;
+  --fa-surface-raised: #fffdf8;
+  --fa-hover: rgb(29 27 22 / 0.035);
+  --fa-active: rgb(29 27 22 / 0.065);
+  --fa-border: #d8d0bf;
+  --fa-border-subtle: #e6e0d2;
+  --fa-border-strong: #b9b09c;
+  --fa-rule: #1d1b16; /* ledger rules */
+  --fa-ink: #1d1b16;
+  --fa-ink-2: #4b473e;
+  --fa-ink-3: #6d675a;
+  --fa-ink-4: #a39c8b;
+
+  --fa-brand: #2f3590;
+  --fa-brand-ink: #2f3590;
+  --fa-brand-soft: #e4e4f1;
+  --fa-brand-line: #c3c5e6;
+  --fa-on-brand: #ffffff;
+  --fa-nav-active: #fbf9f4;
+
+  --fa-verified: #2d6a46;
+  --fa-verified-ink: #255a3b;
+  --fa-verified-soft: #dfe9df;
+  --fa-verified-line: #b7cfba;
+
+  --fa-mismatch: #b8391c;
+  --fa-mismatch-ink: #a23117;
+  --fa-mismatch-soft: #f5e0d6;
+  --fa-mismatch-line: #e7b7a5;
+
+  --fa-pending: #9c6b0c;
+  --fa-pending-ink: #845a08;
+  --fa-pending-soft: #f2e6c8;
+  --fa-pending-line: #dfc58c;
+
+  --fa-unverified: #57534a;
+  --fa-unverified-ink: #4b473e;
+  --fa-unverified-soft: #ebe6da;
+  --fa-unverified-line: #b9b09c;
+
+  --fa-hatch: repeating-linear-gradient(135deg, var(--fa-unverified) 0 1.1px, transparent 1.1px 3.6px);
+  --fa-hatch-soft: repeating-linear-gradient(135deg, rgb(87 83 74 / 0.24) 0 1px, transparent 1px 5px);
+
+  --fa-diff-source: #2f3590;
+  --fa-diff-dest: #b8391c;
+
+  --fa-demo: #1d1b16;
+  --fa-demo-soft: #ece6d9;
+
+  --fa-highlight: none;
+  --fa-shadow-sm: 0 1px 0 rgb(29 27 22 / 0.03), 0 14px 32px -26px rgb(29 27 22 / 0.22);
+  --fa-shadow-pop: 0 18px 44px rgb(29 27 22 / 0.18), 0 2px 6px rgb(29 27 22 / 0.08);
+  --fa-ring: 0 0 0 2px var(--fa-canvas), 0 0 0 3.5px var(--fa-brand);
+  --fa-ring-inset: inset 0 0 0 2px var(--fa-brand);
+  --fa-paper-light: radial-gradient(1200px 600px at 78% -10%, rgb(255 255 255 / 0.55), transparent 60%);
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --fa-canvas: #14120e;
+  --fa-surface: #1c1915;
+  --fa-surface-sunken: #110f0c;
+  --fa-surface-raised: #23201a;
+  --fa-hover: rgb(236 230 216 / 0.04);
+  --fa-active: rgb(236 230 216 / 0.07);
+  --fa-border: #34302a;
+  --fa-border-subtle: #29261f;
+  --fa-border-strong: #4d473d;
+  --fa-rule: #cfc7b5;
+  --fa-ink: #ece6d8;
+  --fa-ink-2: #bdb5a4;
+  --fa-ink-3: #8f8777;
+  --fa-ink-4: #645e52;
+
+  --fa-brand: #9aa2ff;
+  --fa-brand-ink: #b4b9ff;
+  --fa-brand-soft: rgb(154 162 255 / 0.12);
+  --fa-brand-line: rgb(154 162 255 / 0.3);
+  --fa-on-brand: #14120e;
+  --fa-nav-active: #23201a;
+
+  --fa-verified: #4ba26f;
+  --fa-verified-ink: #7cc597;
+  --fa-verified-soft: rgb(75 162 111 / 0.13);
+  --fa-verified-line: rgb(75 162 111 / 0.35);
+
+  --fa-mismatch: #e2654a;
+  --fa-mismatch-ink: #f0937d;
+  --fa-mismatch-soft: rgb(226 101 74 / 0.13);
+  --fa-mismatch-line: rgb(226 101 74 / 0.38);
+
+  --fa-pending: #cf962b;
+  --fa-pending-ink: #e3b35c;
+  --fa-pending-soft: rgb(207 150 43 / 0.13);
+  --fa-pending-line: rgb(207 150 43 / 0.36);
+
+  --fa-unverified: #8a8476;
+  --fa-unverified-ink: #b6ae9d;
+  --fa-unverified-soft: rgb(138 132 118 / 0.14);
+  --fa-unverified-line: #4d473d;
+
+  --fa-hatch: repeating-linear-gradient(135deg, rgb(182 174 157 / 0.85) 0 1.1px, transparent 1.1px 3.6px);
+  --fa-hatch-soft: repeating-linear-gradient(135deg, rgb(182 174 157 / 0.13) 0 1px, transparent 1px 5px);
+
+  --fa-diff-source: #9aa2ff;
+  --fa-diff-dest: #f0937d;
+
+  --fa-demo: #ece6d8;
+  --fa-demo-soft: #1c1915;
+
+  --fa-highlight: inset 0 1px 0 rgb(236 230 216 / 0.04);
+  --fa-shadow-sm: 0 1px 0 rgb(0 0 0 / 0.35), 0 18px 36px -28px rgb(0 0 0 / 0.7);
+  --fa-shadow-pop: 0 20px 48px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(236 230 216 / 0.06);
+  --fa-paper-light: radial-gradient(1100px 560px at 78% -12%, rgb(154 162 255 / 0.05), transparent 60%);
+}

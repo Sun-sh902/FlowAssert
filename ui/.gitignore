@@ -1,0 +1,42 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Test output (Playwright)
+test-results
+playwright-report
+e2e/.output
+
+# Phase 2 isolated local service runtime (copied accepted source, venv, own key)
+.phase2-runtime
+test-results-local
+
+# Phase 3A isolated history service runtime (copied backend source, venv, own keys and SQLite archives) and scratch
+.phase3a-runtime
+.phase3a-tmp
+test-results-history
+
+# ID-addressability remediation-03: isolated copy of the Service at the handoff identity, and E2E output
+.phase3a-lookup-runtime
+test-results-lookup

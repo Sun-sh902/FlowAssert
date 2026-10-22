@@ -1,0 +1,50 @@
+.bb-root { background: #f6f5f2; color: #1d1b16; min-height: 100vh; padding: 48px 56px 64px; font-family: "Inter Variable", system-ui, sans-serif; font-size: 13px; }
+.bb-root * { box-sizing: border-box; }
+.bb-root h1, .bb-root h2, .bb-root h3, .bb-root p { margin: 0; }
+.bb-head { max-width: 760px; margin-bottom: 40px; }
+.bb-kicker, .bb-tag { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #7b7567; }
+.bb-head h1 { font-size: 30px; letter-spacing: -0.02em; font-weight: 600; margin: 8px 0; }
+.bb-head p { color: #4b473e; font-size: 14px; }
+.bb-h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #4b473e; margin: 36px 0 14px; border-top: 1px solid #d8d0bf; padding-top: 14px; }
+
+.bb-marks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.bb-mark h3 { font-size: 14px; margin-top: 12px; }
+.bb-mark p { color: #4b473e; margin-top: 4px; line-height: 1.5; }
+.bb-mark-tiles { display: grid; grid-template-columns: 1fr 1fr; border-radius: 8px; overflow: hidden; border: 1px solid #d8d0bf; }
+.bb-tile { height: 132px; display: grid; place-items: center; position: relative; }
+.bb-light { background: #fbf9f4; }
+.bb-dark { background: #0a0d12; }
+.bb-sizes { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 8px; align-items: flex-end; }
+
+.bb-type { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.bb-spec { border-radius: 10px; padding: 24px; min-height: 300px; display: grid; align-content: start; gap: 12px; }
+.bb-spec-a { background: #0a0d12; color: #e7ecf3; border: 1px solid #1d2430; }
+.bb-spec-a .bb-tag { color: #66717f; }
+.bb-a-big { font-family: "Martian Mono Variable", monospace; font-size: 64px; font-weight: 300; letter-spacing: -0.06em; line-height: 1; }
+.bb-a-h { font-family: "Inter Tight Variable", sans-serif; font-size: 24px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1; }
+.bb-a-cap { font-family: "Martian Mono Variable", monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #8ab4ff; }
+.bb-a-body { font-family: "Inter Tight Variable", sans-serif; color: #9ca7b7; font-size: 13px; line-height: 1.5; }
+.bb-spec-b { background: #f6f4ef; border: 1px solid #ded8cb; }
+.bb-b-h { font-family: "Newsreader Variable", serif; font-size: 40px; line-height: 1.02; letter-spacing: -0.02em; font-weight: 500; }
+.bb-b-h span { color: #c2410c; }
+.bb-b-body { color: #4b473e; line-height: 1.55; }
+.bb-b-fig { font-family: "Newsreader Variable", serif; font-size: 52px; line-height: 1; font-feature-settings: "onum"; }
+.bb-b-fig small { font-family: "Inter Variable", sans-serif; font-size: 12px; color: #7b7567; margin-left: 10px; }
+.bb-spec-c { background: #f3efe6; border: 1px solid #d8d0bf; }
+.bb-c-h { font-family: "Instrument Serif", serif; font-size: 38px; line-height: 1.04; letter-spacing: -0.015em; }
+.bb-c-h em { color: #b8391c; }
+.bb-c-mono { font-family: "IBM Plex Mono", monospace; font-size: 15px; }
+.bb-c-mono mark { background: none; color: #b8391c; border-bottom: 2px solid #b8391c; }
+.bb-c-body { font-family: "Instrument Sans Variable", sans-serif; color: #4b473e; line-height: 1.55; font-size: 13.5px; }
+.bb-note { margin-top: 12px; color: #7b7567; font-size: 12px; }
+
+.bb-colours { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.bb-colours h3 { font-size: 14px; margin-bottom: 10px; }
+.bb-colours > div > p { margin-top: 10px; color: #4b473e; line-height: 1.5; }
+.bb-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bb-sw { display: grid; gap: 2px; font-size: 11px; }
+.bb-sw i { height: 46px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08); margin-bottom: 4px; }
+.bb-sw span { font-family: "IBM Plex Mono", monospace; color: #7b7567; font-size: 10px; }
+.bb-sw em { font-style: normal; color: #7b7567; font-size: 10px; }
+.bb-hatch { display: flex; gap: 12px; align-items: center; margin-top: 12px; color: #4b473e; line-height: 1.5; }
+.bb-hatch i { width: 46px; height: 46px; flex: none; border-radius: 6px; border: 1px solid #57534a; background: repeating-linear-gradient(135deg, #57534a 0 1.1px, transparent 1.1px 3.6px), #fbf9f4; }

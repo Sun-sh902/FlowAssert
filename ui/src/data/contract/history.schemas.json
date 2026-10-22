@@ -1,0 +1,1508 @@
+{
+ "source": "FlowAssert-Phase3A-Service/contracts/openapi-history-v1.yaml",
+ "source_sha256": "f341d8d5ec9da1b933b06efe998c07a1045226500a6b5837e9c8a9ead74bd69f",
+ "contract_version": "phase3a-1.0.0",
+ "frozen_contract_sha256": "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230",
+ "roots": [
+  "HistoryList",
+  "HistoryDetail",
+  "HistoryEvidencePage",
+  "Error"
+ ],
+ "schemas": {
+  "Assurance": {
+   "type": "object",
+   "properties": {
+    "research_authorization": {
+     "type": "string",
+     "enum": [
+      "research_only",
+      "approved_for_product_use"
+     ],
+     "description": "Phase 1 experimental default research_only. approved_for_product_use requires exact reviewed release identity plus separate Owner authorization; no current approval is inferred."
+    },
+    "acquisition_authenticity": {
+     "type": "string",
+     "enum": [
+      "not_authenticated",
+      "not_assessed"
+     ]
+    },
+    "limitations": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "minItems": 1
+    },
+    "release_approval_reference": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Opaque reviewed release/product-use authorization reference, not a filesystem path. Null for research_only. A future approved_for_product_use claim must bind exact code/contract identity to separately verified outside authorization."
+    }
+   },
+   "required": [
+    "research_authorization",
+    "acquisition_authenticity",
+    "limitations",
+    "release_approval_reference"
+   ],
+   "additionalProperties": false
+  },
+  "Counts": {
+   "type": "object",
+   "properties": {
+    "Verified": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "Mismatch": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "Pending": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "Unverified": {
+     "type": "integer",
+     "minimum": 0
+    }
+   },
+   "required": [
+    "Verified",
+    "Mismatch",
+    "Pending",
+    "Unverified"
+   ],
+   "additionalProperties": false
+  },
+  "DestinationObservation": {
+   "type": "object",
+   "properties": {
+    "evidence_reference_id": {
+     "type": "string"
+    },
+    "account": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "object": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "access": {
+     "type": "string",
+     "enum": [
+      "ok",
+      "denied",
+      "timeout",
+      "unknown"
+     ]
+    },
+    "page_count": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "Number of supplied page entries; does not imply valid/reachable pages."
+    },
+    "query_total": {
+     "type": [
+      "integer",
+      "null"
+     ],
+     "minimum": 0,
+     "description": "Provider-reported total if a valid nonnegative integer was supplied, otherwise null. Raw supplied value remains in bound evidence."
+    },
+    "distinct_ids_returned": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "Distinct nonempty string IDs in supplied rows, before admissibility; not proof of evaluator coverage."
+    }
+   },
+   "required": [
+    "evidence_reference_id",
+    "account",
+    "object",
+    "access",
+    "page_count",
+    "query_total",
+    "distinct_ids_returned"
+   ],
+   "additionalProperties": false
+  },
+  "Diagnostic": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "code": {
+     "type": "string"
+    },
+    "message": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "code",
+    "message"
+   ],
+   "additionalProperties": false
+  },
+  "Digest": {
+   "type": "string",
+   "pattern": "^[a-f0-9]{64}$",
+   "description": "SHA-256 identity only. Does not authenticate acquisition or prove truth."
+  },
+  "Error": {
+   "type": "object",
+   "properties": {
+    "error": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      },
+      "message": {
+       "type": "string"
+      },
+      "request_id": {
+       "type": "string"
+      },
+      "retryable": {
+       "type": "boolean"
+      },
+      "details": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "path": {
+          "type": "string"
+         },
+         "code": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "path",
+         "code"
+        ],
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": [
+      "code",
+      "message",
+      "request_id",
+      "retryable",
+      "details"
+     ],
+     "additionalProperties": false
+    }
+   },
+   "required": [
+    "error"
+   ],
+   "additionalProperties": false,
+   "description": "Operational failure only; never include a fabricated verification result, secrets, raw lead values, provider response body or local paths."
+  },
+  "EvaluationContext": {
+   "type": "object",
+   "properties": {
+    "evaluator": {
+     "$ref": "#/components/schemas/EvaluatorIdentity"
+    },
+    "input_evidence_sha256": {
+     "$ref": "#/components/schemas/Digest"
+    },
+    "time_mapping": {
+     "$ref": "#/components/schemas/TimeMapping"
+    },
+    "event_times": {
+     "$ref": "#/components/schemas/EventTimes"
+    },
+    "service_executed_at": {
+     "$ref": "#/components/schemas/Timestamp"
+    }
+   },
+   "required": [
+    "evaluator",
+    "input_evidence_sha256",
+    "time_mapping",
+    "event_times",
+    "service_executed_at"
+   ],
+   "additionalProperties": false,
+   "description": "Raw evaluator ticks remain in result. service_executed_at is actual backend execution time in an implemented service; null in these proposed static examples, which are not HTTP execution receipts."
+  },
+  "EvaluatorIdentity": {
+   "type": "object",
+   "properties": {
+    "version_label": {
+     "type": "string"
+    },
+    "source_commit": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{40}$"
+    },
+    "model_sha256": {
+     "$ref": "#/components/schemas/Digest"
+    },
+    "workspace_dirty": {
+     "type": "boolean",
+     "description": "Whole selected research checkout status; not just the evaluator file."
+    }
+   },
+   "required": [
+    "version_label",
+    "source_commit",
+    "model_sha256",
+    "workspace_dirty"
+   ],
+   "additionalProperties": false
+  },
+  "EventTimes": {
+   "type": "object",
+   "properties": {
+    "business_obligation_at": {
+     "$ref": "#/components/schemas/Timestamp"
+    },
+    "observed_at": {
+     "$ref": "#/components/schemas/Timestamp"
+    },
+    "evaluation_at": {
+     "$ref": "#/components/schemas/Timestamp"
+    },
+    "deadline": {
+     "$ref": "#/components/schemas/Timestamp"
+    }
+   },
+   "required": [
+    "business_obligation_at",
+    "observed_at",
+    "evaluation_at",
+    "deadline"
+   ],
+   "additionalProperties": false,
+   "description": "All four keys are required and nullable. Missing/invalid research ticks stay null with missing_time_tick/invalid_time_tick diagnostics at result.<field>; never zero, generated_at or service_executed_at. Valid ticks under unmapped mapping also produce null times with time_mapping_unavailable diagnostic. These are synthetic display instants, not observed wall-clock evidence."
+  },
+  "EvidenceReference": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "role": {
+     "type": "string",
+     "enum": [
+      "source",
+      "destination",
+      "policy",
+      "evaluation_input"
+     ]
+    },
+    "media_type": {
+     "type": "string",
+     "const": "application/json"
+    },
+    "sha256": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "canonicalization": {
+     "type": "string",
+     "const": "python-json-sortkeys-ascii-v1"
+    },
+    "availability": {
+     "type": "string",
+     "enum": [
+      "available",
+      "not_collected",
+      "unavailable",
+      "redacted",
+      "expired"
+     ]
+    },
+    "reason": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "acquisition_kind": {
+     "type": "string",
+     "enum": [
+      "synthetic_local",
+      "independent_source_read",
+      "destination_read",
+      "workflow_context"
+     ]
+    },
+    "external_authenticity": {
+     "type": "string",
+     "enum": [
+      "not_authenticated",
+      "not_assessed"
+     ]
+    }
+   },
+   "required": [
+    "id",
+    "role",
+    "media_type",
+    "sha256",
+    "canonicalization",
+    "availability",
+    "reason",
+    "acquisition_kind",
+    "external_authenticity"
+   ],
+   "additionalProperties": false,
+   "description": "Opaque run-scoped logical reference, never a local filesystem locator or credential. available means payload/receipt available, not a usable positive observation. Missing payload never hashes as an empty success."
+  },
+  "EvidenceValue": {
+   "type": "object",
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "present",
+      "null",
+      "missing",
+      "inaccessible",
+      "unsupported",
+      "redacted"
+     ]
+    },
+    "value": {
+     "$ref": "#/components/schemas/RawJSON"
+    }
+   },
+   "required": [
+    "state",
+    "value"
+   ],
+   "additionalProperties": false,
+   "description": "present means readable string (including empty string). null, missing, inaccessible and redacted carry null value but distinct state; unsupported retains raw JSON. This describes display availability, never a rule verdict."
+  },
+  "HistoryDetail": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "contract_version",
+    "history_id",
+    "archive_id",
+    "snapshot_id",
+    "original_snapshot_id",
+    "original_verification_id",
+    "workspace_id",
+    "archive_created_at",
+    "evaluator",
+    "original_contract_sha256",
+    "input_evidence_sha256",
+    "provenance",
+    "result_summary",
+    "integrity",
+    "run"
+   ],
+   "properties": {
+    "contract_version": {
+     "type": "string",
+     "const": "phase3a-1.0.0"
+    },
+    "history_id": {
+     "type": "string",
+     "pattern": "^hist_[a-f0-9]{64}$"
+    },
+    "archive_id": {
+     "type": "string",
+     "pattern": "^archive_[a-f0-9]{64}$"
+    },
+    "snapshot_id": {
+     "type": "string",
+     "pattern": "^history-snapshot_[a-f0-9]{64}$"
+    },
+    "original_snapshot_id": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 128
+    },
+    "original_verification_id": {
+     "type": "string",
+     "pattern": "^SPEC-00[1-5]$"
+    },
+    "workspace_id": {
+     "type": "string",
+     "const": "ws-synthetic-01"
+    },
+    "archive_created_at": {
+     "type": "string",
+     "format": "date-time"
+    },
+    "evaluator": {
+     "$ref": "#/components/schemas/EvaluatorIdentity"
+    },
+    "original_contract_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "input_evidence_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "provenance": {
+     "$ref": "#/components/schemas/HistoryProvenance"
+    },
+    "result_summary": {
+     "$ref": "#/components/schemas/HistoryResultSummary"
+    },
+    "integrity": {
+     "$ref": "#/components/schemas/HistoryIntegrity"
+    },
+    "run": {
+     "$ref": "#/components/schemas/VerificationRun"
+    }
+   }
+  },
+  "HistoryEvidencePage": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "contract_version",
+    "history_id",
+    "archive_id",
+    "snapshot_id",
+    "original_snapshot_id",
+    "original_verification_id",
+    "workspace_id",
+    "integrity",
+    "items",
+    "page"
+   ],
+   "properties": {
+    "contract_version": {
+     "type": "string",
+     "const": "phase3a-1.0.0"
+    },
+    "history_id": {
+     "type": "string",
+     "pattern": "^hist_[a-f0-9]{64}$"
+    },
+    "archive_id": {
+     "type": "string",
+     "pattern": "^archive_[a-f0-9]{64}$"
+    },
+    "snapshot_id": {
+     "type": "string",
+     "pattern": "^history-snapshot_[a-f0-9]{64}$"
+    },
+    "original_snapshot_id": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 128
+    },
+    "original_verification_id": {
+     "type": "string",
+     "pattern": "^SPEC-00[1-5]$"
+    },
+    "workspace_id": {
+     "type": "string",
+     "const": "ws-synthetic-01"
+    },
+    "integrity": {
+     "$ref": "#/components/schemas/HistoryIntegrity"
+    },
+    "items": {
+     "type": "array",
+     "maxItems": 100,
+     "items": {
+      "$ref": "#/components/schemas/HistoryItem"
+     }
+    },
+    "page": {
+     "$ref": "#/components/schemas/HistoryPage"
+    }
+   }
+  },
+  "HistoryIntegrity": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "status",
+    "algorithm",
+    "canonicalization",
+    "checked_sha256",
+    "content_scope"
+   ],
+   "properties": {
+    "status": {
+     "type": "string",
+     "enum": [
+      "INTEGRITY_VERIFIED",
+      "INTEGRITY_FAILED",
+      "INTEGRITY_UNVERIFIABLE"
+     ]
+    },
+    "algorithm": {
+     "type": "string",
+     "const": "sha256"
+    },
+    "canonicalization": {
+     "type": "string",
+     "const": "python-json-sortkeys-ascii-v1"
+    },
+    "checked_sha256": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "content_scope": {
+     "type": "string",
+     "enum": [
+      "archive_candidate_and_relationships",
+      "evidence_canonical_bytes"
+     ]
+    }
+   }
+  },
+  "HistoryItem": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "reference",
+    "payload",
+    "payload_reason",
+    "integrity"
+   ],
+   "properties": {
+    "reference": {
+     "$ref": "#/components/schemas/EvidenceReference"
+    },
+    "payload": {
+     "$ref": "#/components/schemas/RawJSON"
+    },
+    "payload_reason": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "integrity": {
+     "$ref": "#/components/schemas/HistoryIntegrity"
+    }
+   }
+  },
+  "HistoryList": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "contract_version",
+    "workspace_id",
+    "items",
+    "page"
+   ],
+   "properties": {
+    "contract_version": {
+     "type": "string",
+     "const": "phase3a-1.0.0"
+    },
+    "workspace_id": {
+     "type": "string",
+     "const": "ws-synthetic-01"
+    },
+    "items": {
+     "type": "array",
+     "maxItems": 100,
+     "items": {
+      "$ref": "#/components/schemas/HistorySummary"
+     }
+    },
+    "page": {
+     "$ref": "#/components/schemas/HistoryPage"
+    }
+   }
+  },
+  "HistoryPage": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "snapshot_id",
+    "next_cursor",
+    "total"
+   ],
+   "properties": {
+    "snapshot_id": {
+     "type": "string"
+    },
+    "next_cursor": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "maxLength": 2048
+    },
+    "total": {
+     "type": "integer",
+     "minimum": 0
+    }
+   }
+  },
+  "HistoryProvenance": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "research_authorization",
+    "acquisition_authenticity",
+    "service_baseline_sha256",
+    "implementation_sha256",
+    "source_set_sha256",
+    "reviewed_case",
+    "reviewed_fixture_sha256",
+    "research_source_commit"
+   ],
+   "properties": {
+    "kind": {
+     "type": "string",
+     "const": "synthetic_local"
+    },
+    "research_authorization": {
+     "type": "string",
+     "const": "research_only"
+    },
+    "acquisition_authenticity": {
+     "type": "string",
+     "const": "not_authenticated"
+    },
+    "service_baseline_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "implementation_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "source_set_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "reviewed_case": {
+     "type": "string"
+    },
+    "reviewed_fixture_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "research_source_commit": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{40}$"
+    }
+   }
+  },
+  "HistoryResultSummary": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "cohort_state",
+    "counts",
+    "expected_total",
+    "source_population_known"
+   ],
+   "properties": {
+    "cohort_state": {
+     "type": "string",
+     "enum": [
+      "Verified",
+      "Mismatch",
+      "Pending",
+      "Unverified"
+     ]
+    },
+    "counts": {
+     "$ref": "#/components/schemas/Counts"
+    },
+    "expected_total": {
+     "type": [
+      "integer",
+      "null"
+     ],
+     "minimum": 0
+    },
+    "source_population_known": {
+     "type": "boolean"
+    }
+   }
+  },
+  "HistorySummary": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "contract_version",
+    "history_id",
+    "archive_id",
+    "snapshot_id",
+    "original_snapshot_id",
+    "original_verification_id",
+    "workspace_id",
+    "archive_created_at",
+    "evaluator",
+    "original_contract_sha256",
+    "input_evidence_sha256",
+    "provenance",
+    "result_summary",
+    "integrity"
+   ],
+   "properties": {
+    "contract_version": {
+     "type": "string",
+     "const": "phase3a-1.0.0"
+    },
+    "history_id": {
+     "type": "string",
+     "pattern": "^hist_[a-f0-9]{64}$"
+    },
+    "archive_id": {
+     "type": "string",
+     "pattern": "^archive_[a-f0-9]{64}$"
+    },
+    "snapshot_id": {
+     "type": "string",
+     "pattern": "^history-snapshot_[a-f0-9]{64}$"
+    },
+    "original_snapshot_id": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 128
+    },
+    "original_verification_id": {
+     "type": "string",
+     "pattern": "^SPEC-00[1-5]$"
+    },
+    "workspace_id": {
+     "type": "string",
+     "const": "ws-synthetic-01"
+    },
+    "archive_created_at": {
+     "type": "string",
+     "format": "date-time"
+    },
+    "evaluator": {
+     "$ref": "#/components/schemas/EvaluatorIdentity"
+    },
+    "original_contract_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "input_evidence_sha256": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "provenance": {
+     "$ref": "#/components/schemas/HistoryProvenance"
+    },
+    "result_summary": {
+     "$ref": "#/components/schemas/HistoryResultSummary"
+    },
+    "integrity": {
+     "$ref": "#/components/schemas/HistoryIntegrity"
+    }
+   }
+  },
+  "Identity": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 128
+    },
+    "workspace_id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "previous_run_id": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "created_at": {
+     "type": "string",
+     "format": "date-time"
+    }
+   },
+   "required": [
+    "id",
+    "workspace_id",
+    "previous_run_id",
+    "created_at"
+   ],
+   "additionalProperties": false
+  },
+  "Meta": {
+   "type": "object",
+   "properties": {
+    "api_version": {
+     "type": "string",
+     "const": "v1"
+    },
+    "provider_mode": {
+     "type": "string",
+     "enum": [
+      "LOCAL_RESEARCH",
+      "LIVE"
+     ],
+     "description": "LIVE reserved for future authorized acquisition. Phase 1 emits LOCAL_RESEARCH only."
+    },
+    "synthetic": {
+     "type": "boolean",
+     "description": "Must be true for every Phase 1 response."
+    },
+    "generated_at": {
+     "type": "string",
+     "format": "date-time"
+    },
+    "contract_version": {
+     "type": "string",
+     "const": "0.1.1-proposed",
+     "description": "Reviewed schema/provider identity; mismatches fail before mapping."
+    },
+    "workspace_id": {
+     "type": "string",
+     "minLength": 1,
+     "description": "Configured workspace, including for empty collections; must match every contained run identity."
+    }
+   },
+   "required": [
+    "api_version",
+    "provider_mode",
+    "synthetic",
+    "generated_at",
+    "contract_version",
+    "workspace_id"
+   ],
+   "additionalProperties": false
+  },
+  "PolicyContext": {
+   "type": "object",
+   "properties": {
+    "evidence_reference_id": {
+     "type": "string"
+    },
+    "version": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "comparison": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "deadline": {
+     "$ref": "#/components/schemas/RawTick"
+    },
+    "max_age": {
+     "$ref": "#/components/schemas/RawTick"
+    },
+    "retry_viable": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "settling_allowed": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "identity_reliable": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "require_historical_deadline": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "require_execution": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "account": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "object": {
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "evidence_reference_id",
+    "version",
+    "comparison",
+    "deadline",
+    "max_age",
+    "retry_viable",
+    "settling_allowed",
+    "identity_reliable",
+    "require_historical_deadline",
+    "require_execution",
+    "account",
+    "object"
+   ],
+   "additionalProperties": false,
+   "description": "Typed presentation subset, not full evaluator input. Missing/invalid string/boolean values project to null with diagnostics; original input is retained unchanged in evidence. Do not interpret null as False in evaluator policy."
+  },
+  "PremiseEvidence": {
+   "type": "object",
+   "properties": {
+    "source_provenance_record": {
+     "type": "boolean"
+    },
+    "source_inventory_record": {
+     "type": "boolean"
+    },
+    "rule_approval_record": {
+     "type": "boolean"
+    },
+    "destination_query_total_consistent": {
+     "type": "boolean"
+    },
+    "observation_clock_trusted": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "source_provenance_record",
+    "source_inventory_record",
+    "rule_approval_record",
+    "destination_query_total_consistent",
+    "observation_clock_trusted"
+   ],
+   "additionalProperties": false,
+   "description": "Consistency checks on supplied records, not authentication. None alone establishes population, coverage, or approval."
+  },
+  "RawJSON": {
+   "description": "An unchanged supplied JSON value, including malformed evidence values. No coercion is authorized."
+  },
+  "RawTick": {
+   "description": "Raw evaluator echo: normally a plain safe integer tick or null; malformed JSON values may be retained on fail-closed paths. Only validated integer ticks may be mapped to timestamps."
+  },
+  "RecordResult": {
+   "type": "object",
+   "properties": {
+    "key": {
+     "$ref": "#/components/schemas/RawJSON"
+    },
+    "source_row": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "state": {
+     "$ref": "#/components/schemas/State"
+    },
+    "candidate_ids": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "rules": {
+     "$ref": "#/components/schemas/RuleMap"
+    }
+   },
+   "required": [
+    "key",
+    "source_row",
+    "state",
+    "candidate_ids",
+    "rules"
+   ],
+   "additionalProperties": false,
+   "description": "Raw key may be duplicate, missing/null, or non-string. UI row identity is run ID plus source_row, never an assumption of unique key."
+  },
+  "ResearchResult": {
+   "type": "object",
+   "properties": {
+    "cohort_state": {
+     "$ref": "#/components/schemas/State"
+    },
+    "counts": {
+     "$ref": "#/components/schemas/Counts"
+    },
+    "records": {
+     "type": "array",
+     "items": {
+      "$ref": "#/components/schemas/RecordResult"
+     },
+     "maxItems": 200
+    },
+    "expected_total": {
+     "type": [
+      "integer",
+      "null"
+     ],
+     "minimum": 0
+    },
+    "source_rows_observed": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "source_population_known": {
+     "type": "boolean"
+    },
+    "destination_coverage_sufficient": {
+     "type": "boolean"
+    },
+    "source_basis_sha256": {
+     "$ref": "#/components/schemas/Digest"
+    },
+    "rule_basis_sha256": {
+     "$ref": "#/components/schemas/Digest"
+    },
+    "observed_at": {
+     "$ref": "#/components/schemas/RawTick"
+    },
+    "deadline": {
+     "$ref": "#/components/schemas/RawTick"
+    },
+    "business_obligation_at": {
+     "$ref": "#/components/schemas/RawTick"
+    },
+    "evaluation_at": {
+     "$ref": "#/components/schemas/RawTick"
+    },
+    "observation_time_valid": {
+     "type": "boolean"
+    },
+    "destination_page_sequence_valid": {
+     "type": "boolean"
+    },
+    "destination_page_sequence_reason": {
+     "type": "string"
+    },
+    "premise_evidence": {
+     "$ref": "#/components/schemas/PremiseEvidence"
+    },
+    "workflow_execution": {
+     "type": "string",
+     "const": "Not assessed"
+    },
+    "business_truth": {
+     "type": "string",
+     "const": "Not assessed"
+    },
+    "absence_cause": {
+     "type": "string",
+     "const": "Not inferred"
+    }
+   },
+   "required": [
+    "cohort_state",
+    "counts",
+    "records",
+    "expected_total",
+    "source_rows_observed",
+    "source_population_known",
+    "destination_coverage_sufficient",
+    "source_basis_sha256",
+    "rule_basis_sha256",
+    "observed_at",
+    "deadline",
+    "business_obligation_at",
+    "evaluation_at",
+    "observation_time_valid",
+    "destination_page_sequence_valid",
+    "destination_page_sequence_reason",
+    "premise_evidence",
+    "workflow_execution",
+    "business_truth",
+    "absence_cause"
+   ],
+   "additionalProperties": false,
+   "description": "Unchanged evaluate(e) return object. Transport cap of 200 source rows is an offline service scope limit, not a research capability limit. Never truncate a result; reject oversized import before publication."
+  },
+  "RetryContext": {
+   "type": "object",
+   "properties": {
+    "window_open_at_evaluation": {
+     "type": [
+      "boolean",
+      "null"
+     ],
+     "description": "Timing-only display: valid capture/evaluation/deadline and evaluation < deadline. This is not can_wait or scheduling authority."
+    },
+    "policy_retry_viable": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "pending_source_rows": {
+     "type": "array",
+     "items": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "uniqueItems": true
+    },
+    "automatic_retry_enabled": {
+     "type": "boolean",
+     "const": false
+    },
+    "next_attempt_at": {
+     "type": "null"
+    }
+   },
+   "required": [
+    "window_open_at_evaluation",
+    "policy_retry_viable",
+    "pending_source_rows",
+    "automatic_retry_enabled",
+    "next_attempt_at"
+   ],
+   "additionalProperties": false,
+   "description": "Pending rows are selected by the returned state, not re-derived from evidence. Phase 1 has no scheduler. Expired display time never rewrites saved Pending; a new evaluator run is needed."
+  },
+  "RuleMap": {
+   "type": "object",
+   "properties": {
+    "existence": {
+     "$ref": "#/components/schemas/RuleResult"
+    },
+    "phone": {
+     "$ref": "#/components/schemas/RuleResult"
+    },
+    "uniqueness": {
+     "$ref": "#/components/schemas/RuleResult"
+    },
+    "existed_by_deadline": {
+     "$ref": "#/components/schemas/RuleResult"
+    },
+    "workflow_execution": {
+     "$ref": "#/components/schemas/RuleResult"
+    }
+   },
+   "required": [
+    "existence",
+    "phone",
+    "uniqueness"
+   ],
+   "additionalProperties": false,
+   "description": "Only evaluator-produced required rules. Email is absent from the current evaluator contract; do not inject it or synthesize a pass."
+  },
+  "RuleResult": {
+   "type": "object",
+   "properties": {
+    "status": {
+     "$ref": "#/components/schemas/RuleStatus"
+    },
+    "reason": {
+     "type": "string"
+    },
+    "expected": {
+     "type": "string"
+    },
+    "actual": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "status",
+    "reason"
+   ],
+   "additionalProperties": false
+  },
+  "RuleStatus": {
+   "type": "string",
+   "enum": [
+    "pass",
+    "fail",
+    "unknown"
+   ]
+  },
+  "SourceRowContext": {
+   "type": "object",
+   "properties": {
+    "source_row": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "key": {
+     "$ref": "#/components/schemas/RawJSON"
+    },
+    "phone": {
+     "$ref": "#/components/schemas/EvidenceValue"
+    },
+    "display_name": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "company": {
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "source_row",
+    "key",
+    "phone",
+    "display_name",
+    "company"
+   ],
+   "additionalProperties": false,
+   "description": "Names/company are optional presentation annotations with no effect on evaluation. No invented names in LOCAL_RESEARCH."
+  },
+  "SourceSnapshot": {
+   "type": "object",
+   "properties": {
+    "evidence_reference_id": {
+     "type": "string"
+    },
+    "namespace": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "version": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "provenance_channel": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "inventory_method": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "inventory_eligible_count": {
+     "type": [
+      "integer",
+      "null"
+     ],
+     "minimum": 0
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "$ref": "#/components/schemas/SourceRowContext"
+     },
+     "maxItems": 200
+    }
+   },
+   "required": [
+    "evidence_reference_id",
+    "namespace",
+    "version",
+    "provenance_channel",
+    "inventory_method",
+    "inventory_eligible_count",
+    "rows"
+   ],
+   "additionalProperties": false
+  },
+  "State": {
+   "type": "string",
+   "enum": [
+    "Verified",
+    "Mismatch",
+    "Pending",
+    "Unverified"
+   ]
+  },
+  "TimeMapping": {
+   "type": "object",
+   "properties": {
+    "kind": {
+     "type": "string",
+     "enum": [
+      "synthetic_affine_v1",
+      "unmapped"
+     ]
+    },
+    "origin_iso": {
+     "$ref": "#/components/schemas/Timestamp"
+    },
+    "seconds_per_tick": {
+     "type": [
+      "integer",
+      "null"
+     ],
+     "minimum": 1
+    }
+   },
+   "required": [
+    "kind",
+    "origin_iso",
+    "seconds_per_tick"
+   ],
+   "additionalProperties": false,
+   "description": "synthetic_affine_v1 requires nonnull origin and positive integer seconds_per_tick. unmapped requires both null. This is a display mapping, not observed calendar authenticity."
+  },
+  "Timestamp": {
+   "type": [
+    "string",
+    "null"
+   ],
+   "format": "date-time",
+   "description": "RFC3339 instant with explicit offset; canonical output UTC Z; null means unavailable. Never substitute epoch/tick zero."
+  },
+  "VerificationRun": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/components/schemas/Meta"
+    },
+    "identity": {
+     "$ref": "#/components/schemas/Identity"
+    },
+    "workflow": {
+     "$ref": "#/components/schemas/Workflow"
+    },
+    "evaluation_context": {
+     "$ref": "#/components/schemas/EvaluationContext"
+    },
+    "source_snapshot": {
+     "$ref": "#/components/schemas/SourceSnapshot"
+    },
+    "destination_observation": {
+     "$ref": "#/components/schemas/DestinationObservation"
+    },
+    "policy_context": {
+     "$ref": "#/components/schemas/PolicyContext"
+    },
+    "result": {
+     "$ref": "#/components/schemas/ResearchResult"
+    },
+    "retry_context": {
+     "$ref": "#/components/schemas/RetryContext"
+    },
+    "evidence_references": {
+     "type": "array",
+     "items": {
+      "$ref": "#/components/schemas/EvidenceReference"
+     },
+     "minItems": 1,
+     "maxItems": 32
+    },
+    "assurance": {
+     "$ref": "#/components/schemas/Assurance"
+    },
+    "diagnostics": {
+     "type": "array",
+     "items": {
+      "$ref": "#/components/schemas/Diagnostic"
+     }
+    },
+    "snapshot_id": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 128,
+     "description": "Immutable catalog snapshot used for this read. Echo a requested snapshot_id exactly; never silently substitute a current snapshot."
+    }
+   },
+   "required": [
+    "meta",
+    "identity",
+    "workflow",
+    "evaluation_context",
+    "source_snapshot",
+    "destination_observation",
+    "policy_context",
+    "result",
+    "retry_context",
+    "evidence_references",
+    "assurance",
+    "diagnostics",
+    "snapshot_id"
+   ],
+   "additionalProperties": false,
+   "description": "A proposed product envelope around actual evaluator output; no duplicate top-level row/cohort/rule verdicts. All five examples are synthetic specifications, not implemented service responses. Detail is complete (at most 200 source rows), in original source_row capture order; no record pagination. A summary must be hydrated by identity.id using the parent snapshot_id. Stored run identities/content are never overwritten or reused."
+  },
+  "Workflow": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "n8n_label": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "Required wire key. Configured string is copied verbatim; explicit null means unavailable label metadata. Missing key is a contract error. The provider preserves null and may separately derive display text \"Workflow label unavailable\"; no execution or source provenance is inferred."
+    },
+    "source_label": {
+     "type": "string"
+    },
+    "source_namespace": {
+     "type": "string"
+    },
+    "destination_system": {
+     "type": "string",
+     "const": "HubSpot"
+    },
+    "destination_object": {
+     "type": "string",
+     "const": "contacts"
+    }
+   },
+   "required": [
+    "id",
+    "name",
+    "n8n_label",
+    "source_label",
+    "source_namespace",
+    "destination_system",
+    "destination_object"
+   ],
+   "additionalProperties": false
+  }
+ }
+}
