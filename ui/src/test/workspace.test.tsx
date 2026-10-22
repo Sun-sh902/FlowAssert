@@ -1,22 +1,25 @@
 /**
- * Product round 01 — workspace Overview, Verifications, Capture runs and the four status axes.
- * The archive is the captured, schema-validated Phase 3A list (test/local/fakeHistoryService.ts); the real
- * Service is exercised by e2e-workspace/.
+ * Workspace Overview, Verifications, Capture runs and the four status axes (product rounds 01–02).
+ * Fakes serve real captured Service bodies: the Phase 3A archive (test/local/fakeHistoryService.ts) and the
+ * Phase 2 v1 Details (test/local/fakeService.ts). The real Service is exercised by e2e-workspace/.
  */
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CaseStatusAxes, StatusAxesLedger } from "../components/workspace/StatusAxes";
 import { createLocalHistoryProvider } from "../data/history/provider";
+import { createLocalResearchProvider } from "../data/local/provider";
 import { indexArchive } from "../data/workspace/archiveIndex";
 import type { HistorySummaryView } from "../domain/history";
 import { ADMISSION_NOT_IMPLEMENTED, CAPTURE_NOT_IMPLEMENTED, noVerdict } from "../domain/statusAxes";
 import { CaptureRuns, WorkspaceOverview, WorkspaceVerifications } from "../pages/Workspace";
 import { FIRST_BATCH, fakeHistoryService, historyEnvelope, historyExamplesPresent } from "./local/fakeHistoryService";
+import { fakeService, handoffPresent } from "./local/fakeService";
 import { renderApp } from "./render";
 
 afterEach(() => vi.unstubAllGlobals());
 
 const CASES = ["SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-005"];
+const both = historyExamplesPresent && handoffPresent;
 
 /** Newest archived cohort per case, straight from the captured list body (archive order). */
 function expectedLatest(entries: { original_verification_id: string; result_summary?: { cohort_state: string } }[]) {
@@ -26,6 +29,25 @@ function expectedLatest(entries: { original_verification_id: string; result_summ
 }
 
 const seals = (root: ParentNode = document) => [...root.querySelectorAll<HTMLElement>(".fa-seal")].map((s) => s.dataset.s);
+
+/** One fetch for both API families, each answered by its own captured-body fake. */
+function workspaceFakes() {
+  const history = fakeHistoryService();
+  const v1 = fakeService();
+  const log: string[] = [];
+  const fetchImpl = ((input: RequestInfo | URL, init?: RequestInit) => {
+    const raw = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    log.push(raw);
+    return raw.startsWith("/api/v1/history") ? history.fetch(input, init) : v1.fetch(input, init);
+  }) as typeof fetch;
+  return {
+    history,
+    v1,
+    log,
+    fetch: fetchImpl,
+    providers: () => ({ history: createLocalHistoryProvider({ fetch: fetchImpl }), live: createLocalResearchProvider({ fetch: fetchImpl }) }),
+  };
+}
 
 /* ---------- Pure index ---------- */
 
@@ -115,36 +137,59 @@ describe("StatusAxesLedger", () => {
   });
 });
 
-/* ---------- Pages over the captured archive ---------- */
+/* ---------- Overview and Verifications: live beside archived ---------- */
 
-describe.skipIf(!historyExamplesPresent)("Workspace Overview (LOCAL_RESEARCH)", () => {
-  it("reads every list page under one view, then states the newest archived result of each case", async () => {
-    const svc = fakeHistoryService();
-    render(<WorkspaceOverview provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
-    await waitFor(() => expect(document.querySelectorAll("[data-case]")).toHaveLength(5));
-    // 10 entries at 4 per page: three list requests, continuations carrying the server cursor.
-    expect(svc.log.filter((u) => u.startsWith("/api/v1/history?"))).toHaveLength(3);
-    expect(svc.log.slice(1).every((u) => u.includes("cursor="))).toBe(true);
-    const want = expectedLatest(svc.entries() as never);
-    for (const id of CASES) expect(seals(document.querySelector(`[data-case="${id}"]`)!)).toEqual([want[id]]);
+describe.skipIf(!both)("Workspace Overview (LOCAL_RESEARCH)", () => {
+  it("reads one archive list view and one live Detail per known case, then compares them", async () => {
+    const f = workspaceFakes();
+    render(<WorkspaceOverview {...f.providers()} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-case] [data-comparison]:not([data-comparison="READING"])')).toHaveLength(5));
+    // 10 entries at 4 per page: three list requests, continuations carrying the server cursor; five live reads.
+    const lists = f.log.filter((u) => u.startsWith("/api/v1/history?"));
+    expect(lists).toHaveLength(3);
+    expect(lists.slice(1).every((u) => u.includes("cursor="))).toBe(true);
+    expect(f.log.filter((u) => u.startsWith("/api/v1/verifications/")).sort()).toEqual(CASES.map((id) => `/api/v1/verifications/${id}`));
+    const want = expectedLatest(f.history.entries() as never);
+    for (const id of CASES) {
+      const row = document.querySelector(`[data-case="${id}"]`)!;
+      // live seal, then archived seal — both copied, the same here because the input is the same.
+      expect(seals(row)).toEqual([want[id], want[id]]);
+      expect(row.querySelector("[data-comparison]")!.getAttribute("data-comparison")).toBe("SAME_INPUT_AGREE");
+    }
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/case contradicts its source/);
-    expect(screen.getByText(/10 of 10 INTEGRITY_VERIFIED by the Service/)).toBeTruthy();
+    expect(document.querySelector('[data-comparison-strip] [data-comparison="SAME_INPUT_AGREE"]')!.parentElement!.textContent).toContain("5");
   });
 
-  it("an empty archive gives every case No verdict, and says nothing is archived", async () => {
-    const svc = fakeHistoryService();
-    svc.empty();
-    render(<WorkspaceOverview provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
-    await waitFor(() => expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("No case has an archived evaluation yet."));
-    expect(seals()).toEqual([]);
-    expect(document.querySelectorAll("[data-axis-noverdict]")).toHaveLength(5);
+  it("an empty archive: live verdicts still shown, every comparison is Not archived — never Unverified", async () => {
+    const f = workspaceFakes();
+    f.history.empty();
+    render(<WorkspaceOverview {...f.providers()} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-case] [data-comparison="ARCHIVE_MISSING"]')).toHaveLength(5));
+    for (const id of CASES) expect(document.querySelector(`[data-case="${id}"] [data-axis-noverdict]`)).not.toBeNull();
+  });
+
+  it("a live result missing for one case is No live result, with no verdict on the live side", async () => {
+    const f = workspaceFakes();
+    f.v1.intercept(
+      (u) => u.pathname === "/api/v1/verifications/SPEC-003",
+      () => new Response(JSON.stringify({ error: { code: "run_not_found", message: "x", request_id: "r", retryable: false, details: [] } }), { status: 404, headers: { "content-type": "application/json" } }),
+    );
+    render(<WorkspaceOverview {...f.providers()} />);
+    const row = await waitFor(() => {
+      const r = document.querySelector('[data-case="SPEC-003"] [data-comparison="LIVE_MISSING"]');
+      expect(r).not.toBeNull();
+      return r!.closest("[data-case]")!;
+    });
+    expect(seals(row)).toEqual(["Pending"]); // the archived seal only
+    expect(row.textContent).toContain("no current result");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/one could not be read/);
   });
 
   it("shows Service unavailable — never demo data or a verdict — when the Service cannot be reached", async () => {
     const down = (async () => {
       throw new TypeError("fetch failed");
     }) as typeof fetch;
-    render(<WorkspaceOverview provider={createLocalHistoryProvider({ fetch: down })} />);
+    render(<WorkspaceOverview history={createLocalHistoryProvider({ fetch: down })} live={createLocalResearchProvider({ fetch: down })} />);
     await waitFor(() => expect(document.querySelector('[data-access="SERVICE_UNAVAILABLE"]')).not.toBeNull());
     expect(screen.getByText("The local Service is unavailable")).toBeTruthy();
     expect(seals()).toEqual([]);
@@ -152,21 +197,21 @@ describe.skipIf(!historyExamplesPresent)("Workspace Overview (LOCAL_RESEARCH)", 
     expect(document.body.textContent).toContain("none — no other data source is used");
   });
 
-  it("shows no per-case result when a continuation fails with an archive integrity error", async () => {
-    const svc = fakeHistoryService();
-    svc.intercept(
+  it("an archive integrity failure keeps live results but compares nothing (Inconclusive), and says why", async () => {
+    const f = workspaceFakes();
+    f.history.intercept(
       (u) => u.pathname === "/api/v1/history" && u.searchParams.has("cursor"),
       () => historyEnvelope("archive_integrity_failed", 503, [{ path: "items[0]", code: "INTEGRITY_FAILED" }]),
     );
-    render(<WorkspaceOverview provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
-    await waitFor(() => expect(document.body.textContent).toContain("INTEGRITY_FAILED"));
-    expect(document.querySelector("[data-case]")).toBeNull();
-    expect(seals()).toEqual([]);
+    render(<WorkspaceOverview {...f.providers()} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-case] [data-comparison="INCONCLUSIVE"]')).toHaveLength(5));
+    expect(document.body.textContent).toContain("INTEGRITY_FAILED");
+    for (const id of CASES) expect(seals(document.querySelector(`[data-case="${id}"]`)!)).toHaveLength(1); // live only
   });
 
-  it("refuses a continuation from another list view as a stale snapshot and shows no per-case result", async () => {
-    const svc = fakeHistoryService();
-    svc.intercept(
+  it("a continuation from another list view is refused as a stale snapshot; nothing archived is compared", async () => {
+    const f = workspaceFakes();
+    f.history.intercept(
       (u) => u.pathname === "/api/v1/history" && u.searchParams.has("cursor"),
       async (u) => {
         const body = await (await fakeHistoryService().fetch(u.pathname + u.search)).json();
@@ -174,41 +219,70 @@ describe.skipIf(!historyExamplesPresent)("Workspace Overview (LOCAL_RESEARCH)", 
         return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
       },
     );
-    render(<WorkspaceOverview provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
-    // The read layer refuses it before the list chain sees it: a stale-snapshot read state, not a verdict.
+    render(<WorkspaceOverview {...f.providers()} />);
     await waitFor(() => expect(document.querySelector('[data-access="STALE_SNAPSHOT"]')).not.toBeNull());
     expect(document.body.textContent).toContain("list_other_view");
-    expect(document.body.textContent).not.toContain("scripts/dev/service.sh");
-    expect(document.querySelector("[data-case]")).toBeNull();
-    expect(seals()).toEqual([]);
+    expect(document.querySelectorAll('[data-case] [data-comparison="SAME_INPUT_AGREE"]').length).toBe(0);
+    expect(document.querySelectorAll('[data-case] [data-comparison="INCONCLUSIVE"]')).toHaveLength(5);
   });
 
-  it("is a loading state, with no result drawn, while pages are read; Cancel stops it", async () => {
+  it("is a loading state while reading; Cancel stops every unfinished read and nothing is compared", async () => {
     const pending = (() => new Promise<Response>(() => {})) as typeof fetch;
-    const { getByRole } = render(<WorkspaceOverview provider={createLocalHistoryProvider({ fetch: pending })} />);
-    expect(document.querySelector('[data-access="LOADING"]')).not.toBeNull();
+    const { getAllByRole } = render(<WorkspaceOverview history={createLocalHistoryProvider({ fetch: pending })} live={createLocalResearchProvider({ fetch: pending })} />);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Reading five known cases…");
     expect(seals()).toEqual([]);
-    getByRole("button", { name: "Cancel read" }).click();
-    await waitFor(() => expect(screen.getByText(/Read cancelled/)).toBeTruthy());
+    getAllByRole("button", { name: "Cancel read" })[0]!.click();
+    await waitFor(() => expect(document.querySelectorAll('[data-case] [data-comparison="INCONCLUSIVE"]')).toHaveLength(5));
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("Workspace Verifications", () => {
-  it("lists the five reviewed cases with four separate axes, linking each to its live Detail", async () => {
-    const svc = fakeHistoryService();
-    render(<WorkspaceVerifications provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
+describe("bounded live reads", () => {
+  it("never has more than two live reads in flight, and aborts the rest on unmount", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const signals: AbortSignal[] = [];
+    const slow = ((input: RequestInfo | URL, init?: RequestInit) => {
+      const raw = String(input);
+      if (raw.startsWith("/api/v1/history")) return new Promise<Response>(() => {});
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      signals.push(init!.signal!);
+      return new Promise<Response>((_, reject) =>
+        init!.signal!.addEventListener("abort", () => {
+          inFlight--;
+          reject(new DOMException("aborted", "AbortError"));
+        }),
+      );
+    }) as typeof fetch;
+    const { unmount } = render(<WorkspaceOverview history={createLocalHistoryProvider({ fetch: slow })} live={createLocalResearchProvider({ fetch: slow })} />);
+    await waitFor(() => expect(signals.length).toBe(2));
+    expect(peak).toBe(2);
+    unmount();
+    expect(signals.every((s) => s.aborted)).toBe(true);
+  });
+});
+
+describe.skipIf(!both)("Workspace Verifications", () => {
+  it("lists the known cases with capture, admission, live verdict, newest archived verdict and comparison", async () => {
+    const f = workspaceFakes();
+    render(<WorkspaceVerifications {...f.providers()} />);
     const table = await waitFor(() => {
       const t = document.querySelector<HTMLTableElement>("[data-case-table]");
-      expect(t).not.toBeNull();
+      expect(t?.querySelectorAll('[data-comparison="SAME_INPUT_AGREE"]').length).toBe(5);
       return t!;
     });
-    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Case", "01 Capture", "02 Admission", "03 Archive", "04 Evaluator verdict"]);
-    const want = expectedLatest(svc.entries() as never);
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual([
+      "Case",
+      "01–02 Capture · Admission",
+      "04 Live verdict",
+      "03 Newest archived",
+      "Comparison · diagnostic",
+    ]);
+    const want = expectedLatest(f.history.entries() as never);
     for (const id of CASES) {
       const row = table.querySelector(`tr[data-case="${id}"]`)!;
       expect(row.querySelectorAll("[data-axis-na]")).toHaveLength(2);
-      expect(row.textContent).toContain("Archived");
-      expect(seals(row)).toEqual([want[id]]);
+      expect(seals(row)).toEqual([want[id], want[id]]);
       expect((row.querySelector("a") as HTMLAnchorElement).hash).toBe(`#/local/verifications/${id}`);
     }
   });
@@ -243,13 +317,13 @@ describe.skipIf(!historyExamplesPresent)("Status axes on the routed pages", () =
     expect(ledger.querySelector('[data-axis="verdict"]')!.textContent).toContain("copied from archived evaluation");
   });
 
-  it("the overview at #/ is LOCAL_RESEARCH and reads only the history list", async () => {
-    const svc = fakeHistoryService();
-    vi.stubGlobal("fetch", svc.fetch);
+  it.skipIf(!both)("the overview at #/ is LOCAL_RESEARCH and reads only the history list and the known cases' Details", async () => {
+    const f = workspaceFakes();
+    vi.stubGlobal("fetch", f.fetch);
     renderApp("#/");
-    await waitFor(() => expect(document.querySelectorAll("[data-case]")).toHaveLength(5));
+    await waitFor(() => expect(document.querySelectorAll('[data-case] [data-comparison="SAME_INPUT_AGREE"]')).toHaveLength(5));
     expect(screen.getByRole("region", { name: "Local research register" })).toBeTruthy();
-    expect(svc.log.every((u) => u.startsWith("/api/v1/history?"))).toBe(true);
+    expect(f.log.every((u) => u.startsWith("/api/v1/history?") || /^\/api\/v1\/verifications\/SPEC-00[1-5]$/.test(u))).toBe(true);
   });
 });
 
@@ -267,8 +341,10 @@ describe("CaseStatusAxes (Verification Detail)", () => {
 
   it("sends no archive request for an ID the archive contract cannot address", () => {
     const listHistory = vi.fn();
-    render(<CaseStatusAxes id="SPEC:001" verdict={live} provider={{ listHistory }} />);
+    const getHistory = vi.fn();
+    render(<CaseStatusAxes id="SPEC:001" verdict={live} provider={{ listHistory, getHistory }} />);
     expect(listHistory).not.toHaveBeenCalled();
+    expect(getHistory).not.toHaveBeenCalled();
     expect(document.querySelector('[data-axis="archive"]')!.textContent).toContain("Not addressable");
   });
 

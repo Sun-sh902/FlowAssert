@@ -333,16 +333,17 @@ function HistoryEntryLoaded({ detail, location, provider, onReread }: { detail: 
   return (
     <div data-history-entry={detail.historyId}>
       <HistoryProvenance detail={detail} evidence={evidenceState} onReread={onReread} />
-      <StatusAxesLedger
-        className="mb-10"
-        axes={{
-          capture: CAPTURE_NOT_IMPLEMENTED,
-          admission: ADMISSION_NOT_IMPLEMENTED,
-          archive: { axis: "archive", kind: "THIS_ENTRY", historyId: detail.historyId, archivedAt: detail.archivedAt, integrity: detail.integrity.status },
-          verdict: archivedVerdict(detail),
-        }}
-      />
       <DetailBody
+        status={
+          <StatusAxesLedger
+            axes={{
+              capture: CAPTURE_NOT_IMPLEMENTED,
+              admission: ADMISSION_NOT_IMPLEMENTED,
+              archive: { axis: "archive", kind: "THIS_ENTRY", historyId: detail.historyId, archivedAt: detail.archivedAt, integrity: detail.integrity.status },
+              verdict: archivedVerdict(detail),
+            }}
+          />
+        }
         run={detail.run}
         location={location}
         basePath={`/local/history/${detail.historyId}`}
@@ -351,6 +352,16 @@ function HistoryEntryLoaded({ detail, location, provider, onReread }: { detail: 
       />
       <p className="mt-6 text-xs leading-[1.5] text-ink-3">
         Archived {formatDateTime(detail.archivedAt)} · <a className="fa-hit underline decoration-line-strong underline-offset-[3px] hover:text-ink" href={href("/local/history", { case: detail.verificationId })}>other archived evaluations of {detail.verificationId}</a>
+        {isHistoryCaseFilter(detail.verificationId) && (
+          <>
+            {" "}
+            ·{" "}
+            <a className="fa-hit underline decoration-line-strong underline-offset-[3px] hover:text-ink" href={href(`/local/verifications/${detail.verificationId}`)}>
+              current result of {detail.verificationId}
+            </a>{" "}
+            (its page shows whether it matches this entry exactly)
+          </>
+        )}
       </p>
     </div>
   );

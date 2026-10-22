@@ -4,6 +4,7 @@ import { cn } from "../../lib/cn";
 import { DEMO_NOW_MS, formatDateTime } from "../../lib/format";
 import { isHistoryRoute, isLocalRoute, type Route } from "../../lib/router";
 import { useTheme, type ThemePreference } from "../../lib/theme";
+import { SERVICE_STATUS_SCOPE, ServiceStatus } from "./ServiceStatus";
 
 /**
  * The FlowAssert mark — evidence trace: an open source node and a solid destination node joined
@@ -197,9 +198,7 @@ function TopBar({ crumbs, local }: { crumbs: ReactNode; local: boolean }) {
         </nav>
         <section aria-label={local ? "Local research register" : "Demo register"} className="flex shrink-0 items-center gap-4">
           {local ? (
-            <span className="hidden font-mono text-[11px] text-ink-3 sm:inline">
-              <span className="text-brand-ink">LOCAL_RESEARCH</span> · synthetic · <span className="text-ink-2">127.0.0.1:8765</span>
-            </span>
+            <ServiceStatus />
           ) : (
             <span className="hidden font-mono text-[11px] text-ink-3 sm:inline">
               clock fixed · <span className="text-ink-2">{formatDateTime(new Date(DEMO_NOW_MS).toISOString())}</span>
@@ -221,7 +220,10 @@ function TopBar({ crumbs, local }: { crumbs: ReactNode; local: boolean }) {
           <dl className="grid gap-4 text-xs leading-[1.5] text-ink-2 sm:grid-cols-3">
             <div>
               <dt className="mb-1 font-semibold text-ink">Real on these pages</dt>
-              <dd>HTTP reads of the accepted local Python service on 127.0.0.1:8765. Verdicts, record results and evidence references are the pinned evaluator’s, copied unchanged.</dd>
+              <dd>
+                HTTP reads of the accepted local Python service on 127.0.0.1:8765. Verdicts, record results and evidence references are the pinned evaluator’s, copied
+                unchanged. The status beside this link is the newest read’s outcome: {SERVICE_STATUS_SCOPE}
+              </dd>
             </div>
             <div>
               <dt className="mb-1 font-semibold text-ink">Still synthetic</dt>

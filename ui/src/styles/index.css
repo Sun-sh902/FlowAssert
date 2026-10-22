@@ -10,14 +10,50 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
+ * Metric-matched fallbacks (product round 02, #/rules layout shift). The self-hosted faces load with
+ * font-display: swap; until they arrive, text is laid out in a local fallback. Plain Georgia is ~33% wider
+ * than Instrument Serif, so a display headline wrapped onto more lines and collapsed when the web font
+ * swapped in (CLS 0.137 on #/rules, layout-shift sources: the page head and everything below it).
+ * These faces scale the local fallback to the web font's advance width and line metrics, so the swap
+ * changes glyph shapes but not layout. Values measured in Chrome against the bundled faces
+ * (scripts/dev/cls-probe.mjs; docs/product-dev/round-02/evidence/rules-cls/).
+ */
+@font-face {
+  font-family: "Instrument Serif Fallback";
+  font-style: normal;
+  src: local("Georgia");
+  size-adjust: 75.15%;
+  ascent-override: 131.74%;
+  descent-override: 41.25%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Instrument Serif Fallback";
+  font-style: italic;
+  src: local("Georgia Italic"), local("Georgia-Italic");
+  size-adjust: 77.44%;
+  ascent-override: 127.84%;
+  descent-override: 40.03%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Instrument Sans Fallback";
+  src: local("Arial"), local("Helvetica");
+  size-adjust: 100.85%;
+  ascent-override: 96.18%;
+  descent-override: 24.79%;
+  line-gap-override: 0%;
+}
+
+/*
  * Type rule: conclusions are set in the serif, the interface in the sans, evidence in mono.
  *   Instrument Serif — verdict sentences and section titles (≥ 20px only)
  *   Instrument Sans  — interface
  *   IBM Plex Mono    — observed values, identifiers, times, namespaces
  */
 @theme inline {
-  --font-sans: "Instrument Sans Variable", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Instrument Sans Variable", "Instrument Sans", "Instrument Sans Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Instrument Serif Fallback", "Iowan Old Style", Georgia, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
 
   /* 11 / 12 / 13 / 13.5 / 15 / 18 / 22 / 28 ; serif display 40 / 44 */

@@ -14,9 +14,10 @@ export const UI = process.cwd();
 export const ROOT = join(UI, "..");
 export const SERVICE_ORIGIN = "http://127.0.0.1:8765";
 export const APP_ORIGIN = "http://127.0.0.1:5183";
-export const OUT = process.env.FA_WORKSPACE_EVIDENCE_DIR ?? join(ROOT, "docs/product-dev/evidence/e2e-workspace");
+export const OUT = process.env.FA_WORKSPACE_EVIDENCE_DIR ?? join(ROOT, "docs/product-dev/round-02/evidence/e2e-workspace");
+export const SHOTS = process.env.FA_WORKSPACE_SCREENSHOT_DIR ?? join(ROOT, "docs/product-dev/round-02/screenshots/after");
 
-export type State = "dev-main" | "dev-empty";
+export type State = "dev-main" | "dev-single" | "dev-empty";
 
 /**
  * Expected newest archived cohort result per case — the backend handoff's case table

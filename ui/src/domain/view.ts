@@ -144,6 +144,12 @@ export interface LocalRunFacts {
   serviceExecutedAt: string | null;
   evaluator: { versionLabel: string; sourceCommit: string; modelSha256: string; workspaceDirty: boolean };
   inputEvidenceSha256: string;
+  /**
+   * The evaluator's raw `result`, as Python canonical JSON (sorted keys, ASCII, compact) — the same text the
+   * Service hashes. Null when this browser cannot reproduce it exactly (e.g. a float it cannot round-trip).
+   * Used only to say whether two results are byte-identical; never to derive a verdict.
+   */
+  resultCanonical: string | null;
   timeMapping: { kind: "synthetic_affine_v1" | "unmapped"; originIso: string | null; secondsPerTick: number | null };
   assurance: {
     researchAuthorization: "research_only" | "approved_for_product_use";

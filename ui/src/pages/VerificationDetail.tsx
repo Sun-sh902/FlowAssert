@@ -138,7 +138,7 @@ function Procession({ run }: { run: RunView }) {
     {
       k: "Source",
       // LOCAL_RESEARCH rows come from a reviewed fixture: no capture run exists (Capture status: not implemented).
-      h: `${run.recordsEvaluated} rows ${run.local ? "supplied" : "captured"}`,
+      h: run.local ? `${plural(run.recordsEvaluated, "row")} supplied` : `${run.recordsEvaluated} rows captured`,
       p: provenance
         ? run.local
           ? "Supplied as an independent source read, not workflow output — synthetic, not authenticated."
@@ -538,6 +538,7 @@ export function DetailBody({
   basePath,
   baseParams,
   evidence,
+  status,
   previousRunLink = true,
 }: {
   run: RunView;
@@ -546,6 +547,8 @@ export function DetailBody({
   /** Params every selection keeps (the lookup route's verification_id). */
   baseParams?: Record<string, string>;
   evidence?: ReactNode;
+  /** Status axes and archive match (product round 02): after the conclusion and its trace, before the records. */
+  status?: ReactNode;
   previousRunLink?: boolean;
 }) {
   const t = stateTone(run.state);
@@ -553,6 +556,7 @@ export function DetailBody({
     <div>
       <Verdict run={run} />
       <Procession run={run} />
+      {status && <div className="mt-10">{status}</div>}
       <Bench run={run} location={location} basePath={basePath} baseParams={baseParams} />
       <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
         <Supports run={run} />
@@ -634,17 +638,19 @@ function LocalVerificationRead({ id, location, provider, basePath, baseParams }:
   return (
     <div>
       <LocalProvenance run={run} snapshotGone={snapshotGone} onReread={reread} />
-      <CaseStatusAxes
-        className="mb-10"
-        id={id}
-        verdict={{
-          axis: "verdict",
-          kind: "VERDICT",
-          state: run.state,
-          source: { kind: "live", request: basePath === LOOKUP_PATH ? "GET /api/v1/verification-lookup (live read)" : `GET /api/v1/verifications/${id} (live read)` },
-        }}
-      />
       <DetailBody
+        status={
+          <CaseStatusAxes
+            id={id}
+            live={run}
+            verdict={{
+              axis: "verdict",
+              kind: "VERDICT",
+              state: run.state,
+              source: { kind: "live", request: basePath === LOOKUP_PATH ? "GET /api/v1/verification-lookup (live read)" : `GET /api/v1/verifications/${id} (live read)` },
+            }}
+          />
+        }
         run={run}
         location={location}
         basePath={basePath}

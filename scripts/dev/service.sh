@@ -1,12 +1,12 @@
 #!/bin/sh
 # Run the local Phase 3A Service (run_history.py: frozen v1 reads + History + exact-ID lookup) on 127.0.0.1:8765.
-# FA_STATE=dev-main (default) | dev-empty. Stop with Ctrl-C / SIGTERM to this PID.
+# FA_STATE=dev-main (default) | dev-single | dev-empty. Stop with Ctrl-C / SIGTERM to this PID.
 set -eu
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SVC="$ROOT/service"
 RT="$SVC/.runtime"
 STATE="${FA_STATE:-dev-main}"
-case "$STATE" in dev-main|dev-empty) ;; *) echo "unknown state: $STATE" >&2; exit 2 ;; esac
+case "$STATE" in dev-main|dev-single|dev-empty) ;; *) echo "unknown state: $STATE" >&2; exit 2 ;; esac
 [ -d "$RT/$STATE" ] || { echo "state $STATE missing; run scripts/dev/seed.sh first" >&2; exit 1; }
 if lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
   echo "port 8765 already has a listener; not starting (never kill an unknown process)" >&2; exit 1

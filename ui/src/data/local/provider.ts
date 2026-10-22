@@ -38,6 +38,7 @@
  *           snapshot, digest and chain checks. Cursors are opaque and stay inside the acquisition that received them.
  * A provider never falls back from one addressing to the other.
  */
+import { classifyExchange, exchangeAborted, exchangeSettled, exchangeStarted } from "../serviceStatus";
 import { toEvidenceReferenceView, wireToRunView } from "../../adapters/wireToView";
 import type { EvidencePageView, EvidenceReferenceView } from "../../domain/evidence";
 import type { RunView } from "../../domain/view";
@@ -78,6 +79,19 @@ export const failure = (access: Failure["access"], code: string, message: string
 /** One bounded GET (shared with the Phase 3A history provider, src/data/history/provider.ts). */
 export async function exchange(fetchImpl: typeof fetch, url: string, timeoutMs: number, signal?: AbortSignal): Promise<Exchange> {
   if (signal?.aborted) throw abortError();
+  // Product round 02: every settled exchange is reported to the Service status indicator (no extra request).
+  exchangeStarted();
+  try {
+    const ex = await exchangeOnce(fetchImpl, url, timeoutMs, signal);
+    exchangeSettled(classifyExchange(url.split("?")[0]!, Date.now(), ex));
+    return ex;
+  } catch (e) {
+    exchangeAborted();
+    throw e;
+  }
+}
+
+async function exchangeOnce(fetchImpl: typeof fetch, url: string, timeoutMs: number, signal?: AbortSignal): Promise<Exchange> {
   const ctrl = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => {

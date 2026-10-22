@@ -22,6 +22,9 @@ import { cn } from "../../lib/cn";
 import { formatDateTime, plural } from "../../lib/format";
 import { href } from "../../lib/router";
 import { useHistoryList } from "../../lib/useHistoryList";
+import type { RunView } from "../../domain/view";
+import { Panel } from "../ui/primitives";
+import { ArchiveMatchPanel } from "./ArchiveMatch";
 import { shortHistoryId } from "../history/HistoryRows";
 import { IntegrityTag } from "../integrity/Integrity";
 import { Seal } from "../ui/status";
@@ -146,7 +149,7 @@ export function StatusAxesLedger({ axes, className }: { axes: StatusAxes; classN
     <section aria-labelledby="axes-h" className={cn("min-w-0", className)} data-status-axes>
       <h2 id="axes-h" className="kicker mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span>Status axes · four separate questions</span>
-        <span className="text-ink-4">only 04 is a business verdict</span>
+        <span className="text-ink-3">only 04 is a business verdict</span>
       </h2>
       <dl className="fa-ledger grid sm:grid-cols-2 xl:grid-cols-4 [&>*+*]:border-t-0">
         {cols.map((c, i) => (
@@ -181,23 +184,60 @@ export function StatusAxesLedger({ axes, className }: { axes: StatusAxes; classN
 /* ---------- The four axes of one case, with its archive axis read from the Service ---------- */
 
 /**
- * For a Verification Detail: capture and admission are build facts, the verdict is the live result the page
- * already read, and the archive axis is read here — this case's archive entries, every page under one list
- * view. IDs the archive contract cannot address (it admits only the reviewed case IDs) send no request.
+ * For a Verification Detail: capture and admission are build facts, the verdict is the live result the page already
+ * read, and the archive axis is read here — this case's archive entries, every page under one list view. The same
+ * read feeds the exact Detail → Archive match (ArchiveMatchPanel) when the live result is given. IDs the archive
+ * contract cannot address (it admits only the reviewed case IDs) send no request.
  */
-export function CaseStatusAxes({ id, verdict, provider = getHistoryProvider("LOCAL_RESEARCH"), className }: { id: string; verdict: VerdictAxis; provider?: Pick<FlowAssertHistoryProvider, "listHistory">; className?: string }) {
+export function CaseStatusAxes({
+  id,
+  verdict,
+  live,
+  provider = getHistoryProvider("LOCAL_RESEARCH"),
+  className,
+}: {
+  id: string;
+  verdict: VerdictAxis;
+  live?: RunView;
+  provider?: Pick<FlowAssertHistoryProvider, "listHistory" | "getHistory">;
+  className?: string;
+}) {
   const axes = (archive: ArchiveAxis): StatusAxes => ({ capture: CAPTURE_NOT_IMPLEMENTED, admission: ADMISSION_NOT_IMPLEMENTED, archive, verdict });
-  if (!isHistoryCaseFilter(id))
+  if (!isHistoryCaseFilter(id)) {
+    const reason = "The archive contract addresses only the five reviewed case IDs. No archive request was sent for this ID.";
     return (
-      <StatusAxesLedger
-        className={className}
-        axes={axes({ axis: "archive", kind: "NOT_ADDRESSABLE", reason: "The archive contract addresses only the five reviewed case IDs. No archive request was sent for this ID." })}
-      />
+      <div className={cn("grid gap-6", className)} data-archive-list="settled">
+        <StatusAxesLedger axes={axes({ axis: "archive", kind: "NOT_ADDRESSABLE", reason })} />
+        {live && <MatchUnavailable title="Archive matching not available" body={reason} />}
+      </div>
     );
-  return <ArchivedCaseAxes id={id} provider={provider} className={className} axes={axes} />;
+  }
+  return <ArchivedCaseAxes id={id} provider={provider} className={className} axes={axes} live={live} />;
 }
 
-function ArchivedCaseAxes({ id, provider, className, axes }: { id: string; provider: Pick<FlowAssertHistoryProvider, "listHistory">; className?: string; axes: (a: ArchiveAxis) => StatusAxes }) {
+function MatchUnavailable({ title, body, reading = false }: { title: string; body: string; reading?: boolean }) {
+  return (
+    <Panel title={title} description="Exact identity only — input evidence, evaluator model and source, contract, workspace.">
+      <p data-archive-match={reading ? "reading" : "unavailable"} className="px-4 py-4 text-sm text-ink-2 sm:px-5">
+        {body}
+      </p>
+    </Panel>
+  );
+}
+
+function ArchivedCaseAxes({
+  id,
+  provider,
+  className,
+  axes,
+  live,
+}: {
+  id: string;
+  provider: Pick<FlowAssertHistoryProvider, "listHistory" | "getHistory">;
+  className?: string;
+  axes: (a: ArchiveAxis) => StatusAxes;
+  live?: RunView;
+}) {
   const list = useHistoryList(provider, id);
   const { status, loadMore } = list;
   useEffect(() => {
@@ -213,5 +253,23 @@ function ArchivedCaseAxes({ id, provider, className, axes }: { id: string; provi
       integrity: list.failure?.kind === "error" && !!list.failure.integrity,
     };
   else archive = { axis: "archive", kind: "READING" };
-  return <StatusAxesLedger className={className} axes={axes(archive)} />;
+  let match: ReactNode = null;
+  if (live) {
+    if (status === "complete") match = <ArchiveMatchPanel live={live} entries={list.chain.items} provider={provider} />;
+    else if (archive.kind === "UNAVAILABLE")
+      match = (
+        <MatchUnavailable
+          title="Archive not read"
+          body={`This case's archive entries could not be read (${archive.code}${archive.integrity ? ", integrity failure reported by the Service" : ""}). No match is claimed and none is ruled out.`}
+        />
+      );
+    else match = <MatchUnavailable reading title="Reading the archive" body="Matching starts once every archive page for this case has been read." />;
+  }
+  const listSettled = status === "complete" || status === "failed" || status === "refused" || status === "cancelled";
+  return (
+    <div className={cn("grid gap-6", className)} data-archive-list={listSettled ? "settled" : "pending"}>
+      <StatusAxesLedger axes={axes(archive)} />
+      {match}
+    </div>
+  );
 }

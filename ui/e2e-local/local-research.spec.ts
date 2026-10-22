@@ -54,6 +54,9 @@ const evidenceStatus = (page: Page) => page.getByRole("region", { name: "Evidenc
 
 async function waitForCase(page: Page, cohort: string) {
   await expect(seal(page)).toHaveAttribute("data-s", cohort, { timeout: 15_000 });
+  // Product round 02: the Detail also reads its archive status and match. Wait until those reads have settled, so a
+  // test never ends with a capture pending (the accepted F15 harness mechanism, R05).
+  await expect(page.locator('[data-archive-list="pending"], [data-candidate-reads="pending"]')).toHaveCount(0, { timeout: 15_000 });
 }
 
 /** The only origin the browser may contact is the app itself; the proxy target is loopback (vite.config.ts). */
@@ -251,6 +254,9 @@ test("12 · Service stopped: SERVICE_UNAVAILABLE, no seal, no demo data — then
   }
   await page.getByRole("button", { name: "Read again" }).click();
   await waitForCase(page, "Mismatch");
+  // Product round 02: settle every capture before the page closes (the accepted F15 mechanism, R05 — a capture still
+  // pending at close rejects later and is reported in the NEXT test). Errors are not swallowed.
+  await net.settle();
   writeEvidence(`${browserName}/service-stopped`, net.summary());
 });
 
@@ -379,14 +385,17 @@ test("mode separation: demo pages stay MOCK and never call the Service; local pa
     expect(total - inRegister, hash).toBe(0);
   }
   expect(net.all).toEqual([]);
-  // Product round 01: the case list is built from the Phase 3A archive. The Phase 2 Service has no history
-  // routes, so the list reads once, is answered without a FlowAssert envelope, and shows no verdict.
+  // Product round 02: the case list reads one live Detail per known case and the Phase 3A archive. The Phase 2
+  // Service has no history routes: the archive read is answered without a FlowAssert envelope and reported as not
+  // read, while the five live verdicts — real reads — are shown; nothing is compared and no archived verdict appears.
   await openLocal(page, "#/local/verifications");
   await expect(page.getByRole("region", { name: "Local research register" })).toBeVisible();
   await expect(page.locator('[data-access="SERVICE_UNAVAILABLE"]')).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator(".fa-seal")).toHaveCount(0); // no verdict without a read
+  await expect(page.locator("[data-case-table] [data-comparison]")).toHaveCount(5, { timeout: 15_000 });
+  await expect(page.locator('[data-case-table] [data-comparison="SAME_INPUT_AGREE"]')).toHaveCount(0);
+  await expect(page.locator("[data-case-table] .fa-seal")).toHaveCount(5); // live only — no archived verdict without an archive read
   await net.settle();
-  expect(net.all.map((x) => x.pathAndQuery.split("?")[0])).toEqual(["/api/v1/history"]);
+  expect(net.all.map((x) => x.pathAndQuery.split("?")[0]).sort()).toEqual(["/api/v1/history", ...["SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-005"].map((id) => `/api/v1/verifications/${id}`)]);
   expectOnlyAppOrigin(net.hosts);
 });
 

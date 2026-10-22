@@ -491,9 +491,18 @@ test("F20 · the accepted Phase 2 Detail/Evidence paths still work on the Phase 
     expect(detail.server).toBe("uvicorn");
     expect(JSON.parse(detail.body!).result).toEqual(evaluatorComputed(id));
     // Product round 01: besides its own verification reads, the Detail reads ONLY this case's archive list
-    // (Archive status axis) — scoped by verification_id, never another case, never a Detail or evidence of history.
+    // (Archive status axis) — scoped by verification_id, never another case, never evidence of history.
+    // Product round 02: and the archived Details of its exact-match candidates — each ID must be one this case's own
+    // archive list returned (the Detail → Archive match), never any other history entry.
     const ownArchive = new RegExp(`^/api/v1/history\\?limit=4&verification_id=${id}(&cursor=[^&]+)?$`);
-    expect(net.all.filter((x) => !x.pathAndQuery.startsWith(`/api/v1/verifications/${id}`)).map((x) => x.pathAndQuery).filter((q) => !ownArchive.test(q))).toEqual([]);
+    await expect(page.locator("[data-archive-match]")).toHaveAttribute("data-archive-match", "many", { timeout: 20_000 });
+    await expect(page.locator("[data-result-relation]")).toHaveCount(2, { timeout: 20_000 });
+    await net.settle();
+    const listed = new Set(net.all.filter((x) => ownArchive.test(x.pathAndQuery)).flatMap((x) => (JSON.parse(x.body!).items as { history_id: string }[]).map((e) => e.history_id)));
+    const candidates = net.all.map((x) => x.pathAndQuery).filter((q) => /^\/api\/v1\/history\/hist_[0-9a-f]{64}$/.test(q));
+    expect(candidates.every((q) => listed.has(q.slice("/api/v1/history/".length)))).toBe(true);
+    expect(candidates).toHaveLength(2);
+    expect(net.all.filter((x) => !x.pathAndQuery.startsWith(`/api/v1/verifications/${id}`)).map((x) => x.pathAndQuery).filter((q) => !ownArchive.test(q) && !candidates.includes(q))).toEqual([]);
     expect(net.all.some((x) => ownArchive.test(x.pathAndQuery))).toBe(true);
     report[id] = { cohort: EXPECTED[id].cohort, requests: net.all.map((x) => x.pathAndQuery.replace(/cursor=[^&]+/, "cursor=<opaque>")) };
   }
@@ -549,6 +558,12 @@ test("F05 F21 · real Service restart: history IDs, bodies and history cursors s
   await expect(retrieval(eph)).toContainText("2 of 4", { timeout: 20_000 });
   const after = JSON.parse((await direct("/api/v1/verifications/SPEC-001")).text).snapshot_id;
   expect(after).not.toBe(before);
+  // Product round 02: the re-read Detail also reads its archive match (list + candidate Details). Let those reads
+  // finish and be captured before the pages close — closing with a capture pending is the accepted F15 harness
+  // mechanism (OPEN_FINDINGS_AND_RISK_REGISTER.md R05), which this test must not trigger.
+  await expect(eph.locator("[data-result-relation]")).toHaveCount(2, { timeout: 20_000 });
+  await ephNet.settle();
+  await entryNet.settle();
   await entry.close();
   await eph.close();
   writeEvidence(`${browserName}/F05-F21-restart`, {

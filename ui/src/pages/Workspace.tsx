@@ -1,34 +1,41 @@
 /**
- * Product round 01 — the LOCAL_RESEARCH workspace pages, read from the local Python Service:
- *   #/               Overview       the newest archived result of each reviewed case, and the workspace register
- *   #/verifications  Verifications  each reviewed case with its four status axes kept apart
+ * The LOCAL_RESEARCH workspace pages, read from the local Python Service:
+ *   #/               Overview       current (live) and newest archived result of each known case, their comparison,
+ *                                   and the workspace register
+ *   #/verifications  Verifications  each known case: capture · admission (not implemented), live verdict, newest archived
+ *                                   verdict, and a diagnostic comparison
  *   #/capture        Capture runs   not implemented in this build; says so and offers no action
  *
- * Every result comes from ONE complete read of the Phase 3A archive list (useArchiveIndex): all pages under
- * one pinned list snapshot, admitted page by page. Nothing is read from the MOCK demo store, nothing is
- * evaluated, and a case without an archived evaluation has no verdict — never Unverified.
+ * Reads (round 02): ONE archive list view read to its end, plus ONE live Detail read per known case with at most two
+ * in flight (src/lib/useWorkspaceCases.ts). The five IDs are the reviewed handoff inventory, never a source population.
+ * Nothing is read from the MOCK demo store and nothing is evaluated: verdicts are the pinned evaluator's, copied;
+ * a comparison is a diagnostic about two Service outputs; a missing result has no verdict — never Unverified.
  */
 import { ArrowRight, RotateCcw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { ArchiveIntegrityFailure } from "../components/history/HistoryEntry";
-import { ArchivedRecordResults, shortHistoryId } from "../components/history/HistoryRows";
 import { LocalModeStamp } from "../components/local/LocalResearch";
 import { AccessNotice, CancelledNotice } from "../components/states/AccessStates";
 import { PageHead } from "../components/ui/atelier";
 import { Panel, buttonClass } from "../components/ui/primitives";
 import { StatusGlyph } from "../components/ui/status";
-import { AXIS_LABEL, ArchiveValue, CaptureValue, NoVerdictMark, VerdictValue, verdictSourceText } from "../components/workspace/StatusAxes";
+import { ArchivedVerdict, COMPARISON_COPY, ComparisonChip, LiveVerdict, SummaryCounts } from "../components/workspace/Comparison";
+import { AXIS_LABEL, CaptureValue } from "../components/workspace/StatusAxes";
 import { ACCESS_COPY } from "../data/access";
 import { HISTORY_CONTRACT_VERSION } from "../data/contract/history";
-import { HISTORY_SCOPE } from "../data/history/config";
-import { ACCEPTED_EVALUATOR, KNOWN_LOCAL_CASES, LOCAL_SERVICE_TARGET } from "../data/local/config";
-import { getHistoryProvider, type FlowAssertHistoryProvider } from "../data/provider";
-import type { ArchiveIndex, CaseIndexEntry } from "../data/workspace/archiveIndex";
+import { HISTORY_LIMITS, HISTORY_SCOPE } from "../data/history/config";
+import { ACCEPTED_EVALUATOR, KNOWN_LOCAL_CASES, LOCAL_SCOPE, LOCAL_SERVICE_TARGET } from "../data/local/config";
+import { localResearchProvider } from "../data/local/provider";
+import { getHistoryProvider, type FlowAssertHistoryProvider, type FlowAssertReadProvider } from "../data/provider";
+import { ADMISSION_NOT_IMPLEMENTED, CAPTURE_NOT_IMPLEMENTED } from "../domain/statusAxes";
+import { archivedSummary, liveSummary, type ComparisonState, type ResultSummary } from "../data/workspace/comparison";
 import type { VerificationState } from "../domain/view";
 import { cn } from "../lib/cn";
-import { formatDateTime, plural, shortDigest } from "../lib/format";
+import { plural, shortDigest } from "../lib/format";
 import { href } from "../lib/router";
-import { useArchiveIndex, type ArchiveIndexState } from "../lib/useArchiveIndex";
+import { type ArchiveIndexState } from "../lib/useArchiveIndex";
+import { LIVE_CONCURRENCY } from "../lib/useLiveCases";
+import { useWorkspaceCases, type WorkspaceCase } from "../lib/useWorkspaceCases";
 
 const SERVICE = LOCAL_SERVICE_TARGET.replace("http://", "");
 const WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
@@ -38,22 +45,567 @@ const word = (n: number, lower = false) => {
 };
 /** Attention order: what contradicts the source first, then what cannot be concluded, then what waits. */
 const ATTENTION: VerificationState[] = ["Mismatch", "Unverified", "Pending", "Verified"];
+const COMPARISON_ORDER: ComparisonState[] = ["SAME_INPUT_AGREE", "SAME_INPUT_DIFFER", "DIFFERENT_INPUT", "LIVE_MISSING", "ARCHIVE_MISSING", "SERVICE_UNAVAILABLE", "INCONCLUSIVE"];
+
+/** The archive side as the verdict cells name it. */
+const archState = (c: WorkspaceCase) => (c.archive.kind === "ready" ? "ready" : c.archive.kind === "failed" ? "failed" : c.archive.kind === "cancelled" ? "cancelled" : "reading");
+const liveState = (c: WorkspaceCase) => (c.live.kind === "ready" ? c.live.run.state : null);
+
+/** One sentence about a result summary — selected from copied values, never derived into a verdict. */
+function summaryLine(r: ResultSummary): string {
+  const n = r.counts.Verified + r.counts.Mismatch + r.counts.Pending + r.counts.Unverified;
+  switch (r.cohort) {
+    case "Mismatch":
+      return `${plural(r.counts.Mismatch, "record")} of ${n} ${r.counts.Mismatch === 1 ? "contradicts" : "contradict"} the source.`;
+    case "Pending":
+      return `${plural(r.counts.Pending, "record")} of ${n} not observed yet, inside the retry window.`;
+    case "Unverified":
+      return r.populationKnown
+        ? `${plural(r.counts.Unverified, "record")} of ${n} ${r.counts.Unverified === 1 ? "lacks" : "lack"} evidence for a conclusion.`
+        : `All ${n} visible records match — but the source total is unknown.`;
+    case "Verified":
+      return `Every required rule holds for all ${plural(n, "record")}.`;
+  }
+}
+
+function caseLine(c: WorkspaceCase): string {
+  if (c.live.kind === "ready") return summaryLine(liveSummary(c.live.run));
+  if (c.comparison.archived) return `No current result was read. Newest archived: ${summaryLine(archivedSummary(c.comparison.archived)).toLowerCase()}`;
+  return "No current result was read, and the archive holds none.";
+}
 
 /* ======================================================================================
- * The archive read, with its loading / unavailable / refused / cancelled states
+ * Shared: the read, and a page-level Service-unavailable state
  * ====================================================================================== */
 
-function useWorkspaceRead(provider: FlowAssertHistoryProvider) {
+function useGeneration() {
   const [generation, setGeneration] = useState(0);
-  return { generation, reread: () => setGeneration((g) => g + 1), provider };
+  return { generation, reread: () => setGeneration((g) => g + 1) };
 }
 
-/** Reads the archive (one instance per generation) and renders `ready` only for a complete, admitted list. */
-function ArchiveRead({ provider, onReread, children }: { provider: FlowAssertHistoryProvider; onReread: () => void; children: (index: ArchiveIndex, pages: number) => ReactNode }) {
-  const state = useArchiveIndex(provider);
-  if (state.status === "ready") return <>{children(state.index, state.pages)}</>;
-  return <ArchiveReadState state={state} onReread={onReread} />;
+function ReadAgain({ onReread, label = "Read again" }: { onReread: () => void; label?: string }) {
+  return (
+    <button type="button" className={buttonClass("ghost", "sm")} onClick={onReread}>
+      <RotateCcw size={12} aria-hidden /> {label}
+    </button>
+  );
 }
+
+function ReadingLine({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
+  if (!w.reading) return null;
+  const liveDone = w.cases.filter((c) => c.live.kind !== "reading").length;
+  const a = w.archiveState;
+  return (
+    <p role="status" aria-live="polite" data-read-progress className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-ink-3">
+      <span>
+        live {liveDone} of {w.cases.length} read · at most {LIVE_CONCURRENCY} at a time
+      </span>
+      <span>
+        archive{" "}
+        {a.status === "reading" ? `${plural(a.pagesRead, "page")} · ${a.entriesRead}${a.total === null ? "" : ` of ${a.total}`} entries` : a.status}
+      </span>
+      <button type="button" className={buttonClass("ghost", "sm")} onClick={w.cancel}>
+        Cancel read
+      </button>
+    </p>
+  );
+}
+
+/** The archive side failed on its own (refused, integrity, request error) while live reads may have succeeded. */
+function ArchiveSideNotice({ w, onReread }: { w: ReturnType<typeof useWorkspaceCases>; onReread: () => void }) {
+  if (w.archiveState.status !== "failed" && w.archiveState.status !== "cancelled") return null;
+  return <ArchiveReadState state={w.archiveState} onReread={onReread} />;
+}
+
+/* ======================================================================================
+ * Overview
+ * ====================================================================================== */
+
+export function WorkspaceOverview({ history = getHistoryProvider("LOCAL_RESEARCH"), live = localResearchProvider() }: { history?: FlowAssertHistoryProvider; live?: FlowAssertReadProvider }) {
+  const g = useGeneration();
+  useEffect(() => {
+    document.title = "Overview — FlowAssert";
+  }, []);
+  return <OverviewBody key={g.generation} history={history} live={live} onReread={g.reread} />;
+}
+
+function Statement({ cases }: { cases: WorkspaceCase[] }) {
+  const read = cases.filter((c) => c.live.kind === "ready");
+  const notRead = cases.length - read.length;
+  if (read.length === 0) return <h1 className="display mt-4 text-[36px] leading-[1.04] text-ink sm:text-[44px]">No current result could be read.</h1>;
+  const count = (s: VerificationState) => read.filter((c) => liveState(c) === s).length;
+  const lead = count("Mismatch") > 0 ? `${word(count("Mismatch"))} ${count("Mismatch") === 1 ? "case contradicts its" : "cases contradict their"} source.` : null;
+  const rest: string[] = [];
+  if (count("Unverified")) rest.push(`${word(count("Unverified"), true)} cannot be concluded`);
+  if (count("Pending")) rest.push(`${word(count("Pending"), true)} ${count("Pending") === 1 ? "is" : "are"} still waiting`);
+  if (count("Verified")) rest.push(`${word(count("Verified"), true)} ${count("Verified") === 1 ? "is" : "are"} verified`);
+  if (notRead) rest.push(`${word(notRead, true)} could not be read`);
+  let tail = rest.join(", ");
+  if (tail) tail = `${tail[0]!.toUpperCase()}${tail.slice(1)}.`;
+  return (
+    <h1 className="display mt-4 max-w-[19ch] text-[36px] leading-[1.04] text-ink sm:text-[46px]">
+      {lead && <em className="text-mismatch-ink">{lead}</em>} <span className="text-ink-3">{tail}</span>
+    </h1>
+  );
+}
+
+function ResultLedger({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
+  const live = (s: VerificationState) => w.cases.filter((c) => liveState(c) === s).length;
+  const arch = (s: VerificationState) => (w.index ? w.cases.filter((c) => c.entries[0]?.result.cohort === s).length : null);
+  const liveNone = w.cases.filter((c) => c.live.kind !== "ready").length;
+  const archNone = w.index ? w.cases.filter((c) => c.entries.length === 0).length : null;
+  return (
+    <section aria-labelledby="ledger-h" className="min-w-0">
+      <h2 id="ledger-h" className="kicker mb-2">
+        Results · {plural(KNOWN_LOCAL_CASES.length, "known case")}
+      </h2>
+      <table className="fa-ledger w-full text-sm" data-result-ledger>
+        <caption className="sr-only">Cohort results of the known cases, live and newest archived</caption>
+        <thead>
+          <tr className="text-left">
+            <th scope="col" className="py-[7px] font-normal">
+              <span className="sr-only">Result</span>
+            </th>
+            <th scope="col" className="kicker py-[7px] text-right font-normal">
+              Live
+            </th>
+            <th scope="col" className="kicker py-[7px] pl-5 text-right font-normal">
+              Archived
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {ATTENTION.map((s) => (
+            <tr key={s} className="border-t border-line-subtle">
+              <th scope="row" className="py-[7px] text-left font-normal">
+                <span className="flex items-center gap-2 text-ink-2">
+                  <StatusGlyph state={s} size={11} />
+                  {s}
+                </span>
+              </th>
+              <td className="metric py-[5px] text-right">{w.reading && live(s) === 0 ? "·" : live(s)}</td>
+              <td className="metric py-[5px] pl-5 text-right text-ink-3">{arch(s) ?? "·"}</td>
+            </tr>
+          ))}
+          <tr className="border-t border-line-subtle">
+            <th scope="row" className="py-[7px] text-left font-normal">
+              <span className="flex items-center gap-2 text-ink-3">
+                <span aria-hidden className="inline-block h-px w-[11px] bg-ink-4" />
+                No result
+              </span>
+            </th>
+            <td className="metric py-[5px] text-right text-ink-3">{liveNone}</td>
+            <td className="metric py-[5px] pl-5 text-right text-ink-3">{archNone ?? "·"}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p className="mt-2 text-xs leading-[1.5] text-ink-3">
+        Live: the Service’s current result for each known ID. Archived: each case’s newest archived evaluation. Tallies of copied results — not a population.
+      </p>
+    </section>
+  );
+}
+
+/** Counts of each comparison state across the known cases — the diagnostic layer, set apart from verdicts. */
+function ComparisonStrip({ cases }: { cases: WorkspaceCase[] }) {
+  const counts = COMPARISON_ORDER.map((s) => [s, cases.filter((c) => c.comparison.state === s).length] as const).filter(([s, n]) => n > 0 || s === "SAME_INPUT_AGREE" || s === "SAME_INPUT_DIFFER" || s === "DIFFERENT_INPUT");
+  const reading = cases.filter((c) => c.comparison.state === "READING").length;
+  return (
+    <section aria-labelledby="cmp-h" className="border-y-[1.5px] border-rule py-4" data-comparison-strip>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <h2 id="cmp-h" className="serif text-[22px] leading-7 text-ink">
+          Live against archive
+        </h2>
+        <p className="kicker text-ink-3">diagnostic · not a verdict · identity = input, evaluator, contract</p>
+      </div>
+      <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+        {counts.map(([s, n]) => (
+          <li key={s} className="grid gap-1">
+            <span className={cn("metric text-[30px] leading-none", n === 0 && "text-ink-3")}>{reading > 0 && n === 0 ? "·" : n}</span>
+            <ComparisonChip state={s} muted={n === 0} className="w-fit" />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+
+function CaseExhibits({ cases }: { cases: WorkspaceCase[] }) {
+  const groups: { key: VerificationState | "none"; title: string; hint: string }[] = [
+    { key: "Mismatch", title: "Contradicted by evidence", hint: "investigate" },
+    { key: "Unverified", title: "Inconclusive", hint: "restore evidence" },
+    { key: "Pending", title: "Within the retry window", hint: "wait" },
+    { key: "Verified", title: "Verified at the current observation", hint: "no action" },
+    { key: "none", title: "No current result", hint: "see why" },
+  ];
+  let n = 0;
+  return (
+    <Panel title="Cases" description="Current Service result per known case, ordered by what to do; the newest archived result beside it." className="lg:col-span-8">
+      {groups.map((g) => {
+        const list = cases.filter((c) => (g.key === "none" ? c.live.kind !== "ready" : liveState(c) === g.key));
+        if (!list.length) return null;
+        return (
+          <section key={g.key} aria-label={g.title}>
+            <h3 className="kicker flex justify-between border-b border-line-subtle bg-sunken/40 px-4 pt-3 pb-2 sm:px-5">
+              <span>
+                {g.title} · {list.length}
+              </span>
+              <span>{g.hint}</span>
+            </h3>
+            <ul>
+              {list.map((c) => {
+                const numeral = ROMAN[n++] ?? String(n);
+                return (
+                  <li
+                    key={c.id}
+                    data-case={c.id}
+                    className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-4 gap-y-3 border-b border-line-subtle px-4 py-4 last:border-0 sm:grid-cols-[40px_minmax(0,1fr)_minmax(0,250px)] sm:px-5"
+                  >
+                    <span aria-hidden data-ornament className="serif pt-0.5 text-[26px] leading-none text-ink-4 italic">
+                      {numeral}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="flex flex-wrap items-baseline gap-x-2.5">
+                        <a href={href(`/local/verifications/${c.id}`)} className="mono-id fa-hit rounded-xs text-[15px] font-semibold text-ink hover:text-brand">
+                          {c.id}
+                        </a>
+                        <span className="mono-id text-[10.5px] text-ink-3">fixture {c.fixture}</span>
+                      </p>
+                      <p className="mt-1 text-sm leading-[1.5] text-ink-2">{caseLine(c)}</p>
+                      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <ComparisonChip state={c.comparison.state} />
+                        {c.comparison.state !== "SAME_INPUT_AGREE" && <span className="text-xs text-ink-3">{c.comparison.reason}</span>}
+                      </p>
+                      <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                        <a href={href(`/local/verifications/${c.id}`)} className="fa-hit inline-flex items-center gap-1 rounded-xs font-medium text-ink-2 hover:text-ink">
+                          Open detail <ArrowRight size={12} aria-hidden />
+                        </a>
+                        {c.entries.length > 0 && (
+                          <a href={href("/local/history", { case: c.id })} className="fa-hit rounded-xs text-ink-3 hover:text-ink">
+                            {plural(c.entries.length, "archived evaluation")}
+                          </a>
+                        )}
+                      </p>
+                    </div>
+                    <dl className="col-start-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:col-start-3" aria-label={`${c.id} results`}>
+                      <dt className="kicker text-ink-3">Live</dt>
+                      <dt className="kicker text-ink-3">Archived</dt>
+                      <dd>
+                        <LiveVerdict side={c.live} compact />
+                      </dd>
+                      <dd>
+                        <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} compact />
+                      </dd>
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+    </Panel>
+  );
+}
+
+function Register({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
+  const liveOk = w.cases.filter((c) => c.live.kind === "ready").length;
+  const a = w.archiveState;
+  const rows: [string, ReactNode][] = [
+    ["Live reads", `${liveOk} of ${w.cases.length} answered · ≤${LIVE_CONCURRENCY} at a time`],
+    ["Archive", a.status === "ready" ? `${plural(a.index.totalEntries, "entry", "entries")} · ${plural(a.pages, "page")} of ${HISTORY_LIMITS.listPageLimit}` : a.status === "reading" ? "reading…" : `not read (${a.status})`],
+    [
+      "Record checks",
+      a.status === "ready" ? (a.index.integrityExceptions === 0 ? `${a.index.totalEntries} of ${a.index.totalEntries} INTEGRITY_VERIFIED` : `${a.index.integrityExceptions} not INTEGRITY_VERIFIED`) : "—",
+    ],
+    ["Evaluator", `${shortDigest(ACCEPTED_EVALUATOR.model_sha256)} · ${ACCEPTED_EVALUATOR.version_label}`],
+    ["Contracts", `v1 ${LOCAL_SCOPE.contractVersion} · ${HISTORY_CONTRACT_VERSION}`],
+    ["Workspace", `${HISTORY_SCOPE.workspaceId} · research_only`],
+  ];
+  return (
+    <Panel title="Workspace register" description="What answered on this read, and what this build cannot do." className="lg:col-span-4">
+      <dl className="px-4 py-2 text-[12.5px] sm:px-5">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[110px_minmax(0,1fr)] items-baseline gap-3 border-b border-line-subtle py-[9px] last:border-0">
+            <dt className="text-ink-3">{k}</dt>
+            <dd className="min-w-0 text-right font-mono text-[11px] break-words text-ink">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="border-t border-line px-4 py-3 sm:px-5">
+        <p className="kicker mb-2">Not implemented in this build</p>
+        <ul className="grid gap-2 text-xs text-ink-2">
+          <li className="flex flex-wrap items-center justify-between gap-2">
+            <span>{AXIS_LABEL.capture}</span>
+            <a href="#/capture" className="fa-hit rounded-xs">
+              <CaptureValue axis={CAPTURE_NOT_IMPLEMENTED} />
+            </a>
+          </li>
+          <li className="flex flex-wrap items-center justify-between gap-2">
+            <span>{AXIS_LABEL.admission}</span>
+            <CaptureValue axis={ADMISSION_NOT_IMPLEMENTED} />
+          </li>
+          <li className="flex flex-wrap items-center justify-between gap-2">
+            <span>Live n8n · HubSpot</span>
+            <span className="font-mono text-[10.5px] text-ink-3">not connected · no credentials</span>
+          </li>
+        </ul>
+      </div>
+    </Panel>
+  );
+}
+
+function OverviewBody({ history, live, onReread }: { history: FlowAssertHistoryProvider; live: FlowAssertReadProvider; onReread: () => void }) {
+  const w = useWorkspaceCases(history, live, 0);
+  if (w.allUnreachable && w.archiveState.status === "failed") return <ArchiveReadState state={w.archiveState} onReread={onReread} />;
+  return (
+    <div className="space-y-10">
+      <header className="grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+        <div className="min-w-0">
+          <p className="kicker flex flex-wrap items-center gap-x-3 gap-y-1">
+            <LocalModeStamp inline />
+            <span>Current Service result per known case</span>
+          </p>
+          {w.cases.every((c) => c.live.kind === "reading") ? (
+            <h1 className="display mt-4 text-[36px] leading-[1.04] text-ink-3 sm:text-[44px]" aria-busy="true">
+              Reading five known cases…
+            </h1>
+          ) : (
+            <Statement cases={w.cases} />
+          )}
+          <p className="mt-4 max-w-[60ch] text-md leading-[1.6] text-ink-2">
+            Read just now from the local Python Service at <span className="mono-id">{SERVICE}</span>: the current result of each of the five reviewed synthetic
+            cases, beside its newest archived evaluation. Verdicts are the pinned evaluator’s, copied unchanged; the input is synthetic and nothing was captured.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <ReadAgain onReread={onReread} label="Read everything again" />
+            <ReadingLine w={w} />
+          </div>
+        </div>
+        <ResultLedger w={w} />
+      </header>
+
+      <ArchiveSideNotice w={w} onReread={onReread} />
+      <ComparisonStrip cases={w.cases} />
+
+      <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+        <CaseExhibits cases={w.cases} />
+        <Register w={w} />
+      </div>
+
+      <AxesExplainer />
+    </div>
+  );
+}
+
+function AxesExplainer() {
+  const items: { key: keyof typeof AXIS_LABEL; body: string }[] = [
+    { key: "capture", body: "Whether the evidence was acquired by a capture run, and how that run ended. Not implemented: the evidence is a reviewed synthetic fixture." },
+    { key: "admission", body: "Whether an admission record bound the evidence to an evaluator input — or refused it. Not implemented: a Phase 3B draft only." },
+    { key: "archive", body: "Whether an evaluation is stored in the local SQLite archive, with the Service’s integrity check. Storage, not a result." },
+    { key: "verdict", body: "Verified, Mismatch, Pending or Unverified — from the pinned Python evaluator only, live or archived. Where no result was read, there is no verdict." },
+  ];
+  return (
+    <section aria-labelledby="axes-explainer" className="border-t-[1.5px] border-rule pt-5">
+      <h2 id="axes-explainer" className="kicker mb-4">
+        How to read the four status axes
+      </h2>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {items.map((it, i) => (
+          <div key={it.key}>
+            <h3 className="serif flex items-baseline gap-2 text-[22px] text-ink">
+              <span aria-hidden data-ornament className={cn("font-mono text-[11px]", i === 3 ? "text-brand" : "text-ink-4")}>
+                0{i + 1}
+              </span>
+              {AXIS_LABEL[it.key]}
+            </h3>
+            <p className="mt-1.5 text-[13px] leading-[1.55] text-ink-2">{it.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ======================================================================================
+ * Verifications
+ * ====================================================================================== */
+
+export function WorkspaceVerifications({ history = getHistoryProvider("LOCAL_RESEARCH"), live = localResearchProvider() }: { history?: FlowAssertHistoryProvider; live?: FlowAssertReadProvider }) {
+  const g = useGeneration();
+  useEffect(() => {
+    document.title = "Verifications — FlowAssert";
+  }, []);
+  return (
+    <div className="space-y-7">
+      <PageHead
+        kicker={<LocalModeStamp inline />}
+        title="Five known cases, live beside archived."
+        lede={
+          <>
+            Each row keeps four questions apart — capture, admission, archive and verdict — and sets the Service’s current result beside its newest archived
+            evaluation. Only the pinned Python evaluator produces a verdict; the comparison column is a diagnostic. Read from{" "}
+            <span className="mono-id">{SERVICE}</span>.
+          </>
+        }
+      />
+      <VerificationsBody key={g.generation} history={history} live={live} onReread={g.reread} />
+      <p className="max-w-[780px] text-xs leading-[1.55] text-ink-3">
+        <b className="font-semibold text-ink-2">Five known IDs, not a population.</b> The frozen v1 API has no collection endpoint, so this list is the reviewed
+        handoff inventory: one live read per case through <span className="mono-id">GET /api/v1/verifications/:id</span> (at most {LIVE_CONCURRENCY} at a time) and one
+        archive list read. A comparison matches results only on input, evaluator and contract identity — never on times or labels. If the Service is not running,
+        this page shows <b className="font-semibold text-ink-2">Service unavailable</b> — never demo data. The MOCK demo runs are under{" "}
+        <a href="#/demo/verifications" className="underline decoration-line-strong underline-offset-2 hover:text-ink">
+          Demo
+        </a>
+        .
+      </p>
+    </div>
+  );
+}
+
+function VerificationsBody({ history, live, onReread }: { history: FlowAssertHistoryProvider; live: FlowAssertReadProvider; onReread: () => void }) {
+  const w = useWorkspaceCases(history, live, 0);
+  if (w.allUnreachable && w.archiveState.status === "failed") return <ArchiveReadState state={w.archiveState} onReread={onReread} />;
+  const caption = "Known cases: capture and admission status, live verdict, newest archived verdict and their comparison";
+  return (
+    <>
+      <ArchiveSideNotice w={w} onReread={onReread} />
+      <Panel
+        title={
+          <span className="tabular">
+            {w.cases.length} <span className="text-ink-3">known cases{w.index ? ` · ${plural(w.index.totalEntries, "archive entry", "archive entries")}` : ""}</span>
+          </span>
+        }
+        description="In reviewed-case order. Live results and the archive were read just now."
+        actions={<ReadAgain onReread={onReread} />}
+      >
+        {w.reading && (
+          <div className="border-b border-line-subtle px-4 py-2.5 sm:px-5">
+            <ReadingLine w={w} />
+          </div>
+        )}
+        <div className="hidden overflow-x-auto lg:block">
+          <table className="w-full text-sm" data-case-table>
+            <caption className="sr-only">{caption}</caption>
+            <colgroup>
+              <col className="w-[190px]" />
+              <col className="w-[230px]" />
+              <col className="w-[170px]" />
+              <col className="w-[190px]" />
+              <col />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-line text-left">
+                <th scope="col" className="kicker py-2.5 pr-4 pl-5 font-normal">
+                  Case
+                </th>
+                <th scope="col" className="kicker py-2.5 pr-4 font-normal">
+                  <span aria-hidden data-ornament className="text-ink-4">
+                    01–02{" "}
+                  </span>
+                  Capture · Admission
+                </th>
+                <th scope="col" className="kicker py-2.5 pr-4 font-normal">
+                  <span aria-hidden data-ornament className="text-brand">
+                    04{" "}
+                  </span>
+                  Live verdict
+                </th>
+                <th scope="col" className="kicker py-2.5 pr-4 font-normal">
+                  <span aria-hidden data-ornament className="text-ink-4">
+                    03{" "}
+                  </span>
+                  Newest archived
+                </th>
+                <th scope="col" className="kicker py-2.5 pr-5 font-normal">
+                  Comparison · diagnostic
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {w.cases.map((c) => (
+                <tr key={c.id} data-case={c.id} className="fa-row group relative border-b border-line-subtle align-top transition-colors duration-(--fa-dur-fast) last:border-0 hover:bg-hover">
+                  <td className="py-4 pr-4 pl-5">
+                    <a
+                      href={href(`/local/verifications/${c.id}`)}
+                      className="mono-id block text-[14px] font-semibold text-ink after:absolute after:inset-0 after:content-[''] focus-visible:shadow-none focus-visible:after:shadow-(--fa-ring-inset)"
+                      aria-label={`${c.id}. Live ${c.live.kind === "ready" ? c.live.run.state : "no verdict"}; newest archived ${c.comparison.archived ? c.comparison.archived.result.cohort : "none"}; comparison ${COMPARISON_COPY[c.comparison.state].label}.`}
+                    >
+                      {c.id}
+                    </a>
+                    <span className="mono-id mt-0.5 block text-[10.5px] text-ink-3">fixture {c.fixture}</span>
+                    {c.live.kind === "ready" && <SummaryCounts summary={liveSummary(c.live.run)} className="mt-2 block" />}
+                  </td>
+                  <td className="py-4 pr-4">
+                    <dl className="grid grid-cols-[max-content_max-content] items-center gap-x-2 gap-y-1.5">
+                      <dt className="font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">capture</dt>
+                      <dd>
+                        <CaptureValue axis={CAPTURE_NOT_IMPLEMENTED} />
+                      </dd>
+                      <dt className="font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">admission</dt>
+                      <dd>
+                        <CaptureValue axis={ADMISSION_NOT_IMPLEMENTED} />
+                      </dd>
+                    </dl>
+                  </td>
+                  <td className="py-4 pr-4">
+                    <LiveVerdict side={c.live} />
+                  </td>
+                  <td className="relative z-10 py-4 pr-4">
+                    <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} />
+                    {c.entries.length > 1 && <span className="mt-1 block font-mono text-[10.5px] text-ink-3">{plural(c.entries.length, "evaluation")} archived</span>}
+                  </td>
+                  <td className="py-4 pr-5">
+                    <ComparisonChip state={c.comparison.state} />
+                    <span className="mt-1.5 block max-w-[34ch] text-xs leading-[1.45] text-ink-3">{c.comparison.reason}</span>
+                    {c.comparison.sameSnapshot === false && (
+                      <span className="mt-1 block font-mono text-[10.5px] text-ink-3">snapshot: different Service publication</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <ul className="divide-y divide-line-subtle lg:hidden" aria-label={caption}>
+          {w.cases.map((c) => (
+            <li key={c.id} data-case={c.id} className="grid grid-cols-[minmax(0,1fr)] gap-3 px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <a href={href(`/local/verifications/${c.id}`)} className="min-w-0">
+                  <span className="mono-id block font-semibold text-ink">{c.id}</span>
+                  <span className="mono-id block truncate text-[10.5px] text-ink-3">fixture {c.fixture}</span>
+                </a>
+                <ComparisonChip state={c.comparison.state} />
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <span className="kicker text-ink-3">Live</span>
+                <span className="kicker text-ink-3">Newest archived</span>
+                <LiveVerdict side={c.live} compact />
+                <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} compact />
+              </div>
+              <p className="text-xs leading-[1.45] text-ink-3">{c.comparison.reason}</p>
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5 font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">
+                <span className="inline-flex items-center gap-2">
+                  capture <CaptureValue axis={CAPTURE_NOT_IMPLEMENTED} />
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  admission <CaptureValue axis={ADMISSION_NOT_IMPLEMENTED} />
+                </span>
+              </p>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+    </>
+  );
+}
+
+/* ======================================================================================
+ * Archive read failures (shared)
+ * ====================================================================================== */
 
 export function ArchiveReadState({ state, onReread }: { state: Exclude<ArchiveIndexState, { status: "ready" }>; onReread: () => void }) {
   const reread = (
@@ -91,7 +643,7 @@ export function ArchiveReadState({ state, onReread }: { state: Exclude<ArchiveIn
       <AccessNotice
         state="REQUEST_ERROR"
         title="The archive list was refused"
-        body={`${state.refusal.message} No per-case result is shown: a partly admitted archive cannot say which cases are archived.`}
+        body={`${state.refusal.message} No archived result is shown: a partly admitted archive cannot say which cases are archived.`}
         facts={[
           ["Code", state.refusal.code],
           ["Pages admitted before the refusal", String(state.pagesRead)],
@@ -119,408 +671,6 @@ export function ArchiveReadState({ state, onReread }: { state: Exclude<ArchiveIn
       facts={facts}
       actions={reread}
     />
-  );
-}
-
-/* ======================================================================================
- * Overview
- * ====================================================================================== */
-
-export function WorkspaceOverview({ provider = getHistoryProvider("LOCAL_RESEARCH") }: { provider?: FlowAssertHistoryProvider }) {
-  const w = useWorkspaceRead(provider);
-  useEffect(() => {
-    document.title = "Overview — FlowAssert";
-  }, []);
-  return (
-    <ArchiveRead key={w.generation} provider={provider} onReread={w.reread}>
-      {(index, pages) => <OverviewBody index={index} pages={pages} onReread={w.reread} />}
-    </ArchiveRead>
-  );
-}
-
-function Statement({ index }: { index: ArchiveIndex }) {
-  const c = index.latestByState;
-  const archived = KNOWN_LOCAL_CASES.length - index.notArchived;
-  if (archived === 0)
-    return <h1 className="display mt-3 text-[34px] leading-[1.05] text-ink sm:text-[40px]">No case has an archived evaluation yet.</h1>;
-  const lead = c.Mismatch > 0 ? `${word(c.Mismatch)} ${c.Mismatch === 1 ? "case contradicts its" : "cases contradict their"} source.` : null;
-  const rest: string[] = [];
-  if (c.Unverified) rest.push(`${word(c.Unverified, true)} cannot be concluded`);
-  if (c.Pending) rest.push(`${word(c.Pending, true)} ${c.Pending === 1 ? "is" : "are"} still waiting`);
-  if (c.Verified) rest.push(`${word(c.Verified, true)} ${c.Verified === 1 ? "is" : "are"} verified`);
-  if (index.notArchived) rest.push(`${word(index.notArchived, true)} ${index.notArchived === 1 ? "has" : "have"} no archived result`);
-  let tail = rest.join(", ");
-  if (tail) tail = `${tail[0]!.toUpperCase()}${tail.slice(1)}.`;
-  return (
-    <h1 className="display mt-3 text-[34px] leading-[1.05] text-ink sm:text-[40px]">
-      {lead && <em className="text-mismatch-ink">{lead}</em>} <span className="text-ink-3">{tail}</span>
-    </h1>
-  );
-}
-
-function LatestLedger({ index }: { index: ArchiveIndex }) {
-  return (
-    <section aria-labelledby="latest-h">
-      <h2 id="latest-h" className="kicker mb-2">
-        Newest archived result · {plural(KNOWN_LOCAL_CASES.length, "case")}
-      </h2>
-      <dl className="fa-ledger">
-        {ATTENTION.map((s) => (
-          <div key={s} className="flex items-baseline justify-between py-[7px]">
-            <dt className="flex items-center gap-2 text-sm text-ink-2">
-              <StatusGlyph state={s} size={11} />
-              {s}
-            </dt>
-            <dd className="metric">{index.latestByState[s]}</dd>
-          </div>
-        ))}
-        <div className="flex items-baseline justify-between py-[7px]">
-          <dt className="flex items-center gap-2 text-sm text-ink-3">
-            <span aria-hidden className="inline-block h-px w-[11px] bg-ink-4" />
-            No archived result
-          </dt>
-          <dd className="metric text-ink-3">{index.notArchived}</dd>
-        </div>
-      </dl>
-      <p className="mt-2 text-xs text-ink-3">Cohort results copied from each case’s newest archived evaluation. Tallies of copied results — not a population and not a new verdict.</p>
-    </section>
-  );
-}
-
-function Register({ index, pages }: { index: ArchiveIndex; pages: number }) {
-  const rows: [string, ReactNode][] = [
-    ["Service", <span key="s">answered · {SERVICE}</span>],
-    ["Archive", `${plural(index.totalEntries, "entry", "entries")} · ${plural(pages, "page")} · one list view`],
-    [
-      "Record checks",
-      index.integrityExceptions === 0 ? `${index.totalEntries} of ${index.totalEntries} INTEGRITY_VERIFIED by the Service` : `${index.integrityExceptions} not INTEGRITY_VERIFIED`,
-    ],
-    ["Evaluator", `${shortDigest(ACCEPTED_EVALUATOR.model_sha256)} · ${ACCEPTED_EVALUATOR.version_label}`],
-    ["Contract", HISTORY_CONTRACT_VERSION],
-    ["Workspace", `${HISTORY_SCOPE.workspaceId} · research_only`],
-  ];
-  return (
-    <Panel title="Workspace register" description="What answered, and what this build cannot do." className="lg:col-span-5">
-      <dl className="px-4 py-2 text-[12.5px] sm:px-5">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex items-baseline justify-between gap-4 border-b border-line-subtle py-[9px] last:border-0">
-            <dt className="text-ink-3">{k}</dt>
-            <dd className="min-w-0 text-right font-mono text-[11.5px] break-words text-ink">{v}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="border-t border-line px-4 py-3 sm:px-5">
-        <p className="kicker mb-2">Not implemented in this build</p>
-        <ul className="grid gap-2 text-xs text-ink-2">
-          <li className="flex flex-wrap items-center justify-between gap-2">
-            <span>{AXIS_LABEL.capture}</span>
-            <a href="#/capture" className="fa-hit rounded-xs">
-              <CaptureValue axis={index.cases[0]!.axes.capture} />
-            </a>
-          </li>
-          <li className="flex flex-wrap items-center justify-between gap-2">
-            <span>{AXIS_LABEL.admission}</span>
-            <CaptureValue axis={index.cases[0]!.axes.admission} />
-          </li>
-          <li className="flex flex-wrap items-center justify-between gap-2">
-            <span>Live n8n · HubSpot</span>
-            <span className="font-mono text-[10.5px] text-ink-3">not connected · no credentials</span>
-          </li>
-        </ul>
-      </div>
-    </Panel>
-  );
-}
-
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
-
-function caseLine(c: CaseIndexEntry): string {
-  const e = c.latest;
-  if (!e) return "No archived evaluation. Opening the case reads its live result from the Service.";
-  const n = e.result.counts.Verified + e.result.counts.Mismatch + e.result.counts.Pending + e.result.counts.Unverified;
-  switch (e.result.cohort) {
-    case "Mismatch":
-      return `${plural(e.result.counts.Mismatch, "record")} of ${n} ${e.result.counts.Mismatch === 1 ? "contradicts" : "contradict"} the source.`;
-    case "Pending":
-      return `${plural(e.result.counts.Pending, "record")} of ${n} not observed yet, inside the retry window.`;
-    case "Unverified":
-      return e.result.populationKnown
-        ? `${plural(e.result.counts.Unverified, "record")} of ${n} ${e.result.counts.Unverified === 1 ? "lacks" : "lack"} evidence for a conclusion.`
-        : `All ${n} visible records match — but the source total is unknown.`;
-    case "Verified":
-      return `Every required rule holds for all ${plural(n, "record")}.`;
-  }
-}
-
-function CaseExhibits({ index }: { index: ArchiveIndex }) {
-  const groups: { key: VerificationState | "none"; title: string; hint: string }[] = [
-    { key: "Mismatch", title: "Contradicted by evidence", hint: "investigate" },
-    { key: "Unverified", title: "Inconclusive", hint: "restore evidence" },
-    { key: "Pending", title: "Within the retry window", hint: "wait" },
-    { key: "Verified", title: "Verified at the archived observation", hint: "no action" },
-    { key: "none", title: "No archived result", hint: "open to read live" },
-  ];
-  let n = 0;
-  return (
-    <Panel title="Cases" description="Newest archived evaluation per reviewed case, ordered by what to do." className="lg:col-span-7">
-      {groups.map((g) => {
-        const cases = index.cases.filter((c) => (g.key === "none" ? c.latest === null : c.latest?.result.cohort === g.key));
-        if (!cases.length) return null;
-        return (
-          <section key={g.key} aria-label={g.title}>
-            <h3 className="kicker flex justify-between border-b border-line-subtle px-4 pt-3 pb-2 sm:px-5">
-              <span>
-                {g.title} · {cases.length}
-              </span>
-              <span>{g.hint}</span>
-            </h3>
-            <ul>
-              {cases.map((c) => {
-                const numeral = ROMAN[n++] ?? String(n);
-                return (
-                  <li key={c.id} data-case={c.id} className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-4 border-b border-line-subtle px-4 py-4 last:border-0 sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:px-5">
-                    <span aria-hidden data-ornament className="serif pt-0.5 text-[26px] leading-none text-ink-4 italic">
-                      {numeral}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="flex flex-wrap items-baseline gap-x-2.5">
-                        <a href={href(`/local/verifications/${c.id}`)} className="mono-id fa-hit rounded-xs text-[15px] font-semibold text-ink hover:text-brand">
-                          {c.id}
-                        </a>
-                        <span className="mono-id text-[10.5px] text-ink-3">fixture {c.fixture}</span>
-                      </p>
-                      <p className="mt-1 text-sm text-ink-2">{caseLine(c)}</p>
-                      <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                        <a href={href(`/local/verifications/${c.id}`)} className="fa-hit inline-flex items-center gap-1 rounded-xs font-medium text-ink-2 hover:text-ink">
-                          Open detail <ArrowRight size={12} aria-hidden />
-                        </a>
-                        {c.entries.length > 0 && (
-                          <a href={href("/local/history", { case: c.id })} className="fa-hit rounded-xs text-ink-3 hover:text-ink">
-                            {plural(c.entries.length, "archived evaluation")}
-                          </a>
-                        )}
-                      </p>
-                    </div>
-                    <span className="col-start-2 mt-3 sm:col-start-3 sm:mt-0">{c.latest ? <VerdictValue axis={c.axes.verdict} /> : <NoVerdictMark />}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
-    </Panel>
-  );
-}
-
-function OverviewBody({ index, pages, onReread }: { index: ArchiveIndex; pages: number; onReread: () => void }) {
-  return (
-    <div className="space-y-12">
-      <header className="grid gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-end">
-        <div className="min-w-0">
-          <p className="kicker flex flex-wrap items-center gap-x-3 gap-y-1">
-            <LocalModeStamp inline />
-            <span>Newest archived result per case{index.newestArchivedAt ? ` · archived ${formatDateTime(index.newestArchivedAt)}` : ""}</span>
-          </p>
-          <Statement index={index} />
-          <p className="mt-4 max-w-[62ch] text-md leading-[1.6] text-ink-2">
-            Read just now from the local Python Service at <span className="mono-id">{SERVICE}</span>: {plural(index.totalEntries, "archived evaluation")} of the five reviewed synthetic
-            cases. Verdicts are the pinned evaluator’s, copied unchanged. The input is synthetic; nothing was captured from n8n or HubSpot.
-          </p>
-          <p className="mt-4">
-            <button type="button" className={buttonClass("ghost", "sm")} onClick={onReread}>
-              <RotateCcw size={12} aria-hidden /> Read the archive again
-            </button>
-          </p>
-        </div>
-        <LatestLedger index={index} />
-      </header>
-
-      {index.unexpected.length > 0 && (
-        <AccessNotice
-          state="REQUEST_ERROR"
-          title="The archive holds entries for unknown cases"
-          body={`${plural(index.unexpected.length, "entry", "entries")} name a case outside the five reviewed IDs. They are listed in History and not counted here.`}
-          facts={index.unexpected.slice(0, 3).map((e) => [e.verificationId, shortHistoryId(e.historyId)] as [string, string])}
-        />
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
-        <CaseExhibits index={index} />
-        <Register index={index} pages={pages} />
-      </div>
-
-      <AxesExplainer />
-    </div>
-  );
-}
-
-function AxesExplainer() {
-  const items: { key: keyof typeof AXIS_LABEL; body: string }[] = [
-    { key: "capture", body: "Whether the evidence was acquired by a capture run, and how that run ended. Not implemented: the evidence is a reviewed synthetic fixture." },
-    { key: "admission", body: "Whether an admission record bound the evidence to an evaluator input — or refused it. Not implemented: a Phase 3B draft only." },
-    { key: "archive", body: "Whether an evaluation is stored in the local SQLite archive, with the Service’s integrity check. Storage, not a result." },
-    { key: "verdict", body: "Verified, Mismatch, Pending or Unverified — from the pinned Python evaluator only. Where no result was read, there is no verdict." },
-  ];
-  return (
-    <section aria-labelledby="axes-explainer" className="border-t-[1.5px] border-rule pt-5">
-      <h2 id="axes-explainer" className="kicker mb-4">
-        How to read the four status axes
-      </h2>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((it, i) => (
-          <div key={it.key}>
-            <h3 className="serif flex items-baseline gap-2 text-[22px] text-ink">
-              <span aria-hidden data-ornament className={cn("font-mono text-[11px]", i === 3 ? "text-brand" : "text-ink-4")}>
-                0{i + 1}
-              </span>
-              {AXIS_LABEL[it.key]}
-            </h3>
-            <p className="mt-1.5 text-[13px] leading-[1.55] text-ink-2">{it.body}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ======================================================================================
- * Verifications
- * ====================================================================================== */
-
-export function WorkspaceVerifications({ provider = getHistoryProvider("LOCAL_RESEARCH") }: { provider?: FlowAssertHistoryProvider }) {
-  const w = useWorkspaceRead(provider);
-  useEffect(() => {
-    document.title = "Verifications — FlowAssert";
-  }, []);
-  return (
-    <div className="space-y-7">
-      <PageHead
-        kicker={<LocalModeStamp inline />}
-        title="Five reviewed synthetic cases, every status kept apart."
-        lede={
-          <>
-            Each row answers four separate questions. Only the last is a business verdict, and it comes only from the pinned Python evaluator, read from the local
-            Service at <span className="mono-id">{SERVICE}</span>. Opening a case reads its live evaluation and evidence.
-          </>
-        }
-      />
-      <ArchiveRead key={w.generation} provider={provider} onReread={w.reread}>
-        {(index) => <CaseTable index={index} onReread={w.reread} />}
-      </ArchiveRead>
-      <p className="max-w-[760px] text-xs leading-[1.55] text-ink-3">
-        <b className="font-semibold text-ink-2">The verdict column is the newest archived result.</b> The frozen v1 API has no collection endpoint, so this list is built
-        from the archive; a case’s page reads the live result through <span className="mono-id">GET /api/v1/verifications/:id</span>. If the Service is not running,
-        this page shows <b className="font-semibold text-ink-2">Service unavailable</b> — never demo data. The MOCK demo runs are under{" "}
-        <a href="#/demo/verifications" className="underline decoration-line-strong underline-offset-2 hover:text-ink">
-          Demo
-        </a>
-        .
-      </p>
-    </div>
-  );
-}
-
-function CaseTable({ index, onReread }: { index: ArchiveIndex; onReread: () => void }) {
-  const caption = "Reviewed cases with capture, admission, archive and evaluator verdict status";
-  return (
-    <Panel
-      title={
-        <span className="tabular">
-          {index.cases.length} <span className="text-ink-3">cases · {plural(index.totalEntries, "archive entry", "archive entries")}</span>
-        </span>
-      }
-      description="In reviewed-case order. Archive entries were read completely under one list view."
-      actions={
-        <button type="button" className={buttonClass("ghost", "sm")} onClick={onReread}>
-          <RotateCcw size={12} aria-hidden /> Read again
-        </button>
-      }
-    >
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-sm" data-case-table>
-          <caption className="sr-only">{caption}</caption>
-          <thead>
-            <tr className="border-b border-line text-left">
-              <th scope="col" className="kicker py-2.5 pr-4 pl-5 font-normal">
-                Case
-              </th>
-              <th scope="col" className="kicker py-2.5 pr-4 font-normal">
-                <span aria-hidden data-ornament className="text-ink-4">01</span> Capture
-              </th>
-              <th scope="col" className="kicker py-2.5 pr-4 font-normal">
-                <span aria-hidden data-ornament className="text-ink-4">02</span> Admission
-              </th>
-              <th scope="col" className="kicker py-2.5 pr-4 font-normal">
-                <span aria-hidden data-ornament className="text-ink-4">03</span> Archive
-              </th>
-              <th scope="col" className="kicker py-2.5 pr-5 font-normal">
-                <span aria-hidden data-ornament className="text-brand">04</span> Evaluator verdict
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {index.cases.map((c) => (
-              <tr key={c.id} data-case={c.id} className="fa-row group relative border-b border-line-subtle align-top transition-colors duration-(--fa-dur-fast) last:border-0 hover:bg-hover">
-                <td className="py-3.5 pr-4 pl-5">
-                  <a
-                    href={href(`/local/verifications/${c.id}`)}
-                    className="mono-id block font-semibold text-ink after:absolute after:inset-0 after:content-[''] focus-visible:shadow-none focus-visible:after:shadow-(--fa-ring-inset)"
-                    aria-label={`${c.id}. ${c.latest ? `Newest archived verdict ${c.latest.result.cohort}` : "No archived verdict"}. Capture and admission not implemented.`}
-                  >
-                    {c.id}
-                  </a>
-                  <span className="mono-id block text-[10.5px] text-ink-3">fixture {c.fixture}</span>
-                </td>
-                <td className="py-3.5 pr-4">
-                  <CaptureValue axis={c.axes.capture} />
-                </td>
-                <td className="py-3.5 pr-4">
-                  <CaptureValue axis={c.axes.admission} />
-                </td>
-                <td className="relative z-10 py-3.5 pr-4">
-                  <ArchiveValue axis={c.axes.archive} />
-                </td>
-                <td className="py-3.5 pr-5">
-                  <VerdictValue axis={c.axes.verdict} />
-                  {c.latest && <ArchivedRecordResults entry={c.latest} className="mt-1.5 block" />}
-                  <span className="mt-1 block text-[10.5px] leading-[1.45] text-ink-3">
-                    {c.latest ? "pinned Python evaluator · newest archived evaluation" : verdictSourceText(c.axes.verdict)}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <ul className="divide-y divide-line-subtle md:hidden" aria-label={caption}>
-        {index.cases.map((c) => (
-          <li key={c.id} data-case={c.id} className="px-4 py-4">
-            <div className="flex items-start justify-between gap-3">
-              <a href={href(`/local/verifications/${c.id}`)} className="min-w-0">
-                <span className="mono-id block font-semibold text-ink">{c.id}</span>
-                <span className="mono-id block truncate text-[10.5px] text-ink-3">fixture {c.fixture}</span>
-              </a>
-              <VerdictValue axis={c.axes.verdict} />
-            </div>
-            <dl className="mt-3 grid grid-cols-[max-content_minmax(0,1fr)] items-center gap-x-4 gap-y-2 text-xs">
-              <dt className="text-ink-3">{AXIS_LABEL.capture}</dt>
-              <dd>
-                <CaptureValue axis={c.axes.capture} />
-              </dd>
-              <dt className="text-ink-3">{AXIS_LABEL.admission}</dt>
-              <dd>
-                <CaptureValue axis={c.axes.admission} />
-              </dd>
-              <dt className="text-ink-3">{AXIS_LABEL.archive}</dt>
-              <dd>
-                <ArchiveValue axis={c.axes.archive} compact />
-              </dd>
-            </dl>
-          </li>
-        ))}
-      </ul>
-    </Panel>
   );
 }
 

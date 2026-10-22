@@ -12,6 +12,7 @@
  * Copy (headline, explanation, summaries) is presentation selected from copied values; it never
  * creates a failure or a pass that the evaluator did not return.
  */
+import { canonicalJson } from "../data/local/canonical";
 import type { EvidenceReferenceDTO, RecordResultDTO, RuleResultDTO, VerificationRunDTO } from "../data/contract/v1";
 import type { EvidenceReferenceView } from "../domain/evidence";
 import type {
@@ -523,6 +524,7 @@ export function wireToRunView(dto: VerificationRunDTO): RunView {
         workspaceDirty: ctxDto.evaluator.workspace_dirty,
       },
       inputEvidenceSha256: ctxDto.input_evidence_sha256,
+      resultCanonical: canonicalJson(dto.result),
       timeMapping: { kind: mapping.kind, originIso: mapping.origin_iso, secondsPerTick: mapping.seconds_per_tick },
       assurance: {
         researchAuthorization: a.research_authorization,

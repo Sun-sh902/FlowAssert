@@ -1,0 +1,602 @@
+[
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 100,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "IBM Plex Mono 400 normal"
+    ]
+   }
+  ],
+  "fcp": 136,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 66,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 86,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 108,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 73,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 70,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 67,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 69,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 79,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 92,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 71,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 500 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 66,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 63,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 65,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 68,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 65,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 68,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 69,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 73,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 84,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 96,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 79,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 88,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 64,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 76,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 65,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 68,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 74,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 84,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 57,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 80,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 84,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 73,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 69,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 69,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 76,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 84,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 60,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 68,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 76,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0
+ }
+]
