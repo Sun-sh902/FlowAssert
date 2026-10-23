@@ -1,0 +1,27 @@
+
+== tools
+node v26.10.0 · npm 11.19.1 · Python 3.14.7 · system Python 3.9.6 · uv 0.12.9
+
+== ui-deps
+ui/node_modules installed from package-lock.json
+
+== py-env
+service/.venv exists — verifying it instead of recreating
+service/.venv == requirements.lock (37 distributions)
+
+== identity
+pinned Evaluator, contracts and backend source map verified
+
+== fixtures
+synthetic archives in service/.runtime verified: dev-main (10 evaluations), dev-single (5), dev-empty (0) — only missing ones were created
+
+== harness
+
+BOOTSTRAP FAILED at stage "harness" (exit 30)
+  BLOCKED: the accepted read-only harness sources are not readable on this machine:
+    /Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/docs/phase3a/id-addressability-remediation-03/evidence/source-identities.json
+    /Users/zhangshenghe/Documents/FlowAssert-Service
+    /Users/zhangshenghe/Documents/FlowAssert-round03-oracle-fix/experiments/round03/model.py
+    /Users/zhangshenghe/Documents/FlowAssert-Phase2-Support/evidence/identity/accepted-source-comparison.json
+  The browser regression gates cannot be prepared here; the portable gates need no harness (regression.sh --portable).
+  log: /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-Product-Dev/.dev-runtime/bootstrap/harness.log

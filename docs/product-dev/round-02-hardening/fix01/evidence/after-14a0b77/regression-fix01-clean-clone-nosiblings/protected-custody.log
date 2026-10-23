@@ -1,0 +1,9 @@
+protected parent: /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after
+BLOCKED: protected custody NOT RUN — the accepted protected roots are not available here:
+  /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-round03-oracle-fix: FileNotFoundError
+  /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-UI: FileNotFoundError
+  /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-Integration-Planning: FileNotFoundError
+  /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-Integration-Review: FileNotFoundError
+  /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-Integration-Reassessment: FileNotFoundError
+  /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-Integration-Final-Audit: FileNotFoundError
+Set FLOWASSERT_PROTECTED_PARENT to the directory holding the genuine roots. No substitute is used.

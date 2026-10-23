@@ -1,0 +1,8 @@
+simulated interruption: dev-main has seed only
+state dev-main is incomplete: 5 archived evaluations, expected 10 (an interrupted seed?) — remove service/.runtime/dev-main and rerun
+seed.sh exit=3
+== fixtures
+  "source_set_sha256": "9827338a8d8b2e05611f988ca78cf3fd461b98609f007b7c383e06e9ca8bbbeb",
+  "history_ids": [
+BOOTSTRAP FAILED at stage "fixtures" (exit 3)
+bootstrap exit=3

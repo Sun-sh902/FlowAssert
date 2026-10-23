@@ -1,0 +1,70 @@
+
+ RUN  v5.0.3 /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-Product-Dev/ui
+
+ ✓ src/test/phase3a-gate.test.ts (130 tests) 36ms
+ ✓ src/test/lookup-addressability.test.ts (120 tests) 31ms
+ ✓ src/test/local-provider.test.ts (30 tests) 62ms
+ ✓ src/test/phase3a-history-provider.test.ts (103 tests) 143ms
+ ✓ src/test/contract-drift-mutations.test.ts (80 tests | 1 skipped) 226ms
+ ✓ src/test/phase3a-history-decode.test.ts (55 tests) 45ms
+ ✓ src/test/local-validation.test.ts (29 tests) 77ms
+ ✓ src/test/p3a-aud-002-validator.test.ts (224 tests) 126ms
+ ✓ src/test/phase3a-ids.test.ts (240 tests) 48ms
+ ✓ src/test/workspace.test.tsx (21 tests) 756ms
+ ✓ src/test/lookup-gate.test.ts (102 tests) 46ms
+ ✓ src/test/lookup-contract-drift.test.ts (19 tests) 11ms
+ ✓ src/test/comparison.test.ts (12 tests) 12ms
+ ✓ src/test/history-contract-drift.test.ts (19 tests) 63ms
+ ✓ src/test/provider.test.ts (15 tests) 32ms
+ ✓ src/test/phase3a-canonical.test.ts (12 tests) 113ms
+ ✓ src/test/phase3a-history-pages.test.tsx (86 tests) 1750ms
+ ✓ src/test/remediation.test.tsx (26 tests) 1928ms
+   ✓ UIA-002 · drawer focus stays inside after a click on non-interactive drawer space (4)
+     ✓ blank click, then Tab: focus enters the drawer, never the search field behind it 672ms
+     ✓ blank click, then Shift+Tab: focus enters the drawer at its last control and keeps cycling 522ms
+ ✓ src/test/access-states.test.tsx (23 tests) 1538ms
+   ✓ Interface states page (4)
+     ✓ is reachable at #/states (lazy-loaded) and shows a plate for every access state 397ms
+     ✓ runs a simulated read: loading, then a request error with retry, then ready 389ms
+ ✓ src/test/local-detail.test.tsx (24 tests) 2200ms
+   ✓ LOCAL_RESEARCH Detail — ready (5)
+     ✓ reads evidence pinned to the Detail's snapshot, one page at a time, then all remaining 307ms
+   ✓ LOCAL_RESEARCH Detail — snapshots and failures (6)
+     ✓ a restart before page 2 shows the stale-snapshot state, merges nothing, and re-reads only on request 324ms
+ ✓ src/test/detail.test.tsx (15 tests) 1115ms
+ ✓ src/test/lookup-detail.test.tsx (10 tests) 747ms
+   ✓ exact-ID lookup route (10)
+     ✓ x/evidence: one Detail read by exact ID, the SPEC-005 result, never the evidence route of x 373ms
+ ✓ src/test/phase3a-integrity.test.ts (14 tests) 19ms
+ ✓ src/test/uia009-nullable-label.test.tsx (14 tests) 624ms
+   ✓ UIA-009 · pages (3)
+     ✓ renders the Verifications list with null and empty labels, and searches without throwing 552ms
+ ✓ src/test/archive-match.test.tsx (4 tests) 111ms
+ ✓ src/test/overview.test.tsx (10 tests) 370ms
+ ✓ src/test/rules.test.tsx (10 tests) 870ms
+ ✓ src/test/settings.test.tsx (7 tests) 934ms
+   ✓ Display and accessibility preferences (3)
+     ✓ apply to <html> immediately and persist 409ms
+ ✓ src/test/fixtures.test.ts (8 tests) 18ms
+ ✓ src/test/contract-drift.test.ts (32 tests) 24ms
+ ✓ src/test/fixture-identity.test.ts (5 tests) 9ms
+ ✓ src/test/contract-drift-runtime.test.ts (3 tests) 7ms
+ ✓ src/test/connections.test.tsx (5 tests) 200ms
+ ✓ src/test/verifications.test.tsx (7 tests) 594ms
+ ✓ src/test/shell.test.tsx (7 tests) 656ms
+   ✓ Mobile navigation drawer (5)
+     ✓ keeps Tab focus inside the drawer in both directions 323ms
+ ✓ src/test/evidence-mode-switch-race.test.tsx (90 tests) 5532ms
+   ✓ History entry: payload-mode switch vs. the first evidence page (45)
+     ✓ release, then switch after tasks: 0 409ms
+
+ Test Files  36 passed (36)
+      Tests  1610 passed | 1 skipped (1611)
+   Start at  01:04:48
+   Duration  8.70s (tests 50%, environment 29%, import 9%, transform 7%, setup 5%)
+
+Environment  jsdom was created 36 times · 12.36s total, 29% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+JSON report written to /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/runs/fix01-clean-clone-nosiblings/ui-vitest.json

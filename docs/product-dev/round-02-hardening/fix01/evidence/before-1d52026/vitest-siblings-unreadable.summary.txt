@@ -1,0 +1,18 @@
+{'numTotalTests': 870, 'numPassedTests': 804, 'numFailedTests': 66, 'numPendingTests': 0, 'numTotalTestSuites': 115}
+  archive-match.test.tsx                   failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/histo
+  contract-drift-mutations.test.ts         failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Integration-Planning/contracts/
+  contract-drift-runtime.test.ts           failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Integration-Planning/contracts/
+  contract-drift.test.ts                   failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Integration-Planning/contracts/
+  evidence-mode-switch-race.test.tsx       failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/histo
+  history-contract-drift.test.ts           failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/opena
+  local-detail.test.tsx                    failed  {'failed': 13, 'passed': 11} 
+  local-provider.test.ts                   failed  {'passed': 9, 'failed': 21} 
+  local-validation.test.ts                 failed  {'passed': 4, 'failed': 25} 
+  lookup-addressability.test.ts            failed  {'passed': 115, 'failed': 5} 
+  lookup-contract-drift.test.ts            failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/opena
+  lookup-detail.test.tsx                   failed  {'failed': 2, 'passed': 8} 
+  p3a-aud-002-validator.test.ts            failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/histo
+  phase3a-history-decode.test.ts           failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/histo
+  phase3a-history-pages.test.tsx           failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/histo
+  phase3a-history-provider.test.ts         failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/histo
+  workspace.test.tsx                       failed  {} EPERM: operation not permitted, open '/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/histo

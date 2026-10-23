@@ -1,0 +1,4 @@
+#!/bin/sh
+# Run a command with every read/write under /Users/zhangshenghe/Documents denied: simulates a machine without the
+# historical sibling folders (reads fail with EPERM). Usage: nosib CMD...
+exec sandbox-exec -p '(version 1)(allow default)(deny file-read* file-write* (subpath "/Users/zhangshenghe/Documents"))' "$@"

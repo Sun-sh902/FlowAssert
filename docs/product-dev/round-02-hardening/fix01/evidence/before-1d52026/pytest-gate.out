@@ -1,0 +1,34 @@
+........................................................................ [ 29%]
+........................................................................ [ 58%]
+........................................................................ [ 87%]
+...F............................                                         [100%]
+=================================== FAILURES ===================================
+_____________________ test_protected_repository_integrity ______________________
+
+    def test_protected_repository_integrity():
+        from scripts.protected_integrity import snapshot,compare
+>       differences=compare(snapshot())
+                            ^^^^^^^^^^
+
+tests/test_service.py:217: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def snapshot():
+        before=json.loads(_verified_baseline_bytes((ROOT/'evidence/protected-before.json').resolve()));out={}
+        for name in before:
+            path=PROTECTED_PARENT/name;files={}
+            # A missing root must not be compared as an empty tree: os.walk would yield nothing and hide the absence.
+            if not path.is_dir():
+>               raise FileNotFoundError(f'protected root {path} is missing; set FLOWASSERT_PROTECTED_PARENT to the directory that holds it')
+E               FileNotFoundError: protected root /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-before/FlowAssert-round03-oracle-fix is missing; set FLOWASSERT_PROTECTED_PARENT to the directory that holds it
+
+scripts/protected_integrity.py:28: FileNotFoundError
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-before/FlowAssert-Product-Dev/service/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_service.py::test_protected_repository_integrity - FileNotFo...
+1 failed, 247 passed, 1 warning in 13.47s

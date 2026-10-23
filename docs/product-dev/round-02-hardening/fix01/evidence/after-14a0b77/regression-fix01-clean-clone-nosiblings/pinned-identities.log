@@ -1,0 +1,11 @@
+{
+ "pinned": {
+  "vendor/model.py": "match",
+  "contracts/openapi-v1-proposed.yaml": "match",
+  "contracts/openapi-history-v1.yaml": "match",
+  "contracts/openapi-id-addressability-v1.yaml": "match",
+  "contracts/verification-examples.json": "match"
+ },
+ "backend_map": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+ "problems": []
+}

@@ -1,0 +1,18 @@
+{'numTotalTests': 1606, 'numPassedTests': 809, 'numFailedTests': 0, 'numPendingTests': 797, 'numTotalTestSuites': 162}
+  archive-match.test.tsx                   passed  {'skipped': 4} 
+  contract-drift-mutations.test.ts         passed  {'skipped': 80} 
+  contract-drift-runtime.test.ts           passed  {'skipped': 3} 
+  contract-drift.test.ts                   passed  {'skipped': 32} 
+  evidence-mode-switch-race.test.tsx       passed  {'skipped': 90} 
+  history-contract-drift.test.ts           passed  {'skipped': 19} 
+  local-detail.test.tsx                    passed  {'skipped': 22, 'passed': 2} 
+  local-provider.test.ts                   passed  {'passed': 3, 'skipped': 27} 
+  local-validation.test.ts                 passed  {'passed': 4, 'skipped': 25} 
+  lookup-addressability.test.ts            passed  {'passed': 105, 'skipped': 15} 
+  lookup-contract-drift.test.ts            passed  {'skipped': 19} 
+  lookup-detail.test.tsx                   passed  {'skipped': 10} 
+  p3a-aud-002-validator.test.ts            passed  {'skipped': 204, 'passed': 20} 
+  phase3a-history-decode.test.ts           passed  {'skipped': 55} 
+  phase3a-history-pages.test.tsx           passed  {'skipped': 84, 'passed': 2} 
+  phase3a-history-provider.test.ts         passed  {'skipped': 97, 'passed': 6} 
+  workspace.test.tsx                       passed  {'passed': 10, 'skipped': 11} 

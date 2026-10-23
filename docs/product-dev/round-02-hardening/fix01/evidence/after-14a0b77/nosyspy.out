@@ -1,0 +1,4 @@
+== tools
+  system Python /usr/bin/python3 is missing, not executable or older than 3.9 — set FA_SYSTEM_PYTHON to a Python 3.9+
+  log: /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-after/FlowAssert-Product-Dev/.dev-runtime/bootstrap/tools.log
+bootstrap exit=17

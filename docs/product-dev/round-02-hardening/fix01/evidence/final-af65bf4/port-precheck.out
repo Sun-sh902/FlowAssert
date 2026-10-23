@@ -1,0 +1,4 @@
+only 4184 occupied: regression exit=1, out dir created: no — ports 4183/4184/5183/8765 must be free (stop the dev server, previews and Service):
+only 8765 occupied: regression exit=1, out dir created: no — ports 4183/4184/5183/8765 must be free (stop the dev server, previews and Service):
+only 5183 occupied: regression exit=1, out dir created: no — ports 4183/4184/5183/8765 must be free (stop the dev server, previews and Service):
+only 4183 occupied: regression exit=1, out dir created: no — ports 4183/4184/5183/8765 must be free (stop the dev server, previews and Service):
