@@ -319,7 +319,8 @@
   .fa-iseal[data-i="pending"] { color: var(--fa-ink-3); background: transparent; border: 1.5px dotted var(--fa-border-strong); }
 
   /* Inline integrity word in ledgers */
-  .fa-itag { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; }
+  /* position: relative contains the visually hidden state word (absolute) so it cannot escape a scrolling table (FIX03). */
+  .fa-itag { position: relative; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; }
   .fa-itag[data-i="verified"] { color: var(--fa-brand-ink); }
   .fa-itag[data-i="failed"] { color: var(--fa-canvas); background: var(--fa-ink); padding: 1px 6px; border-radius: 2px; font-weight: 600; }
   .fa-itag[data-i="unverifiable"] { color: var(--fa-ink-2); }

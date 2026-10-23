@@ -1,0 +1,13 @@
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+Running 2 tests using 1 worker
+
+  ✓  1 [chrome] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) (7.0s)
+  ✓  2 [webkit] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) (7.1s)
+
+  2 passed (21.8s)
