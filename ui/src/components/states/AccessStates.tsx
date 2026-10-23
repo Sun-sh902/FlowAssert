@@ -198,7 +198,7 @@ export function AccessNotice({
               {facts.map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between gap-4 py-[6px]">
                   <dt className="text-ink-3">{k}</dt>
-                  <dd className="min-w-0 text-right font-mono text-[11.5px] break-all text-ink">{v}</dd>
+                  <dd className="min-w-0 text-right font-mono text-[11.5px] break-words text-ink">{v}</dd>
                 </div>
               ))}
             </dl>

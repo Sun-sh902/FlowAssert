@@ -638,6 +638,29 @@ test("accessibility and layout of the history pages (axe, both themes, 375–144
   await openApp(page, "#/local/history");
   await expect(rows(page)).toHaveCount(4, { timeout: 20_000 });
   const links = page.locator('[data-history-layout="wide"] a[data-history-link]');
+  // Between md and xl the ledger is wider than its column: a named region, reached by Shift+Tab from the
+  // first entry and scrolled by arrow keys to its last column (WebKit does not scroll it natively).
+  // At 1440 it fits and adds no Tab stop.
+  const wide = page.locator('[data-history-layout="wide"]');
+  const region = page.getByRole("region", { name: "Archived evaluations table" });
+  const scrollLeft = () => wide.evaluate((e) => e.scrollLeft);
+  await expect(region).toHaveCount(0);
+  expect(await wide.getAttribute("tabindex")).toBeNull();
+  for (const w of [768, 1024]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    await expect(region).toHaveCount(1);
+    await wide.evaluate((e) => (e.scrollLeft = 0));
+    await links.first().focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(region).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(scrollLeft).toBeGreaterThan(0);
+    await page.keyboard.press("End");
+    await expect.poll(() => wide.evaluate((e) => e.scrollWidth - e.clientWidth - e.scrollLeft)).toBeLessThanOrEqual(1);
+    report[`ledger scroll @${w}`] = await wide.evaluate((e) => ({ scrollLeft: e.scrollLeft, maxScroll: e.scrollWidth - e.clientWidth }));
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(region).toHaveCount(0);
   await links.first().focus();
   await page.keyboard.press("ArrowDown");
   await expect(links.nth(1)).toBeFocused();

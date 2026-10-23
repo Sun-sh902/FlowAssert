@@ -81,17 +81,50 @@ try {
               const overlaps = chips.flatMap((a, i) => chips.slice(i + 1).filter(b => { const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); return Math.min(x.right, y.right) - Math.max(x.left, y.left) > 1 && Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top) > 1; }).map(b => [a.textContent, b.textContent]));
               const clipped = [...document.querySelectorAll('[data-comparison], .fa-seal, .fa-itag')].filter(visible).filter(e => e.scrollWidth > e.clientWidth + 2 && ['hidden', 'clip'].includes(getComputedStyle(e).overflowX)).map(e => e.textContent);
               const type = [...document.querySelectorAll('main p, main td, main th, main .kicker, nav a, main .fa-seal')].filter(visible).slice(0, 90).map(e => { const s = getComputedStyle(e); return { text: e.textContent.slice(0, 90), font: s.fontFamily, size: s.fontSize, line: s.lineHeight, color: s.color }; });
-              return { scrollWidth: document.documentElement.scrollWidth, h1: [...document.querySelectorAll('main h1')].filter(visible).map(e => e.textContent), overlaps, clipped, type };
+              // A short monospaced identifier (status word, ID, version) broken between two ordinary characters
+              // (overflow-wrap) no longer reads as one token. Breaks at a hyphen, slash or truncation ellipsis are
+              // normal wrapping: recorded, not failed.
+              const split = [], wrapped = [];
+              const walker = document.createTreeWalker(document.querySelector('main') ?? document.body, NodeFilter.SHOW_TEXT);
+              for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+                const el = n.parentElement;
+                if (!el || el.closest('.sr-only, [aria-hidden="true"]') || !visible(el) || !/mono/i.test(getComputedStyle(el).fontFamily)) continue;
+                for (const m of n.textContent.matchAll(/\S{4,32}/g)) {
+                  const r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
+                  if (new Set([...r.getClientRects()].filter(x => x.width > 0).map(x => Math.round(x.top))).size < 2) continue;
+                  const top = i => { const c = document.createRange(); c.setStart(n, m.index + i); c.setEnd(n, m.index + i + 1); return Math.round(c.getBoundingClientRect().top); };
+                  let i = 1; while (i < m[0].length && top(i) === top(0)) i++;
+                  (/[-/…]/.test(m[0][i - 1]) ? wrapped : split).push(`${m[0].slice(0, i)}|${m[0].slice(i)}`);
+                }
+              }
+              return { scrollWidth: document.documentElement.scrollWidth, split: [...new Set(split)], wrapped: [...new Set(wrapped)], h1: [...document.querySelectorAll('main h1')].filter(visible).map(e => e.textContent), overlaps, clipped, type };
             });
             await page.addScriptTag({ path: axePath });
             row.axe = await page.evaluate(async () => (await window.axe.run({ exclude: [['[data-ornament]']] }, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] } })).violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })));
             await page.screenshot({ path: join(out, key + '.jpg'), type: 'jpeg', quality: 70, fullPage: true });
+            // An unclipped page can still conceal the right edge of a table from keyboard users.
+            // Every scroll container that hides visible text must itself be focusable (WebKit does not
+            // scroll one from a focused link inside it). Visually hidden (sr-only) text does not count.
+            row.scrollers = await page.evaluate(() => [...document.querySelectorAll('main *')].filter(e => ['auto', 'scroll'].includes(getComputedStyle(e).overflowX) && e.getBoundingClientRect().width > 0 && e.scrollWidth > e.clientWidth + 1).map(e => {
+              const right = e.getBoundingClientRect().right;
+              const hidden = [...e.querySelectorAll('*')].filter(c => !c.closest('.sr-only')).flatMap(c => [...c.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim())).filter(n => { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().right > right + 1; }).map(n => n.textContent.trim().slice(0, 40));
+              return { overflow: e.scrollWidth - e.clientWidth, tabIndex: e.tabIndex, label: e.getAttribute('aria-label'), hidden: [...new Set(hidden)] };
+            }));
+            const tableRegion = page.getByRole('region', { name: 'Archived evaluations table' });
+            if (name === 'history' && (width === 768 || width === 1024)) {
+              await tableRegion.focus();
+              if (!await tableRegion.evaluate(e => document.activeElement === e && e.tabIndex === 0)) throw Error('History table is not keyboard focusable');
+              for (let n = 0; n < 20; n++) await page.keyboard.press('ArrowRight');
+              await page.waitForFunction(() => { const e = document.querySelector('[data-history-layout="wide"]'); return e.scrollWidth - e.clientWidth - e.scrollLeft <= 1; });
+              row.tableScroll = await tableRegion.evaluate(e => ({ scrollLeft: e.scrollLeft, maxScroll: e.scrollWidth - e.clientWidth, focusVisible: e.matches(':focus-visible') }));
+              await page.screenshot({ path: join(out, key + '-scrolled.jpg'), type: 'jpeg', quality: 70 });
+            } else if (name === 'history' && await tableRegion.count()) throw Error('History table adds a Tab stop although it fits');
             row.focus = [];
             if (name === 'overview') for (let n = 0; n < 12; n++) {
               await page.keyboard.press(engine === 'webkit' ? 'Alt+Tab' : 'Tab');
               row.focus.push(await page.evaluate(() => { const e = document.activeElement, s = getComputedStyle(e); return { name: e.getAttribute('aria-label') || e.textContent.slice(0, 60), tag: e.tagName, visible: e.matches(':focus-visible'), ring: s.boxShadow, outline: s.outlineStyle }; }));
             }
-            row.problems = [ ...(row.layout.scrollWidth > width ? ['horizontal overflow'] : []), ...(row.layout.h1.length !== 1 ? ['not one visible H1'] : []), ...(row.layout.overlaps.length ? ['comparison chip overlap'] : []), ...(row.layout.clipped.length ? ['clipped status text'] : []), ...row.axe.map(v => `axe:${v.id}`), ...errors, ...requests.filter(u => !u.startsWith('http://127.0.0.1:5183/') && !u.startsWith('about:')).map(u => `external:${u}`), ...row.focus.filter(f => !f.visible || f.outline === 'none' && f.ring === 'none').map(f => `focus:${f.name}`) ];
+            row.problems = [ ...(row.layout.scrollWidth > width ? ['horizontal overflow'] : []), ...(row.layout.h1.length !== 1 ? ['not one visible H1'] : []), ...(row.layout.overlaps.length ? ['comparison chip overlap'] : []), ...(row.layout.clipped.length ? ['clipped status text'] : []), ...row.layout.split.map(t => `split identifier: ${t}`),...row.scrollers.filter(s => s.hidden.length && s.tabIndex < 0).map(s => `keyboard-unreachable: ${s.hidden.join(' | ')}`),...row.axe.map(v => `axe:${v.id}`), ...errors, ...requests.filter(u => !u.startsWith('http://127.0.0.1:5183/') && !u.startsWith('about:')).map(u => `external:${u}`), ...row.focus.filter(f => !f.visible || f.outline === 'none' && f.ring === 'none').map(f => `focus:${f.name}`) ];
           } catch (e) { row.problems = [String(e)]; }
           row.errors = errors; row.requests = requests; rows.push(row); save('results.json', rows);
           page.off('pageerror', onError); page.off('request', onRequest);

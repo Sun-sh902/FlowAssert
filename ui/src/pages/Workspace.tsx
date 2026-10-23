@@ -338,11 +338,13 @@ function Register({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
   ];
   return (
     <Panel title="Workspace register" description="What answered on this read, and what this build cannot do." className="lg:col-span-4">
+      {/* From lg to xl this column is too narrow for a 110px label beside mono identifiers (they split mid-token),
+          so each label sits above its value there. */}
       <dl className="px-4 py-2 text-[12.5px] sm:px-5">
         {rows.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[110px_minmax(0,1fr)] items-baseline gap-3 border-b border-line-subtle py-[9px] last:border-0">
+          <div key={k} className="grid grid-cols-[110px_minmax(0,1fr)] items-baseline gap-3 border-b border-line-subtle py-[9px] last:border-0 lg:grid-cols-1 lg:gap-0.5 xl:grid-cols-[110px_minmax(0,1fr)] xl:gap-3">
             <dt className="text-ink-3">{k}</dt>
-            <dd className="min-w-0 text-right font-mono text-[11px] break-words text-ink">{v}</dd>
+            <dd className="min-w-0 text-right font-mono text-[11px] break-words text-ink lg:text-left xl:text-right">{v}</dd>
           </div>
         ))}
       </dl>

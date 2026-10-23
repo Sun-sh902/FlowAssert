@@ -15,6 +15,7 @@ import { formatDateTime, plural, shortDigest } from "../../lib/format";
 import { href } from "../../lib/router";
 import { IntegrityTag } from "../integrity/Integrity";
 import { CountGlyphs, Seal } from "../ui/status";
+import { scrollByKey, useScrollsHorizontally } from "../states/EvidenceLedger";
 
 export const shortHistoryId = (id: string) => `${id.slice(0, 13)}…${id.slice(-4)}`;
 
@@ -74,9 +75,18 @@ function useRowKeys() {
 
 export function HistoryRows({ entries, caption }: { entries: HistorySummaryView[]; caption: string }) {
   const keys = useRowKeys();
+  const scroller = useRef<HTMLDivElement>(null);
+  const scrollable = useScrollsHorizontally(scroller);
   return (
     <div ref={keys.ref} onKeyDown={keys.onKeyDown}>
-      <div className="hidden overflow-x-auto md:block" data-history-layout="wide">
+      {/* Between md and xl the ledger is wider than its column; it then becomes a named, focusable region (as
+          EvidenceLedger does) so keyboard users can scroll to the archive check and time. At full width no Tab stop. */}
+      <div
+        ref={scroller}
+        className="hidden overflow-x-auto md:block"
+        data-history-layout="wide"
+        {...(scrollable ? { tabIndex: 0, role: "region", "aria-label": "Archived evaluations table", onKeyDown: scrollByKey } : {})}
+      >
         <table className="w-full text-sm" data-history-table>
           <caption className="sr-only">{caption}. Use the arrow keys to move between entries.</caption>
           <thead>

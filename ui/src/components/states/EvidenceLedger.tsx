@@ -127,7 +127,7 @@ function IntegrityCell({ r }: { r: EvidenceReferenceView }) {
  * focused overflow container, so the region handles the keys itself (and prevents the native scroll so
  * Chrome does not move twice).
  */
-function scrollByKey(e: KeyboardEvent<HTMLDivElement>) {
+export function scrollByKey(e: KeyboardEvent<HTMLDivElement>) {
   if (e.target !== e.currentTarget || e.altKey || e.ctrlKey || e.metaKey) return;
   const el = e.currentTarget;
   const step = { ArrowLeft: -40, ArrowRight: 40, Home: -el.scrollWidth, End: el.scrollWidth }[e.key];
@@ -137,7 +137,7 @@ function scrollByKey(e: KeyboardEvent<HTMLDivElement>) {
 }
 
 /** True while the element's content is wider than its box. */
-function useScrollsHorizontally(ref: RefObject<HTMLElement | null>) {
+export function useScrollsHorizontally(ref: RefObject<HTMLElement | null>) {
   const [scrolls, setScrolls] = useState(false);
   useEffect(() => {
     const el = ref.current;
