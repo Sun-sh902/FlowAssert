@@ -11,6 +11,7 @@ import { createHash } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Page, Response } from "@playwright/test";
+import { captureLifecycle } from "../e2e/capture-lifecycle.ts";
 
 export const UI = process.cwd();
 export const SERVICE_ORIGIN = "http://127.0.0.1:8765";
@@ -151,12 +152,14 @@ export interface Exchange {
 export function captureNetwork(page: Page) {
   const all: Exchange[] = [];
   const hosts = new Set<string>();
-  const pending: Promise<void>[] = [];
+  // FIX02: every read is tracked to completion; see e2e/capture-lifecycle.ts.
+  const capture = captureLifecycle(page);
   page.on("request", (r) => hosts.add(new URL(r.url()).host));
   page.on("response", (res: Response) => {
     const u = new URL(res.url());
     if (!u.pathname.startsWith("/api/")) return;
-    pending.push(
+    capture.track(
+      res.url(),
       (async () => {
         let body: string | null = null;
         try {
@@ -188,7 +191,8 @@ export function captureNetwork(page: Page) {
   return {
     all,
     hosts,
-    settle: () => Promise.all(pending),
+    settle: capture.settle,
+    interrupted: capture.interrupted,
     api: () => all.filter((x) => x.status !== null),
     /** Exchanges without bodies, for evidence files (bodies are summarised by digest). */
     summary: () => all.map(({ body: _b, ...rest }) => rest),

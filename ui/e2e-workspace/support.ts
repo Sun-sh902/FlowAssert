@@ -14,8 +14,11 @@ export const UI = process.cwd();
 export const ROOT = join(UI, "..");
 export const SERVICE_ORIGIN = "http://127.0.0.1:8765";
 export const APP_ORIGIN = "http://127.0.0.1:5183";
-export const OUT = process.env.FA_WORKSPACE_EVIDENCE_DIR ?? join(ROOT, "docs/product-dev/round-02/evidence/e2e-workspace");
-export const SHOTS = process.env.FA_WORKSPACE_SCREENSHOT_DIR ?? join(ROOT, "docs/product-dev/round-02/screenshots/after");
+// Round 02 hardening FIX02: the defaults are git-ignored. They used to be the committed Round 02 evidence and screenshot
+// directories, so every run silently rewrote those records. Point FA_WORKSPACE_EVIDENCE_DIR / FA_WORKSPACE_SCREENSHOT_DIR
+// at a docs/ directory only to capture new evidence deliberately.
+export const OUT = process.env.FA_WORKSPACE_EVIDENCE_DIR ?? join(UI, "test-results-evidence/e2e-workspace");
+export const SHOTS = process.env.FA_WORKSPACE_SCREENSHOT_DIR ?? join(UI, "test-results-evidence/e2e-workspace/screenshots");
 
 export type State = "dev-main" | "dev-single" | "dev-empty";
 

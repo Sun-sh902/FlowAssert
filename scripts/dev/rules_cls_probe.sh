@@ -1,6 +1,6 @@
 #!/bin/sh
 # Rules layout-shift probe gate (round 02), run from ui/: build, serve the build on 127.0.0.1:4184, load #/rules 30
-# times cold (scripts/dev/cls-probe.mjs) and fail on any CLS >= 0.1.
+# times cold (scripts/dev/cls-probe.mjs) and fail on any CLS >= 0.1 or any page error.
 # Round 02 hardening FIX01: the gate owns its server. It refuses an occupied port, proves the listener is the preview
 # process it started and that it serves this build's dist/index.html, and stops only that process (never pkill -f).
 #   ../scripts/dev/rules_cls_probe.sh OUT.json
@@ -23,4 +23,5 @@ curl -s --noproxy '*' "http://127.0.0.1:$PORT/" | cmp -s - dist/index.html || { 
 echo "measuring http://127.0.0.1:$PORT/ served by pid $PID (this build)"
 node scripts/dev/cls-probe.mjs "http://127.0.0.1:$PORT/" '#/rules' 30 "$OUT_JSON"; rc=$?
 [ "$rc" -eq 0 ] || exit "$rc"
-node -e 'const r=require(process.argv[1]); process.exit(r.some(x=>x.cls>=0.1)?1:0)' "$OUT_JSON"
+# FIX02: a load with a page error is a failed measurement, not a CLS of 0.
+node -e 'const r=require(process.argv[1]); process.exit(r.some(x=>x.cls>=0.1||x.pageErrors.length)?1:0)' "$OUT_JSON"

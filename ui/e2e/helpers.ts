@@ -3,7 +3,8 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import type { Page } from "@playwright/test";
 
-export const OUT = join(process.cwd(), "e2e", ".output");
+// FIX02: FA_STATIC_REPORT_DIR gives a regression run its own report directory (scripts/dev/regression.sh).
+export const OUT = process.env.FA_STATIC_REPORT_DIR ?? join(process.cwd(), "e2e", ".output");
 
 /** Every route of the app, plus the specimen page and a deep Detail link. */
 export const ROUTES = [

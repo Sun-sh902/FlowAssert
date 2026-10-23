@@ -254,6 +254,9 @@ test("12 · Service stopped: SERVICE_UNAVAILABLE, no seal, no demo data — then
   }
   await page.getByRole("button", { name: "Read again" }).click();
   await waitForCase(page, "Mismatch");
+  // FIX02: the re-read Detail also reads its first evidence page; wait for it so the test does not end with that read in
+  // flight (it was the capture cut off by the page close in the Round 02 failure).
+  await expect(evidenceStatus(page)).toContainText(/more pages remain|All evidence pages retrieved/, { timeout: 15_000 });
   // Product round 02: settle every capture before the page closes (the accepted F15 mechanism, R05 — a capture still
   // pending at close rejects later and is reported in the NEXT test). Errors are not swallowed.
   await net.settle();

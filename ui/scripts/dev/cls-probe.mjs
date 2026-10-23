@@ -1,5 +1,7 @@
 // Layout-shift probe: load a route N times in fresh pages and record every layout-shift entry with its sources,
 // plus font-face load events, so a CLS failure can be attributed to a mechanism instead of guessed.
+// Round 02 hardening FIX02: each load also records the browser version, viewport and its page errors (a page that
+// failed to render cannot shift; rules_cls_probe.sh fails on any page error).
 //   node scripts/dev/cls-probe.mjs BASE_URL HASH RUNS OUT.json
 import { chromium } from "@playwright/test";
 import { writeFileSync } from "node:fs";
@@ -8,9 +10,12 @@ const [base, hash, runsArg, out] = process.argv.slice(2);
 const runs = Number(runsArg ?? 10);
 const browser = await chromium.launch({ channel: "chrome" });
 const results = [];
+const viewport = { width: 1440, height: 900 };
 for (let i = 0; i < runs; i++) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const ctx = await browser.newContext({ viewport });
   const page = await ctx.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(`${e.name}: ${e.message}`));
   await page.addInitScript(() => {
     const w = window;
     w.__shifts = [];
@@ -37,10 +42,11 @@ for (let i = 0; i < runs; i++) {
   await page.waitForTimeout(800);
   const r = await page.evaluate(() => ({ shifts: window.__shifts, fonts: window.__fonts, fcp: Math.round(performance.getEntriesByName("first-contentful-paint")[0]?.startTime ?? -1) }));
   r.cls = Math.round(r.shifts.reduce((n, s) => n + s.value, 0) * 1000) / 1000;
+  Object.assign(r, { browser: `chrome ${browser.version()}`, viewport, pageErrors });
   results.push(r);
   await ctx.close();
 }
 await browser.close();
 writeFileSync(out, JSON.stringify(results, null, 1));
 const cls = results.map((r) => r.cls);
-console.log(JSON.stringify({ runs, cls, over: cls.filter((c) => c >= 0.1).length, max: Math.max(...cls) }));
+console.log(JSON.stringify({ runs, browser: `chrome ${browser.version()}`, cls, over: cls.filter((c) => c >= 0.1).length, max: Math.max(...cls), pageErrors: results.reduce((n, r) => n + r.pageErrors.length, 0) }));

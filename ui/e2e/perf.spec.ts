@@ -2,11 +2,17 @@
  * Performance observations on the production build (local preview, no throttling).
  * Reports DOM size, cumulative layout shift and load timing per route; asserts only CLS < 0.1.
  * Numbers from one machine are observations, not a performance guarantee.
+ * Round 02 hardening FIX02: one report per project and repeat (parallel repeats no longer overwrite one file), with the
+ * browser version, viewport and every page error. A page error fails the test: a page that failed to render cannot
+ * shift, so its CLS would be a false 0. transferredKB counts bytes over the network only (cached resources count 0),
+ * so after the first route it is not a page weight.
  */
 import { expect, test } from "@playwright/test";
 import { ROUTES, open, writeReport } from "./helpers.ts";
 
-test("DOM size, layout shift and load timing per route", async ({ page, browserName }) => {
+test("DOM size, layout shift and load timing per route", async ({ page, browser, browserName }, info) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (e) => pageErrors.push(`${e.name}: ${e.message}`));
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => {
     // Layout Instability API is Chromium-only; elsewhere CLS is reported as null (not measured), never 0.
@@ -42,6 +48,16 @@ test("DOM size, layout shift and load timing per route", async ({ page, browserN
       }, r.name),
     );
   }
-  writeReport(`perf-${browserName}`, rows);
+  writeReport(`perf-${browserName}${info.repeatEachIndex ? `-repeat${info.repeatEachIndex}` : ""}`, {
+    project: info.project.name,
+    browser: `${browserName} ${browser.version()}`,
+    repeat: info.repeatEachIndex,
+    viewport: page.viewportSize(),
+    cache: "one page, routes in order: the first route loads cold, later routes reuse the cache",
+    threshold: { cls: 0.1 },
+    pageErrors,
+    rows,
+  });
   for (const row of rows) if (row.cls !== null) expect.soft(row.cls, row.route).toBeLessThan(0.1);
+  expect.soft(pageErrors, "page errors during the measurement").toEqual([]);
 });

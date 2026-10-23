@@ -18,7 +18,9 @@
 #              seeded states and evaluator oracle; ID-lookup and Phase 2 runtimes from the accepted read-only sources.
 #              Machine-bound: the accepted harness scripts read those sources at fixed absolute paths (HARNESS_SOURCES
 #              below). If any is absent the stage stops BLOCKED (exit 30) before writing anything. A runtime is kept
-#              on a rerun only if this stage recorded completing it; a partial one is refused (exit 31).
+#              on a rerun only if this stage recorded completing it; a partial one is refused (exit 31). Then the
+#              mandatory browsers (Google Chrome channel, Playwright WebKit) must launch (ui/scripts/dev/browser-probe.mjs),
+#              else exit 32.
 # Without --harness nothing outside this repository is read. Tested on macOS (Darwin, arm64).
 # Package downloads come from the npm and Python package indexes only. Nothing contacts n8n, HubSpot or any
 # provider system, no credential is read, and the accepted Phase 3A sources are only read.
@@ -117,9 +119,13 @@ $ABSENT
     run harness "Phase 2 runtime refused (reads the accepted FlowAssert-Service read-only)" "$SYS_PY" -I -B "$UI/scripts/phase2/prepare_runtime.py"
     : > "$LOG/harness-phase2.complete"
   fi
-  if ! ls "$HOME/Library/Caches/ms-playwright" 2>/dev/null | grep -q '^webkit'; then
-    echo "note: Playwright WebKit is not installed (npx playwright install webkit); WebKit suites will not run"
-  fi
+  # FIX02: the browsers the regression requires (chrome = installed Google Chrome, webkit = Playwright WebKit) must
+  # actually launch; a directory name under ms-playwright proved nothing. Firefox is probed for information only.
+  node "$UI/scripts/dev/browser-probe.mjs" "$LOG/browsers.json" >> "$LOG/harness.log" 2>&1 || {
+    tail -n 5 "$LOG/harness.log" >&2
+    fail harness 32 "a mandatory browser does not launch — install Google Chrome, then: cd ui && npx playwright install webkit (report: $LOG/browsers.json)"
+  }
+  grep -E '^OK +(chrome|webkit) ' "$LOG/harness.log" | tail -n 2 | sed 's/^OK */browser /'
   echo "harness runtimes ready"
 fi
 

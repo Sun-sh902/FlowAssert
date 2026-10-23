@@ -12,6 +12,7 @@ import http from "node:http";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Page, Response } from "@playwright/test";
+import { captureLifecycle } from "../e2e/capture-lifecycle.ts";
 
 export const UI = process.cwd();
 export const SERVICE_PORT = 8765;
@@ -162,13 +163,15 @@ export interface Exchange {
 export function captureNetwork(page: Page) {
   const all: Exchange[] = [];
   const hosts = new Set<string>();
-  const pending: Promise<void>[] = [];
+  // FIX02: every read is tracked to completion; see e2e/capture-lifecycle.ts.
+  const capture = captureLifecycle(page);
   page.on("request", (r) => hosts.add(new URL(r.url()).host));
   page.on("response", (res: Response) => {
     const raw = res.url();
     const u = new URL(raw);
     if (!u.pathname.startsWith("/api/")) return;
-    pending.push(
+    capture.track(
+      raw,
       (async () => {
         let body: string | null = null;
         try {
@@ -182,7 +185,7 @@ export function captureNetwork(page: Page) {
       })(),
     );
   });
-  return { all, hosts, settle: () => Promise.all(pending) };
+  return { all, hosts, settle: capture.settle, interrupted: capture.interrupted };
 }
 
 /** The app's own page, at a hash, from a blank document (a direct link / typed address). */

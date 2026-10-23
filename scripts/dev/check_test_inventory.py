@@ -2,10 +2,16 @@
 
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py vitest REPORT.json   (npx vitest run --reporter=json)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py pytest JUNIT.xml     (pytest --junitxml, portable set)
+    /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py playwright GATE REPORT.json   (--reporter=json; FIX02)
 
 Compares the run with scripts/dev/test-inventory.json. FAIL when a mandatory suite is missing or unlisted, a suite
 has a different number of required tests, or any required test is skipped, pending or not passed. An optional
 group (historical evidence outside this repository) is reported RAN or NOT RUN, never silently counted as passed.
+Playwright (Round 02 hardening FIX02): every test of the gate, by project › file › describe › title, must have its
+inventoried outcome — "passed" N times (N > 1 only with --repeat-each), or "skipped" with exactly the declared skip
+reason. A test that did not run (a serial file stopped by an earlier failure) carries no declared reason and FAILS, as do
+an unlisted test, a missing one and any error outside a test. Captures interrupted by a page close after a test ended
+(annotation capture-interrupted-by-close, ui/e2e/capture-lifecycle.ts) are listed, not hidden.
 Exit 0 = every required test executed and passed; 1 = FAIL; 2 = usage.
 """
 import json
@@ -75,12 +81,65 @@ def pytest(xml_path):
     return problems, [f"portable backend tests: {len(ids)}; custody tests run separately: {', '.join(inv['deselected'])}"]
 
 
+def playwright(gate, report):
+    inv = INVENTORY["playwright"].get(gate)
+    if inv is None:
+        return [f"gate {gate} is not in scripts/dev/test-inventory.json"], []
+    problems, notes, seen = [], [], {}
+
+    def walk(suite, titles):
+        for spec in suite.get("specs", []):
+            for t in spec["tests"]:
+                seen.setdefault(" › ".join([t["projectName"], spec["file"], *titles, spec["title"]]), []).append(t)
+        for child in suite.get("suites", []):
+            walk(child, titles + ([child["title"]] if child.get("title") != child.get("file") else []))
+
+    for suite in report.get("suites", []):
+        walk(suite, [])
+    for err in report.get("errors", []):
+        problems.append(f"error outside a test: {(err.get('message') or '').strip()[:200]}")
+    for key in sorted(set(inv) - set(seen)):
+        problems.append(f"{key}: mandatory test did not run")
+    for key in sorted(set(seen) - set(inv)):
+        problems.append(f"{key}: test is not in scripts/dev/test-inventory.json")
+    for key, runs in sorted(seen.items()):
+        want = inv.get(key)
+        if want is None:
+            continue
+        for t in runs:
+            for a in t.get("annotations", []):
+                if a.get("type") == "capture-interrupted-by-close":
+                    notes.append(f"INTERRUPTED capture after the test's last settle: {key}: {a.get('description')}")
+        if "skipped" in want:
+            reasons = [[a.get("description") for a in t.get("annotations", []) if a.get("type") == "skip"] for t in runs]
+            if len(runs) != want["skipped"] or any(t["status"] != "skipped" or r != [want["reason"]] for t, r in zip(runs, reasons)):
+                problems.append(f"{key}: expected {want['skipped']} declared skip(s) ({want['reason']}), got {[(t['status'], r) for t, r in zip(runs, reasons)]}")
+            continue
+        outcomes = [(t["status"], [r["status"] for r in t.get("results", [])]) for t in runs]
+        if len(runs) != want["passed"] or any(o != ("expected", ["passed"]) for o in outcomes):
+            problems.append(f"{key}: expected {want['passed']} × passed, got {outcomes}")
+    passed = sum(len(r) for k, r in seen.items() if "passed" in inv.get(k, {}))
+    skipped = sum(len(r) for k, r in seen.items() if "skipped" in inv.get(k, {}))
+    notes.append(f"{gate}: {passed} required test runs, {skipped} declared skips, {len(seen)} distinct tests")
+    return problems, notes
+
+
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in ("vitest", "pytest"):
+    args = sys.argv[1:]
+    if not ((len(args) == 2 and args[0] in ("vitest", "pytest")) or (len(args) == 3 and args[0] == "playwright")):
         print(__doc__, file=sys.stderr)
         return 2
-    kind, path = sys.argv[1], sys.argv[2]
-    problems, notes = vitest(json.loads(Path(path).read_text(encoding="utf-8"))) if kind == "vitest" else pytest(path)
+    kind, path = args[0], args[-1]
+    if kind == "playwright":
+        try:
+            report = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:  # the run ended before its reporter wrote the file
+            report = None
+            problems, notes = [f"report {path} missing or unreadable: {e}"], []
+        if report is not None:
+            problems, notes = playwright(args[1], report)
+    else:
+        problems, notes = vitest(json.loads(Path(path).read_text(encoding="utf-8"))) if kind == "vitest" else pytest(path)
     for n in notes:
         print(n)
     for p in problems:

@@ -43,11 +43,17 @@ Stop the Service with Ctrl-C. With it stopped, the workspace pages show *Service
 ```sh
 /usr/bin/python3 -I -B scripts/dev/check_identities.py   # pinned Evaluator, frozen contracts, backend source map
 scripts/dev/regression.sh --portable NEW-LABEL            # self-contained gates: backend, identities, typecheck, lint, Vitest
-scripts/dev/regression.sh NEW-LABEL                       # every gate; logs + exit codes in docs/product-dev/evidence/regression/
+scripts/dev/regression.sh NEW-LABEL                       # every gate; logs, exit codes, evidence in .dev-runtime/regression/NEW-LABEL/
 ```
 
-Gate status is PASS, FAIL or BLOCKED; a run with a BLOCKED gate exits 3 and is not a pass. Both test runners are
-checked against `scripts/dev/test-inventory.json`, so a skipped or missing test fails the run. Unit-test fixtures are
+A run writes only into its own git-ignored directory (`run-identity.tsv` names the commit). No gate writes into
+`docs/`: the final `tracked-evidence` gate fails if any tracked file there changed. To keep a run as evidence, copy
+it into `docs/` deliberately and commit it.
+
+Gate status is PASS, FAIL or BLOCKED; a run with a BLOCKED gate exits 3 and is not a pass. Every test runner
+(pytest, Vitest, Playwright) is checked against `scripts/dev/test-inventory.json`, so a skipped, missing or unexecuted
+test fails the run. The browser gates need Google Chrome and Playwright WebKit (`cd ui && npx playwright install
+webkit`); `bootstrap.sh --harness` launches both and stops if either fails. Firefox is not run. Unit-test fixtures are
 in the repository and identity-checked (`ui/src/test/fixtures/`, `service/contracts/`).
 
 Two checks need sources outside this repository:

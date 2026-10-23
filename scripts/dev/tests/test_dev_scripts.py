@@ -136,3 +136,92 @@ def test_pytest_inventory_counts_and_custody_separation(tmp_path):
     custody = '<testcase classname="tests.test_service" name="test_protected_repository_integrity"/>'
     rc, out = check(tmp_path, "pytest", junit(n - 1, custody))
     assert rc == 1 and "custody test ran inside the portable gate" in out
+
+
+# ---------- check_test_inventory.py playwright (FIX02) ----------
+
+def playwright_report(gate):
+    """A report in Playwright's JSON reporter shape matching the gate's inventory exactly."""
+    suites = []
+    for key, want in INVENTORY["playwright"][gate].items():
+        project, file, *titles = key.split(" › ")
+        if "skipped" in want:
+            tests = [{"projectName": project, "status": "skipped", "annotations": [{"type": "skip", "description": want["reason"]}], "results": [{"status": "skipped"}]}] * want["skipped"]
+        else:
+            tests = [{"projectName": project, "status": "expected", "annotations": [], "results": [{"status": "passed"}]}] * want["passed"]
+        node = {"title": titles[-2] if len(titles) > 1 else file, "file": file, "specs": [{"title": titles[-1], "file": file, "tests": copy.deepcopy(tests)}], "suites": []}
+        for describe in reversed(titles[:-2]):
+            node = {"title": describe, "file": file, "specs": [], "suites": [node]}
+        suites.append(node if len(titles) == 1 else {"title": file, "file": file, "specs": [], "suites": [node]})
+    return {"suites": suites, "errors": []}
+
+
+def check_playwright(tmp_path, gate, report):
+    path = tmp_path / "playwright.json"
+    path.write_text(json.dumps(report))
+    r = subprocess.run([sys.executable, "-I", "-B", str(ROOT / "scripts/dev/check_test_inventory.py"), "playwright", gate, str(path)], capture_output=True, text=True)
+    return r.returncode, r.stdout
+
+
+def first_spec(report, project_skipped=False):
+    stack = list(report["suites"])
+    while stack:
+        s = stack.pop(0)
+        for spec in s["specs"]:
+            if (spec["tests"][0]["status"] == "skipped") == project_skipped:
+                return spec
+        stack.extend(s["suites"])
+
+
+@pytest.mark.parametrize("gate", ["e2e-static", "rules-cls-repeat", "e2e-workspace", "e2e-history", "e2e-lookup", "e2e-local"])
+def test_playwright_inventory_accepts_a_complete_run(tmp_path, gate):
+    rc, out = check_playwright(tmp_path, gate, playwright_report(gate))
+    assert rc == 0, out
+
+
+def test_playwright_inventory_fails_a_test_that_did_not_run(tmp_path):
+    # A serial file stopped by an earlier failure: the later tests are "skipped" without a declared reason.
+    report = playwright_report("e2e-local")
+    first_spec(report)["tests"][0].update(status="skipped", annotations=[], results=[])
+    rc, out = check_playwright(tmp_path, "e2e-local", report)
+    assert rc == 1 and "× passed" in out
+
+
+def test_playwright_inventory_fails_an_undeclared_skip_reason(tmp_path):
+    report = playwright_report("e2e-local")
+    first_spec(report, project_skipped=True)["tests"][0]["annotations"] = [{"type": "skip", "description": "something else"}]
+    rc, out = check_playwright(tmp_path, "e2e-local", report)
+    assert rc == 1 and "declared skip" in out
+
+
+def test_playwright_inventory_fails_missing_unlisted_and_outside_errors(tmp_path):
+    report = playwright_report("e2e-lookup")
+    spec = first_spec(report)
+    spec["title"] += " (renamed)"
+    report["errors"] = [{"message": "Error: response.allHeaders: Target page, context or browser has been closed"}]
+    rc, out = check_playwright(tmp_path, "e2e-lookup", report)
+    assert rc == 1 and "mandatory test did not run" in out and "not in scripts/dev/test-inventory.json" in out and "error outside a test" in out
+
+
+def test_playwright_inventory_counts_repeats(tmp_path):
+    report = playwright_report("rules-cls-repeat")
+    first_spec(report)["tests"].pop()
+    rc, out = check_playwright(tmp_path, "rules-cls-repeat", report)
+    assert rc == 1 and "expected 20 × passed" in out
+
+
+def test_playwright_inventory_lists_interrupted_captures(tmp_path):
+    report = playwright_report("e2e-local")
+    first_spec(report)["tests"][0]["annotations"] = [{"type": "capture-interrupted-by-close", "description": "http://127.0.0.1:4184/api/v1/x"}]
+    rc, out = check_playwright(tmp_path, "e2e-local", report)
+    assert rc == 0 and "INTERRUPTED capture" in out
+
+
+def test_playwright_inventory_refuses_an_unknown_gate(tmp_path):
+    rc, out = check_playwright(tmp_path, "e2e-unknown", {"suites": [], "errors": []})
+    assert rc == 1 and "not in scripts/dev/test-inventory.json" in out
+
+
+def test_playwright_inventory_fails_a_missing_report(tmp_path):
+    r = subprocess.run([sys.executable, "-I", "-B", str(ROOT / "scripts/dev/check_test_inventory.py"), "playwright", "e2e-local", str(tmp_path / "absent.json")], capture_output=True, text=True)
+    assert r.returncode == 1 and "missing or unreadable" in r.stdout

@@ -219,6 +219,9 @@ test("in-app navigation: legacy x/evidence refusal → lookup link → Back → 
   await page.locator("#main").waitFor();
   await expect(seal(page)).toHaveAttribute("data-s", "Unverified");
   expect(page.url()).toBe(selected);
+  // FIX02: the reloaded Detail also reads its first evidence page; wait for it so the test does not end with that read
+  // in flight (it was the capture cut off by the page close in the Round 02 failure).
+  await expect(retrieval(page)).toContainText(/more pages remain|All evidence pages retrieved/, { timeout: 20_000 });
   await net.settle();
   const after = net.all.slice(before);
   expect(after[0]!.url).toBe("http://127.0.0.1:5183/api/v1/verification-lookup?verification_id=x%2Fevidence");
