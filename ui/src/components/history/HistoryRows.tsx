@@ -10,6 +10,7 @@
 import { ChevronRight } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
 import type { HistorySummaryView } from "../../domain/history";
+import { serviceIntegrityState } from "../../domain/integrity";
 import { formatDateTime, plural, shortDigest } from "../../lib/format";
 import { href } from "../../lib/router";
 import { IntegrityTag } from "../integrity/Integrity";
@@ -43,7 +44,7 @@ export function RecordCheck({ entry }: { entry: HistorySummaryView }) {
     <span
       title="The Service re-verified this archive’s stored candidate bytes and relationships when it answered (scope archive_candidate_and_relationships). This browser confirmed that the reported digest names this entry. Evidence payloads are checked on the entry’s page."
     >
-      <IntegrityTag state={ok ? "verified" : "failed"}>{ok ? "record check · service" : entry.integrity.status}</IntegrityTag>
+      <IntegrityTag state={serviceIntegrityState(entry.integrity.status)}>{ok ? "record check · service" : entry.integrity.status}</IntegrityTag>
     </span>
   );
 }

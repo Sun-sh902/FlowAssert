@@ -11,6 +11,7 @@
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
    "src/test/evidence-mode-switch-race.test.tsx": 90,
+   "src/test/fix03.test.tsx": 21,
    "src/test/fixture-identity.test.ts": 5,
    "src/test/fixtures.test.ts": 8,
    "src/test/history-contract-drift.test.ts": 19,

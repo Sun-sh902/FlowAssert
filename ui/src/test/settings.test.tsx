@@ -93,10 +93,13 @@ describe("Theme specimens", () => {
 describe("Provider modes", () => {
   it("shows MOCK active and the other modes reserved, with the interface-state specimens linked", () => {
     renderApp("#/settings");
-    const providers = screen.getByRole("radiogroup", { name: "Data provider" });
-    const radios = within(providers).getAllByRole("radio");
-    expect(radios.map((r) => r.getAttribute("aria-checked"))).toEqual(["true", "false", "false"]);
-    expect(radios.map((r) => r.getAttribute("aria-disabled"))).toEqual(["false", "true", "true"]);
+    // FIX03: a statement of the build's providers, not an operable control — a list, with no radio semantics or Tab stop.
+    const providers = screen.getByRole("list", { name: "Data provider" });
+    const items = within(providers).getAllByRole("listitem");
+    expect(items.map((r) => r.getAttribute("aria-current"))).toEqual(["true", null, null]);
+    expect(items.map((r) => r.textContent)).toEqual([expect.stringContaining("active"), expect.stringContaining("local research pages only"), expect.stringContaining("not implemented")]);
+    expect(within(providers).queryAllByRole("radio")).toHaveLength(0);
+    expect(providers.querySelectorAll("[tabindex]")).toHaveLength(0);
     expect((screen.getByRole("link", { name: /Interface states/ }) as HTMLAnchorElement).hash).toBe("#/states");
   });
 });

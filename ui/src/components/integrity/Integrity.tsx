@@ -55,10 +55,12 @@ export function IntegritySeal({ state, children, className }: { state: Integrity
   );
 }
 
+/** The glyph carries the state visually; the visually hidden word carries it for assistive technology. */
 export function IntegrityTag({ state, children }: { state: IntegrityState; children: ReactNode }) {
   return (
     <span className="fa-itag" data-i={state}>
       <IntegrityGlyph state={state} size={16} />
+      <span className="sr-only">{INTEGRITY_WORD[state]}: </span>
       {children}
     </span>
   );

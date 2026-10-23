@@ -1,0 +1,11 @@
+gate	exit	status	started_utc	command
+backend-pytest	0	PASS	2026-10-23T13:12:25Z	env LC_ALL=C PYTHONDONTWRITEBYTECODE=1 TMPDIR=/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/service/.runtime/tmp .venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/service/.runtime/tmp/regression-fix03-portable-worktree -q --deselect tests/test_service.py::test_protected_repository_integrity --junitxml=/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/fix03-portable-worktree/backend-pytest.xml tests
+backend-inventory	0	PASS	2026-10-23T13:12:39Z	/usr/bin/python3 -I -B scripts/dev/check_test_inventory.py pytest /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/fix03-portable-worktree/backend-pytest.xml
+protected-custody	0	PASS	2026-10-23T13:12:39Z	scripts/dev/protected_custody.sh --basetemp=/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/service/.runtime/tmp/regression-fix03-portable-worktree-custody
+dev-scripts	0	PASS	2026-10-23T13:12:42Z	/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/service/.venv/bin/python -B -m pytest -p no:cacheprovider -q --basetemp=/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/service/.runtime/tmp/regression-fix03-portable-worktree-dev scripts/dev/tests
+pinned-identities	0	PASS	2026-10-23T13:12:43Z	/usr/bin/python3 -I -B scripts/dev/check_identities.py
+ui-typecheck	0	PASS	2026-10-23T13:12:43Z	npx tsc -b
+ui-lint	0	PASS	2026-10-23T13:12:47Z	npx oxlint
+ui-vitest	0	PASS	2026-10-23T13:12:47Z	npx vitest run --reporter=default --reporter=json --outputFile=/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/fix03-portable-worktree/ui-vitest.json
+ui-vitest-inventory	0	PASS	2026-10-23T13:12:56Z	/usr/bin/python3 -I -B scripts/dev/check_test_inventory.py vitest /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/fix03-portable-worktree/ui-vitest.json
+tracked-evidence	0	PASS	2026-10-23T13:12:56Z	evidence_unchanged

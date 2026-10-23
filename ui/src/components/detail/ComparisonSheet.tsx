@@ -20,7 +20,7 @@ interface Row {
 
 /**
  * The comparison sheet: what the captured source expected and what HubSpot showed, aligned on an
- * operator spine (= holds, ≠ contradicted, ? not assessed). One row per required rule.
+ * operator spine (= holds, ≠ contradicted, ? not assessed). One row per rule the evaluator returned.
  */
 export function ComparisonSheet({ record, run }: { record: RecordView; run: RunView }) {
   const rule = (id: string) => record.rules.find((r) => r.id === id);
@@ -70,6 +70,17 @@ export function ComparisonSheet({ record, run }: { record: RecordView; run: RunV
       proposed: rl.proposed,
     });
   }
+  // Present only when the policy requires them (existed_by_deadline, workflow_execution); status as the evaluator gave it.
+  for (const rl of record.rules.filter((r) => r.kind === "historical" || r.kind === "execution"))
+    rows.push({
+      id: rl.id,
+      label: rl.label,
+      sub: rl.kind === "historical" ? "historical read" : "execution evidence",
+      status: rl.status,
+      src: "required by policy",
+      dst: rl.status === "unknown" ? none("not assessed") : rl.status,
+      note: rl.explanation,
+    });
 
   return (
     <article aria-labelledby="sheet-title" className="fade-in" key={record.rowId}>

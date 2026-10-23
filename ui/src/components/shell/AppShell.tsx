@@ -4,6 +4,7 @@ import { cn } from "../../lib/cn";
 import { DEMO_NOW_MS, formatDateTime } from "../../lib/format";
 import { isHistoryRoute, isLocalRoute, type Route } from "../../lib/router";
 import { useTheme, type ThemePreference } from "../../lib/theme";
+import { useRadioGroupKeys } from "../ui/atelier";
 import { SERVICE_STATUS_SCOPE, ServiceStatus } from "./ServiceStatus";
 
 /**
@@ -137,8 +138,9 @@ function ThemeSwitch() {
     { value: "dark", label: "Night ledger (dark)", icon: Moon },
     { value: "system", label: "System", icon: Monitor },
   ];
+  const keys = useRadioGroupKeys(options, preference, setPreference);
   return (
-    <div role="radiogroup" aria-label="Theme" className="flex rounded-sm border border-line p-0.5">
+    <div ref={keys.ref} role="radiogroup" aria-label="Theme" onKeyDown={keys.onKey} className="flex rounded-sm border border-line p-0.5">
       {options.map((o) => {
         const Icon = o.icon;
         const active = preference === o.value;
@@ -148,6 +150,7 @@ function ThemeSwitch() {
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={active ? 0 : -1}
             aria-label={o.label}
             title={o.label}
             onClick={() => setPreference(o.value)}

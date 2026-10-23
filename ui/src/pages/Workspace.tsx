@@ -131,8 +131,10 @@ export function WorkspaceOverview({ history = getHistoryProvider("LOCAL_RESEARCH
 
 function Statement({ cases }: { cases: WorkspaceCase[] }) {
   const read = cases.filter((c) => c.live.kind === "ready");
-  const notRead = cases.length - read.length;
-  if (read.length === 0) return <h1 className="display mt-4 text-[36px] leading-[1.04] text-ink sm:text-[44px]">No current result could be read.</h1>;
+  const reading = cases.filter((c) => c.live.kind === "reading").length;
+  const notRead = cases.length - read.length - reading;
+  if (read.length === 0)
+    return <h1 className="display mt-4 text-[36px] leading-[1.04] text-ink sm:text-[44px]">{reading ? "No current result has been read yet." : "No current result could be read."}</h1>;
   const count = (s: VerificationState) => read.filter((c) => liveState(c) === s).length;
   const lead = count("Mismatch") > 0 ? `${word(count("Mismatch"))} ${count("Mismatch") === 1 ? "case contradicts its" : "cases contradict their"} source.` : null;
   const rest: string[] = [];
@@ -140,6 +142,7 @@ function Statement({ cases }: { cases: WorkspaceCase[] }) {
   if (count("Pending")) rest.push(`${word(count("Pending"), true)} ${count("Pending") === 1 ? "is" : "are"} still waiting`);
   if (count("Verified")) rest.push(`${word(count("Verified"), true)} ${count("Verified") === 1 ? "is" : "are"} verified`);
   if (notRead) rest.push(`${word(notRead, true)} could not be read`);
+  if (reading) rest.push(`${word(reading, true)} ${reading === 1 ? "is" : "are"} still being read`);
   let tail = rest.join(", ");
   if (tail) tail = `${tail[0]!.toUpperCase()}${tail.slice(1)}.`;
   return (
@@ -152,7 +155,8 @@ function Statement({ cases }: { cases: WorkspaceCase[] }) {
 function ResultLedger({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
   const live = (s: VerificationState) => w.cases.filter((c) => liveState(c) === s).length;
   const arch = (s: VerificationState) => (w.index ? w.cases.filter((c) => c.entries[0]?.result.cohort === s).length : null);
-  const liveNone = w.cases.filter((c) => c.live.kind !== "ready").length;
+  // A case still being read has no result yet — it is not counted as "No result".
+  const liveNone = w.cases.filter((c) => c.live.kind !== "ready" && c.live.kind !== "reading").length;
   const archNone = w.index ? w.cases.filter((c) => c.entries.length === 0).length : null;
   return (
     <section aria-labelledby="ledger-h" className="min-w-0">
@@ -194,7 +198,7 @@ function ResultLedger({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
                 No result
               </span>
             </th>
-            <td className="metric py-[5px] text-right text-ink-3">{liveNone}</td>
+            <td className="metric py-[5px] text-right text-ink-3">{w.reading && liveNone === 0 ? "·" : liveNone}</td>
             <td className="metric py-[5px] pl-5 text-right text-ink-3">{archNone ?? "·"}</td>
           </tr>
         </tbody>
@@ -233,18 +237,21 @@ function ComparisonStrip({ cases }: { cases: WorkspaceCase[] }) {
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
 function CaseExhibits({ cases }: { cases: WorkspaceCase[] }) {
-  const groups: { key: VerificationState | "none"; title: string; hint: string }[] = [
+  const groups: { key: VerificationState | "none" | "reading"; title: string; hint: string }[] = [
     { key: "Mismatch", title: "Contradicted by evidence", hint: "investigate" },
     { key: "Unverified", title: "Inconclusive", hint: "restore evidence" },
     { key: "Pending", title: "Within the retry window", hint: "wait" },
     { key: "Verified", title: "Verified at the current observation", hint: "no action" },
+    { key: "reading", title: "Current result being read", hint: "reading" },
     { key: "none", title: "No current result", hint: "see why" },
   ];
   let n = 0;
   return (
     <Panel title="Cases" description="Current Service result per known case, ordered by what to do; the newest archived result beside it." className="lg:col-span-8">
       {groups.map((g) => {
-        const list = cases.filter((c) => (g.key === "none" ? c.live.kind !== "ready" : liveState(c) === g.key));
+        const list = cases.filter((c) =>
+          g.key === "reading" ? c.live.kind === "reading" : g.key === "none" ? c.live.kind !== "ready" && c.live.kind !== "reading" : liveState(c) === g.key,
+        );
         if (!list.length) return null;
         return (
           <section key={g.key} aria-label={g.title}>
@@ -289,15 +296,20 @@ function CaseExhibits({ cases }: { cases: WorkspaceCase[] }) {
                         )}
                       </p>
                     </div>
-                    <dl className="col-start-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:col-start-3" aria-label={`${c.id} results`}>
-                      <dt className="kicker text-ink-3">Live</dt>
-                      <dt className="kicker text-ink-3">Archived</dt>
-                      <dd>
-                        <LiveVerdict side={c.live} compact />
-                      </dd>
-                      <dd>
-                        <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} compact />
-                      </dd>
+                    {/* Each term is grouped with its own description, so "Live" and "Archived" each name only their value. */}
+                    <dl className="col-start-2 grid grid-cols-2 gap-x-4 sm:col-start-3" aria-label={`${c.id} results`}>
+                      <div className="grid content-start gap-y-1">
+                        <dt className="kicker text-ink-3">Live</dt>
+                        <dd>
+                          <LiveVerdict side={c.live} compact />
+                        </dd>
+                      </div>
+                      <div className="grid content-start gap-y-1">
+                        <dt className="kicker text-ink-3">Archived</dt>
+                        <dd>
+                          <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} compact />
+                        </dd>
+                      </div>
                     </dl>
                   </li>
                 );
@@ -315,7 +327,7 @@ function Register({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
   const a = w.archiveState;
   const rows: [string, ReactNode][] = [
     ["Live reads", `${liveOk} of ${w.cases.length} answered · ≤${LIVE_CONCURRENCY} at a time`],
-    ["Archive", a.status === "ready" ? `${plural(a.index.totalEntries, "entry", "entries")} · ${plural(a.pages, "page")} of ${HISTORY_LIMITS.listPageLimit}` : a.status === "reading" ? "reading…" : `not read (${a.status})`],
+    ["Archive", a.status === "ready" ? `${plural(a.index.totalEntries, "entry", "entries")} · ${plural(a.pages, "page")} · ${HISTORY_LIMITS.listPageLimit} per page` : a.status === "reading" ? "reading…" : `not read (${a.status})`],
     [
       "Record checks",
       a.status === "ready" ? (a.index.integrityExceptions === 0 ? `${a.index.totalEntries} of ${a.index.totalEntries} INTEGRITY_VERIFIED` : `${a.index.integrityExceptions} not INTEGRITY_VERIFIED`) : "—",
@@ -359,7 +371,8 @@ function Register({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
 
 function OverviewBody({ history, live, onReread }: { history: FlowAssertHistoryProvider; live: FlowAssertReadProvider; onReread: () => void }) {
   const w = useWorkspaceCases(history, live, 0);
-  if (w.allUnreachable && w.archiveState.status === "failed") return <ArchiveReadState state={w.archiveState} onReread={onReread} />;
+  // The notice is the whole page here, so its title is the page's H1 (Verifications keeps its own PageHead).
+  if (w.allUnreachable && w.archiveState.status === "failed") return <ArchiveReadState state={w.archiveState} onReread={onReread} headingLevel={1} />;
   return (
     <div className="space-y-10">
       <header className="grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
@@ -607,7 +620,15 @@ function VerificationsBody({ history, live, onReread }: { history: FlowAssertHis
  * Archive read failures (shared)
  * ====================================================================================== */
 
-export function ArchiveReadState({ state, onReread }: { state: Exclude<ArchiveIndexState, { status: "ready" }>; onReread: () => void }) {
+export function ArchiveReadState({
+  state,
+  onReread,
+  headingLevel = 2,
+}: {
+  state: Exclude<ArchiveIndexState, { status: "ready" }>;
+  onReread: () => void;
+  headingLevel?: 1 | 2;
+}) {
   const reread = (
     <button type="button" className={buttonClass("default", "sm")} onClick={onReread}>
       <RotateCcw size={12} aria-hidden /> Read the archive again
@@ -642,6 +663,7 @@ export function ArchiveReadState({ state, onReread }: { state: Exclude<ArchiveIn
     return (
       <AccessNotice
         state="REQUEST_ERROR"
+        headingLevel={headingLevel}
         title="The archive list was refused"
         body={`${state.refusal.message} No archived result is shown: a partly admitted archive cannot say which cases are archived.`}
         facts={[
@@ -652,8 +674,8 @@ export function ArchiveReadState({ state, onReread }: { state: Exclude<ArchiveIn
       />
     );
   const f = state.failure;
-  if (f?.kind === "error" && f.integrity) return <ArchiveIntegrityFailure failure={f} subject="archive list" headingLevel={2} actions={reread} />;
-  if (f?.kind === "not_found") return <AccessNotice state="NOT_FOUND" body="The archive list answered 404. No result is shown." actions={reread} />;
+  if (f?.kind === "error" && f.integrity) return <ArchiveIntegrityFailure failure={f} subject="archive list" headingLevel={headingLevel} actions={reread} />;
+  if (f?.kind === "not_found") return <AccessNotice state="NOT_FOUND" headingLevel={headingLevel} body="The archive list answered 404. No result is shown." actions={reread} />;
   const access = f?.kind === "error" ? f.access : "SERVICE_UNAVAILABLE";
   const facts: [string, string][] = [];
   if (f?.kind === "error") {
@@ -666,6 +688,7 @@ export function ArchiveReadState({ state, onReread }: { state: Exclude<ArchiveIn
   return (
     <AccessNotice
       state={access}
+      headingLevel={headingLevel}
       title={access === "SERVICE_UNAVAILABLE" ? "The local Service is unavailable" : undefined}
       body={`${ACCESS_COPY[access].body} ${f?.kind === "error" ? f.message : ""}${access === "SERVICE_UNAVAILABLE" ? " Start it with scripts/dev/service.sh, then read again." : ""}`}
       facts={facts}

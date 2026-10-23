@@ -48,8 +48,13 @@ export type ArchiveAxis =
   | { axis: "archive"; kind: "THIS_ENTRY"; historyId: string; archivedAt: string; integrity: ServiceIntegrityView["status"] }
   /** The archive was read completely and holds no evaluation of this case. */
   | { axis: "archive"; kind: "NOT_ARCHIVED" }
-  /** The archive could not be read (transport, gate, Service error, refused page). Nothing is known. */
-  | { axis: "archive"; kind: "UNAVAILABLE"; code: string; integrity: boolean }
+  /**
+   * The archive could not be read (transport, gate, Service error, refused page). Nothing is known. `integrity` is the
+   * integrity outcome the Service reported, if any — FAILED and UNVERIFIABLE are kept apart.
+   */
+  | { axis: "archive"; kind: "UNAVAILABLE"; code: string; integrity: "INTEGRITY_FAILED" | "INTEGRITY_UNVERIFIABLE" | null }
+  /** The archive list answered 404 history_not_found. Not a read failure, and not an empty archive. */
+  | { axis: "archive"; kind: "NOT_FOUND" }
   /** The archive contract cannot address this ID (its filter admits only the reviewed case IDs); no request was sent. */
   | { axis: "archive"; kind: "NOT_ADDRESSABLE"; reason: string };
 

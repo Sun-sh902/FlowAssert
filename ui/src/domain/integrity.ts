@@ -46,6 +46,11 @@ function browserOf(ref: EvidenceReferenceView): ItemIntegrity["browser"] {
   }
 }
 
+/** The Service's own integrity statement as an integrity state. UNVERIFIABLE is never drawn as FAILED. */
+export function serviceIntegrityState(status: ServiceIntegrityView["status"]): IntegrityState {
+  return status === "INTEGRITY_VERIFIED" ? "verified" : status === "INTEGRITY_FAILED" ? "failed" : "unverifiable";
+}
+
 export function assessItem(ref: EvidenceReferenceView): ItemIntegrity {
   const service = ref.serviceIntegrity?.status ?? null;
   const browser = browserOf(ref);

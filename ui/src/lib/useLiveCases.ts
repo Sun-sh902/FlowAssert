@@ -50,8 +50,13 @@ export function useLiveCases(provider: Pick<FlowAssertReadProvider, "getVerifica
         const r = await provider.getVerification(id, {}, ctrl.signal);
         if (!ctrl.signal.aborted) setSides((s) => ({ ...s, [id]: liveSideOf(r) }));
       } catch {
-        // AbortError: the view is gone or re-read; nothing from this read is kept.
-        if (!ctrl.signal.aborted) setSides((s) => ({ ...s, [id]: { kind: "cancelled" } }));
+        // AbortError: the view is gone or re-read; nothing from this read is kept. Any other rejection breaks the
+        // provider contract — it is a failure of this read, not a cancellation.
+        if (!ctrl.signal.aborted)
+          setSides((s) => ({
+            ...s,
+            [id]: { kind: "failed", failure: { code: "client_error", message: "The read ended with an unexpected error in this browser. No result was received.", transport: false, integrity: false } },
+          }));
       }
     });
     return () => ctrl.abort();

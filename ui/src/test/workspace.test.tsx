@@ -118,7 +118,7 @@ describe("StatusAxesLedger", () => {
         axes={{
           capture: CAPTURE_NOT_IMPLEMENTED,
           admission: ADMISSION_NOT_IMPLEMENTED,
-          archive: { axis: "archive", kind: "UNAVAILABLE", code: "transport_failure", integrity: false },
+          archive: { axis: "archive", kind: "UNAVAILABLE", code: "transport_failure", integrity: null },
           verdict: { axis: "verdict", kind: "VERDICT", state: "Pending", source: { kind: "live", request: "GET /api/v1/verifications/SPEC-003 (live read)" } },
         }}
       />,

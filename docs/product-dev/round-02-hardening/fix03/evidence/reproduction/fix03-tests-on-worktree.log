@@ -1,0 +1,30 @@
+
+ RUN  v5.0.3 /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/ui
+
+ ✓ src/test/fix03.test.tsx > F-01 integrity states stay distinct > maps each Service integrity statement to its own state 4ms
+ ✓ src/test/fix03.test.tsx > F-01 integrity states stay distinct > the History record check and the archive axis draw UNVERIFIABLE as unverifiable 12ms
+ ✓ src/test/fix03.test.tsx > F-01 integrity states stay distinct > a 503 with INTEGRITY_UNVERIFIABLE (archive_unavailable) is not reported as an integrity failure on the Detail axes 12ms
+ ✓ src/test/fix03.test.tsx > F-01 integrity states stay distinct > a 503 with INTEGRITY_FAILED is still reported as an integrity failure 6ms
+ ✓ src/test/fix03.test.tsx > F-01 integrity states stay distinct > names the integrity state for assistive technology, not only by glyph 1ms
+ ✓ src/test/fix03.test.tsx > F-02 the comparison sheet shows every rule the Evaluator returned > existed_by_deadline (require_historical_deadline) appears as its own not-assessed row 51ms
+ ✓ src/test/fix03.test.tsx > F-02 the comparison sheet shows every rule the Evaluator returned > workflow_execution and both optional rules: each shown once per layout, never a sixth rule 12ms
+ ✓ src/test/fix03.test.tsx > F-02 the comparison sheet shows every rule the Evaluator returned > the record summary never claims the phone matches when the phone was not compared 0ms
+ ✓ src/test/fix03.test.tsx > F-02 the comparison sheet shows every rule the Evaluator returned > leaves the reviewed fixtures' wording unchanged (three rules, Verified) 1ms
+ ✓ src/test/fix03.test.tsx > F-03 unexpected rejections settle as failures > a live read rejecting with a non-abort error is not labelled cancelled 33ms
+ ✓ src/test/fix03.test.tsx > F-03 unexpected rejections settle as failures > a candidate Detail read rejecting with a non-abort error settles instead of reading forever 4ms
+ ✓ src/test/fix03.test.tsx > F-04 truthful UI claims > cases still being read are not counted or grouped as No result 22ms
+ ✓ src/test/fix03.test.tsx > F-04 truthful UI claims > the headline does not say no result could be read while reads are still in flight 15ms
+ ✓ src/test/fix03.test.tsx > F-04 truthful UI claims > the register states pages and page size, not 'N pages of M' 25ms
+ ✓ src/test/fix03.test.tsx > F-04 truthful UI claims > a list 404 on the Detail axes is not found — not a read failure 4ms
+ ✓ src/test/fix03.test.tsx > F-04 truthful UI claims > a production build does not claim the DEV-only fixture check ran 12ms
+ ✓ src/test/fix03.test.tsx > F-04 truthful UI claims > the dev server states the check it ran at startup 10ms
+ ✓ src/test/fix03.test.tsx > F-05 accessibility > the Overview keeps a top-level heading when the Service is unavailable 8ms
+ ✓ src/test/fix03.test.tsx > F-05 accessibility > each case's results pair every term with its own description 9ms
+ ✓ src/test/fix03.test.tsx > F-05 accessibility > the rail theme selector is one Tab stop and moves with the arrow keys 23ms
+ ✓ src/test/fix03.test.tsx > F-05 accessibility > the Settings specimens theme selector is one Tab stop and moves with the arrow keys 23ms
+
+ Test Files  1 passed (1)
+      Tests  21 passed (21)
+   Start at  09:11:42
+   Duration  884ms (tests 36%, transform 28%, environment 21%, import 12%, setup 3%)
+

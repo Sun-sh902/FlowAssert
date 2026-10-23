@@ -382,7 +382,7 @@ test("mode separation: demo pages stay MOCK and never call the Service; local pa
     await expect(page.getByRole("region", { name: "Demo register" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Data provenance" })).toHaveCount(0);
     // Settings names the mode in its provider register (as one of three modes); nowhere else on a demo page.
-    const register = page.getByRole("radiogroup", { name: "Data provider" });
+    const register = page.getByRole("list", { name: "Data provider" }); // FIX03: a list, no longer a static radiogroup
     const total = await page.getByText("LOCAL_RESEARCH", { exact: true }).count();
     const inRegister = (await register.count()) ? await register.getByText("LOCAL_RESEARCH", { exact: true }).count() : 0;
     expect(total - inRegister, hash).toBe(0);

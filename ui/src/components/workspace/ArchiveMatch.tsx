@@ -17,6 +17,7 @@ import type { ProviderResult } from "../../data/access";
 import type { FlowAssertHistoryProvider } from "../../data/provider";
 import { IDENTITY_LABEL, matchArchive, resultRelation, type ArchiveMatch } from "../../data/workspace/comparison";
 import type { HistoryDetailView, HistorySummaryView } from "../../domain/history";
+import { serviceIntegrityState } from "../../domain/integrity";
 import type { RunView } from "../../domain/view";
 import { cn } from "../../lib/cn";
 import { formatDateTime, plural, shortDigest } from "../../lib/format";
@@ -58,7 +59,10 @@ function useCandidateChecks(provider: Pick<FlowAssertHistoryProvider, "getHistor
         const r = await provider.getHistory(id, {}, ctrl.signal);
         if (!ctrl.signal.aborted) setChecks((c) => ({ ...c, [id]: checkOf(r, live) }));
       } catch {
-        /* aborted: the Detail changed or unmounted */
+        // Aborted: the Detail changed or unmounted. Any other rejection breaks the provider contract; it settles as a
+        // failure so the candidate never stays "reading" and is never shown as checked.
+        if (!ctrl.signal.aborted)
+          setChecks((c) => ({ ...c, [id]: { kind: "failed", code: "client_error", integrity: null, message: "The read ended with an unexpected error in this browser." } }));
       }
     });
     return () => ctrl.abort();
@@ -80,7 +84,7 @@ function CheckLine({ check }: { check: Check | undefined }) {
   const d = check.detail;
   return (
     <span className="grid gap-1">
-      <IntegrityTag state={d.integrity.status === "INTEGRITY_VERIFIED" ? "verified" : "failed"}>{d.integrity.status === "INTEGRITY_VERIFIED" ? "record check · service" : d.integrity.status}</IntegrityTag>
+      <IntegrityTag state={serviceIntegrityState(d.integrity.status)}>{d.integrity.status === "INTEGRITY_VERIFIED" ? "record check · service" : d.integrity.status}</IntegrityTag>
       <span className={cn("font-mono text-[11px]", check.relation === "different" ? "text-brand-ink" : "text-ink-2")} data-result-relation={check.relation}>
         {check.relation === "identical"
           ? "full result byte-identical to the live result"

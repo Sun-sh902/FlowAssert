@@ -26,6 +26,7 @@ import type { RunView } from "../../domain/view";
 import { Panel } from "../ui/primitives";
 import { ArchiveMatchPanel } from "./ArchiveMatch";
 import { shortHistoryId } from "../history/HistoryRows";
+import { serviceIntegrityState } from "../../domain/integrity";
 import { IntegrityTag } from "../integrity/Integrity";
 import { Seal } from "../ui/status";
 
@@ -73,7 +74,7 @@ export function ArchiveValue({ axis, compact = false }: { axis: ArchiveAxis; com
           <span className="text-[13px] font-medium text-ink">
             Archived <span className="font-normal text-ink-3">· {plural(axis.entries, "evaluation")}</span>
           </span>
-          <IntegrityTag state={ok ? "verified" : "failed"}>{ok ? "record check · service" : axis.latest.integrity}</IntegrityTag>
+          <IntegrityTag state={serviceIntegrityState(axis.latest.integrity)}>{ok ? "record check · service" : axis.latest.integrity}</IntegrityTag>
           {!compact && (
             <a href={href(`/local/history/${axis.latest.historyId}`)} className="mono-id fa-hit rounded-xs text-[10.5px] text-ink-3 underline decoration-line-strong underline-offset-2 hover:text-ink" title={axis.latest.historyId}>
               latest {shortHistoryId(axis.latest.historyId)}
@@ -90,16 +91,19 @@ export function ArchiveValue({ axis, compact = false }: { axis: ArchiveAxis; com
           <span className="text-[13px] font-medium text-ink">
             Archived <span className="font-normal text-ink-3">· {formatDateTime(axis.archivedAt)}</span>
           </span>
-          <IntegrityTag state={ok ? "verified" : "failed"}>{ok ? "record check · service" : axis.integrity}</IntegrityTag>
+          <IntegrityTag state={serviceIntegrityState(axis.integrity)}>{ok ? "record check · service" : axis.integrity}</IntegrityTag>
         </span>
       );
     }
     case "NOT_ARCHIVED":
       return <span className="font-mono text-[11px] text-ink-2">Not archived</span>;
+    case "NOT_FOUND":
+      return <span className="font-mono text-[11px] text-ink-2">Archive list not found</span>;
     case "UNAVAILABLE":
       return (
         <span className="grid justify-items-start gap-1">
           <span className="text-[13px] font-medium text-ink">Archive unavailable</span>
+          {axis.integrity && <IntegrityTag state={serviceIntegrityState(axis.integrity)}>{axis.integrity}</IntegrityTag>}
           <span className="font-mono text-[10.5px] text-ink-3">{axis.code}</span>
         </span>
       );
@@ -128,10 +132,14 @@ function archiveNote(axis: ArchiveAxis): string {
       return "Stored in the local SQLite archive. The record check is the Service’s own integrity statement, not a business result.";
     case "NOT_ARCHIVED":
       return "The archive was read completely and holds no evaluation of this case.";
+    case "NOT_FOUND":
+      return "The archive list answered 404 history_not_found. Nothing is shown — not a verdict, and not an empty archive.";
     case "UNAVAILABLE":
-      return axis.integrity
+      return axis.integrity === "INTEGRITY_FAILED"
         ? "The Service reported an archive integrity failure. Nothing from the archive is shown as a result."
-        : "The archive could not be read. This is a read failure — not a verdict and not an empty archive.";
+        : axis.integrity === "INTEGRITY_UNVERIFIABLE"
+          ? "The Service could not verify the stored archive (INTEGRITY_UNVERIFIABLE) — not a failed check. Nothing from the archive is shown as a result."
+          : "The archive could not be read. This is a read failure — not a verdict and not an empty archive.";
     case "NOT_ADDRESSABLE":
       return axis.reason;
   }
@@ -245,22 +253,27 @@ function ArchivedCaseAxes({
   }, [status, loadMore]);
   let archive: ArchiveAxis;
   if (status === "complete") archive = archiveAxisOf(list.chain.items);
+  else if (status === "failed" && !list.refusal && list.failure?.kind === "not_found") archive = { axis: "archive", kind: "NOT_FOUND" };
   else if (status === "failed" || status === "refused" || status === "cancelled")
     archive = {
       axis: "archive",
       kind: "UNAVAILABLE",
-      code: list.refusal?.code ?? (list.failure?.kind === "error" ? list.failure.code : status === "cancelled" ? "cancelled" : "not_found"),
-      integrity: list.failure?.kind === "error" && !!list.failure.integrity,
+      code: list.refusal?.code ?? (list.failure?.kind === "error" ? list.failure.code : "cancelled"),
+      integrity: (list.failure?.kind === "error" && list.failure.integrity) || null,
     };
   else archive = { axis: "archive", kind: "READING" };
   let match: ReactNode = null;
   if (live) {
     if (status === "complete") match = <ArchiveMatchPanel live={live} entries={list.chain.items} provider={provider} />;
+    else if (archive.kind === "NOT_FOUND")
+      match = <MatchUnavailable title="Archive not read" body="The archive list answered 404 history_not_found. No match is claimed and none is ruled out." />;
     else if (archive.kind === "UNAVAILABLE")
       match = (
         <MatchUnavailable
           title="Archive not read"
-          body={`This case's archive entries could not be read (${archive.code}${archive.integrity ? ", integrity failure reported by the Service" : ""}). No match is claimed and none is ruled out.`}
+          body={`This case's archive entries could not be read (${archive.code}${
+            archive.integrity === "INTEGRITY_FAILED" ? ", integrity failure reported by the Service" : archive.integrity === "INTEGRITY_UNVERIFIABLE" ? ", the Service could not verify the stored archive" : ""
+          }). No match is claimed and none is ruled out.`}
         />
       );
     else match = <MatchUnavailable reading title="Reading the archive" body="Matching starts once every archive page for this case has been read." />;

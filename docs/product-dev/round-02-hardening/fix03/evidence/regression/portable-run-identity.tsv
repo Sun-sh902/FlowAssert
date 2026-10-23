@@ -1,0 +1,8 @@
+run_id	fix03-portable-worktree
+commit	203f70216679a660d561e28c2f85c56991221734
+branch	product-dev/round-02-hardening
+worktree_changes	18
+mode	portable
+started_utc	2026-10-23T13:12:25Z
+host	Darwin 27.2.0 arm64
+run_dir	/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/fix03-portable-worktree

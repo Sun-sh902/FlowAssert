@@ -158,8 +158,11 @@ function recordSummary(rec: RecordResultDTO, key: string, rules: RuleView[], ctx
   }
   if (rec.state === "Pending") return "No contact observed yet. The evaluator returned Pending; nothing here schedules another observation.";
   if (ctx.access !== "ok") return `${ACCESS_PHRASE[ctx.access]} during this observation, so no rule could be assessed.`;
-  if (r.uniqueness.status === "unknown" && r.existence.status === "pass")
+  const notAssessed = rules.filter((x) => x.status === "unknown");
+  if (r.existence.status === "pass" && r.phone.status === "pass" && notAssessed.length === 1 && notAssessed[0]!.id === "uniqueness")
     return "The contact exists and its phone matches, but uniqueness could not be assessed because the destination read was incomplete.";
+  if (r.existence.status === "pass" && notAssessed.length)
+    return `The contact exists, but ${notAssessed.length === 1 ? "this rule" : "these rules"} could not be assessed: ${notAssessed.map((x) => x.label).join(", ")}.`;
   return "Available evidence is insufficient to reach Verified or Mismatch.";
 }
 

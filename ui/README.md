@@ -1,158 +1,133 @@
-# FlowAssert UI — first iteration
+# FlowAssert UI
 
-Frontend prototype for **FlowAssert**, an evidence-based workflow verification product in its
-offline research stage. The demo pages show **synthetic demo data** (MOCK) modelled on the research
-evaluator's contract. Since Phase 2, the separate **Local research** pages (`#/local/…`) read the
-accepted local Python service over HTTP — still synthetic input, an unapproved research version, no
-authentication and no live n8n or HubSpot connection.
+Frontend for **FlowAssert**, an evidence-based workflow verification product in its offline research stage, in the
+product development workspace (see the [workspace README](../README.md)). **LOCAL / OFFLINE / SYNTHETIC RESEARCH ONLY.**
 
-The research repository (`../FlowAssert-round03-oracle-fix`) was used read-only as the source of truth
-and was not modified.
+Two data sources, never mixed on one page:
+
+- **LOCAL_RESEARCH** — the workspace pages (`#/`, `#/verifications`, `#/local/…`) read the local Python Service on
+  `127.0.0.1:8765` over HTTP: the five reviewed synthetic cases, their live results and the local SQLite archive.
+  Verdicts are the pinned Python evaluator's, copied unchanged. Without the Service these pages show
+  *Service unavailable* — never demo data.
+- **MOCK** — the demo pages (`#/demo`, `#/demo/verifications`) and the configuration pages (`#/connections`, `#/rules`,
+  `#/settings`) use hand-built synthetic fixtures. Nothing is read from any service and nothing is sent.
+
+There is no live n8n or HubSpot connection, no credentials, no capture pipeline and no evidence admission in this build;
+the Capture and Admission status axes say *Not implemented*.
 
 ## Run locally
 
-Requires Node 20+ (developed with Node 26.10, npm 11.19).
+Requires Node 20+ (developed with Node 26.10, npm 11.19). From the workspace root, once on a fresh clone:
 
 ```bash
-npm install
+scripts/dev/bootstrap.sh            # tools, ui/node_modules, service/.venv, pinned identities, synthetic archives
 ```
+
+Then, in two terminals:
 
 ```bash
-npm run dev
+scripts/dev/service.sh              # Service on 127.0.0.1:8765 (FA_STATE=dev-single | dev-empty for the other archives)
+cd ui && npm run dev                # UI on http://127.0.0.1:5183
 ```
 
-Open <http://127.0.0.1:5183>. Production build:
+The dev and preview servers forward only seven exact GET routes to the Service, through `server/localApiGate.ts`
+(the frozen v1 Detail and evidence routes, the three Phase 3A history routes and the two ID-lookup routes); every other
+`/api` request is refused there. `npm run dev` also checks every MOCK demo fixture against the research state
+precedence at startup and shows an error instead of the app if one is inconsistent (dev server only; the production
+build does not run this check — `src/test/fixtures.test.ts` does).
 
-```bash
-npm run build
-```
+| Page | Address | Data |
+| --- | --- | --- |
+| Overview | `#/` | LOCAL_RESEARCH — live results and the archive |
+| Verifications | `#/verifications` (also `#/local/verifications`) | LOCAL_RESEARCH |
+| Verification Detail + evidence | `#/local/verifications/SPEC-00N` | LOCAL_RESEARCH, live read |
+| Detail by exact ID | `#/local/verification-lookup?verification_id=…` | LOCAL_RESEARCH, ID-lookup routes |
+| History | `#/local/history`, `#/local/history/:historyId` | LOCAL_RESEARCH — the SQLite archive |
+| Capture runs | `#/capture` | not implemented — no action offered |
+| Demo overview / runs | `#/demo`, `#/demo/verifications` | MOCK |
+| Connections, Rules, Settings | `#/connections`, `#/rules`, `#/settings` | MOCK configuration demo |
+| Interface states | `#/states` | simulated access states, never verdicts |
 
-Checks (Phase 2.5):
+## Checks
 
 ```bash
 npm run typecheck && npm run lint && npm test
 ```
 
-```bash
-npm run test:e2e
-```
+`npm test` runs the Vitest component and unit suites; the required fixtures are in the repository
+(`src/test/fixtures/`, `../service/contracts/`) and identity-checked.
 
-`npm test` runs the Vitest component and unit suites. `npm run test:e2e` builds the app and runs the Playwright browser checks
-(responsive, axe accessibility, keyboard, performance) in the locally installed Chrome. See
-`docs/PHASE2_5_FRONTEND_READINESS.md` and `docs/phase2_5/TEST_INVENTORY.md`.
-
-`npm run dev` validates every demo fixture against the research state precedence at startup and shows
-an error instead of the app if anything is inconsistent.
-
-### Local research pages (Phase 2)
-
-The dev and preview servers proxy `/api/v1` (only) to the local service on `127.0.0.1:8765`. Prepare the
-isolated exact-source copy of the accepted service once, then run it next to `npm run dev`:
+Browser suites (Playwright; locally installed Google Chrome by default, `FA_BROWSERS=chrome,webkit` adds WebKit;
+Firefox is not run in this workspace):
 
 ```bash
-/usr/bin/python3 -I -B scripts/phase2/prepare_runtime.py
+FA_BROWSERS=chrome,webkit npm run test:e2e             # static build: responsive, axe accessibility, keyboard, performance
+FA_BROWSERS=chrome,webkit npm run test:e2e:workspace   # real Service: starts and stops scripts/dev/service.sh itself
 ```
+
+`test:e2e`, `test:e2e:workspace` and the other suites own ports 4183, 4184, 5183 and 8765; stop the dev server and the
+Service first. The accepted Phase 2 / Phase 3A suites (`test:e2e:local`, `test:e2e:history`, the lookup suite) need
+their isolated runtimes, provisioned by `scripts/dev/bootstrap.sh --harness`; that step reads the accepted read-only
+sources at fixed absolute paths outside this repository and stops BLOCKED if they are absent.
+
+Every gate, with exit codes, logs and the test inventory (`scripts/dev/test-inventory.json`) checked so that a skipped
+or missing test fails the run:
 
 ```bash
-npm run service:local
+scripts/dev/regression.sh --portable LABEL   # self-contained gates (no browsers, no ports)
+scripts/dev/regression.sh LABEL              # every gate, including the browser suites
 ```
 
-Open <http://127.0.0.1:5183/#/local/verifications>. Without the service, local pages show *Service
-unavailable* — never demo data. Real end-to-end checks (they start and stop the service themselves):
-
-```bash
-FA_BROWSERS=chrome,webkit npm run test:e2e:local
-```
-
-See `docs/PHASE2_INTEGRATION_REPORT.md`.
-
-## What is in this iteration
+## What is in this build
 
 | Area | Status |
 | --- | --- |
 | Design system (tokens, type, status glyphs, components) | Implemented |
-| App shell (sidebar, mobile drawer, demo banner, light/dark/system theme) | Implemented |
-| Overview | Implemented |
-| Verifications list (filter + search) | Implemented (lightweight) |
-| Verification detail | Implemented |
-| Connections, Rules, Settings | Implemented as demo configuration pages (Phase 2): synthetic data, nothing connected, nothing sent — see `docs/PHASE2_UI.md` |
+| App shell (sidebar, mobile drawer, Service status, light/dark/system theme) | Implemented |
+| Overview and Verifications (five known cases; live beside archived; four status axes) | Implemented, LOCAL_RESEARCH |
+| Verification Detail, evidence, exact-ID lookup | Implemented, LOCAL_RESEARCH |
+| History (archive list, archived Detail, archived evidence; retrieval and integrity reported separately) | Implemented, LOCAL_RESEARCH |
+| Capture runs, evidence admission | Not implemented — stated as such, no action offered |
+| Demo overview and runs | MOCK demo |
+| Connections, Rules, Settings | MOCK configuration demo: synthetic data, nothing connected, nothing sent — see `docs/PHASE2_UI.md` |
 
 ## Project layout
 
 ```
 src/
   research/   TypeScript mirror of model.py output + state-precedence mirror (no evaluation)
-  mocks/      Proposed run envelope, deterministic fixture builders, consistency validator
-  adapters/   research shape → view models (the only module that reads both)
-  domain/     View-model types used by components
-  data/       Read-only demo store, provider seam (MOCK only; async read surface prepared), data-access states,
-              contract/ wire mirror of the reviewed v1 Detail and evidence DTOs, demo configuration, local draft rule
-  components/states/  Data-access state presentation (loading, error, partial, stale, evidence unavailable…)
-  test/       Vitest suites; browser checks live in e2e/
-  components/ ui · charts · runs · detail · shell
-  pages/      Overview, Verifications, VerificationDetail, Connections, Rules, Settings, States (#/states specimens)
+  mocks/      MOCK run envelope, deterministic fixture builders, consistency validator
+  adapters/   wire / research shapes → view models (no verdict is computed)
+  domain/     View-model types: runs, history, evidence integrity, the four status axes
+  data/       contract/ (wire mirrors of the frozen v1, history and lookup contracts), local/ and history/ (LOCAL_RESEARCH
+              providers and decoders), workspace/ (archive index, live-vs-archive comparison), MOCK store and demo configuration
+  lib/        hash router, read lifecycles (useProviderRead, useHistoryList, useLiveCases), theme and preferences
+  components/ ui · shell · states · integrity · detail · history · local · workspace · charts · runs
+  pages/      Workspace (Overview, Verifications, Capture), VerificationDetail, History, Settings, Rules, Connections, States, demo pages
   styles/     tokens.css (design tokens), index.css (Tailwind theme mapping)
-docs/
-  PRODUCT_UNDERSTANDING.md       What exists vs. proposed vs. mocked, with source references
-  INFORMATION_ARCHITECTURE.md    Navigation review and journeys
-  DESIGN_SYSTEM.md               Tokens, type, glyphs, components, a11y conventions
-  RESEARCH_TO_FRONTEND_MAPPING.md Field-level mapping and proposed interface
-  PHASE2_UI.md                   Connections, Rules, Settings: scope, interactions, limits, Phase 0 dependencies
-  PHASE2_5_FRONTEND_READINESS.md Phase 2.5: tests, access states, provider boundary, a11y/responsive/browser findings
-  VISUAL_REVIEW.md               Iteration 1 rendered review
-  VISUAL_REFINEMENT_REPORT.md    v0.2 visual refinement: changes, tokens, regressions, responsive review
-  V1_ATELIER_REBUILD.md          v1.0 production rebuild in Direction C (Evidence Atelier)
-  design-lab/                    Art-direction exploration, approved direction, rebuild plan
-  screenshots/v1-atelier/        Current UI (light, dark, 375/768/1440)
-  screenshots/before, after/     v0.1 → v0.2 history
+  test/       Vitest suites and their fixtures; browser suites live in e2e*/
+server/       localApiGate.ts — the dev/preview gate to the local Service
+docs/         design system, information architecture, product understanding, Phase 2 / 2.5 / 3A reports and evidence
 ```
 
-Stack: React 19, TypeScript (strict), Vite 8, Tailwind CSS 4, lucide-react, self-hosted fonts
-(Instrument Serif, Instrument Sans, IBM Plex Mono via Fontsource; all SIL OFL 1.1). The design lab
-(`lab.html`) additionally uses Inter Tight, Martian Mono, Inter and Newsreader. No router, UI-kit or animation library was
-added: a small hash router and native semantics were sufficient.
+Round reports, screenshots and test evidence for this workspace are in `../docs/product-dev/`.
+
+Stack: React 19, TypeScript (strict), Vite 8, Tailwind CSS 4, lucide-react, self-hosted fonts (Instrument Serif,
+Instrument Sans, IBM Plex Mono via Fontsource; all SIL OFL 1.1). The design lab (`lab.html`) additionally uses Inter
+Tight, Martian Mono, Inter and Newsreader. No router, UI-kit or animation library was added: a small hash router and
+native semantics were sufficient.
 
 ## Known limitations
 
-1. **All data is synthetic.** Names, emails, run IDs, wall-clock times and digests are demo values.
-   Digests look like SHA-256 but are placeholders.
-2. **Email comparison is a proposed rule.** The research model compares only `phone`; the UI tags the
-   email rule "Proposed rule".
-3. **Time mapping is frontend-only.** The model uses integer ticks; the demo maps 1 tick = 60 s from
-   the source capture instant. A fixed demo clock (16 Oct 2026 14:30 UTC) keeps relative times
-   consistent.
-4. **"Verified" is not authenticated.** Internally consistent fabricated evidence would still be
-   Verified under the current contract; the UI states this on every detail page.
-5. **No actions.** Acknowledge, request recheck, alerts and links into HubSpot are intentionally
-   absent because nothing could perform them.
-6. **Review coverage.** Visual review was done in a Chromium-based pane at 375 / 1280 / 1440px; no
-   automated accessibility audit, screen-reader, Safari or Firefox testing (see
-   `docs/VISUAL_REVIEW.md`).
-7. The research project is not production-ready: its release is blocked pending independent review.
-
-## Proposed next UI iteration
-
-1. **Recheck & acknowledgement flows** (UI only, against a mocked queue): new observation preserves the
-   earlier one; acknowledgement never changes state; changed rule versions are flagged.
-2. **Record history** across runs for a source key, to show persistence of a discrepancy.
-3. ~~Connections and Rules~~ — built as demo pages in Phase 2 (`docs/PHASE2_UI.md`).
-4. **First-use setup walkthrough** from `USER_EXPERIENCE.md` §2 as a clickable prototype for
-   usability testing.
-5. Automated a11y (axe) and visual-regression checks in CI; tablet layout pass.
-6. Replace `src/data/store.ts` with a typed client once a backend contract is approved.
-
-## Phase 3A — local verification history (LOCAL_RESEARCH)
-
-**07 History** (`#/local/history`, `#/local/history/:historyId`) reads archived evaluations from the
-Phase 3A Service's local SQLite archive over HTTP — list, archived Detail and archived evidence, with
-retrieval and integrity reported separately. Report and design: [docs/phase3a/PHASE3A_FRONTEND_REPORT.md](docs/phase3a/PHASE3A_FRONTEND_REPORT.md).
-The dev/preview servers forward only five exact GET routes through `server/localApiGate.ts`.
-
-```bash
-/usr/bin/python3 -I -B scripts/phase3a/prepare_runtime.py   # isolated, verified copy of the Phase 3A Service
-/usr/bin/python3 -I -B scripts/phase3a/seed_states.py       # archives via the reviewed seed pipeline
-FA_HISTORY_STATE=ui-main scripts/phase3a/history-service.sh  # 127.0.0.1:8765, Ctrl-C to stop
-npm run dev                                                   # 127.0.0.1:5183
-FA_BROWSERS=chrome,webkit,firefox npm run test:e2e:history    # real-service E2E (owns the Service itself)
-scripts/phase3a/final_regression.sh                           # every gate, logged with exit codes
-```
+1. **All data is synthetic.** The five reviewed cases are synthetic fixtures shipped with the Service; MOCK names,
+   emails, run IDs, times and digests are demo values.
+2. **Email comparison is a proposed rule, MOCK only.** The evaluator compares only `phone`; the demo tags its email rule
+   "Proposed rule". LOCAL_RESEARCH pages show exactly the rules the evaluator returned.
+3. **"Verified" is not authenticated.** Internally consistent fabricated evidence would still be Verified under the
+   current contract; an integrity "verified" is internal consistency of values the Service supplied, never a claim of
+   authentic external acquisition.
+4. **No actions.** Capture, admission, acknowledgement, recheck, alerts and links into HubSpot are absent because
+   nothing could perform them.
+5. **Review coverage.** Automated axe checks, keyboard checks and responsive checks run in Chrome and WebKit; Firefox and
+   screen readers are not tested.
+6. The research project is not production-ready: its release is blocked pending independent review.

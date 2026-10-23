@@ -1,6 +1,6 @@
 import { ArrowRight, RotateCcw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { DemoStamp, PageHead, PrefRow, Segmented, Switch } from "../components/ui/atelier";
+import { DemoStamp, PageHead, PrefRow, Segmented, Switch, useRadioGroupKeys } from "../components/ui/atelier";
 import { buttonClass, Tag } from "../components/ui/primitives";
 import { Seal } from "../components/ui/status";
 import { activeProvider, PROVIDERS } from "../data/provider";
@@ -91,10 +91,19 @@ function ThemeSpecimens() {
     { value: "dark", name: "Night ledger", note: "Composed, not inverted" },
     { value: "system", name: "System", note: "Follows the device" },
   ];
+  const keys = useRadioGroupKeys(options, preference, setPreference);
   return (
-    <div role="radiogroup" aria-label="Theme" className="grid gap-4 pt-5 sm:grid-cols-3">
+    <div ref={keys.ref} role="radiogroup" aria-label="Theme" onKeyDown={keys.onKey} className="grid gap-4 pt-5 sm:grid-cols-3">
       {options.map((o) => (
-        <button key={o.value} type="button" role="radio" aria-checked={preference === o.value} onClick={() => setPreference(o.value)} className="fa-specimen">
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={preference === o.value}
+          tabIndex={preference === o.value ? 0 : -1}
+          onClick={() => setPreference(o.value)}
+          className="fa-specimen"
+        >
           <div className="h-[168px] overflow-hidden">
             {o.value === "system" ? (
               <div className="grid h-full grid-cols-2">
@@ -265,17 +274,15 @@ export function Settings() {
           <Section id="set-demo" n="§4" title="Demo configuration" aside={<DemoStamp>Demo register</DemoStamp>}>
             <div className="pt-5">
               <p className="label mb-2">Data provider</p>
-              <div role="radiogroup" aria-label="Data provider" className="surface overflow-hidden rounded-lg">
+              {/* A statement of the build's providers, not a control: nothing here can be selected, so it is a list. */}
+              <ul aria-label="Data provider" className="surface overflow-hidden rounded-lg">
                 {PROVIDERS.map((m) => {
                   const on = provider === m.mode;
                   const enabled = m.status === "active";
                   return (
-                    <div
+                    <li
                       key={m.mode}
-                      role="radio"
-                      aria-checked={on}
-                      aria-disabled={!enabled}
-                      tabIndex={on ? 0 : -1}
+                      aria-current={on ? "true" : undefined}
                       className={cn("grid grid-cols-[22px_minmax(0,1fr)] gap-x-3 gap-y-1 border-b border-line-subtle px-4 py-4 last:border-0 sm:grid-cols-[22px_190px_minmax(0,1fr)_auto] sm:items-center sm:px-5", !enabled && "text-ink-4")}
                     >
                       <span aria-hidden className={cn("grid size-[16px] place-items-center rounded-full border-[1.5px]", on ? "border-ink" : "border-dashed border-line-strong")}>
@@ -291,10 +298,10 @@ export function Settings() {
                         {m.status === "local-routes" && <Tag tone="brand">local research pages only</Tag>}
                         {m.status === "not-implemented" && <Tag>not implemented</Tag>}
                       </span>
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
 
               <a
                 href="#/local/verifications"
@@ -325,7 +332,10 @@ export function Settings() {
               <dl className="mt-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
                 {[
                   { k: "Demo clock", v: formatDateTime(new Date(DEMO_NOW_MS).toISOString()), h: "Frozen so relative times stay consistent." },
-                  { k: "Fixture check", v: `${runs.length} runs consistent`, h: "Checked against the research precedence at startup." },
+                  // main.tsx runs the startup check only on the dev server (import.meta.env.DEV); a built app must not claim it ran.
+                  import.meta.env.DEV
+                    ? { k: "Fixture check", v: `${runs.length} runs consistent`, h: "Checked against the research precedence when the dev server started." }
+                    : { k: "Fixture check", v: "not run in this build", h: `The startup check runs on the dev server only; the test suite checks the same ${runs.length} runs.` },
                   { k: "Source of states", v: "model.py precedence", h: "React never calculates a verdict." },
                 ].map((f) => (
                   <div key={f.k} className="bg-surface px-4 py-3.5 sm:px-5">

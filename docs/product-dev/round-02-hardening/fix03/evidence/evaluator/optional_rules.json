@@ -1,0 +1,123 @@
+{
+ "history": {
+  "cohort_state": "Unverified",
+  "counts": {
+   "Verified": 0,
+   "Mismatch": 0,
+   "Pending": 0,
+   "Unverified": 1
+  },
+  "records": [
+   {
+    "key": "SYN-001",
+    "source_row": 0,
+    "state": "Unverified",
+    "candidate_ids": [
+     "SYN-HS-001"
+    ],
+    "rules": {
+     "existence": {
+      "status": "pass",
+      "reason": "reliable candidate observed"
+     },
+     "phone": {
+      "status": "pass",
+      "reason": "exact string comparison",
+      "expected": "+1 212 555 0101",
+      "actual": "+1 212 555 0101"
+     },
+     "uniqueness": {
+      "status": "pass",
+      "reason": "complete relevant synthetic inventory"
+     },
+     "existed_by_deadline": {
+      "status": "unknown",
+      "reason": "current read cannot reconstruct historical deadline"
+     }
+    }
+   }
+  ]
+ },
+ "execution": {
+  "cohort_state": "Unverified",
+  "counts": {
+   "Verified": 0,
+   "Mismatch": 0,
+   "Pending": 0,
+   "Unverified": 1
+  },
+  "records": [
+   {
+    "key": "SYN-001",
+    "source_row": 0,
+    "state": "Unverified",
+    "candidate_ids": [
+     "SYN-HS-001"
+    ],
+    "rules": {
+     "existence": {
+      "status": "pass",
+      "reason": "reliable candidate observed"
+     },
+     "phone": {
+      "status": "pass",
+      "reason": "exact string comparison",
+      "expected": "+1 212 555 0101",
+      "actual": "+1 212 555 0101"
+     },
+     "uniqueness": {
+      "status": "pass",
+      "reason": "complete relevant synthetic inventory"
+     },
+     "workflow_execution": {
+      "status": "unknown",
+      "reason": "Approach B contains no execution evidence"
+     }
+    }
+   }
+  ]
+ },
+ "both": {
+  "cohort_state": "Unverified",
+  "counts": {
+   "Verified": 0,
+   "Mismatch": 0,
+   "Pending": 0,
+   "Unverified": 1
+  },
+  "records": [
+   {
+    "key": "SYN-001",
+    "source_row": 0,
+    "state": "Unverified",
+    "candidate_ids": [
+     "SYN-HS-001"
+    ],
+    "rules": {
+     "existence": {
+      "status": "pass",
+      "reason": "reliable candidate observed"
+     },
+     "phone": {
+      "status": "pass",
+      "reason": "exact string comparison",
+      "expected": "+1 212 555 0101",
+      "actual": "+1 212 555 0101"
+     },
+     "uniqueness": {
+      "status": "pass",
+      "reason": "complete relevant synthetic inventory"
+     },
+     "existed_by_deadline": {
+      "status": "unknown",
+      "reason": "current read cannot reconstruct historical deadline"
+     },
+     "workflow_execution": {
+      "status": "unknown",
+      "reason": "Approach B contains no execution evidence"
+     }
+    }
+   }
+  ]
+ }
+}

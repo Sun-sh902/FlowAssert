@@ -79,19 +79,11 @@ export interface SegOption<T extends string> {
   hint?: string;
 }
 
-export function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-  label,
-  className,
-}: {
-  options: SegOption<T>[];
-  value: T;
-  onChange: (v: T) => void;
-  label: string;
-  className?: string;
-}) {
+/**
+ * WAI-ARIA radio group keyboard behaviour: one Tab stop (the checked radio, tabIndex 0; the rest -1), and arrow keys
+ * move selection and focus together, wrapping and skipping disabled options.
+ */
+export function useRadioGroupKeys<T extends string>(options: readonly { value: T; disabled?: boolean }[], value: T, onChange: (v: T) => void) {
   const ref = useRef<HTMLDivElement>(null);
   const focusAfterChange = useRef(false);
   // Focus the newly checked option once it has rendered (arrow keys move selection and focus together).
@@ -111,6 +103,23 @@ export function Segmented<T extends string>({
     focusAfterChange.current = true;
     onChange(next.value);
   };
+  return { ref, onKey };
+}
+
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  className,
+}: {
+  options: SegOption<T>[];
+  value: T;
+  onChange: (v: T) => void;
+  label: string;
+  className?: string;
+}) {
+  const { ref, onKey } = useRadioGroupKeys(options, value, onChange);
   return (
     <div ref={ref} role="radiogroup" aria-label={label} onKeyDown={onKey} className={cn("fa-seg", className)}>
       {options.map((o) => {
