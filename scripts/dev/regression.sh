@@ -21,9 +21,11 @@ LABEL="${1:?usage: regression.sh [--portable] LABEL}"
 SYS_PY="${FA_SYSTEM_PYTHON:-/usr/bin/python3}"
 OUT="${FA_REGRESSION_DIR:-$ROOT/docs/product-dev/evidence/regression}/$LABEL"
 [ -e "$OUT" ] && { echo "refusing to reuse $OUT" >&2; exit 1; }
-if [ "$PORTABLE" -eq 0 ] && lsof -nP -iTCP:4183 -iTCP:4184 -iTCP:5183 -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
+# Decide on lsof's OUTPUT: with several -i selectors its exit status is 1 whenever any one is unmatched, so the
+# round 02 status-based check passed unless every port was taken (FIX01).
+if [ "$PORTABLE" -eq 0 ] && [ -n "$(lsof -nP -t -iTCP:4183,4184,5183,8765 -sTCP:LISTEN 2>/dev/null)" ]; then
   echo "ports 4183/4184/5183/8765 must be free (stop the dev server, previews and Service):" >&2
-  lsof -nP -iTCP:4183 -iTCP:4184 -iTCP:5183 -iTCP:8765 -sTCP:LISTEN >&2; exit 1
+  lsof -nP -iTCP:4183,4184,5183,8765 -sTCP:LISTEN >&2; exit 1
 fi
 mkdir -p "$OUT"
 printf 'gate\texit\tstatus\tstarted_utc\tcommand\n' > "$OUT/summary.tsv"
