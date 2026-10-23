@@ -3,7 +3,6 @@
  * outputs: it is drawn with operator glyphs (=, ≠, ⇄) in ink — never a verdict colour, the Mismatch diamond or the
  * Unverified hatch — and every chip says "diagnostic" to assistive technology.
  */
-import type { ReactNode } from "react";
 import type { ComparisonState, LiveSide, ResultSummary } from "../../data/workspace/comparison";
 import type { HistorySummaryView } from "../../domain/history";
 import { cn } from "../../lib/cn";
@@ -101,19 +100,6 @@ export function ArchivedVerdict({ entry, state, compact = false }: { entry: Hist
       <NoVerdictMark />
       <span className="font-mono text-[10.5px] text-ink-3">{state === "reading" ? "reading archive…" : state === "ready" ? "not archived" : state === "cancelled" ? "read cancelled" : "archive not read"}</span>
     </span>
-  );
-}
-
-/** Live and newest archived verdicts side by side, each labelled with where it came from. */
-export function VerdictPair({ live, archived, archiveState, children }: { live: LiveSide; archived: HistorySummaryView | null; archiveState: "reading" | "ready" | "failed" | "cancelled"; children?: ReactNode }) {
-  return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-      <span className="kicker text-ink-3">Live</span>
-      <span className="kicker text-ink-3">Newest archived</span>
-      <LiveVerdict side={live} compact />
-      <ArchivedVerdict entry={archived} state={archiveState} compact />
-      {children}
-    </div>
   );
 }
 

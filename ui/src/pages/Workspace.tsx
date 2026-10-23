@@ -222,7 +222,7 @@ function ComparisonStrip({ cases }: { cases: WorkspaceCase[] }) {
         </h2>
         <p className="kicker text-ink-3">diagnostic · not a verdict · identity = input, evaluator, contract</p>
       </div>
-      <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+      <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
         {counts.map(([s, n]) => (
           <li key={s} className="grid gap-1">
             <span className={cn("metric text-[30px] leading-none", n === 0 && "text-ink-3")}>{reading > 0 && n === 0 ? "·" : n}</span>

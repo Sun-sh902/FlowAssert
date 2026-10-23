@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -22,10 +21,6 @@ export default defineConfig({
   // otherwise answer OPTIONS on /api paths before the gate decides (it never forwarded them).
   server: { host: "127.0.0.1", port: 5183, strictPort: true, cors: false },
   preview: { host: "127.0.0.1", cors: false },
-  build: {
-    rollupOptions: {
-      // lab.html is the isolated art-direction lab; it never ships styles into the app.
-      input: { main: resolve(__dirname, "index.html"), lab: resolve(__dirname, "lab.html") },
-    },
-  },
+  // The normal build uses index.html only. Art-direction sources stay available at /lab.html
+  // through `npm run dev`, without shipping the laboratory and its fonts in the product output.
 });
