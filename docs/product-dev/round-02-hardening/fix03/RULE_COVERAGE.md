@@ -1,7 +1,5 @@
 # FIX03 — Rule coverage
 
-**Status: DRAFT.**
-
 ## The five rule categories of the accepted Evaluator
 
 From the pinned `service/vendor/model.py` (sha256 `b61779e1…a842d`, identity check PASS) and the Service's wire model

@@ -1,7 +1,8 @@
 # FIX03 — Accessibility results
 
-**Status: DRAFT.** Results come from the DOM rendered in jsdom (Vitest, Testing Library roles). The axe, keyboard and
-responsive browser suites (`e2e-static` in Chrome and WebKit) are **not yet run** on the fixed tree.
+Results come from the rendered DOM in jsdom (Vitest, Testing Library roles) and from the browser suites on `529db23`.
+`e2e-static` covers axe light/dark on every page, keyboard, responsive and remediation; `e2e-history` covers axe and
+overflow at 375–1440 px on the History pages. Both pass in Chrome and WebKit (REGRESSION_RESULTS.md).
 
 | Check | Before (203f702) | After | Standard | Test |
 | --- | --- | --- | --- | --- |
@@ -15,13 +16,12 @@ responsive browser suites (`e2e-static` in Chrome and WebKit) are **not yet run*
 | Integrity tag state for assistive technology | glyph `aria-hidden`; "record check · service" names no state | visually hidden "Integrity verified:" / "failed:" / "unverifiable:" before the label | WCAG 1.1.1 / 1.3.1 | F-01 #5 |
 | Accessible state labels — verdict axis, comparison operators, history rows | `NoVerdictMark` text, `Operator` `role=img` labels "holds / is contradicted / not assessed", row `aria-label` | unchanged | — | existing `workspace.test.tsx:102`, `detail.test.tsx` |
 
-## Effect on existing browser checks (to verify)
+## Effect on existing browser checks (verified on 529db23)
 
 - `e2e/responsive.spec.ts` "touch targets at 375px" measures only focusable targets (`tabIndex !== -1`). With roving
   tabindex, the two unchecked rail theme buttons drop out of that measurement. Their size is unchanged; the report will
   list fewer targets.
 - `e2e/remediation.spec.ts:76` focuses the checked rail theme radio, which is still `tabIndex 0`.
-- `e2e-local/local-research.spec.ts:385` now finds the Data provider register by role `list`.
-
-**Pending:** `e2e-static` (axe light/dark on every page, keyboard, responsive, remediation) in Chrome and WebKit on the
-fixed tree.
+- `e2e-local/local-research.spec.ts:385` now finds the Data provider register by role `list` (passing).
+- Regression found and fixed: the hidden state word first overflowed the History entry page at 375 px by 220 px
+  (`4f13a13`, `e2e-history` FAIL). `.fa-itag` is now `position: relative` (`529db23`, PASS).

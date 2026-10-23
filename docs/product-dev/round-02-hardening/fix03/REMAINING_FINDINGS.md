@@ -1,13 +1,9 @@
 # FIX03 — Remaining findings
 
-**Status: DRAFT.**
+## Blocking
 
-## Blocking the FIX03 handoff
-
-| ID | Item | Owner action |
-| --- | --- | --- |
-| R-01 | FIX02 has no independent acceptance on record (review run in progress at `203f702`). FIX03 is uncommitted by Owner decision. | Complete the FIX02 review. Then: commit FIX03, run the full regression and hand the commit to the FIX03 reviewer. |
-| R-02 | Browser suites (Chrome, WebKit) not run on the fixed tree; see REGRESSION_RESULTS.md. | Run after R-01. |
+None. FIX02 was accepted during FIX03 ("FIX02 — ACCEPTED FOR FIX03"); the full regression on `529db23` passes all 24
+gates. The FIX03 commits await independent review.
 
 ## Not changed in FIX03 (outside a confirmed defect, or would broaden scope)
 

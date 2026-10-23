@@ -1,7 +1,7 @@
 # FIX03 — Domain semantics verification
 
-**Status: DRAFT.** Integrity, Service-error and four-axis semantics, checked against the accepted Service and the
-real local data. Browser confirmation on the running Service is pending (REGRESSION_RESULTS.md).
+Integrity, Service-error and four-axis semantics, checked against the accepted Service and the real local data,
+then in Chrome and WebKit against the running Service (`e2e-workspace`, `e2e-history`, `e2e-lookup` PASS on `529db23`).
 
 ## Integrity statements the Service actually produces
 
@@ -50,5 +50,4 @@ Capture and admission are constants of this build (`domain/statusAxes.ts:77-89`)
 storage and integrity statement. The verdict is `result.cohort_state`, copied. FIX03 changed only how the archive
 axis words and draws its own states; no axis reads another axis's value.
 
-**Pending:** the same table rendered in Chrome and WebKit against the running Service (`e2e-workspace`), once
-FIX02 is accepted and ports 5183/8765 are free.
+The same axes are asserted in Chrome and WebKit against the running Service by `e2e-workspace` (PASS on `529db23`).

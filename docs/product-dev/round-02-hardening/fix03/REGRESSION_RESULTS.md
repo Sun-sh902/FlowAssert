@@ -1,32 +1,59 @@
 # FIX03 — Regression results
 
-**Status: PARTIAL — port-free gates only.** The Owner chose to run only port-free checks until FIX02 is independently
-accepted. During this work the FIX02 reviewer's Playwright lookup suite was holding ports 5183 and 8765, so every
-browser suite and the full regression are **NOT RUN**. Nothing below is reported as a pass for them.
+**Final: `scripts/dev/regression.sh fix03-529db23` → PASS (all gates), 24/24, 0 FAIL, 0 BLOCKED, exit 0.**
+Commit `529db23d4cdf47369059bc0d4db487a5b5a9ed19`, clean tree (`worktree_changes 0`), full mode, ports pre-checked,
+2026-10-23T13:26Z, Darwin 27.2.0 arm64. Evidence: `evidence/regression/full-529db23-*`.
 
-## Run
+## Order of runs
 
-| Gate | Tree | Result | Evidence |
-| --- | --- | --- | --- |
-| Vitest, baseline | `203f702`, clean | 1623 / 1623 passed | `evidence/regression/vitest-baseline-203f702.log` |
-| FIX03 tests on the unfixed code | `203f702` export + `fix03.test.tsx` | **20 failed**, 1 passed (the control) — each failure is the defect | `evidence/reproduction/fix03-tests-on-203f702.log` |
-| FIX03 tests on the fix | working tree | 21 / 21 passed | `evidence/reproduction/fix03-tests-on-worktree.log` |
-| `scripts/dev/regression.sh --portable fix03-portable-worktree` | working tree (18 tracked changes + new files) | **PASS (portable gates only)**: backend-pytest, backend-inventory, protected-custody, dev-scripts, pinned-identities, ui-typecheck, ui-lint, ui-vitest (1644 = 1623 + 21), ui-vitest-inventory, tracked-evidence | `evidence/regression/portable-summary.tsv`, `portable-run-identity.tsv` |
-| Vitest JSON + inventory | working tree | 1644 passed, 0 failed, 0 skipped; audit-mutant replay RAN (13); inventory OK | `evidence/regression/vitest-worktree.json` |
+Every run is recorded, including the one that failed.
 
-The pinned Evaluator, the four contracts and the history examples are byte-identical to the accepted sources
-(`pinned-identities`, `protected-custody` PASS). No file under `service/` changed.
+| # | Run | Tree | Result | Evidence |
+| --- | --- | --- | --- | --- |
+| 1 | Vitest baseline | `203f702`, clean | 1623 / 1623 passed | `vitest-baseline-203f702.log` |
+| 2 | FIX03 tests on the unfixed code | `203f702` export + `fix03.test.tsx` | **20 failed**, 1 passed (the control); every failure is the defect | `../reproduction/fix03-tests-on-203f702.log` |
+| 3 | FIX03 tests on the fix | working tree | 21 / 21 passed | `../reproduction/fix03-tests-on-worktree.log` |
+| 4 | `regression.sh --portable fix03-portable-worktree` | working tree. It ran while the FIX02 reviewer held ports 5183/8765; portable mode uses no ports. | PASS (portable gates only), 10/10 | `portable-summary.tsv` |
+| 5 | `regression.sh fix03-4f13a13` (full) | commit `4f13a13`, clean | **FAIL** — 23 PASS, `e2e-history` + its inventory FAIL. See *Failure on 4f13a13*. | `full-4f13a13-summary.tsv`, `full-4f13a13-e2e-history.log` |
+| 6 | the failing test alone after the fix | working tree, CSS change only | 2 / 2 passed (Chrome, WebKit) | `history-layout-test-after-css-fix.log` |
+| 7 | `regression.sh fix03-529db23` (full) | commit `529db23`, clean | **PASS (all gates)** | `full-529db23-summary.tsv`, `-console.log`, `-run-identity.tsv`, `-*-inventory.log` |
 
-## Not run (pending FIX02 acceptance and free ports)
+## Final run, by gate
 
-| Gate | Why it matters for FIX03 |
-| --- | --- |
-| `e2e-static` (Chrome, WebKit) | axe on Overview/Settings after the heading, `dl`, radio-group and list changes; keyboard; touch targets |
-| `e2e-workspace` (Chrome, WebKit) | real Service: four axes, register text, case groups, record check on the Detail |
-| `e2e-history`, `e2e-lookup` | `IntegrityTag` wording and the shared integrity mapping on real Service data |
-| `e2e-local` | the changed Data provider locator |
-| `rules-cls-repeat`, `rules-cls-probe` | unaffected by FIX03; part of the full run |
-| Full `scripts/dev/regression.sh LABEL` | every gate together, with the port pre-check |
+| Gate | Result | Count |
+| --- | --- | --- |
+| backend-pytest / backend-inventory | PASS / PASS | 247 passed (1 deselected, as in the inventory) |
+| protected-custody | PASS | genuine accepted roots |
+| dev-scripts | PASS | |
+| pinned-identities | PASS | Evaluator, 4 contracts, examples, backend map unchanged |
+| ui-typecheck, ui-lint | PASS | |
+| ui-vitest / inventory | PASS / PASS | 1644 passed (1623 + 21 FIX03), 0 failed, 0 skipped; audit-mutant replay RAN |
+| browsers | PASS | Chrome + Playwright WebKit |
+| e2e-static / inventory | PASS / PASS | 140 passed, 24 skipped as declared in the inventory (Chrome, WebKit) |
+| rules-cls-repeat / inventory, rules-cls-probe | PASS | 20 repeats |
+| e2e-workspace / inventory | PASS / PASS | 31 passed, 1 declared skip — real Service, four axes |
+| e2e-history / inventory | PASS / PASS | 68 passed, 8 declared skips |
+| e2e-lookup / inventory | PASS / PASS | 57 passed, 3 declared skips |
+| e2e-local / inventory | PASS / PASS | 34 passed, 8 declared skips |
+| tracked-evidence | PASS | no tracked `docs/` file changed during the run |
 
-To complete: once FIX02 is accepted and ports 4183/4184/5183/8765 are free, run
-`scripts/dev/regression.sh fix03-<sha>` on the commit, then copy its `summary.tsv` and `run-identity.tsv` here.
+Firefox is not run (as in FIX01/FIX02).
+
+## Failure on 4f13a13
+
+`e2e-history/history.spec.ts:606` failed in Chrome and WebKit:
+`light #/local/history/hist_6f7924f0… @375 — expected overflow <= 0, received 220`.
+
+**Cause.** FIX03 added a visually hidden state word (`sr-only`, absolutely positioned) inside `IntegrityTag`. The
+evidence ledger renders that tag inside a horizontally scrolling table at 375 px, and the scroller is not positioned,
+so the absolute span escaped it and widened the page by 220 px.
+
+**Fix (`529db23`).** `.fa-itag { position: relative }` in `ui/src/styles/atelier.css`, so the span is contained by
+its own tag. That one change made the failing test pass in both browsers (run 6), and the next full run passed every
+gate (run 7). No test was changed for this.
+
+## The four axes on the real Service
+
+`e2e-workspace` reads the running local Service in Chrome and WebKit. It checks Capture and Admission *Not
+implemented*, the Archive axis with the Service's record check, and the Evaluator verdict copied from the live result,
+for each of SPEC-001…005. The values match the in-process read recorded in DOMAIN_SEMANTICS_VERIFICATION.md.
