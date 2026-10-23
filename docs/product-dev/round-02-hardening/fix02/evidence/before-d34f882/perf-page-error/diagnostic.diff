@@ -1,0 +1,12 @@
+diff --git a/ui/e2e/perf.spec.ts b/ui/e2e/perf.spec.ts
+index f296d07..e67dce0 100644
+--- a/ui/e2e/perf.spec.ts
++++ b/ui/e2e/perf.spec.ts
+@@ -20,6 +20,7 @@ test("DOM size, layout shift and load timing per route", async ({ page, browserN
+         if (!e.hadRecentInput) (window as unknown as { __cls: number }).__cls += e.value;
+     }).observe({ type: "layout-shift", buffered: true });
+   });
++  await page.addInitScript(() => window.addEventListener("load", () => { if (location.hash === "#/rules") throw new Error("injected FIX02 page error"); }));
+   const rows = [];
+   for (const r of ROUTES) {
+     await open(page, r.hash);

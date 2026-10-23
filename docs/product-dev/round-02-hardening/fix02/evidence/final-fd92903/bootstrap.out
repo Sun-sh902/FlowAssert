@@ -1,0 +1,26 @@
+
+== tools
+node v26.10.0 · npm 11.19.1 · Python 3.14.7 · system Python 3.9.6 · uv 0.12.9
+
+== ui-deps
+ui/node_modules installed from package-lock.json
+
+== py-env
+service/.venv == requirements.lock (37 distributions)
+
+== identity
+pinned Evaluator, contracts and backend source map verified
+
+== fixtures
+synthetic archives in service/.runtime verified: dev-main (10 evaluations), dev-single (5), dev-empty (0) — only missing ones were created
+
+== harness
+browser chrome   156.0.8078.47
+browser webkit   26.6
+harness runtimes ready
+
+BOOTSTRAP OK
+  Service:     scripts/dev/service.sh                 (127.0.0.1:8765; FA_STATE=dev-empty for the empty archive)
+  UI:          cd ui && npm run dev                   (http://127.0.0.1:5183)
+  Regression:  scripts/dev/regression.sh --portable LABEL   (self-contained gates)
+               scripts/dev/regression.sh LABEL              (all gates; needs --harness; ports 4183/4184/5183/8765 free)

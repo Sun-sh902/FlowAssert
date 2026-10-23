@@ -1,0 +1,74 @@
+{
+  "project": "chrome",
+  "browser": "chromium 156.0.8078.47",
+  "repeat": 0,
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "cache": "one page, routes in order: the first route loads cold, later routes reuse the cache",
+  "threshold": {
+    "cls": 0.1
+  },
+  "pageErrors": [
+    "Error: injected FIX02 page error"
+  ],
+  "rows": [
+    {
+      "route": "overview",
+      "domNodes": 641,
+      "cls": 0,
+      "domContentLoadedMs": 49,
+      "firstContentfulPaintMs": 112,
+      "transferredKB": 296
+    },
+    {
+      "route": "verifications",
+      "domNodes": 1026,
+      "cls": 0,
+      "domContentLoadedMs": 15,
+      "firstContentfulPaintMs": 36,
+      "transferredKB": 4
+    },
+    {
+      "route": "detail",
+      "domNodes": 1041,
+      "cls": 0,
+      "domContentLoadedMs": 12,
+      "firstContentfulPaintMs": 44,
+      "transferredKB": 4
+    },
+    {
+      "route": "connections",
+      "domNodes": 335,
+      "cls": 0.002,
+      "domContentLoadedMs": 12,
+      "firstContentfulPaintMs": 36,
+      "transferredKB": 4
+    },
+    {
+      "route": "rules",
+      "domNodes": 489,
+      "cls": 0,
+      "domContentLoadedMs": 12,
+      "firstContentfulPaintMs": 48,
+      "transferredKB": 4
+    },
+    {
+      "route": "settings",
+      "domNodes": 542,
+      "cls": 0.01,
+      "domContentLoadedMs": 14,
+      "firstContentfulPaintMs": 44,
+      "transferredKB": 4
+    },
+    {
+      "route": "states",
+      "domNodes": 962,
+      "cls": 0,
+      "domContentLoadedMs": 14,
+      "firstContentfulPaintMs": 36,
+      "transferredKB": 9
+    }
+  ]
+}

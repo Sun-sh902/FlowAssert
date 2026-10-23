@@ -1,0 +1,88 @@
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+Running 76 tests using 1 worker
+
+  ✓   1 [chrome] › e2e-history/f14-mode-switch-race.spec.ts:21:1 › F14 · race: switch to References only N microtasks after the payload page's read settles (N = 0–40) (13.0s)
+  ✓   2 [chrome] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-001: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (293ms)
+  ✓   3 [chrome] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-002: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (285ms)
+  ✓   4 [chrome] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-003: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (290ms)
+  ✓   5 [chrome] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-004: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (274ms)
+  ✓   6 [chrome] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-005: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (287ms)
+  ✓   7 [chrome] › e2e-history/history.spec.ts:168:1 › F04 · SPEC-005: 12 Verified records, Unverified cohort, unknown population — copied, not inferred; an invented total is refused (369ms)
+  ✓   8 [chrome] › e2e-history/history.spec.ts:209:1 › F06 · list: both genuine batches, stable IDs, archive order, three pages under one list snapshot (382ms)
+  ✓   9 [chrome] › e2e-history/history.spec.ts:244:1 › F10 · a genuine cursor from another history is rejected by the real Service: request error, nothing merged (302ms)
+  ✓  10 [chrome] › e2e-history/history.spec.ts:280:1 › F11 · malformed history and verification IDs are refused before any request (P2-AUD-003) (777ms)
+  ✓  11 [chrome] › e2e-history/history.spec.ts:312:1 › F14 · payloads omitted by request: all pages retrieved, integrity unverifiable — never 'verified' (279ms)
+  ✓  12 [chrome] › e2e-history/history.spec.ts:331:1 › F12 F14 · P2-AUD-001: a payload altered after the Service answered is a conspicuous integrity failure naming the reference (250ms)
+  ✓  13 [chrome] › e2e-history/history.spec.ts:358:1 › F16 · invalid HTTP responses fail closed (corrupted copies of real Service bodies) (482ms)
+  ✓  14 [chrome] › e2e-history/history.spec.ts:408:1 › F17 F18 · cancellation and late responses: nothing published after cancel; history A never overwrites B; A's evidence never attaches to B (6.5s)
+  ✓  15 [chrome] › e2e-history/history.spec.ts:455:1 › F19 · MOCK / LOCAL_RESEARCH separation: demo pages never call the Service; history pages call only the history routes (463ms)
+  ✓  16 [chrome] › e2e-history/history.spec.ts:478:1 › F20 · the accepted Phase 2 Detail/Evidence paths still work on the Phase 3A Service, through the gate (775ms)
+  ✓  17 [chrome] › e2e-history/history.spec.ts:512:1 › F05 F21 · real Service restart: history IDs, bodies and history cursors survive; the ephemeral cursor still gets 409 and an explicit re-read (1.7s)
+  ✓  18 [chrome] › e2e-history/history.spec.ts:579:1 › F15 · local Service stopped: SERVICE_UNAVAILABLE, no entries, no verdict, no demo data — then a real read once it is back (949ms)
+  ✓  19 [chrome] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) (6.7s)
+  ✓  20 [chrome] › e2e-history/history.spec.ts:651:1 › narrow screens (375 px): the retrieval and integrity lines stay visible and readable in both evidence panels (292ms)
+  ✓  21 [chrome] › e2e-history/history.spec.ts:672:1 › F12 · corrupted stored evidence (ui-corrupt): real 503 INTEGRITY_FAILED — conspicuous failure, no verdict; intact entries still read (1.9s)
+  ✓  22 [chrome] › e2e-history/history.spec.ts:713:1 › F13 · expected stored content missing (ui-unverifiable): real 503 INTEGRITY_UNVERIFIABLE — never shown as verified or as a verdict (1.8s)
+  ✓  23 [chrome] › e2e-history/history.spec.ts:737:1 › empty archive (ui-empty): EMPTY — not Verified, not a failure, total 0 (1.8s)
+  ✓  24 [chrome] › e2e-history/history.spec.ts:753:1 › F24 · no external network request: the browser contacted only the app origin; the Service made no outbound connection (727ms)
+  ✓  25 [chrome] › e2e-history/id-compat.spec.ts:29:1 › P3A-AUD-001 · contract-valid IDs reach the real Service as one canonical segment and get its own 404 run_not_found (914ms)
+  ✓  26 [chrome] › e2e-history/id-compat.spec.ts:56:1 › P3A-AUD-001 · non-transportable IDs and malformed address encodings send nothing and say why (182ms)
+  ✓  27 [chrome] › e2e-history/id-compat.spec.ts:82:1 › P3A-AUD-001 · raw clients: the gate forwards canonical ID segments byte-for-byte; the Service sees the same 404 as directly (55ms)
+  ✓  28 [chrome] › e2e-history/proxy-security.spec.ts:55:1 › F23 · exact documented GET routes are forwarded unchanged to the real Service (51ms)
+  ✓  29 [chrome] › e2e-history/proxy-security.spec.ts:73:1 › F23 · adjacent prefixes, other API paths, raw and encoded dot segments never reach the Service (11ms)
+  ✓  30 [chrome] › e2e-history/proxy-security.spec.ts:113:1 › F23 · /docs, /openapi.json and /history-openapi.json on the app origin are the app's own pages, never the Service's (2ms)
+  ✓  31 [chrome] › e2e-history/proxy-security.spec.ts:122:1 › F22 · only GET is forwarded; every other method is refused by the gate (10ms)
+  ✓  32 [chrome] › e2e-history/proxy-security.spec.ts:135:1 › F23 · Host header manipulation is refused; query strings cannot change the path or smuggle parameters (16ms)
+  ✓  33 [chrome] › e2e-history/proxy-security.spec.ts:159:1 › F22 F23 · from inside the page: other methods and paths are refused, the browser contacts only the app origin (158ms)
+  ✓  34 [chrome] › e2e-history/proxy-security.spec.ts:195:1 › F23 · an upstream redirect is neither followed nor passed on (stub upstream on 8765, real Service stopped) (864ms)
+  -  35 [chrome] › e2e-history/screenshots.spec.ts:43:3 › history list and entries · light
+  -  36 [chrome] › e2e-history/screenshots.spec.ts:122:3 › history failure states · light
+  -  37 [chrome] › e2e-history/screenshots.spec.ts:43:3 › history list and entries · dark
+  -  38 [chrome] › e2e-history/screenshots.spec.ts:122:3 › history failure states · dark
+  ✓  39 [webkit] › e2e-history/f14-mode-switch-race.spec.ts:21:1 › F14 · race: switch to References only N microtasks after the payload page's read settles (N = 0–40) (18.0s)
+  ✓  40 [webkit] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-001: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (343ms)
+  ✓  41 [webkit] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-002: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (341ms)
+  ✓  42 [webkit] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-003: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (326ms)
+  ✓  43 [webkit] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-004: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (313ms)
+  ✓  44 [webkit] › e2e-history/history.spec.ts:82:3 › F01 F02 F03 F07 F08 F09 F14 · SPEC-005: browser → gate → Service → SQLite; archived result = evaluator result = rendered; evidence bound and verified (338ms)
+  ✓  45 [webkit] › e2e-history/history.spec.ts:168:1 › F04 · SPEC-005: 12 Verified records, Unverified cohort, unknown population — copied, not inferred; an invented total is refused (474ms)
+  ✓  46 [webkit] › e2e-history/history.spec.ts:209:1 › F06 · list: both genuine batches, stable IDs, archive order, three pages under one list snapshot (423ms)
+  ✓  47 [webkit] › e2e-history/history.spec.ts:244:1 › F10 · a genuine cursor from another history is rejected by the real Service: request error, nothing merged (338ms)
+  ✓  48 [webkit] › e2e-history/history.spec.ts:280:1 › F11 · malformed history and verification IDs are refused before any request (P2-AUD-003) (1.1s)
+  ✓  49 [webkit] › e2e-history/history.spec.ts:312:1 › F14 · payloads omitted by request: all pages retrieved, integrity unverifiable — never 'verified' (326ms)
+  ✓  50 [webkit] › e2e-history/history.spec.ts:331:1 › F12 F14 · P2-AUD-001: a payload altered after the Service answered is a conspicuous integrity failure naming the reference (322ms)
+  ✓  51 [webkit] › e2e-history/history.spec.ts:358:1 › F16 · invalid HTTP responses fail closed (corrupted copies of real Service bodies) (678ms)
+  ✓  52 [webkit] › e2e-history/history.spec.ts:408:1 › F17 F18 · cancellation and late responses: nothing published after cancel; history A never overwrites B; A's evidence never attaches to B (6.6s)
+  ✓  53 [webkit] › e2e-history/history.spec.ts:455:1 › F19 · MOCK / LOCAL_RESEARCH separation: demo pages never call the Service; history pages call only the history routes (683ms)
+  ✓  54 [webkit] › e2e-history/history.spec.ts:478:1 › F20 · the accepted Phase 2 Detail/Evidence paths still work on the Phase 3A Service, through the gate (922ms)
+  ✓  55 [webkit] › e2e-history/history.spec.ts:512:1 › F05 F21 · real Service restart: history IDs, bodies and history cursors survive; the ephemeral cursor still gets 409 and an explicit re-read (2.1s)
+  ✓  56 [webkit] › e2e-history/history.spec.ts:579:1 › F15 · local Service stopped: SERVICE_UNAVAILABLE, no entries, no verdict, no demo data — then a real read once it is back (1.0s)
+  ✓  57 [webkit] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) (6.8s)
+  ✓  58 [webkit] › e2e-history/history.spec.ts:651:1 › narrow screens (375 px): the retrieval and integrity lines stay visible and readable in both evidence panels (428ms)
+  ✓  59 [webkit] › e2e-history/history.spec.ts:672:1 › F12 · corrupted stored evidence (ui-corrupt): real 503 INTEGRITY_FAILED — conspicuous failure, no verdict; intact entries still read (2.1s)
+  ✓  60 [webkit] › e2e-history/history.spec.ts:713:1 › F13 · expected stored content missing (ui-unverifiable): real 503 INTEGRITY_UNVERIFIABLE — never shown as verified or as a verdict (1.8s)
+  ✓  61 [webkit] › e2e-history/history.spec.ts:737:1 › empty archive (ui-empty): EMPTY — not Verified, not a failure, total 0 (1.8s)
+  ✓  62 [webkit] › e2e-history/history.spec.ts:753:1 › F24 · no external network request: the browser contacted only the app origin; the Service made no outbound connection (724ms)
+  ✓  63 [webkit] › e2e-history/id-compat.spec.ts:29:1 › P3A-AUD-001 · contract-valid IDs reach the real Service as one canonical segment and get its own 404 run_not_found (951ms)
+  ✓  64 [webkit] › e2e-history/id-compat.spec.ts:56:1 › P3A-AUD-001 · non-transportable IDs and malformed address encodings send nothing and say why (235ms)
+  ✓  65 [webkit] › e2e-history/id-compat.spec.ts:82:1 › P3A-AUD-001 · raw clients: the gate forwards canonical ID segments byte-for-byte; the Service sees the same 404 as directly (51ms)
+  ✓  66 [webkit] › e2e-history/proxy-security.spec.ts:55:1 › F23 · exact documented GET routes are forwarded unchanged to the real Service (50ms)
+  ✓  67 [webkit] › e2e-history/proxy-security.spec.ts:73:1 › F23 · adjacent prefixes, other API paths, raw and encoded dot segments never reach the Service (10ms)
+  ✓  68 [webkit] › e2e-history/proxy-security.spec.ts:113:1 › F23 · /docs, /openapi.json and /history-openapi.json on the app origin are the app's own pages, never the Service's (2ms)
+  ✓  69 [webkit] › e2e-history/proxy-security.spec.ts:122:1 › F22 · only GET is forwarded; every other method is refused by the gate (7ms)
+  ✓  70 [webkit] › e2e-history/proxy-security.spec.ts:135:1 › F23 · Host header manipulation is refused; query strings cannot change the path or smuggle parameters (18ms)
+  ✓  71 [webkit] › e2e-history/proxy-security.spec.ts:159:1 › F22 F23 · from inside the page: other methods and paths are refused, the browser contacts only the app origin (260ms)
+  ✓  72 [webkit] › e2e-history/proxy-security.spec.ts:195:1 › F23 · an upstream redirect is neither followed nor passed on (stub upstream on 8765, real Service stopped) (1.0s)
+  -  73 [webkit] › e2e-history/screenshots.spec.ts:43:3 › history list and entries · light
+  -  74 [webkit] › e2e-history/screenshots.spec.ts:122:3 › history failure states · light
+  -  75 [webkit] › e2e-history/screenshots.spec.ts:43:3 › history list and entries · dark
+  -  76 [webkit] › e2e-history/screenshots.spec.ts:122:3 › history failure states · dark
+
+  8 skipped
+  68 passed (1.8m)

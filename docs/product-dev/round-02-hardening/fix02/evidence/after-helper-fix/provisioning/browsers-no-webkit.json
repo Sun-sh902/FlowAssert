@@ -1,0 +1,55 @@
+{
+  "playwright": "1.63.0",
+  "required_revisions": [
+    {
+      "name": "chromium",
+      "revision": "1243",
+      "installByDefault": true,
+      "browserVersion": "153.0.8010.12",
+      "title": "Chrome for Testing"
+    },
+    {
+      "name": "firefox",
+      "revision": "1543",
+      "installByDefault": true,
+      "browserVersion": "155.0",
+      "title": "Firefox"
+    },
+    {
+      "name": "webkit",
+      "revision": "2359",
+      "installByDefault": true,
+      "revisionOverrides": {
+        "mac14": "2251",
+        "mac14-arm64": "2251"
+      },
+      "browserVersion": "26.6",
+      "title": "WebKit"
+    }
+  ],
+  "browsers_path": "/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/empty-browsers",
+  "results": [
+    {
+      "name": "chrome",
+      "mandatory": true,
+      "source": "installed Google Chrome (channel chrome)",
+      "launched": true,
+      "version": "156.0.8078.47",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36"
+    },
+    {
+      "name": "webkit",
+      "mandatory": true,
+      "source": "Playwright WebKit build",
+      "launched": false,
+      "error": "browserType.launch: Executable doesn't exist at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/empty-browsers/webkit-2359/pw_run.sh"
+    },
+    {
+      "name": "firefox",
+      "mandatory": false,
+      "source": "Playwright Firefox build — information only, suites not run (F15)",
+      "launched": false,
+      "error": "browserType.launch: Executable doesn't exist at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/empty-browsers/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox"
+    }
+  ]
+}

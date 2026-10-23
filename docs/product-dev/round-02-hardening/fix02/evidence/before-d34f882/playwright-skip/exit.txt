@@ -1,0 +1,1 @@
+rules-cls-repeat gate command exit=0

@@ -1,0 +1,30 @@
+
+== tools
+node v26.10.0 · npm 11.19.1 · Python 3.14.7 · system Python 3.9.6 · uv 0.12.9
+
+== ui-deps
+ui/node_modules installed from package-lock.json
+
+== py-env
+service/.venv exists — verifying it instead of recreating
+service/.venv == requirements.lock (37 distributions)
+
+== identity
+pinned Evaluator, contracts and backend source map verified
+
+== fixtures
+synthetic archives in service/.runtime verified: dev-main (10 evaluations), dev-single (5), dev-empty (0) — only missing ones were created
+
+== harness
+ui/.phase3a-runtime exists and was completed by bootstrap — kept
+ui/.phase3a-lookup-runtime exists and was completed by bootstrap — kept
+ui/.phase2-runtime exists and was completed by bootstrap — kept
+OK      webkit   26.6
+OK      firefox  155.0 (not mandatory)
+OK      chrome   156.0.8078.47
+FAIL    webkit   browserType.launch: Executable doesn't exist at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/empty-browsers/webkit-2359/pw_run.sh
+ABSENT  firefox  browserType.launch: Executable doesn't exist at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/empty-browsers/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox (not mandatory)
+
+BOOTSTRAP FAILED at stage "harness" (exit 32)
+  a mandatory browser does not launch — install Google Chrome, then: cd ui && npx playwright install webkit (report: /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/c2/.dev-runtime/bootstrap/browsers.json)
+  log: /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/c2/.dev-runtime/bootstrap/harness.log

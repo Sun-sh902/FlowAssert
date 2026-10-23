@@ -1,0 +1,66 @@
+
+ RUN  v5.0.3 /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/c3/ui
+
+ ✓ src/test/phase3a-gate.test.ts (130 tests) 37ms
+ ✓ src/test/lookup-addressability.test.ts (120 tests) 33ms
+ ✓ src/test/local-provider.test.ts (30 tests) 70ms
+ ✓ src/test/phase3a-history-provider.test.ts (103 tests) 132ms
+ ✓ src/test/contract-drift-mutations.test.ts (92 tests) 221ms
+ ✓ src/test/phase3a-history-decode.test.ts (55 tests) 70ms
+ ✓ src/test/local-validation.test.ts (29 tests) 67ms
+ ✓ src/test/p3a-aud-002-validator.test.ts (224 tests) 149ms
+ ✓ src/test/phase3a-ids.test.ts (240 tests) 48ms
+ ✓ src/test/workspace.test.tsx (21 tests) 770ms
+ ✓ src/test/lookup-gate.test.ts (102 tests) 55ms
+ ✓ src/test/lookup-contract-drift.test.ts (19 tests) 22ms
+ ✓ src/test/comparison.test.ts (12 tests) 13ms
+ ✓ src/test/history-contract-drift.test.ts (19 tests) 64ms
+ ✓ src/test/provider.test.ts (15 tests) 34ms
+ ✓ src/test/phase3a-canonical.test.ts (12 tests) 95ms
+ ✓ src/test/phase3a-history-pages.test.tsx (86 tests) 1850ms
+ ✓ src/test/remediation.test.tsx (26 tests) 2017ms
+   ✓ UIA-002 · drawer focus stays inside after a click on non-interactive drawer space (4)
+     ✓ blank click, then Tab: focus enters the drawer, never the search field behind it 765ms
+     ✓ blank click, then Shift+Tab: focus enters the drawer at its last control and keeps cycling 539ms
+ ✓ src/test/local-detail.test.tsx (24 tests) 2078ms
+ ✓ src/test/access-states.test.tsx (23 tests) 1546ms
+   ✓ Interface states page (4)
+     ✓ is reachable at #/states (lazy-loaded) and shows a plate for every access state 389ms
+     ✓ runs a simulated read: loading, then a request error with retry, then ready 410ms
+ ✓ src/test/lookup-detail.test.tsx (10 tests) 606ms
+   ✓ exact-ID lookup route (10)
+     ✓ x/evidence: one Detail read by exact ID, the SPEC-005 result, never the evidence route of x 349ms
+ ✓ src/test/detail.test.tsx (15 tests) 1243ms
+ ✓ src/test/archive-match.test.tsx (4 tests) 108ms
+ ✓ src/test/phase3a-integrity.test.ts (14 tests) 14ms
+ ✓ src/test/uia009-nullable-label.test.tsx (14 tests) 566ms
+   ✓ UIA-009 · pages (3)
+     ✓ renders the Verifications list with null and empty labels, and searches without throwing 509ms
+ ✓ src/test/overview.test.tsx (10 tests) 353ms
+ ✓ src/test/rules.test.tsx (10 tests) 769ms
+ ✓ src/test/fixtures.test.ts (8 tests) 16ms
+ ✓ src/test/settings.test.tsx (7 tests) 917ms
+   ✓ Display and accessibility preferences (3)
+     ✓ apply to <html> immediately and persist 383ms
+ ✓ src/test/contract-drift.test.ts (32 tests) 30ms
+ ✓ src/test/fixture-identity.test.ts (5 tests) 10ms
+ ✓ src/test/contract-drift-runtime.test.ts (3 tests) 8ms
+ ✓ src/test/connections.test.tsx (5 tests) 207ms
+ ✓ src/test/verifications.test.tsx (7 tests) 638ms
+ ✓ src/test/shell.test.tsx (7 tests) 689ms
+   ✓ Mobile navigation drawer (5)
+     ✓ keeps Tab focus inside the drawer in both directions 366ms
+ ✓ src/test/evidence-mode-switch-race.test.tsx (90 tests) 5621ms
+   ✓ History entry: payload-mode switch vs. the first evidence page (45)
+     ✓ release, then switch after tasks: 0 372ms
+
+ Test Files  36 passed (36)
+      Tests  1623 passed (1623)
+   Start at  02:43:32
+   Duration  8.87s (tests 49%, environment 30%, import 9%, transform 7%, setup 5%)
+
+Environment  jsdom was created 36 times · 12.75s total, 30% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+JSON report written to /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/c3/.dev-runtime/regression/fix02-final-fd92903/ui-vitest.json

@@ -1,0 +1,72 @@
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+Running 60 tests using 1 worker
+
+  ✓   1 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › dot: direct entry, exact Detail, full evidence chain, exact receipts (299ms)
+  ✓   2 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › dotdot: direct entry, exact Detail, full evidence chain, exact receipts (245ms)
+  ✓   3 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › evidence-suffix: direct entry, exact Detail, full evidence chain, exact receipts (230ms)
+  ✓   4 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › slash: direct entry, exact Detail, full evidence chain, exact receipts (233ms)
+  ✓   5 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › colon: direct entry, exact Detail, full evidence chain, exact receipts (228ms)
+  ✓   6 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › chinese: direct entry, exact Detail, full evidence chain, exact receipts (257ms)
+  ✓   7 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › emoji128: direct entry, exact Detail, full evidence chain, exact receipts (229ms)
+  ✓   8 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › punctuation: direct entry, exact Detail, full evidence chain, exact receipts (229ms)
+  ✓   9 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › plus: direct entry, exact Detail, full evidence chain, exact receipts (225ms)
+  ✓  10 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › percent-literal: direct entry, exact Detail, full evidence chain, exact receipts (224ms)
+  ✓  11 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › suffix-trap-control: direct entry, exact Detail, full evidence chain, exact receipts (224ms)
+  ✓  12 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › decoded-slash-control: direct entry, exact Detail, full evidence chain, exact receipts (277ms)
+  ✓  13 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › space-control: direct entry, exact Detail, full evidence chain, exact receipts (224ms)
+  ✓  14 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › nfc: direct entry, exact Detail, full evidence chain, exact receipts (281ms)
+  ✓  15 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › nfd: direct entry, exact Detail, full evidence chain, exact receipts (223ms)
+  ✓  16 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › whitespace: direct entry, exact Detail, full evidence chain, exact receipts (224ms)
+  ✓  17 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › controls: direct entry, exact Detail, full evidence chain, exact receipts (246ms)
+  ✓  18 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › fe-emoji-single: direct entry, exact Detail, full evidence chain, exact receipts (283ms)
+  ✓  19 [chrome] › e2e-lookup/lookup.spec.ts:82:3 › fe-bmp128: direct entry, exact Detail, full evidence chain, exact receipts (247ms)
+  ✓  20 [chrome] › e2e-lookup/lookup.spec.ts:189:1 › in-app navigation: legacy x/evidence refusal → lookup link → Back → Forward → Reload (546ms)
+  ✓  21 [chrome] › e2e-lookup/lookup.spec.ts:232:1 › no cross-ID contamination: x/evidence → x → a%2Fb → a/b → Back, each read by its own exact ID (277ms)
+  ✓  22 [chrome] › e2e-lookup/lookup.spec.ts:261:1 › tampered continuation cursor: the Service's 400 invalid_cursor is shown as a retrieval error, never a verdict (256ms)
+  ✓  23 [chrome] › e2e-lookup/lookup.spec.ts:286:1 › Service restart: an old cursor is 409 snapshot_unavailable — shown, nothing merged; Re-read starts a new snapshot (1.4s)
+  ✓  24 [chrome] › e2e-lookup/lookup.spec.ts:319:1 › an invalid 129-code-point ID and malformed lookup addresses are refused; nothing is requested (539ms)
+  ✓  25 [chrome] › e2e-lookup/lookup.spec.ts:330:1 › visual record: lookup Detail and the legacy refusal's lookup link (light, dark, 390 px) (805ms)
+  ✓  26 [chrome] › e2e-lookup/mode-switch-race.spec.ts:17:3 › lookup "x/evidence" · switch to References only N microtasks after the payload page settles (N = 0–40) (11.2s)
+  ✓  27 [chrome] › e2e-lookup/mode-switch-race.spec.ts:17:3 › lookup "customer/001" · switch to References only N microtasks after the payload page settles (N = 0–40) (11.9s)
+  ✓  28 [chrome] › e2e-lookup/security.spec.ts:49:1 › raw HTTP probes: query grammar, IDs, paths, methods, Host, size — gate and Service (1.4s)
+  ✓  29 [chrome] › e2e-lookup/security.spec.ts:126:1 › cursor and snapshot probes through the gate: wrong ID, wrong snapshot, tampered, malformed, cross-family (51ms)
+  ✓  30 [chrome] › e2e-lookup/security.spec.ts:170:1 › in-browser probes through the gate (155ms)
+  ✓  31 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › dot: direct entry, exact Detail, full evidence chain, exact receipts (363ms)
+  ✓  32 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › dotdot: direct entry, exact Detail, full evidence chain, exact receipts (290ms)
+  ✓  33 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › evidence-suffix: direct entry, exact Detail, full evidence chain, exact receipts (329ms)
+  ✓  34 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › slash: direct entry, exact Detail, full evidence chain, exact receipts (283ms)
+  ✓  35 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › colon: direct entry, exact Detail, full evidence chain, exact receipts (276ms)
+  ✓  36 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › chinese: direct entry, exact Detail, full evidence chain, exact receipts (295ms)
+  ✓  37 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › emoji128: direct entry, exact Detail, full evidence chain, exact receipts (315ms)
+  ✓  38 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › punctuation: direct entry, exact Detail, full evidence chain, exact receipts (279ms)
+  ✓  39 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › plus: direct entry, exact Detail, full evidence chain, exact receipts (279ms)
+  ✓  40 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › percent-literal: direct entry, exact Detail, full evidence chain, exact receipts (295ms)
+  ✓  41 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › suffix-trap-control: direct entry, exact Detail, full evidence chain, exact receipts (278ms)
+  ✓  42 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › decoded-slash-control: direct entry, exact Detail, full evidence chain, exact receipts (282ms)
+  ✓  43 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › space-control: direct entry, exact Detail, full evidence chain, exact receipts (295ms)
+  ✓  44 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › nfc: direct entry, exact Detail, full evidence chain, exact receipts (282ms)
+  ✓  45 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › nfd: direct entry, exact Detail, full evidence chain, exact receipts (294ms)
+  ✓  46 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › whitespace: direct entry, exact Detail, full evidence chain, exact receipts (283ms)
+  ✓  47 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › controls: direct entry, exact Detail, full evidence chain, exact receipts (296ms)
+  ✓  48 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › fe-emoji-single: direct entry, exact Detail, full evidence chain, exact receipts (297ms)
+  ✓  49 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › fe-bmp128: direct entry, exact Detail, full evidence chain, exact receipts (298ms)
+  ✓  50 [webkit] › e2e-lookup/lookup.spec.ts:189:1 › in-app navigation: legacy x/evidence refusal → lookup link → Back → Forward → Reload (621ms)
+  ✓  51 [webkit] › e2e-lookup/lookup.spec.ts:232:1 › no cross-ID contamination: x/evidence → x → a%2Fb → a/b → Back, each read by its own exact ID (321ms)
+  ✓  52 [webkit] › e2e-lookup/lookup.spec.ts:261:1 › tampered continuation cursor: the Service's 400 invalid_cursor is shown as a retrieval error, never a verdict (300ms)
+  ✓  53 [webkit] › e2e-lookup/lookup.spec.ts:286:1 › Service restart: an old cursor is 409 snapshot_unavailable — shown, nothing merged; Re-read starts a new snapshot (1.5s)
+  ✓  54 [webkit] › e2e-lookup/lookup.spec.ts:319:1 › an invalid 129-code-point ID and malformed lookup addresses are refused; nothing is requested (624ms)
+  -  55 [webkit] › e2e-lookup/lookup.spec.ts:330:1 › visual record: lookup Detail and the legacy refusal's lookup link (light, dark, 390 px)
+  ✓  56 [webkit] › e2e-lookup/mode-switch-race.spec.ts:17:3 › lookup "x/evidence" · switch to References only N microtasks after the payload page settles (N = 0–40) (19.8s)
+  ✓  57 [webkit] › e2e-lookup/mode-switch-race.spec.ts:17:3 › lookup "customer/001" · switch to References only N microtasks after the payload page settles (N = 0–40) (19.1s)
+  -  58 [webkit] › e2e-lookup/security.spec.ts:49:1 › raw HTTP probes: query grammar, IDs, paths, methods, Host, size — gate and Service
+  -  59 [webkit] › e2e-lookup/security.spec.ts:126:1 › cursor and snapshot probes through the gate: wrong ID, wrong snapshot, tampered, malformed, cross-family
+  ✓  60 [webkit] › e2e-lookup/security.spec.ts:170:1 › in-browser probes through the gate (222ms)
+
+  3 skipped
+  57 passed (1.5m)

@@ -1,0 +1,10 @@
+local run 1 exit=0  8 skipped  34 passed (41.9s)  interrupted=1
+local run 2 exit=0  8 skipped  34 passed (41.7s)  interrupted=1
+local run 3 exit=0  8 skipped  34 passed (41.9s)  interrupted=1
+local run 4 exit=0  8 skipped  34 passed (41.8s)  interrupted=1
+local run 5 exit=0  8 skipped  34 passed (41.7s)  interrupted=1
+local run 6 exit=0  8 skipped  34 passed (41.9s)  interrupted=1
+local run 7 exit=0  8 skipped  34 passed (41.6s)  interrupted=1
+local run 8 exit=0  8 skipped  34 passed (41.8s)  interrupted=1
+local run 9 exit=0  8 skipped  34 passed (41.9s)  interrupted=0
+local run 10 exit=0  8 skipped  34 passed (41.8s)  interrupted=1

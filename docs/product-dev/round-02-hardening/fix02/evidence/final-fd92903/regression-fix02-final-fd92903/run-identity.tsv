@@ -1,0 +1,8 @@
+run_id	fix02-final-fd92903
+commit	fd92903ec294b35416d435601f5342fcdca7a625
+branch	fix02-final
+worktree_changes	0
+mode	full
+started_utc	2026-10-23T06:43:10Z
+host	Darwin 27.2.0 arm64
+run_dir	/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/c3/.dev-runtime/regression/fix02-final-fd92903

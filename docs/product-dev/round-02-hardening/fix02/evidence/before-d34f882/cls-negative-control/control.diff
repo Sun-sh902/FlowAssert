@@ -1,0 +1,15 @@
+diff --git a/ui/src/styles/index.css b/ui/src/styles/index.css
+index 307a669..1e2462c 100644
+--- a/ui/src/styles/index.css
++++ b/ui/src/styles/index.css
+@@ -52,8 +52,8 @@
+  *   IBM Plex Mono    — observed values, identifiers, times, namespaces
+  */
+ @theme inline {
+-  --font-sans: "Instrument Sans Variable", "Instrument Sans", "Instrument Sans Fallback", ui-sans-serif, system-ui, sans-serif;
+-  --font-display: "Instrument Serif", "Instrument Serif Fallback", "Iowan Old Style", Georgia, serif;
++  --font-sans: "Instrument Sans Variable", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
++  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+ 
+   /* 11 / 12 / 13 / 13.5 / 15 / 18 / 22 / 28 ; serif display 40 / 44 */

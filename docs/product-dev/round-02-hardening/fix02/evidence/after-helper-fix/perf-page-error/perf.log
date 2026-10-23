@@ -1,0 +1,38 @@
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+Running 1 test using 1 worker
+
+  ✘  1 [chrome] › e2e/perf.spec.ts:13:1 › DOM size, layout shift and load timing per route (5.0s)
+
+
+  1) [chrome] › e2e/perf.spec.ts:13:1 › DOM size, layout shift and load timing per route ───────────
+
+    Error: page errors during the measurement
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Error: injected FIX02 page error",
+    + ]
+
+      61 |   });
+      62 |   for (const row of rows) if (row.cls !== null) expect.soft(row.cls, row.route).toBeLessThan(0.1);
+    > 63 |   expect.soft(pageErrors, "page errors during the measurement").toEqual([]);
+         |                                                                 ^
+      64 | });
+      65 |
+        at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/c2/ui/e2e/perf.spec.ts:63:65
+
+    Error Context: ../../runs/perf-pageerror-after/pw/perf-DOM-size-layout-shift-and-load-timing-per-route-chrome/error-context.md
+
+  1 failed
+    [chrome] › e2e/perf.spec.ts:13:1 › DOM size, layout shift and load timing per route ────────────
