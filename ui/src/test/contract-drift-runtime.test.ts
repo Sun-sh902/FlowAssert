@@ -1,21 +1,20 @@
 /**
  * Drift guard for the runtime validator's schema copy (src/data/contract/v1.schemas.json).
  * The copy must equal, object for object, the frozen contract's schemas reachable from the two
- * authorized endpoints — and the frozen file must still have the reviewed digest. Skipped (never
- * passed) when the read-only contract is absent.
+ * authorized endpoints — and the frozen file must still have the reviewed digest. Fails (never skips)
+ * when the contract is missing.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import copy from "../data/contract/v1.schemas.json";
 import { CONTRACT } from "./contract/fixtures";
 
-const present = existsSync(CONTRACT);
 const FROZEN_SHA256 = "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230";
 
-describe.skipIf(!present)("runtime schema copy vs frozen OpenAPI", () => {
-  const raw = present ? readFileSync(CONTRACT) : Buffer.from("");
-  const doc = present ? (JSON.parse(raw.toString("utf8")) as { info: { version: string }; components: { schemas: Record<string, unknown> } }) : null;
+describe("runtime schema copy vs frozen OpenAPI", () => {
+  const raw = readFileSync(CONTRACT);
+  const doc = JSON.parse(raw.toString("utf8")) as { info: { version: string }; components: { schemas: Record<string, unknown> } };
 
   it("the frozen contract still has the reviewed digest, and the copy records it", () => {
     expect(createHash("sha256").update(raw).digest("hex")).toBe(FROZEN_SHA256);

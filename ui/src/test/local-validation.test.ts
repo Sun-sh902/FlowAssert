@@ -8,7 +8,7 @@ import { ACCEPTED_EVALUATOR } from "../data/local/config";
 import { canonicalJson, checkPayloadDigest } from "../data/local/canonical";
 import { decodeErrorEnvelope, decodeEvidencePage, decodeVerificationRun } from "../data/local/decode";
 import { SCHEMA_SOURCE, validateSchema } from "../data/local/schema";
-import { CASE_IDS, captured, handoffPresent } from "./local/fakeService";
+import { CASE_IDS, captured } from "./local/fakeService";
 
 describe("embedded frozen schemas", () => {
   it("are the 33 reachable schemas of the frozen 0.1.1-proposed contract, by digest", () => {
@@ -22,7 +22,7 @@ describe("embedded frozen schemas", () => {
   });
 });
 
-describe.skipIf(!handoffPresent)("schema validation of real captured responses", () => {
+describe("schema validation of real captured responses", () => {
   for (const id of CASE_IDS) {
     it(`${id}: Detail, full evidence and every limit=1 page validate`, () => {
       expect(validateSchema("VerificationRun", captured(`${id}-detail`))).toEqual([]);
@@ -81,7 +81,7 @@ describe.skipIf(!handoffPresent)("schema validation of real captured responses",
   });
 });
 
-describe.skipIf(!handoffPresent)("F004 admission of a Detail", () => {
+describe("F004 admission of a Detail", () => {
   const decode = (fn: (d: any) => void = () => {}, id = "SPEC-005") => {
     const d = captured(`${id}-detail`);
     fn(d);
@@ -154,7 +154,7 @@ describe.skipIf(!handoffPresent)("F004 admission of a Detail", () => {
   });
 });
 
-describe.skipIf(!handoffPresent)("F004 admission of an evidence page", () => {
+describe("F004 admission of an evidence page", () => {
   const page = (name = "SPEC-001-page-1") => captured(name);
   const req = (p: any, over: Partial<{ includePayload: boolean; limit: number; snapshotId: string }> = {}) =>
     decodeEvidencePage(p, { id: p.run_id, snapshotId: p.page.snapshot_id, includePayload: true, limit: 1, ...over });
@@ -196,12 +196,12 @@ describe("canonical digest (python-json-sortkeys-ascii-v1)", () => {
     expect(await checkPayloadDigest({ x: 1 }, null)).toBe("not_checkable");
   });
 
-  it.skipIf(!handoffPresent)("reproduces the reference SHA-256 of every captured payload", async () => {
+  it("reproduces the reference SHA-256 of every captured payload", async () => {
     for (const id of CASE_IDS)
       for (const item of captured(`${id}-evidence`).items) expect(await checkPayloadDigest(item.payload, item.reference.sha256), item.reference.id).toBe("reproduced");
   });
 
-  it.skipIf(!handoffPresent)("reports a changed payload as not reproduced", async () => {
+  it("reports a changed payload as not reproduced", async () => {
     const item = captured("SPEC-002-evidence").items[1];
     item.payload.access = "denied";
     expect(await checkPayloadDigest(item.payload, item.reference.sha256)).toBe("mismatch");

@@ -13,7 +13,7 @@ import { getHistoryProvider, unavailableHistoryProvider } from "../data/provider
 import type { EvidenceBinding } from "../data/history/decode";
 import type { HistoryDetailView } from "../domain/history";
 import { EXPECTED_ARCHIVE } from "./phase3a-history-decode.test";
-import { FIRST_BATCH, example, fakeHistoryService, historyEnvelope, historyExamplesPresent, json } from "./local/fakeHistoryService";
+import { FIRST_BATCH, example, fakeHistoryService, historyEnvelope, json } from "./local/fakeHistoryService";
 
 const bindingOf = (d: HistoryDetailView): EvidenceBinding => ({ historyId: d.historyId, snapshotId: d.snapshotId, archiveId: d.archiveId, originalSnapshotId: d.originalSnapshotId, originalVerificationId: d.verificationId });
 
@@ -49,7 +49,7 @@ describe("wire requests", () => {
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("ready results copy the archive", () => {
+describe("ready results copy the archive", () => {
   for (const [id, want] of Object.entries(EXPECTED_ARCHIVE))
     it(`${id}: archived cohort, record states in archive order, counts, population`, async () => {
       const r = await createLocalHistoryProvider({ fetch: fakeHistoryService().fetch }).getHistory(FIRST_BATCH[id]!);
@@ -136,7 +136,7 @@ describe.skipIf(!historyExamplesPresent)("ready results copy the archive", () =>
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("outcome classification", () => {
+describe("outcome classification", () => {
   const H = () => FIRST_BATCH["SPEC-001"]!;
   const once = (body: () => Response | Promise<Response>) => {
     const svc = fakeHistoryService();
@@ -206,7 +206,7 @@ describe.skipIf(!historyExamplesPresent)("outcome classification", () => {
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("list view: pagination under one list snapshot", () => {
+describe("list view: pagination under one list snapshot", () => {
   it("reads the 10-entry archive in 3 pages of 4, in the Service's order, ending exactly at page.total", async () => {
     const svc = fakeHistoryService();
     const p = createLocalHistoryProvider({ fetch: svc.fetch });

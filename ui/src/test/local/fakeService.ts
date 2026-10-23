@@ -2,22 +2,24 @@
  * TEST DOUBLE of the local Service's documented HTTP behaviour, for unit and component tests only.
  *
  * Bodies are the real responses captured by the Codex handoff (FlowAssert-Phase2-Support/evidence/http,
- * read-only). Pagination, snapshot and cursor rules follow FROZEN_API_HANDOFF.md. Cursors here are fake
- * and unsigned — the real HMAC cursors, restarts and 409s are exercised against the real Service by the
- * browser E2E suite (e2e-local/). Nothing in the app imports this file.
+ * read-only), vendored in fixtures/phase2-handoff/http (FLOWASSERT_HANDOFF_HTTP overrides) and identity-checked
+ * against the handoff manifest (fixture-identity.test.ts). Pagination, snapshot and cursor rules follow
+ * FROZEN_API_HANDOFF.md. Cursors here are fake and unsigned — the real HMAC cursors, restarts and 409s are
+ * exercised against the real Service by the browser E2E suite (e2e-local/). Nothing in the app imports this file.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { requiredFixture } from "../fixtures/sources";
 
-export const HANDOFF_HTTP = process.env.FLOWASSERT_HANDOFF_HTTP ?? "/Users/zhangshenghe/Documents/FlowAssert-Phase2-Support/evidence/http";
-export const handoffPresent = existsSync(join(HANDOFF_HTTP, "SPEC-001-detail.json"));
+/** Resolved on first read: a missing copy fails every test that reads a body — explicitly, never as a skip. */
+export const handoffHttp = () => requiredFixture("FLOWASSERT_HANDOFF_HTTP", "ui/src/test/fixtures/phase2-handoff/http");
 
 export const CASE_IDS = ["SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-005"] as const;
 
 /** A captured body, parsed fresh each call so a test can mutate its copy freely. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function captured(name: string): any {
-  return JSON.parse(readFileSync(join(HANDOFF_HTTP, `${name}.json`), "utf8"));
+  return JSON.parse(readFileSync(join(handoffHttp(), `${name}.json`), "utf8"));
 }
 
 export const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

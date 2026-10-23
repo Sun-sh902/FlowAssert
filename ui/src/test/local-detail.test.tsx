@@ -11,7 +11,7 @@ import type { FlowAssertReadProvider } from "../data/provider";
 import type { RunView } from "../domain/view";
 import type { Location } from "../lib/router";
 import { LocalVerificationDetail } from "../pages/VerificationDetail";
-import { captured, fakeService, handoffPresent, json } from "./local/fakeService";
+import { captured, fakeService, json } from "./local/fakeService";
 import { renderApp } from "./render";
 
 const loc = (id: string, query = ""): Location => ({ route: { name: "local-verification", id }, params: new URLSearchParams(query), path: `/local/verifications/${id}` });
@@ -24,7 +24,7 @@ function mount(id: string, provider: FlowAssertReadProvider) {
 
 const seal = () => document.querySelector('.fa-seal[data-size="lg"]');
 
-describe.skipIf(!handoffPresent)("LOCAL_RESEARCH Detail — ready", () => {
+describe("LOCAL_RESEARCH Detail — ready", () => {
   it("shows the mode, provenance and the evaluator's cohort result for SPEC-005", async () => {
     const svc = fakeService();
     mount("SPEC-005", createLocalResearchProvider({ fetch: svc.fetch }));
@@ -95,7 +95,7 @@ describe.skipIf(!handoffPresent)("LOCAL_RESEARCH Detail — ready", () => {
   });
 });
 
-describe.skipIf(!handoffPresent)("LOCAL_RESEARCH Detail — UIA-009 nullable workflow label", () => {
+describe("LOCAL_RESEARCH Detail — UIA-009 nullable workflow label", () => {
   for (const [label, shown] of [
     [null, "Workflow label unavailable"],
     ["", "Workflow label empty"],
@@ -125,7 +125,7 @@ describe.skipIf(!handoffPresent)("LOCAL_RESEARCH Detail — UIA-009 nullable wor
   }
 });
 
-describe.skipIf(!handoffPresent)("LOCAL_RESEARCH Detail — snapshots and failures", () => {
+describe("LOCAL_RESEARCH Detail — snapshots and failures", () => {
   it("a restart before page 2 shows the stale-snapshot state, merges nothing, and re-reads only on request", async () => {
     const svc = fakeService();
     const { user } = mount("SPEC-001", createLocalResearchProvider({ fetch: svc.fetch }));
@@ -206,7 +206,7 @@ describe.skipIf(!handoffPresent)("LOCAL_RESEARCH Detail — snapshots and failur
   });
 });
 
-describe.skipIf(!handoffPresent)("async safety with a provider that ignores AbortSignal", () => {
+describe("async safety with a provider that ignores AbortSignal", () => {
   it("a late answer to an older read never overwrites the newer one", async () => {
     // Read A (generation 0) is answered only after read B (generation 1) has settled.
     const ready = async (id: string, state: "A" | "B"): Promise<ProviderResult<RunView>> => {
@@ -277,7 +277,7 @@ describe("routing and mode separation", () => {
   });
 });
 
-describe.skipIf(!handoffPresent)("P3A-AUD-001 — contract-valid IDs through the routed Detail page", () => {
+describe("P3A-AUD-001 — contract-valid IDs through the routed Detail page", () => {
   /** A fake Service holding one extra run, "SPEC:001": the genuine SPEC-001 body with only identity.id changed. */
   function aliasFetch() {
     const svc = fakeService();

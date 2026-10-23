@@ -18,8 +18,8 @@ import { createLocalHistoryProvider } from "../data/history/provider";
 import { decodeEvidencePage, decodeVerificationRun } from "../data/local/decode";
 import { createLocalResearchProvider } from "../data/local/provider";
 import { createSchemaValidator, validateSchema } from "../data/local/schema";
-import { captured, handoffPresent } from "./local/fakeService";
-import { example, historyExamplesPresent } from "./local/fakeHistoryService";
+import { captured } from "./local/fakeService";
+import { example } from "./local/fakeHistoryService";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -39,7 +39,7 @@ const PROTOTYPE_NAMES = Object.getOwnPropertyNames(Object.prototype); // constru
 const NAMES = [...new Set([...PROTOTYPE_NAMES, "prototype", "foreign_field"])];
 const protoBefore = Object.getOwnPropertyNames(Object.prototype).sort().join(",");
 
-describe.skipIf(!historyExamplesPresent)("additive slice (HistoryDetail / HistoryList)", () => {
+describe("additive slice (HistoryDetail / HistoryList)", () => {
   const detail = () => example("014-SPEC-005-history-detail");
   const req = (d: Any) => ({ historyId: d.history_id });
 
@@ -99,7 +99,7 @@ describe.skipIf(!historyExamplesPresent)("additive slice (HistoryDetail / Histor
   });
 });
 
-describe.skipIf(!handoffPresent)("frozen slice (VerificationRun / EvidencePage)", () => {
+describe("frozen slice (VerificationRun / EvidencePage)", () => {
   const run = () => captured("SPEC-005-detail");
   const runReq = (r: Any) => ({ id: r.identity.id, snapshotId: r.snapshot_id });
   it("control: the genuine SPEC-005 run is admitted", () => expect(decodeVerificationRun(run(), runReq(run())).ok).toBe(true));

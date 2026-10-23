@@ -1,7 +1,6 @@
 /**
  * Drift guard: the wire mirror (src/data/contract/v1.ts) must restate the reviewed OpenAPI exactly.
- * The contract lives in a read-only sibling repository; when it is absent (e.g. CI elsewhere) the
- * comparison is skipped and reported as skipped — never as passed.
+ * The contract is the Service's pinned copy (./contract/fixtures.ts); if it is missing the suite fails — never skips.
  *
  * Two layers:
  *  1. key lists (SCHEMA_KEYS): property names and required sets — the original check, kept;
@@ -9,22 +8,20 @@
  *     $ref targets, closed objects, schema scope, path/query parameters and response bindings.
  * Its sensitivity is proven by deliberate mutations in contract-drift-mutations.test.ts.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CONTRACT_VERSION, OPTIONAL_KEYS, SCHEMA_KEYS, V1_PATHS } from "../data/contract/v1";
 import { BINDING, CONTRACT, MIRROR_SOURCE, UNMIRRORED_SCHEMAS } from "./contract/fixtures";
 import { checkContract, type OpenApiDoc } from "./contract/guard";
-
-const present = existsSync(CONTRACT);
 
 interface Schema {
   properties?: Record<string, unknown>;
   required?: string[];
 }
 
-describe.skipIf(!present)("wire mirror vs reviewed OpenAPI", () => {
+describe("wire mirror vs reviewed OpenAPI", () => {
   // The contract is JSON-compatible YAML 1.2 by design, so JSON.parse reads it without a YAML package.
-  const doc = present ? (JSON.parse(readFileSync(CONTRACT, "utf8")) as { info: { version: string }; paths: Record<string, unknown>; components: { schemas: Record<string, Schema> } }) : null;
+  const doc = JSON.parse(readFileSync(CONTRACT, "utf8")) as { info: { version: string }; paths: Record<string, unknown>; components: { schemas: Record<string, Schema> } };
 
   it("is the same contract version", () => {
     expect(doc!.info.version).toBe(CONTRACT_VERSION);
@@ -46,9 +43,9 @@ describe.skipIf(!present)("wire mirror vs reviewed OpenAPI", () => {
   }
 });
 
-describe.skipIf(!present)("wire mirror vs reviewed OpenAPI — shapes, scope and endpoints", () => {
-  const doc = present ? (JSON.parse(readFileSync(CONTRACT, "utf8")) as OpenApiDoc) : null;
-  const report = present ? checkContract(doc!, MIRROR_SOURCE, BINDING) : null;
+describe("wire mirror vs reviewed OpenAPI — shapes, scope and endpoints", () => {
+  const doc = JSON.parse(readFileSync(CONTRACT, "utf8")) as OpenApiDoc;
+  const report = checkContract(doc, MIRROR_SOURCE, BINDING);
 
   it("finds no difference in any material property within the Detail/evidence scope", () => {
     expect(report!.diffs).toEqual([]);

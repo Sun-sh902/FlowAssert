@@ -9,22 +9,19 @@
  *     decoders and prototype-safe checks apply unchanged.
  *  4. Transport extension facts the frontend relies on (single decode, "&", 4096-byte cap, + is space).
  *  5. Sensitivity: deliberate incompatible edits are detected.
- * Skipped (never passed) when the read-only contract files are absent.
+ * Fails (never skips) when a contract file is missing; all are the Service's pinned copies (./fixtures/sources.ts).
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ROUTES } from "../../server/localApiGate.ts";
 import frozenCopy from "../data/contract/v1.schemas.json";
 import { LOOKUP_BOUNDS, LOOKUP_CONTRACT_SHA256, LOOKUP_CONTRACT_VERSION, LOOKUP_PATHS, LOOKUP_QUERY } from "../data/contract/lookup";
 import { lookupEvidenceUrl, lookupUrl } from "../data/local/provider";
-import { CONTRACT } from "./contract/fixtures";
+import { CONTRACT, HISTORY_CONTRACT, LOOKUP_CONTRACT } from "./contract/fixtures";
 
-export const LOOKUP_CONTRACT = process.env.FLOWASSERT_LOOKUP_OPENAPI ?? "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/openapi-id-addressability-v1.yaml";
 const FROZEN_SHA256 = "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230";
-const HISTORY_CONTRACT = process.env.FLOWASSERT_HISTORY_OPENAPI ?? "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/openapi-history-v1.yaml";
 const HISTORY_SHA256 = "f341d8d5ec9da1b933b06efe998c07a1045226500a6b5837e9c8a9ead74bd69f";
-const present = existsSync(LOOKUP_CONTRACT) && existsSync(CONTRACT);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Doc = Record<string, any>;
@@ -86,15 +83,15 @@ export function lookupDrift(doc: Doc, frozen: Doc): string[] {
   return p;
 }
 
-describe.skipIf(!present)("additive exact-ID query contract vs frontend addressing", () => {
-  const raw = present ? readFileSync(LOOKUP_CONTRACT) : Buffer.from("");
-  const doc = present ? (JSON.parse(raw.toString("utf8")) as Doc) : {};
-  const frozen = present ? (JSON.parse(readFileSync(CONTRACT, "utf8")) as Doc) : {};
+describe("additive exact-ID query contract vs frontend addressing", () => {
+  const raw = readFileSync(LOOKUP_CONTRACT);
+  const doc = JSON.parse(raw.toString("utf8")) as Doc;
+  const frozen = JSON.parse(readFileSync(CONTRACT, "utf8")) as Doc;
 
   it("has the reviewed digest and declares the reviewed frozen and history digests", () => {
     expect(createHash("sha256").update(raw).digest("hex")).toBe(LOOKUP_CONTRACT_SHA256);
     expect(createHash("sha256").update(readFileSync(CONTRACT)).digest("hex")).toBe(FROZEN_SHA256);
-    if (existsSync(HISTORY_CONTRACT)) expect(createHash("sha256").update(readFileSync(HISTORY_CONTRACT)).digest("hex")).toBe(HISTORY_SHA256);
+    expect(createHash("sha256").update(readFileSync(HISTORY_CONTRACT)).digest("hex")).toBe(HISTORY_SHA256);
   });
 
   it("finds no drift between the contract and the frontend's pinned addressing", () => expect(lookupDrift(doc, frozen)).toEqual([]));

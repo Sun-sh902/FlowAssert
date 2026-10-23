@@ -27,7 +27,9 @@ def snapshot():
         if not path.is_dir():
             raise FileNotFoundError(f'protected root {path} is missing; set FLOWASSERT_PROTECTED_PARENT to the directory that holds it')
         for base,dirs,names in os.walk(path):
-            for name_ in names:
+            # A directory symlink is listed in dirs and never walked (followlinks=False): record its target so adding,
+            # removing or retargeting one is a difference (round 02 hardening FIX01). Real directories add no entry.
+            for name_ in names+[d for d in dirs if os.path.islink(os.path.join(base,d))]:
                 q=Path(base)/name_
                 files[str(q.relative_to(path))]='link:'+os.readlink(q) if q.is_symlink() else hashlib.sha256(q.read_bytes()).hexdigest()
         git={}

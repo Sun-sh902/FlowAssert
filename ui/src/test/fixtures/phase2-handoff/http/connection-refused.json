@@ -1,0 +1,9 @@
+{
+  "errno": 61,
+  "exception_type": "ConnectionRefusedError",
+  "http_response": false,
+  "meaning": "transport failure; no JSON response and no business verdict",
+  "reason": "[Errno 61] Connection refused",
+  "url": "http://127.0.0.1:8765/api/v1/verifications/SPEC-001",
+  "utc": "2026-10-18T07:26:46.745244+00:00"
+}

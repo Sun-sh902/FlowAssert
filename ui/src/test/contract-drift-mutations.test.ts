@@ -7,7 +7,8 @@
  * produce, so a guard that fails for an unrelated reason does not count as a detection.
  *
  * The independent audit's own 12 mutant files are also replayed when that read-only review folder
- * is present (FLOWASSERT_DRIFT_MUTANTS overrides the location).
+ * is present (FLOWASSERT_DRIFT_MUTANTS overrides the location). They are historical evidence outside this
+ * repository: when absent, the one skipped test below is reported NOT RUN by scripts/dev/check_test_inventory.py.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -15,11 +16,10 @@ import { describe, expect, it } from "vitest";
 import { BINDING, CONTRACT, MIRROR_SOURCE } from "./contract/fixtures";
 import { checkContract, type OpenApiDoc } from "./contract/guard";
 
-const present = existsSync(CONTRACT);
 const AUDIT_MUTANTS = process.env.FLOWASSERT_DRIFT_MUTANTS ?? "/Users/zhangshenghe/Documents/FlowAssert-UI-Review/evidence/contract/mutants";
 
 type Doc = OpenApiDoc & { components: { schemas: Record<string, any> }; paths: Record<string, any> };
-const original = present ? readFileSync(CONTRACT, "utf8") : "{}";
+const original = readFileSync(CONTRACT, "utf8");
 const fresh = () => JSON.parse(original) as Doc;
 const S = (d: Doc) => d.components.schemas;
 const params = (d: Doc, path: string) => d.paths[path].get.parameters as { name: string; in: string; required?: boolean; schema: any }[];
@@ -102,7 +102,7 @@ const MIRROR_MUTATIONS: MirrorMutation[] = [
   { id: "M11", category: "unsupported TypeScript form in mirror", from: "export interface DiagnosticDTO {", to: "export interface DiagnosticDTO extends Record<string, unknown> {", expect: [/unsupported interface form/] },
 ];
 
-describe.skipIf(!present)("drift guard sensitivity — contract mutations", () => {
+describe("drift guard sensitivity — contract mutations", () => {
   it("reports nothing for the unmodified contract (control)", () => {
     expect(checkContract(fresh(), MIRROR_SOURCE, BINDING).diffs).toEqual([]);
   });
@@ -122,7 +122,7 @@ describe.skipIf(!present)("drift guard sensitivity — contract mutations", () =
   });
 });
 
-describe.skipIf(!present)("drift guard sensitivity — mirror mutations", () => {
+describe("drift guard sensitivity — mirror mutations", () => {
   for (const m of MIRROR_MUTATIONS) {
     it(`${m.id} ${m.category}`, () => {
       expect(MIRROR_SOURCE.split(m.from).length - 1, `"${m.from}" must occur exactly once in v1.ts`).toBe(1);
@@ -156,7 +156,7 @@ const COMBINED_MUTATIONS: ContractMutation[] = [
   { id: "K14", category: "non-JSON media type on the 200 body", mutate: (d) => (d.paths[DETAIL].get.responses["200"].content["application/xml"] = { schema: { type: "string" } }), expect: [/\{id\} 200: media type application\/xml is not mirrored/] },
 ];
 
-describe.skipIf(!present)("drift guard sensitivity — combined keywords and response bodies", () => {
+describe("drift guard sensitivity — combined keywords and response bodies", () => {
   for (const m of COMBINED_MUTATIONS) {
     it(`${m.id} ${m.category}`, () => {
       const d = fresh();
@@ -184,7 +184,7 @@ describe.skipIf(!present)("drift guard sensitivity — combined keywords and res
     });
 });
 
-describe.skipIf(!present)("drift guard scope — value constraints are outside the TypeScript mirror", () => {
+describe("drift guard scope — value constraints are outside the TypeScript mirror", () => {
   // Stated, not hidden: these keywords cannot be expressed in v1.ts. The Phase 2 decoder must enforce them.
   const outOfScope: [string, (d: Doc) => void][] = [
     ["pattern", (d) => (S(d).Digest.pattern = "^[a-f0-9]{40}$")],
@@ -201,7 +201,14 @@ describe.skipIf(!present)("drift guard scope — value constraints are outside t
     });
 });
 
-const auditMutants = existsSync(AUDIT_MUTANTS) ? readdirSync(AUDIT_MUTANTS).filter((f) => f.endsWith(".json")).sort() : [];
+// Absent or unreadable here: the replay is reported NOT RUN (one skipped test), never counted as passed.
+const auditMutants = (() => {
+  try {
+    return existsSync(AUDIT_MUTANTS) ? readdirSync(AUDIT_MUTANTS).filter((f) => f.endsWith(".json")).sort() : [];
+  } catch {
+    return [];
+  }
+})();
 
 describe.skipIf(!auditMutants.length)("drift guard sensitivity — independent audit mutants (read-only replay)", () => {
   it("finds the audit's 12 mutants", () => {

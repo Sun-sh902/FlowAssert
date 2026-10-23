@@ -8,10 +8,11 @@
  * here are fake and unsigned — the real HMAC cursors, restarts and SQLite archive are exercised against
  * the real Service by e2e-history/. Nothing in the app imports this file.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { requiredFixture } from "../fixtures/sources";
 
-export const HISTORY_EXAMPLES = process.env.FLOWASSERT_HISTORY_EXAMPLES ?? "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/history-examples.json";
-export const historyExamplesPresent = existsSync(HISTORY_EXAMPLES);
+/** The Service's own copy (service/contracts, in the accepted backend source map); FLOWASSERT_HISTORY_EXAMPLES overrides. */
+export const HISTORY_EXAMPLES = requiredFixture("FLOWASSERT_HISTORY_EXAMPLES", "service/contracts/history-examples.json");
 
 interface Example {
   name: string;
@@ -21,7 +22,7 @@ interface Example {
   response: unknown;
 }
 
-const examples: Example[] = historyExamplesPresent ? (JSON.parse(readFileSync(HISTORY_EXAMPLES, "utf8")) as { examples: Example[] }).examples : [];
+const examples: Example[] = (JSON.parse(readFileSync(HISTORY_EXAMPLES, "utf8")) as { examples: Example[] }).examples;
 
 /** A captured response body, parsed fresh each call so a test can mutate its copy freely. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,9 +36,7 @@ export const DETAIL_EXAMPLES = ["002-SPEC-001-history-detail", "005-SPEC-002-his
 export const EVIDENCE_EXAMPLES = ["003-SPEC-001-history-evidence", "006-SPEC-002-history-evidence", "009-SPEC-003-history-evidence", "012-SPEC-004-history-evidence", "015-SPEC-005-history-evidence"] as const;
 
 /** The first-batch history IDs, by case, read from the captured Details (handoff table). */
-export const FIRST_BATCH: Record<string, string> = historyExamplesPresent
-  ? Object.fromEntries(DETAIL_EXAMPLES.map((n) => [example(n).original_verification_id, example(n).history_id]))
-  : {};
+export const FIRST_BATCH: Record<string, string> = Object.fromEntries(DETAIL_EXAMPLES.map((n) => [example(n).original_verification_id, example(n).history_id]));
 
 export const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 export const historyEnvelope = (code: string, status: number, details: { path: string; code: string }[] = []) =>
@@ -65,9 +64,9 @@ export interface FakeHistoryService {
 }
 
 export function fakeHistoryService(): FakeHistoryService {
-  let list = historyExamplesPresent ? example("021-list-after-insert").items : [];
-  const details = new Map<string, unknown>(historyExamplesPresent ? DETAIL_EXAMPLES.map((n) => [example(n).history_id, example(n)]) : []);
-  const evidence = new Map<string, { items: unknown[] }>(historyExamplesPresent ? EVIDENCE_EXAMPLES.map((n) => [example(n).history_id, example(n)]) : []);
+  let list = example("021-list-after-insert").items;
+  const details = new Map<string, unknown>(DETAIL_EXAMPLES.map((n) => [example(n).history_id, example(n)]));
+  const evidence = new Map<string, { items: unknown[] }>(EVIDENCE_EXAMPLES.map((n) => [example(n).history_id, example(n)]));
   const log: string[] = [];
   const intercepts: { match: (u: URL) => boolean; respond: (u: URL) => Response | Promise<Response> }[] = [];
 

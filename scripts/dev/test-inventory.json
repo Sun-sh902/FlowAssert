@@ -1,0 +1,66 @@
+{
+ "about": "Mandatory test inventory (round 02 hardening FIX01). scripts/dev/check_test_inventory.py fails a run in which any listed suite is missing, has a different number of tests, or skips a required test. Update it in the same commit that adds or removes tests.",
+ "vitest": {
+  "files": {
+   "src/test/access-states.test.tsx": 23,
+   "src/test/archive-match.test.tsx": 4,
+   "src/test/comparison.test.ts": 12,
+   "src/test/connections.test.tsx": 5,
+   "src/test/contract-drift-mutations.test.ts": 79,
+   "src/test/contract-drift-runtime.test.ts": 3,
+   "src/test/contract-drift.test.ts": 32,
+   "src/test/detail.test.tsx": 15,
+   "src/test/evidence-mode-switch-race.test.tsx": 90,
+   "src/test/fixture-identity.test.ts": 5,
+   "src/test/fixtures.test.ts": 8,
+   "src/test/history-contract-drift.test.ts": 19,
+   "src/test/local-detail.test.tsx": 24,
+   "src/test/local-provider.test.ts": 30,
+   "src/test/local-validation.test.ts": 29,
+   "src/test/lookup-addressability.test.ts": 120,
+   "src/test/lookup-contract-drift.test.ts": 19,
+   "src/test/lookup-detail.test.tsx": 10,
+   "src/test/lookup-gate.test.ts": 102,
+   "src/test/overview.test.tsx": 10,
+   "src/test/p3a-aud-002-validator.test.ts": 224,
+   "src/test/phase3a-canonical.test.ts": 12,
+   "src/test/phase3a-gate.test.ts": 130,
+   "src/test/phase3a-history-decode.test.ts": 55,
+   "src/test/phase3a-history-pages.test.tsx": 86,
+   "src/test/phase3a-history-provider.test.ts": 103,
+   "src/test/phase3a-ids.test.ts": 240,
+   "src/test/phase3a-integrity.test.ts": 14,
+   "src/test/provider.test.ts": 15,
+   "src/test/remediation.test.tsx": 26,
+   "src/test/rules.test.tsx": 10,
+   "src/test/settings.test.tsx": 7,
+   "src/test/shell.test.tsx": 7,
+   "src/test/uia009-nullable-label.test.tsx": 14,
+   "src/test/verifications.test.tsx": 7,
+   "src/test/workspace.test.tsx": 21
+  },
+  "optional": [
+   {
+    "file": "src/test/contract-drift-mutations.test.ts",
+    "describe": "drift guard sensitivity — independent audit mutants (read-only replay)",
+    "tests_when_present": 13,
+    "tests_when_absent_skipped": 1,
+    "category": "B: replay of the independent UI audit's own mutant files (FlowAssert-UI-Review/evidence/contract/mutants, FLOWASSERT_DRIFT_MUTANTS) — historical evidence outside this repository; reported NOT RUN when absent"
+   }
+  ]
+ },
+ "pytest": {
+  "portable": {
+   "tests": 247,
+   "deselected": [
+    "tests/test_service.py::test_protected_repository_integrity"
+   ]
+  },
+  "custody": {
+   "tests": 1,
+   "nodeids": [
+    "tests/test_service.py::test_protected_repository_integrity"
+   ]
+  }
+ }
+}

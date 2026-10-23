@@ -16,7 +16,7 @@ import { checkLookupVerificationId, checkVerificationId, decodeStrictQuery, form
 import { createLocalResearchProvider, lookupEvidenceUrl, lookupUrl } from "../data/local/provider";
 import { LOOKUP_PATHS } from "../data/contract/lookup";
 import { lookupHref, parseHash } from "../lib/router";
-import { captured, handoffPresent, json } from "./local/fakeService";
+import { captured, json } from "./local/fakeService";
 import { lookupService } from "./local/fakeLookupService";
 import { BMP128, LAB, MATRIX, NFC, NFD } from "./local/idMatrix";
 
@@ -215,7 +215,7 @@ describe("router: #/local/verification-lookup", () => {
 /* ---------- Provider, query addressing ---------- */
 
 
-describe.skipIf(!handoffPresent)("LOCAL_RESEARCH provider with query addressing", () => {
+describe("LOCAL_RESEARCH provider with query addressing", () => {
   const aliases = { "x/evidence": "SPEC-005", x: "SPEC-002", ".": "SPEC-001", "..": "SPEC-002", [NFC]: "SPEC-002", [NFD]: "SPEC-003", [LAB.repeat(128)]: "SPEC-001", "a%2Fb": "SPEC-004", "a/b": "SPEC-001" };
 
   it("reads x/evidence by exact ID: the SPEC-005 alias, never the evidence of x", async () => {

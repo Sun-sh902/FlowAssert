@@ -15,9 +15,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createLocalHistoryProvider } from "../data/history/provider";
 import { lookupHref, type Location } from "../lib/router";
 import { HistoryEntry } from "../pages/History";
-import { FIRST_BATCH, fakeHistoryService, historyExamplesPresent } from "./local/fakeHistoryService";
+import { FIRST_BATCH, fakeHistoryService } from "./local/fakeHistoryService";
 import { lookupService } from "./local/fakeLookupService";
-import { handoffPresent } from "./local/fakeService";
 import { renderApp } from "./render";
 
 const OMITTED = "payload omitted · omitted_by_request";
@@ -62,7 +61,7 @@ async function race(release: () => void, order: Order, unit: "tasks" | "microtas
   });
 }
 
-describe.skipIf(!historyExamplesPresent)("History entry: payload-mode switch vs. the first evidence page", () => {
+describe("History entry: payload-mode switch vs. the first evidence page", () => {
   const HID = FIRST_BATCH["SPEC-003"]!;
   const loc: Location = { route: { name: "local-history-entry", id: HID }, params: new URLSearchParams(), path: `/local/history/${HID}` };
 
@@ -86,7 +85,7 @@ describe.skipIf(!historyExamplesPresent)("History entry: payload-mode switch vs.
   });
 });
 
-describe.skipIf(!handoffPresent)("exact-ID lookup Detail: payload-mode switch vs. the first evidence page", () => {
+describe("exact-ID lookup Detail: payload-mode switch vs. the first evidence page", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it.each(sweep)("x/evidence · %s after %s: %i", async (order, unit, k) => {

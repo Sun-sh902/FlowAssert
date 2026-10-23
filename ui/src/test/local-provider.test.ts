@@ -9,7 +9,7 @@ import { wireToRunView } from "../adapters/wireToView";
 import { createLocalResearchProvider, evidenceUrl, verificationUrl } from "../data/local/provider";
 import { admitPage, ledgerItems, startChain } from "../data/local/evidenceChain";
 import type { EvidencePageView, EvidenceReferenceView } from "../domain/evidence";
-import { CASE_IDS, captured, fakeService, handoffPresent, json } from "./local/fakeService";
+import { CASE_IDS, captured, fakeService, json } from "./local/fakeService";
 
 /**
  * Expected outcomes, fixed independently of the UI: transcribed from FlowAssert-Phase2-Support/
@@ -60,7 +60,7 @@ describe("wire requests", () => {
   });
 });
 
-describe.skipIf(!handoffPresent)("ready results copy the evaluator", () => {
+describe("ready results copy the evaluator", () => {
   for (const id of CASE_IDS) {
     it(`${id}: cohort, record states in capture order, counts and rule outcomes are copied`, async () => {
       const svc = fakeService();
@@ -149,7 +149,7 @@ describe.skipIf(!handoffPresent)("ready results copy the evaluator", () => {
   });
 });
 
-describe.skipIf(!handoffPresent)("outcomes that are not verifications", () => {
+describe("outcomes that are not verifications", () => {
   const withResponse = (res: () => Response | Promise<Response>) => createLocalResearchProvider({ fetch: (async () => res()) as typeof fetch });
 
   it("404 run_not_found → not_found, with the service's request ID", async () => {
@@ -257,7 +257,7 @@ describe.skipIf(!handoffPresent)("outcomes that are not verifications", () => {
   });
 });
 
-describe.skipIf(!handoffPresent)("evidence pages and the acquisition chain", () => {
+describe("evidence pages and the acquisition chain", () => {
   const detailRefs = async (id = "SPEC-001") => {
     const r = await createLocalResearchProvider({ fetch: fakeService().fetch }).getVerification(id);
     if (r.kind !== "ready") throw new Error(r.kind);

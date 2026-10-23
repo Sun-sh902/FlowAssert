@@ -12,14 +12,13 @@ import { indexArchive } from "../data/workspace/archiveIndex";
 import type { HistorySummaryView } from "../domain/history";
 import { ADMISSION_NOT_IMPLEMENTED, CAPTURE_NOT_IMPLEMENTED, noVerdict } from "../domain/statusAxes";
 import { CaptureRuns, WorkspaceOverview, WorkspaceVerifications } from "../pages/Workspace";
-import { FIRST_BATCH, fakeHistoryService, historyEnvelope, historyExamplesPresent } from "./local/fakeHistoryService";
-import { fakeService, handoffPresent } from "./local/fakeService";
+import { FIRST_BATCH, fakeHistoryService, historyEnvelope } from "./local/fakeHistoryService";
+import { fakeService } from "./local/fakeService";
 import { renderApp } from "./render";
 
 afterEach(() => vi.unstubAllGlobals());
 
 const CASES = ["SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-005"];
-const both = historyExamplesPresent && handoffPresent;
 
 /** Newest archived cohort per case, straight from the captured list body (archive order). */
 function expectedLatest(entries: { original_verification_id: string; result_summary?: { cohort_state: string } }[]) {
@@ -139,7 +138,7 @@ describe("StatusAxesLedger", () => {
 
 /* ---------- Overview and Verifications: live beside archived ---------- */
 
-describe.skipIf(!both)("Workspace Overview (LOCAL_RESEARCH)", () => {
+describe("Workspace Overview (LOCAL_RESEARCH)", () => {
   it("reads one archive list view and one live Detail per known case, then compares them", async () => {
     const f = workspaceFakes();
     render(<WorkspaceOverview {...f.providers()} />);
@@ -262,7 +261,7 @@ describe("bounded live reads", () => {
   });
 });
 
-describe.skipIf(!both)("Workspace Verifications", () => {
+describe("Workspace Verifications", () => {
   it("lists the known cases with capture, admission, live verdict, newest archived verdict and comparison", async () => {
     const f = workspaceFakes();
     render(<WorkspaceVerifications {...f.providers()} />);
@@ -302,7 +301,7 @@ describe("Capture runs", () => {
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("Status axes on the routed pages", () => {
+describe("Status axes on the routed pages", () => {
   it("the History entry shows this archived evaluation and its archived verdict", async () => {
     const svc = fakeHistoryService();
     vi.stubGlobal("fetch", svc.fetch);
@@ -317,7 +316,7 @@ describe.skipIf(!historyExamplesPresent)("Status axes on the routed pages", () =
     expect(ledger.querySelector('[data-axis="verdict"]')!.textContent).toContain("copied from archived evaluation");
   });
 
-  it.skipIf(!both)("the overview at #/ is LOCAL_RESEARCH and reads only the history list and the known cases' Details", async () => {
+  it("the overview at #/ is LOCAL_RESEARCH and reads only the history list and the known cases' Details", async () => {
     const f = workspaceFakes();
     vi.stubGlobal("fetch", f.fetch);
     renderApp("#/");
@@ -330,7 +329,7 @@ describe.skipIf(!historyExamplesPresent)("Status axes on the routed pages", () =
 describe("CaseStatusAxes (Verification Detail)", () => {
   const live = { axis: "verdict", kind: "VERDICT", state: "Unverified", source: { kind: "live", request: "GET /api/v1/verifications/SPEC-005 (live read)" } } as const;
 
-  it.skipIf(!historyExamplesPresent)("reads this case's archive entries to the end and keeps the live verdict", async () => {
+  it("reads this case's archive entries to the end and keeps the live verdict", async () => {
     const svc = fakeHistoryService();
     render(<CaseStatusAxes id="SPEC-005" verdict={live} provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
     await waitFor(() => expect(document.querySelector('[data-axis="archive"]')!.textContent).toContain("2 evaluations"));

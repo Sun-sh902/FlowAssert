@@ -10,7 +10,6 @@ import { screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { lookupHref } from "../lib/router";
 import { lookupService } from "./local/fakeLookupService";
-import { handoffPresent } from "./local/fakeService";
 import { currentHash, renderApp, waitForHash } from "./render";
 
 const seal = () => document.querySelector('.fa-seal[data-size="lg"]');
@@ -18,7 +17,7 @@ const ALIASES = { "x/evidence": "SPEC-005", x: "SPEC-002", "..": "SPEC-002", "."
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe.skipIf(!handoffPresent)("exact-ID lookup route", () => {
+describe("exact-ID lookup route", () => {
   it("x/evidence: one Detail read by exact ID, the SPEC-005 result, never the evidence route of x", async () => {
     const svc = lookupService(ALIASES);
     vi.stubGlobal("fetch", svc.fetch);

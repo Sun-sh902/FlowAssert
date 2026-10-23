@@ -6,8 +6,8 @@ import { createLocalHistoryProvider } from "../data/history/provider";
 import { createLocalResearchProvider } from "../data/local/provider";
 import type { HistorySummaryView } from "../domain/history";
 import type { RunView } from "../domain/view";
-import { FIRST_BATCH, fakeHistoryService, historyEnvelope, historyExamplesPresent } from "./local/fakeHistoryService";
-import { fakeService, handoffPresent } from "./local/fakeService";
+import { FIRST_BATCH, fakeHistoryService, historyEnvelope } from "./local/fakeHistoryService";
+import { fakeService } from "./local/fakeService";
 
 async function liveRun(id: string): Promise<RunView> {
   const r = await createLocalResearchProvider({ fetch: fakeService().fetch }).getVerification(id);
@@ -21,7 +21,7 @@ async function entriesOf(id: string): Promise<HistorySummaryView[]> {
   return r.data.items;
 }
 
-describe.skipIf(!(historyExamplesPresent && handoffPresent))("ArchiveMatchPanel", () => {
+describe("ArchiveMatchPanel", () => {
   it("one exact match: navigation to it, its record check, and a byte-identical full result", async () => {
     const live = await liveRun("SPEC-005");
     const one = (await entriesOf("SPEC-005")).filter((e) => e.historyId === FIRST_BATCH["SPEC-005"]);

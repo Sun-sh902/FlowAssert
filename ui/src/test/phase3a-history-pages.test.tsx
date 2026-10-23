@@ -13,7 +13,7 @@ import type { HistoryDetailView } from "../domain/history";
 import type { Location } from "../lib/router";
 import { HistoryEntry, HistoryList } from "../pages/History";
 import { EXPECTED_ARCHIVE } from "./phase3a-history-decode.test";
-import { FIRST_BATCH, example, fakeHistoryService, historyEnvelope, historyExamplesPresent, json, type FakeHistoryService } from "./local/fakeHistoryService";
+import { FIRST_BATCH, example, fakeHistoryService, historyEnvelope, json, type FakeHistoryService } from "./local/fakeHistoryService";
 import { renderApp } from "./render";
 
 const listLoc = (query = ""): Location => ({ route: { name: "local-history" }, params: new URLSearchParams(query), path: "/local/history" });
@@ -37,7 +37,7 @@ const retrieval = () => document.querySelector("[data-retrieval]")?.textContent;
 const integrity = () => document.querySelector("[data-integrity]")?.textContent;
 const topIntegrity = () => document.querySelector("[data-archive-evidence-integrity]")?.getAttribute("data-archive-evidence-integrity");
 
-describe.skipIf(!historyExamplesPresent)("History list", () => {
+describe("History list", () => {
   it("reads the archive page by page, keeping the Service's order and counting archive entries only", async () => {
     const svc = fakeHistoryService();
     const { user } = mountList(svc);
@@ -150,7 +150,7 @@ describe.skipIf(!historyExamplesPresent)("History list", () => {
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("History entry", () => {
+describe("History entry", () => {
   for (const [id, want] of Object.entries(EXPECTED_ARCHIVE))
     it(`${id}: the archived cohort and records, exactly as archived`, async () => {
       mountEntry(FIRST_BATCH[id]!, createLocalHistoryProvider({ fetch: fakeHistoryService().fetch }));
@@ -304,7 +304,7 @@ describe.skipIf(!historyExamplesPresent)("History entry", () => {
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("async and snapshot safety across histories", () => {
+describe("async and snapshot safety across histories", () => {
   it("history A's late Detail never overwrites history B after navigation", async () => {
     const A = FIRST_BATCH["SPEC-001"]!;
     const B = FIRST_BATCH["SPEC-002"]!;

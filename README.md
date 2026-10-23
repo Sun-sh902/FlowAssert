@@ -15,11 +15,13 @@ Baseline commit `phase3a-baseline` holds the accepted bytes. Identities: [docs/p
 
 ## Run it
 
-Requires Node 20+ and the copied dependencies (`ui/node_modules`, `service/.venv`, both gitignored; on a fresh
-clone copy them from the accepted repositories, or `npm ci` / install `service/requirements.lock`).
+On a fresh clone run `scripts/dev/bootstrap.sh` once: it checks the tools (Node 20+, Python 3.14, a system
+Python 3 for the read-only checks), installs `ui/node_modules` from the lock file and `service/.venv` from
+`service/requirements.lock`, verifies the pinned identities and seeds the synthetic archives. Each stage names its
+failure and log.
 
 ```sh
-scripts/dev/seed.sh                 # once: synthetic SQLite archives dev-main (10 evaluations) and dev-empty
+scripts/dev/seed.sh                 # synthetic SQLite archives dev-main (10), dev-single (5), dev-empty; verifies existing ones
 scripts/dev/service.sh              # Service on 127.0.0.1:8765   (FA_STATE=dev-empty for the empty archive)
 cd ui && npm run dev                # UI on http://127.0.0.1:5183
 ```
@@ -40,9 +42,17 @@ Stop the Service with Ctrl-C. With it stopped, the workspace pages show *Service
 
 ```sh
 /usr/bin/python3 -I -B scripts/dev/check_identities.py   # pinned Evaluator, frozen contracts, backend source map
+scripts/dev/regression.sh --portable NEW-LABEL            # self-contained gates: backend, identities, typecheck, lint, Vitest
 scripts/dev/regression.sh NEW-LABEL                       # every gate; logs + exit codes in docs/product-dev/evidence/regression/
 ```
 
-The accepted browser suites need their isolated runtimes once (inside `ui/`, all gitignored):
-`scripts/phase3a/prepare_runtime.py`, `seed_states.py`, `evaluator_oracle.py`, `prepare_lookup_runtime.py`,
-`scripts/phase2/prepare_runtime.py`. See [docs/product-dev/ROUND_01_REPORT.md](docs/product-dev/ROUND_01_REPORT.md).
+Gate status is PASS, FAIL or BLOCKED; a run with a BLOCKED gate exits 3 and is not a pass. Both test runners are
+checked against `scripts/dev/test-inventory.json`, so a skipped or missing test fails the run. Unit-test fixtures are
+in the repository and identity-checked (`ui/src/test/fixtures/`, `service/contracts/`).
+
+Two checks need sources outside this repository:
+- **Protected-source custody** (`scripts/dev/protected_custody.sh`, gate `protected-custody`) compares the genuine
+  accepted roots under `FLOWASSERT_PROTECTED_PARENT` (default: this checkout's parent); BLOCKED where they are absent.
+- **The accepted browser suites** need their isolated runtimes: `scripts/dev/bootstrap.sh --harness`, which reads the
+  accepted read-only sources at fixed absolute paths and stops BLOCKED if they are absent.
+  See [docs/product-dev/ROUND_01_REPORT.md](docs/product-dev/ROUND_01_REPORT.md).

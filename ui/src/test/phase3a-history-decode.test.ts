@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { decodeHistoryDetail, decodeHistoryEvidencePage, decodeHistoryList, validateHistorySchema } from "../data/history/decode";
-import { DETAIL_EXAMPLES, EVIDENCE_EXAMPLES, example, historyExamplesPresent } from "./local/fakeHistoryService";
+import { DETAIL_EXAMPLES, EVIDENCE_EXAMPLES, example } from "./local/fakeHistoryService";
 
 /** Independently fixed expectations (handoff "Case / Stored cohort" table; SYNTHETIC_CASES.md). */
 export const EXPECTED_ARCHIVE = {
@@ -31,7 +31,7 @@ const evidenceReq = (d: Any, over: object = {}) => ({
   ...over,
 });
 
-describe.skipIf(!historyExamplesPresent)("every captured 200 body is admitted", () => {
+describe("every captured 200 body is admitted", () => {
   it("all five Details, with the independently fixed verdicts", () => {
     for (const n of DETAIL_EXAMPLES) {
       const d = example(n);
@@ -72,7 +72,7 @@ describe.skipIf(!historyExamplesPresent)("every captured 200 body is admitted", 
 
 type Mut = [name: string, mutate: (d: Any) => void, code: string, integrity?: string];
 
-describe.skipIf(!historyExamplesPresent)("Detail contradictions are refused, never repaired", () => {
+describe("Detail contradictions are refused, never repaired", () => {
   const SPEC5 = "014-SPEC-005-history-detail";
   const cases: Mut[] = [
     ["unknown top-level key", (d) => (d.extra = 1), "schema_invalid"],
@@ -128,7 +128,7 @@ describe.skipIf(!historyExamplesPresent)("Detail contradictions are refused, nev
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("evidence page contradictions are refused", () => {
+describe("evidence page contradictions are refused", () => {
   const D = () => example("002-SPEC-001-history-detail");
   const P = () => example("003-SPEC-001-history-evidence");
   const cases: [string, (p: Any) => void, string, string?, object?][] = [
@@ -165,7 +165,7 @@ describe.skipIf(!historyExamplesPresent)("evidence page contradictions are refus
   });
 });
 
-describe.skipIf(!historyExamplesPresent)("list page contradictions are refused", () => {
+describe("list page contradictions are refused", () => {
   const L = () => example("021-list-after-insert");
   const cases: [string, (l: Any) => void, string, object?][] = [
     ["an entry outside the requested case filter", () => {}, "scope_conflict", { verificationId: "SPEC-005" }],

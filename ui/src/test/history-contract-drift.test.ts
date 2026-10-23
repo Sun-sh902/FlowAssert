@@ -10,21 +10,19 @@
  *     nullability, enums, consts, $ref targets, closed objects, path/query parameters, response bindings.
  *     The frozen mirror's three evidence-page declarations and two frozen query declarations are outside
  *     the additive endpoints; exactly those five, by name, are the only differences allowed.
- * Skipped (never passed) when the read-only contract files are absent.
+ * Fails (never skips) when a contract file is missing; both are the Service's pinned copies (../fixtures/sources.ts).
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import copy from "../data/contract/history.schemas.json";
 import frozenCopy from "../data/contract/v1.schemas.json";
 import { HISTORY_CONTRACT_SHA256, HISTORY_CONTRACT_VERSION, HISTORY_PATHS } from "../data/contract/history";
 import historySource from "../data/contract/history.ts?raw";
-import { CONTRACT, MIRROR_SOURCE } from "./contract/fixtures";
+import { CONTRACT, HISTORY_CONTRACT, MIRROR_SOURCE } from "./contract/fixtures";
 import { checkContract, type Binding, type OpenApiDoc } from "./contract/guard";
 
-export const HISTORY_CONTRACT = process.env.FLOWASSERT_HISTORY_OPENAPI ?? "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/openapi-history-v1.yaml";
 const FROZEN_SHA256 = "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230";
-const present = existsSync(HISTORY_CONTRACT) && existsSync(CONTRACT);
 
 type Doc = OpenApiDoc & { "x-frozen-contract-sha256": string; components: { schemas: Record<string, unknown> } };
 
@@ -45,10 +43,10 @@ const OUTSIDE_ADDITIVE_SCOPE = [
   "Page: mirrored, but not reachable from the Phase 1 endpoints in the contract",
 ];
 
-describe.skipIf(!present)("additive history contract vs frozen contract and runtime copy", () => {
-  const raw = present ? readFileSync(HISTORY_CONTRACT) : Buffer.from("");
-  const doc = present ? (JSON.parse(raw.toString("utf8")) as Doc) : null;
-  const frozen = present ? (JSON.parse(readFileSync(CONTRACT, "utf8")) as Doc) : null;
+describe("additive history contract vs frozen contract and runtime copy", () => {
+  const raw = readFileSync(HISTORY_CONTRACT);
+  const doc = JSON.parse(raw.toString("utf8")) as Doc;
+  const frozen = JSON.parse(readFileSync(CONTRACT, "utf8")) as Doc;
 
   it("has the reviewed digest, version and frozen-contract binding, and the copy records them", () => {
     expect(createHash("sha256").update(raw).digest("hex")).toBe(HISTORY_CONTRACT_SHA256);
@@ -105,10 +103,10 @@ describe.skipIf(!present)("additive history contract vs frozen contract and runt
   });
 });
 
-describe.skipIf(!present)("history wire mirror vs additive OpenAPI — shapes, scope and endpoints", () => {
-  const doc = present ? (JSON.parse(readFileSync(HISTORY_CONTRACT, "utf8")) as OpenApiDoc) : null;
+describe("history wire mirror vs additive OpenAPI — shapes, scope and endpoints", () => {
+  const doc = JSON.parse(readFileSync(HISTORY_CONTRACT, "utf8")) as OpenApiDoc;
   // The history mirror imports the shared DTOs from the frozen mirror; the guard reads both sources as one.
-  const report = present ? checkContract(doc!, `${MIRROR_SOURCE}\n${historySource}`, BINDING) : null;
+  const report = checkContract(doc, `${MIRROR_SOURCE}\n${historySource}`, BINDING);
 
   it("finds no difference within the additive scope; only the five named frozen evidence declarations fall outside it", () => {
     expect(report!.diffs.sort()).toEqual([...OUTSIDE_ADDITIVE_SCOPE].sort());
@@ -124,8 +122,8 @@ describe.skipIf(!present)("history wire mirror vs additive OpenAPI — shapes, s
 
 /* ---------- Sensitivity: the guard detects deliberate incompatible changes ---------- */
 
-describe.skipIf(!present)("history drift guard sensitivity", () => {
-  const original = present ? readFileSync(HISTORY_CONTRACT, "utf8") : "{}";
+describe("history drift guard sensitivity", () => {
+  const original = readFileSync(HISTORY_CONTRACT, "utf8");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type D = OpenApiDoc & { components: { schemas: Record<string, any> }; paths: Record<string, any> };
   const fresh = () => JSON.parse(original) as D;
