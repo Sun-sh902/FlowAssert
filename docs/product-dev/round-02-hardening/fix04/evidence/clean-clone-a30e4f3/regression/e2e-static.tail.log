@@ -1,0 +1,25 @@
+  ✓  145 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · light · 1280px (1.7s)
+  ✓  146 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · light · 1440px (2.2s)
+  ✓  147 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · dark · 375px (1.9s)
+  ✓  148 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · dark · 768px (1.5s)
+  ✓  140 [webkit] › e2e/remediation.spec.ts:334:3 › axe at 375px · light · every route and Detail NOT_FOUND (5.7s)
+  ✓  149 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · dark · 1024px (1.7s)
+  -  153 [webkit] › e2e/screenshots.spec.ts:16:3 › state specimens · light · 1440
+  -  154 [webkit] › e2e/screenshots.spec.ts:26:3 › live read in flight · light · 1440
+  -  155 [webkit] › e2e/screenshots.spec.ts:33:3 › state specimens · light · 375
+  -  156 [webkit] › e2e/screenshots.spec.ts:40:3 › detail not found · light
+  -  157 [webkit] › e2e/screenshots.spec.ts:47:3 › regression views · light
+  -  158 [webkit] › e2e/screenshots.spec.ts:64:3 › mobile drawer · light
+  -  159 [webkit] › e2e/screenshots.spec.ts:16:3 › state specimens · dark · 1440
+  -  160 [webkit] › e2e/screenshots.spec.ts:26:3 › live read in flight · dark · 1440
+  -  161 [webkit] › e2e/screenshots.spec.ts:33:3 › state specimens · dark · 375
+  -  162 [webkit] › e2e/screenshots.spec.ts:40:3 › detail not found · dark
+  -  163 [webkit] › e2e/screenshots.spec.ts:47:3 › regression views · dark
+  -  164 [webkit] › e2e/screenshots.spec.ts:64:3 › mobile drawer · dark
+  ✓  141 [webkit] › e2e/remediation.spec.ts:334:3 › axe at 375px · dark · every route and Detail NOT_FOUND (5.8s)
+  ✓  150 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · dark · 1280px (1.7s)
+  ✓  152 [webkit] › e2e/responsive.spec.ts:51:1 › touch targets at 375px (1.5s)
+  ✓  151 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · dark · 1440px (2.5s)
+
+  24 skipped
+  140 passed (42.6s)

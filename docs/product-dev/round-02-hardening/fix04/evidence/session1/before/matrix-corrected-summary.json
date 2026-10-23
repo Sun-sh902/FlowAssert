@@ -1,0 +1,19 @@
+{
+  "expected": 90,
+  "executed": 90,
+  "passed": 88,
+  "failed": [
+    {
+      "key": "chrome-light-1024-overview",
+      "problems": [
+        "comparison chip overlap"
+      ]
+    },
+    {
+      "key": "chrome-dark-1024-overview",
+      "problems": [
+        "comparison chip overlap"
+      ]
+    }
+  ]
+}

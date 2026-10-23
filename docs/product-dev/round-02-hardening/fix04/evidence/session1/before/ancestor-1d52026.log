@@ -1,0 +1,3 @@
+$ git merge-base --is-ancestor 1d52026 HEAD
+
+exit=0

@@ -1,0 +1,782 @@
+[
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 173,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 368,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 65,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 68,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 67,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 67,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 67,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 69,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Sans Variable 400 700 normal",
+     "Instrument Serif 400 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 71,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 75,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 73,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 74,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 74,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 71,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 66,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 68,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 70,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 69,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 72,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 71,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 71,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 71,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 70,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 62,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "Instrument Serif 400 italic",
+     "IBM Plex Mono 500 normal"
+    ]
+   }
+  ],
+  "fcp": 72,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 74,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 75,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 80,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ },
+ {
+  "shifts": [],
+  "fonts": [
+   {
+    "t": 69,
+    "done": [
+     "Instrument Serif Fallback normal normal",
+     "Instrument Sans Fallback normal normal",
+     "Instrument Serif Fallback normal italic",
+     "Instrument Serif 400 normal",
+     "Instrument Sans Variable 400 700 normal",
+     "IBM Plex Mono 400 normal",
+     "IBM Plex Mono 500 normal",
+     "Instrument Serif 400 italic"
+    ]
+   }
+  ],
+  "fcp": 76,
+  "cls": 0,
+  "browser": "chrome 156.0.8078.47",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "pageErrors": []
+ }
+]

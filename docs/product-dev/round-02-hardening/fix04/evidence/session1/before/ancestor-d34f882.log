@@ -1,0 +1,3 @@
+$ git merge-base --is-ancestor d34f882 HEAD
+
+exit=0

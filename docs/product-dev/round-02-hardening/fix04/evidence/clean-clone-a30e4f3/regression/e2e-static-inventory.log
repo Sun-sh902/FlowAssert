@@ -1,0 +1,4 @@
+INTERRUPTED capture after the test's last settle: chrome › capture-lifecycle.spec.ts › a capture read cut off by the page closing is recorded and fails a later settle — no unhandled rejection: http://127.0.0.1:54958/api/slow
+INTERRUPTED capture after the test's last settle: webkit › capture-lifecycle.spec.ts › a capture read cut off by the page closing is recorded and fails a later settle — no unhandled rejection: http://127.0.0.1:55552/api/slow
+e2e-static: 140 required test runs, 24 declared skips, 164 distinct tests
+playwright inventory: OK (0 problems)

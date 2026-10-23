@@ -1,0 +1,25 @@
+     ✓ apply to <html> immediately and persist 420ms
+ ✓ src/test/rules.test.tsx (10 tests) 858ms
+ ✓ src/test/fixtures.test.ts (8 tests) 15ms
+ ✓ src/test/contract-drift.test.ts (32 tests) 28ms
+ ✓ src/test/fixture-identity.test.ts (5 tests) 11ms
+ ✓ src/test/contract-drift-runtime.test.ts (3 tests) 8ms
+ ✓ src/test/verifications.test.tsx (7 tests) 634ms
+ ✓ src/test/connections.test.tsx (5 tests) 211ms
+ ✓ src/test/shell.test.tsx (7 tests) 703ms
+   ✓ Mobile navigation drawer (5)
+     ✓ keeps Tab focus inside the drawer in both directions 322ms
+ ✓ src/test/evidence-mode-switch-race.test.tsx (90 tests) 5641ms
+   ✓ History entry: payload-mode switch vs. the first evidence page (45)
+     ✓ release, then switch after tasks: 0 376ms
+
+ Test Files  37 passed (37)
+      Tests  1644 passed (1644)
+   Start at  10:54:17
+   Duration  9.23s (tests 50%, environment 30%, import 8%, transform 7%, setup 5%)
+
+Environment  jsdom was created 37 times · 13.71s total, 30% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+JSON report written to /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/fix04-20261023-s2/clean-clone/.dev-runtime/regression/fix04-a30e4f3-full/ui-vitest.json

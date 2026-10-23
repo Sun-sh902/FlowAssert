@@ -1,0 +1,10 @@
+.dev-runtime/recovery/flowassert-product-dev-fix02-final-203f702.bundle is okay
+The bundle contains these 6 refs:
+e11f4d56589ca7fa9361ef31012733f92a630d0b refs/heads/main
+90d3bc75b4d1a1e55adb8b2962c1da10a08cc88c refs/heads/product-dev/round-01
+1d52026683c22c2e69542084cf889774d507cd7e refs/heads/product-dev/round-02
+203f70216679a660d561e28c2f85c56991221734 refs/heads/product-dev/round-02-hardening
+e11f4d56589ca7fa9361ef31012733f92a630d0b refs/tags/phase3a-baseline
+203f70216679a660d561e28c2f85c56991221734 HEAD
+The bundle records a complete history.
+The bundle uses this hash algorithm: sha1

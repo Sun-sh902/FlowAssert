@@ -1,0 +1,8 @@
+run_id	fix04-a30e4f3-full
+commit	a30e4f338d2f363a17924b6fa8a33e4a8b2c329f
+branch	HEAD
+worktree_changes	0
+mode	full
+started_utc	2026-10-23T14:53:54Z
+host	Darwin 27.2.0 arm64
+run_dir	/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/fix04-20261023-s2/clean-clone/.dev-runtime/regression/fix04-a30e4f3-full

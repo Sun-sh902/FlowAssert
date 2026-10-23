@@ -1,0 +1,25 @@
+  ✓  39 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › plus: direct entry, exact Detail, full evidence chain, exact receipts (297ms)
+  ✓  40 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › percent-literal: direct entry, exact Detail, full evidence chain, exact receipts (297ms)
+  ✓  41 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › suffix-trap-control: direct entry, exact Detail, full evidence chain, exact receipts (279ms)
+  ✓  42 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › decoded-slash-control: direct entry, exact Detail, full evidence chain, exact receipts (297ms)
+  ✓  43 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › space-control: direct entry, exact Detail, full evidence chain, exact receipts (295ms)
+  ✓  44 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › nfc: direct entry, exact Detail, full evidence chain, exact receipts (281ms)
+  ✓  45 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › nfd: direct entry, exact Detail, full evidence chain, exact receipts (297ms)
+  ✓  46 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › whitespace: direct entry, exact Detail, full evidence chain, exact receipts (281ms)
+  ✓  47 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › controls: direct entry, exact Detail, full evidence chain, exact receipts (297ms)
+  ✓  48 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › fe-emoji-single: direct entry, exact Detail, full evidence chain, exact receipts (296ms)
+  ✓  49 [webkit] › e2e-lookup/lookup.spec.ts:82:3 › fe-bmp128: direct entry, exact Detail, full evidence chain, exact receipts (296ms)
+  ✓  50 [webkit] › e2e-lookup/lookup.spec.ts:189:1 › in-app navigation: legacy x/evidence refusal → lookup link → Back → Forward → Reload (612ms)
+  ✓  51 [webkit] › e2e-lookup/lookup.spec.ts:232:1 › no cross-ID contamination: x/evidence → x → a%2Fb → a/b → Back, each read by its own exact ID (332ms)
+  ✓  52 [webkit] › e2e-lookup/lookup.spec.ts:261:1 › tampered continuation cursor: the Service's 400 invalid_cursor is shown as a retrieval error, never a verdict (309ms)
+  ✓  53 [webkit] › e2e-lookup/lookup.spec.ts:286:1 › Service restart: an old cursor is 409 snapshot_unavailable — shown, nothing merged; Re-read starts a new snapshot (1.6s)
+  ✓  54 [webkit] › e2e-lookup/lookup.spec.ts:319:1 › an invalid 129-code-point ID and malformed lookup addresses are refused; nothing is requested (625ms)
+  -  55 [webkit] › e2e-lookup/lookup.spec.ts:330:1 › visual record: lookup Detail and the legacy refusal's lookup link (light, dark, 390 px)
+  ✓  56 [webkit] › e2e-lookup/mode-switch-race.spec.ts:17:3 › lookup "x/evidence" · switch to References only N microtasks after the payload page settles (N = 0–40) (17.2s)
+  ✓  57 [webkit] › e2e-lookup/mode-switch-race.spec.ts:17:3 › lookup "customer/001" · switch to References only N microtasks after the payload page settles (N = 0–40) (18.8s)
+  -  58 [webkit] › e2e-lookup/security.spec.ts:49:1 › raw HTTP probes: query grammar, IDs, paths, methods, Host, size — gate and Service
+  -  59 [webkit] › e2e-lookup/security.spec.ts:126:1 › cursor and snapshot probes through the gate: wrong ID, wrong snapshot, tampered, malformed, cross-family
+  ✓  60 [webkit] › e2e-lookup/security.spec.ts:170:1 › in-browser probes through the gate (225ms)
+
+  3 skipped
+  57 passed (1.6m)

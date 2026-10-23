@@ -1,0 +1,101 @@
+key	engine	browser	theme	width	route	archive_state	status	problems	visible_h1	chip_overlaps	page_scroll_width	axe_violations	external_requests	history_keyboard_scroll	scroll_regions	soft_wrapped_ids	forced_split_ids
+chrome-light-375-overview	chrome	156.0.8078.47	light	375	overview	dev-main	PASS	-	1	0	375	0	0	-	-	E-row-verified-cohort-|unverified phase3a-|1.0.0	-
+chrome-light-375-verifications	chrome	156.0.8078.47	light	375	verifications	dev-main	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-light-375-detail	chrome	156.0.8078.47	light	375	detail	dev-main	PASS	-	1	0	375	0	0	-	Evidence references for this case:over=251:tab=0:hidden=5	SPEC-005-|evaluation_input	-
+chrome-light-375-history	chrome	156.0.8078.47	light	375	history	dev-main	PASS	-	1	0	375	0	0	-	-	list_7ff5e9ec…|b55e	-
+chrome-light-375-archived-detail	chrome	156.0.8078.47	light	375	archived-detail	dev-main	PASS	-	1	0	375	0	0	-	Archived evidence references for this entry:over=411:tab=0:hidden=9	SPEC-005-|evaluation_input	-
+chrome-light-375-rules	chrome	156.0.8078.47	light	375	rules	dev-main	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-light-375-states	chrome	156.0.8078.47	light	375	states	dev-main	FAIL	split identifier: redacte|d,	1	0	375	0	0	-	Evidence references for VR-2025 — illustrative:over=251:tab=0:hidden=12	/api/v1/verifications/VR-2025/|ev	redacte|d,
+chrome-light-768-overview	chrome	156.0.8078.47	light	768	overview	dev-main	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-light-768-verifications	chrome	156.0.8078.47	light	768	verifications	dev-main	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-light-768-detail	chrome	156.0.8078.47	light	768	detail	dev-main	PASS	-	1	0	768	0	0	-	-	SPEC-005-|evaluation_input	-
+chrome-light-768-history	chrome	156.0.8078.47	light	768	history	dev-main	PASS	-	1	0	768	0	0	226/226 focus-visible=True	Archived evaluations table:over=226:tab=0:hidden=3	-	-
+chrome-light-768-archived-detail	chrome	156.0.8078.47	light	768	archived-detail	dev-main	PASS	-	1	0	768	0	0	-	Archived evidence references for this entry:over=58:tab=0:hidden=2	SPEC-005-|evaluation_input	-
+chrome-light-768-rules	chrome	156.0.8078.47	light	768	rules	dev-main	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-light-768-states	chrome	156.0.8078.47	light	768	states	dev-main	PASS	-	1	0	768	0	0	-	-	5f1c0a9b…|d9e0 a0b1c2d3…|a0b1 c2d3e4f5…|c2d3	-
+chrome-light-1024-overview	chrome	156.0.8078.47	light	1024	overview	dev-main	FAIL	split identifier: INTEGRITY_|VERIFIED | split identifier: research_o|nly	1	0	1024	0	0	-	-	B-|mismatch D-|unverified E-row-|verified-cohort-unverified A-|verified b61779e1…|842d 0.1.1-|proposed phase3a-|1.0.0 ws-|synthetic-01	INTEGRITY_|VERIFIED research_o|nly
+chrome-light-1024-verifications	chrome	156.0.8078.47	light	1024	verifications	dev-main	PASS	-	1	0	1024	0	0	-	unnamed:over=9:tab=-1:hidden=0	A-|verified 901fb769…|7e67 hist_7d621c0c…|d6fe B-|mismatch 7f234799…|24e4 hist_8e0966f9…|cc4c C-|pending 000fe432…|94e4 hist_cad943ea…|1085 D-|unverified b9269a57…|61e8 hist_d2a2c497…|44ce E-|row-verified-cohort-unverified 8a6df3a3…|2724 hist_879ef90d…|778c	-
+chrome-light-1024-detail	chrome	156.0.8078.47	light	1024	detail	dev-main	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-light-1024-history	chrome	156.0.8078.47	light	1024	history	dev-main	PASS	-	1	0	1024	0	0	182/182 focus-visible=True	Archived evaluations table:over=182:tab=0:hidden=2	-	-
+chrome-light-1024-archived-detail	chrome	156.0.8078.47	light	1024	archived-detail	dev-main	PASS	-	1	0	1024	0	0	-	Archived evidence references for this entry:over=14:tab=0:hidden=0	879ef90d…|778c SPEC-005-|evaluation_input	-
+chrome-light-1024-rules	chrome	156.0.8078.47	light	1024	rules	dev-main	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-light-1024-states	chrome	156.0.8078.47	light	1024	states	dev-main	PASS	-	1	0	1024	0	0	-	-	5f1c0a9b…|d9e0 a0b1c2d3…|a0b1 c2d3e4f5…|c2d3	-
+chrome-light-1280-overview	chrome	156.0.8078.47	light	1280	overview	dev-main	PASS	-	1	0	1280	0	0	-	-	E-row-verified-cohort-|unverified	-
+chrome-light-1280-verifications	chrome	156.0.8078.47	light	1280	verifications	dev-main	PASS	-	1	0	1280	0	0	-	-	E-row-|verified-cohort-unverified	-
+chrome-light-1280-detail	chrome	156.0.8078.47	light	1280	detail	dev-main	PASS	-	1	0	1280	0	0	-	-	copy-|phone-v1	-
+chrome-light-1280-history	chrome	156.0.8078.47	light	1280	history	dev-main	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-light-1280-archived-detail	chrome	156.0.8078.47	light	1280	archived-detail	dev-main	PASS	-	1	0	1280	0	0	-	-	copy-|phone-v1	-
+chrome-light-1280-rules	chrome	156.0.8078.47	light	1280	rules	dev-main	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-light-1280-states	chrome	156.0.8078.47	light	1280	states	dev-main	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-light-1440-overview	chrome	156.0.8078.47	light	1440	overview	dev-main	PASS	-	1	0	1440	0	0	-	-	phase3a-|1.0.0	-
+chrome-light-1440-verifications	chrome	156.0.8078.47	light	1440	verifications	dev-main	PASS	-	1	0	1440	0	0	-	-	E-row-|verified-cohort-unverified	-
+chrome-light-1440-detail	chrome	156.0.8078.47	light	1440	detail	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-light-1440-history	chrome	156.0.8078.47	light	1440	history	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-light-1440-archived-detail	chrome	156.0.8078.47	light	1440	archived-detail	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-light-1440-rules	chrome	156.0.8078.47	light	1440	rules	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-light-1440-states	chrome	156.0.8078.47	light	1440	states	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-375-overview	chrome	156.0.8078.47	dark	375	overview	dev-main	PASS	-	1	0	375	0	0	-	-	E-row-verified-cohort-|unverified phase3a-|1.0.0	-
+chrome-dark-375-verifications	chrome	156.0.8078.47	dark	375	verifications	dev-main	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-dark-375-detail	chrome	156.0.8078.47	dark	375	detail	dev-main	PASS	-	1	0	375	0	0	-	Evidence references for this case:over=251:tab=0:hidden=5	SPEC-005-|evaluation_input	-
+chrome-dark-375-history	chrome	156.0.8078.47	dark	375	history	dev-main	PASS	-	1	0	375	0	0	-	-	list_7ff5e9ec…|b55e	-
+chrome-dark-375-archived-detail	chrome	156.0.8078.47	dark	375	archived-detail	dev-main	PASS	-	1	0	375	0	0	-	Archived evidence references for this entry:over=411:tab=0:hidden=9	SPEC-005-|evaluation_input	-
+chrome-dark-375-rules	chrome	156.0.8078.47	dark	375	rules	dev-main	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-dark-375-states	chrome	156.0.8078.47	dark	375	states	dev-main	FAIL	split identifier: redacte|d,	1	0	375	0	0	-	Evidence references for VR-2025 — illustrative:over=251:tab=0:hidden=12	/api/v1/verifications/VR-2025/|ev	redacte|d,
+chrome-dark-768-overview	chrome	156.0.8078.47	dark	768	overview	dev-main	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-dark-768-verifications	chrome	156.0.8078.47	dark	768	verifications	dev-main	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-dark-768-detail	chrome	156.0.8078.47	dark	768	detail	dev-main	PASS	-	1	0	768	0	0	-	-	SPEC-005-|evaluation_input	-
+chrome-dark-768-history	chrome	156.0.8078.47	dark	768	history	dev-main	PASS	-	1	0	768	0	0	226/226 focus-visible=True	Archived evaluations table:over=226:tab=0:hidden=3	-	-
+chrome-dark-768-archived-detail	chrome	156.0.8078.47	dark	768	archived-detail	dev-main	PASS	-	1	0	768	0	0	-	Archived evidence references for this entry:over=58:tab=0:hidden=2	SPEC-005-|evaluation_input	-
+chrome-dark-768-rules	chrome	156.0.8078.47	dark	768	rules	dev-main	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-dark-768-states	chrome	156.0.8078.47	dark	768	states	dev-main	PASS	-	1	0	768	0	0	-	-	5f1c0a9b…|d9e0 a0b1c2d3…|a0b1 c2d3e4f5…|c2d3	-
+chrome-dark-1024-overview	chrome	156.0.8078.47	dark	1024	overview	dev-main	FAIL	split identifier: INTEGRITY_|VERIFIED | split identifier: research_o|nly	1	0	1024	0	0	-	-	B-|mismatch D-|unverified E-row-|verified-cohort-unverified A-|verified b61779e1…|842d 0.1.1-|proposed phase3a-|1.0.0 ws-|synthetic-01	INTEGRITY_|VERIFIED research_o|nly
+chrome-dark-1024-verifications	chrome	156.0.8078.47	dark	1024	verifications	dev-main	PASS	-	1	0	1024	0	0	-	unnamed:over=9:tab=-1:hidden=0	A-|verified 901fb769…|7e67 hist_7d621c0c…|d6fe B-|mismatch 7f234799…|24e4 hist_8e0966f9…|cc4c C-|pending 000fe432…|94e4 hist_cad943ea…|1085 D-|unverified b9269a57…|61e8 hist_d2a2c497…|44ce E-|row-verified-cohort-unverified 8a6df3a3…|2724 hist_879ef90d…|778c	-
+chrome-dark-1024-detail	chrome	156.0.8078.47	dark	1024	detail	dev-main	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-dark-1024-history	chrome	156.0.8078.47	dark	1024	history	dev-main	PASS	-	1	0	1024	0	0	182/182 focus-visible=True	Archived evaluations table:over=182:tab=0:hidden=2	-	-
+chrome-dark-1024-archived-detail	chrome	156.0.8078.47	dark	1024	archived-detail	dev-main	PASS	-	1	0	1024	0	0	-	Archived evidence references for this entry:over=14:tab=0:hidden=0	879ef90d…|778c SPEC-005-|evaluation_input	-
+chrome-dark-1024-rules	chrome	156.0.8078.47	dark	1024	rules	dev-main	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-dark-1024-states	chrome	156.0.8078.47	dark	1024	states	dev-main	PASS	-	1	0	1024	0	0	-	-	5f1c0a9b…|d9e0 a0b1c2d3…|a0b1 c2d3e4f5…|c2d3	-
+chrome-dark-1280-overview	chrome	156.0.8078.47	dark	1280	overview	dev-main	PASS	-	1	0	1280	0	0	-	-	E-row-verified-cohort-|unverified	-
+chrome-dark-1280-verifications	chrome	156.0.8078.47	dark	1280	verifications	dev-main	PASS	-	1	0	1280	0	0	-	-	E-row-|verified-cohort-unverified	-
+chrome-dark-1280-detail	chrome	156.0.8078.47	dark	1280	detail	dev-main	PASS	-	1	0	1280	0	0	-	-	copy-|phone-v1	-
+chrome-dark-1280-history	chrome	156.0.8078.47	dark	1280	history	dev-main	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-dark-1280-archived-detail	chrome	156.0.8078.47	dark	1280	archived-detail	dev-main	PASS	-	1	0	1280	0	0	-	-	copy-|phone-v1	-
+chrome-dark-1280-rules	chrome	156.0.8078.47	dark	1280	rules	dev-main	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-dark-1280-states	chrome	156.0.8078.47	dark	1280	states	dev-main	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-dark-1440-overview	chrome	156.0.8078.47	dark	1440	overview	dev-main	PASS	-	1	0	1440	0	0	-	-	phase3a-|1.0.0	-
+chrome-dark-1440-verifications	chrome	156.0.8078.47	dark	1440	verifications	dev-main	PASS	-	1	0	1440	0	0	-	-	E-row-|verified-cohort-unverified	-
+chrome-dark-1440-detail	chrome	156.0.8078.47	dark	1440	detail	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-1440-history	chrome	156.0.8078.47	dark	1440	history	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-1440-archived-detail	chrome	156.0.8078.47	dark	1440	archived-detail	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-1440-rules	chrome	156.0.8078.47	dark	1440	rules	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-1440-states	chrome	156.0.8078.47	dark	1440	states	dev-main	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-light-375-unavailable	chrome	156.0.8078.47	light	375	unavailable	down	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-light-768-unavailable	chrome	156.0.8078.47	light	768	unavailable	down	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-light-1024-unavailable	chrome	156.0.8078.47	light	1024	unavailable	down	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-light-1280-unavailable	chrome	156.0.8078.47	light	1280	unavailable	down	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-light-1440-unavailable	chrome	156.0.8078.47	light	1440	unavailable	down	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-375-unavailable	chrome	156.0.8078.47	dark	375	unavailable	down	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-dark-768-unavailable	chrome	156.0.8078.47	dark	768	unavailable	down	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-dark-1024-unavailable	chrome	156.0.8078.47	dark	1024	unavailable	down	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-dark-1280-unavailable	chrome	156.0.8078.47	dark	1280	unavailable	down	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-dark-1440-unavailable	chrome	156.0.8078.47	dark	1440	unavailable	down	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-light-375-ui-corrupt	chrome	156.0.8078.47	light	375	ui-corrupt	ui-corrupt	PASS	-	1	0	375	0	0	-	-	hist_68a87476…|8788	-
+chrome-light-768-ui-corrupt	chrome	156.0.8078.47	light	768	ui-corrupt	ui-corrupt	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-light-1024-ui-corrupt	chrome	156.0.8078.47	light	1024	ui-corrupt	ui-corrupt	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-light-1280-ui-corrupt	chrome	156.0.8078.47	light	1280	ui-corrupt	ui-corrupt	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-light-1440-ui-corrupt	chrome	156.0.8078.47	light	1440	ui-corrupt	ui-corrupt	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-375-ui-corrupt	chrome	156.0.8078.47	dark	375	ui-corrupt	ui-corrupt	PASS	-	1	0	375	0	0	-	-	hist_68a87476…|8788	-
+chrome-dark-768-ui-corrupt	chrome	156.0.8078.47	dark	768	ui-corrupt	ui-corrupt	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-dark-1024-ui-corrupt	chrome	156.0.8078.47	dark	1024	ui-corrupt	ui-corrupt	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-dark-1280-ui-corrupt	chrome	156.0.8078.47	dark	1280	ui-corrupt	ui-corrupt	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-dark-1440-ui-corrupt	chrome	156.0.8078.47	dark	1440	ui-corrupt	ui-corrupt	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-light-375-ui-unverifiable	chrome	156.0.8078.47	light	375	ui-unverifiable	ui-unverifiable	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-light-768-ui-unverifiable	chrome	156.0.8078.47	light	768	ui-unverifiable	ui-unverifiable	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-light-1024-ui-unverifiable	chrome	156.0.8078.47	light	1024	ui-unverifiable	ui-unverifiable	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-light-1280-ui-unverifiable	chrome	156.0.8078.47	light	1280	ui-unverifiable	ui-unverifiable	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-light-1440-ui-unverifiable	chrome	156.0.8078.47	light	1440	ui-unverifiable	ui-unverifiable	PASS	-	1	0	1440	0	0	-	-	-	-
+chrome-dark-375-ui-unverifiable	chrome	156.0.8078.47	dark	375	ui-unverifiable	ui-unverifiable	PASS	-	1	0	375	0	0	-	-	-	-
+chrome-dark-768-ui-unverifiable	chrome	156.0.8078.47	dark	768	ui-unverifiable	ui-unverifiable	PASS	-	1	0	768	0	0	-	-	-	-
+chrome-dark-1024-ui-unverifiable	chrome	156.0.8078.47	dark	1024	ui-unverifiable	ui-unverifiable	PASS	-	1	0	1024	0	0	-	-	-	-
+chrome-dark-1280-ui-unverifiable	chrome	156.0.8078.47	dark	1280	ui-unverifiable	ui-unverifiable	PASS	-	1	0	1280	0	0	-	-	-	-
+chrome-dark-1440-ui-unverifiable	chrome	156.0.8078.47	dark	1440	ui-unverifiable	ui-unverifiable	PASS	-	1	0	1440	0	0	-	-	-	-

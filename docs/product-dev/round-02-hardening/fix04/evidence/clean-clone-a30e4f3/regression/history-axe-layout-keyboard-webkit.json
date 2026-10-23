@@ -1,0 +1,16 @@
+{
+  "light #/local/history": [],
+  "light #/local/history/hist_828412c7…": [],
+  "light #/local/history/hist_00e6b5ce…": [],
+  "dark #/local/history": [],
+  "dark #/local/history/hist_828412c7…": [],
+  "dark #/local/history/hist_00e6b5ce…": [],
+  "ledger scroll @768": {
+    "scrollLeft": 227,
+    "maxScroll": 227
+  },
+  "ledger scroll @1024": {
+    "scrollLeft": 183,
+    "maxScroll": 183
+  }
+}

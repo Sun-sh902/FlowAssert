@@ -1,0 +1,4 @@
+$ git branch --show-current
+product-dev/round-02-hardening
+
+exit=0

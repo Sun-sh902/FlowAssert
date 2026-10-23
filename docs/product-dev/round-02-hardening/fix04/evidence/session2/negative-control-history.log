@@ -1,0 +1,73 @@
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chrome] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) (11.8s)
+  ✘  2 [webkit] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) (11.9s)
+
+
+  1) [chrome] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('region', { name: 'Archived evaluations table' })
+    Expected: 1
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('region', { name: 'Archived evaluations table' }) with timeout 5000ms
+      - waiting for getByRole('region', { name: 'Archived evaluations table' })
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      649 |   for (const w of [768, 1024]) {
+      650 |     await page.setViewportSize({ width: w, height: 900 });
+    > 651 |     await expect(region).toHaveCount(1);
+          |                          ^
+      652 |     await wide.evaluate((e) => (e.scrollLeft = 0));
+      653 |     await links.first().focus();
+      654 |     await page.keyboard.press("Shift+Tab");
+        at /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/ui/e2e-history/history.spec.ts:651:26
+
+    Error Context: test-results-history/history-accessibility-and--d87bb-hemes-375–1440-px-keyboard--chrome/error-context.md
+
+    Error Context: test-results-history/history-accessibility-and--d87bb-hemes-375–1440-px-keyboard--chrome/error-context.md
+
+  2) [webkit] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('region', { name: 'Archived evaluations table' })
+    Expected: 1
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('region', { name: 'Archived evaluations table' }) with timeout 5000ms
+      - waiting for getByRole('region', { name: 'Archived evaluations table' })
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      649 |   for (const w of [768, 1024]) {
+      650 |     await page.setViewportSize({ width: w, height: 900 });
+    > 651 |     await expect(region).toHaveCount(1);
+          |                          ^
+      652 |     await wide.evaluate((e) => (e.scrollLeft = 0));
+      653 |     await links.first().focus();
+      654 |     await page.keyboard.press("Shift+Tab");
+        at /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/ui/e2e-history/history.spec.ts:651:26
+
+    Error Context: test-results-history/history-accessibility-and--d87bb-hemes-375–1440-px-keyboard--webkit/error-context.md
+
+    Error Context: test-results-history/history-accessibility-and--d87bb-hemes-375–1440-px-keyboard--webkit/error-context.md
+
+  2 failed
+    [chrome] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) 
+    [webkit] › e2e-history/history.spec.ts:606:1 › accessibility and layout of the history pages (axe, both themes, 375–1440 px, keyboard) 

@@ -1,0 +1,2 @@
+$ sh -c git -C /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/fix04-20261023-s2/clean-clone ls-files ui/lab.html ui/src/lab | wc -l; git -C /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/fix04-20261023-s2/clean-clone diff --exit-code e974c6d a30e4f338d2f363a17924b6fa8a33e4a8b2c329f -- ui/lab.html ui/src/lab
+      14
