@@ -1,0 +1,2 @@
+NOT RUN  src/test/contract-drift-mutations.test.ts › drift guard sensitivity — independent audit mutants (read-only replay) — B: replay of the independent UI audit's own mutant files (FlowAssert-UI-Review/evidence/contract/mutants under FLOWASSERT_PROTECTED_PARENT, default this checkout's parent; or FLOWASSERT_DRIFT_MUTANTS) — historical evidence outside this repository; reported NOT RUN when absent
+vitest inventory: OK (0 problems)

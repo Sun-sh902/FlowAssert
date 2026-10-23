@@ -1,0 +1,106 @@
+{
+ "commit": "1caef22693eb87ee483b2de187d74bd73246f106 (sources unchanged; only the new test file present)",
+ "note": "Test \"4 \u00b7 all transport failures\" failed here because the first harness version left the archive answering; corrected test passes before and after (residual-before-test4-corrected.log).",
+ "tests": [
+  {
+   "test": "R04 an out-of-contract case ID never reaches the archive index > the decoder refuses a list page whose entry names SPEC-009, as a whole",
+   "status": "passed",
+   "failure": ""
+  },
+  {
+   "test": "R04 an out-of-contract case ID never reaches the archive index > the unchanged page is admitted (control)",
+   "status": "passed",
+   "failure": ""
+  },
+  {
+   "test": "R04 an out-of-contract case ID never reaches the archive index > the Overview shows no SPEC-009 and no archive counts when the Service sends one",
+   "status": "passed",
+   "failure": ""
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 1 \u00b7 all ready: the headline names states only; nothing is unread",
+   "status": "passed",
+   "failure": ""
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 2 \u00b7 all not found: the Service holds no current result \u2014 not 'could not be read'",
+   "status": "failed",
+   "failure": "AssertionError: expected 'No current result could be read.' to be 'The Service holds no current result f\u2026' // Object.is equality"
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 3 \u00b7 mixed ready and not found: the missing case is named as having no current result",
+   "status": "failed",
+   "failure": "AssertionError: expected 'One case contradicts its source. Two \u2026' to match /One has no current result at the Ser\u2026/i"
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 4 \u00b7 all transport failures: the Service-unavailable page, never 'not found'",
+   "status": "failed",
+   "failure": "AssertionError: expected null not to be null"
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 4b \u00b7 all live reads failed with a Service error: still 'could not be read'",
+   "status": "passed",
+   "failure": ""
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 5 \u00b7 mixed failure and not found, nothing read: each is counted under its own name",
+   "status": "failed",
+   "failure": "AssertionError: expected 'No current result could be read.' to match /^No current result was read\\./"
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 5b \u00b7 one live read cannot reach the Service while the others answer: named as unreachable",
+   "status": "failed",
+   "failure": "AssertionError: expected 'One case contradicts its source. One \u2026' to match /One could not reach the Service\\./i"
+  },
+  {
+   "test": "R05 the Overview headline and register keep not-found apart from failures > 6 \u00b7 reads still pending are 'being read', never counted as not found or failed",
+   "status": "failed",
+   "failure": "AssertionError: expected 'Workspace registerWhat answered on th\u2026' to match /1 of 5 answered \\(1 not found\\)/"
+  },
+  {
+   "test": "R06 the record check tooltip says what this browser checked > credits the digest check to the Service, and says the browser compared identifiers without recomputing",
+   "status": "failed",
+   "failure": "AssertionError: expected 'The Service re-verified this archive\u2019\u2026' to contain 'This browser did not recompute that d\u2026'"
+  },
+  {
+   "test": "R07 useProviderRead re-reads when the provider object changes > queries provider B after A is replaced under the same key, and shows B's answer",
+   "status": "failed",
+   "failure": "AssertionError: expected { id: 'VR-2025', \u2026(28) } not to be { id: 'VR-2025', \u2026(28) } // Object.is equality"
+  },
+  {
+   "test": "R07 useProviderRead re-reads when the provider object changes > a late answer from the replaced provider cannot overwrite the new provider's answer, and A's read is aborted",
+   "status": "failed",
+   "failure": "AssertionError: expected { status: 'loading', seq: 1 } to match object { status: 'settled', result: { \u2026(1) } }"
+  },
+  {
+   "test": "R07 useProviderRead re-reads when the provider object changes > a stable provider is read once across re-renders (no loop, no extra reads)",
+   "status": "passed",
+   "failure": ""
+  },
+  {
+   "test": "R07 useProviderRead re-reads when the provider object changes > unmount while the new provider's read is pending aborts it and publishes nothing",
+   "status": "failed",
+   "failure": "AssertionError: expected [] to have a length of 1 but got +0"
+  },
+  {
+   "test": "R07 useProviderRead re-reads when the provider object changes > a failing replacement settles as B's failure, never as A's data",
+   "status": "failed",
+   "failure": "AssertionError: expected { status: 'settled', seq: 1, \u2026(1) } to match object { status: 'settled', result: { \u2026(2) } }"
+  },
+  {
+   "test": "R07 useHistoryList starts a new list view when the provider object changes > reads provider B from the first page and drops A's pages",
+   "status": "failed",
+   "failure": "AssertionError: expected [ { \u2026(14) }, { \u2026(14) }, \u2026(2) ] to have a length of +0 but got 4"
+  },
+  {
+   "test": "R07 useHistoryList starts a new list view when the provider object changes > after loading more from A, provider B starts again at its first page (no cursor carried over)",
+   "status": "failed",
+   "failure": "AssertionError: expected 2 to be 1 // Object.is equality"
+  },
+  {
+   "test": "R07 useHistoryList starts a new list view when the provider object changes > a stable provider reads its first page once",
+   "status": "passed",
+   "failure": ""
+  }
+ ]
+}

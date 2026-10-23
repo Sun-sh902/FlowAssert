@@ -1,0 +1,68 @@
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chrome] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05) (5.3s)
+  ✘  2 [webkit] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05) (5.4s)
+
+
+  1) [chrome] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05) 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  getByRole('heading', { level: 1 })
+    Expected: "One case contradicts its source. Two cannot be concluded, one is verified, one has no current result at the Service."
+    Received: "One case contradicts its source. Two cannot be concluded, one is verified, one could not be read."
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" getByRole('heading', { level: 1 }) with timeout 5000ms
+      - waiting for getByRole('heading', { level: 1 })
+        14 × locator resolved to <h1 class="display mt-4 max-w-[19ch] text-[36px] leading-[1.04] text-ink sm:text-[46px]">…</h1>
+           - unexpected value "One case contradicts its source. Two cannot be concluded, one is verified, one could not be read."
+
+
+      71 |     await expect(settledComparisons(page)).toHaveCount(5);
+      72 |     await expect(page.locator('[data-case="SPEC-003"] [data-comparison]')).toHaveAttribute("data-comparison", "LIVE_MISSING");
+    > 73 |     await expect(page.getByRole("heading", { level: 1 })).toHaveText("One case contradicts its source. Two cannot be concluded, one is verified, one has no current result at the Service.");
+         |                                                           ^
+      74 |     await expect(page.getByRole("region", { name: "No current result" })).toContainText("SPEC-003");
+      75 |     await expect(page.getByRole("region", { name: "Workspace register" })).toContainText("5 of 5 answered (1 not found)");
+      76 |     writeEvidence(`overview-live-not-found-${test.info().project.name}`, { status: real.status(), body: JSON.parse(body), h1: await page.getByRole("heading", { level: 1 }).textContent() });
+        at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/2893971e-8208-4593-9e20-a9e26ca13d0d/scratchpad/wt-before-1caef22/ui/e2e-workspace/workspace.spec.ts:73:59
+
+    Error Context: ../../../../../../../../Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/residual-closeout-20261023/before/e2e-workspace-R05/artifacts/workspace-archive-dev-main-2c125-read-residual-closeout-R05--chrome/error-context.md
+
+    Error Context: ../../../../../../../../Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/residual-closeout-20261023/before/e2e-workspace-R05/artifacts/workspace-archive-dev-main-2c125-read-residual-closeout-R05--chrome/error-context.md
+
+  2) [webkit] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05) 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  getByRole('heading', { level: 1 })
+    Expected: "One case contradicts its source. Two cannot be concluded, one is verified, one has no current result at the Service."
+    Received: "One case contradicts its source. Two cannot be concluded, one is verified, one could not be read."
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" getByRole('heading', { level: 1 }) with timeout 5000ms
+      - waiting for getByRole('heading', { level: 1 })
+        14 × locator resolved to <h1 class="display mt-4 max-w-[19ch] text-[36px] leading-[1.04] text-ink sm:text-[46px]">…</h1>
+           - unexpected value "One case contradicts its source. Two cannot be concluded, one is verified, one could not be read."
+
+
+      71 |     await expect(settledComparisons(page)).toHaveCount(5);
+      72 |     await expect(page.locator('[data-case="SPEC-003"] [data-comparison]')).toHaveAttribute("data-comparison", "LIVE_MISSING");
+    > 73 |     await expect(page.getByRole("heading", { level: 1 })).toHaveText("One case contradicts its source. Two cannot be concluded, one is verified, one has no current result at the Service.");
+         |                                                           ^
+      74 |     await expect(page.getByRole("region", { name: "No current result" })).toContainText("SPEC-003");
+      75 |     await expect(page.getByRole("region", { name: "Workspace register" })).toContainText("5 of 5 answered (1 not found)");
+      76 |     writeEvidence(`overview-live-not-found-${test.info().project.name}`, { status: real.status(), body: JSON.parse(body), h1: await page.getByRole("heading", { level: 1 }).textContent() });
+        at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/2893971e-8208-4593-9e20-a9e26ca13d0d/scratchpad/wt-before-1caef22/ui/e2e-workspace/workspace.spec.ts:73:59
+
+    Error Context: ../../../../../../../../Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/residual-closeout-20261023/before/e2e-workspace-R05/artifacts/workspace-archive-dev-main-2c125-read-residual-closeout-R05--webkit/error-context.md
+
+    Error Context: ../../../../../../../../Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/residual-closeout-20261023/before/e2e-workspace-R05/artifacts/workspace-archive-dev-main-2c125-read-residual-closeout-R05--webkit/error-context.md
+
+  2 failed
+    [chrome] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05) 
+    [webkit] › e2e-workspace/workspace.spec.ts:63:3 › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05) 

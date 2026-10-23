@@ -1,0 +1,13 @@
+{
+  "status": 404,
+  "body": {
+    "error": {
+      "code": "run_not_found",
+      "message": "Offline request could not be completed.",
+      "request_id": "a89fc3b4-0e66-429a-ae4f-df79bc3956ee",
+      "retryable": false,
+      "details": []
+    }
+  },
+  "h1": "One case contradicts its source. Two cannot be concluded, one is verified, one has no current result at the Service."
+}

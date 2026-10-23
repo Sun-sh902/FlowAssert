@@ -1,0 +1,16 @@
+[
+  {
+    "event": "start",
+    "state": "dev-main",
+    "pid": 14421,
+    "at": "2026-10-23T15:43:47.975Z"
+  },
+  {
+    "event": "stop",
+    "state": "dev-main",
+    "pid": 14421,
+    "at": "2026-10-23T15:43:53.775Z",
+    "exit": 0,
+    "signal": null
+  }
+]

@@ -1,0 +1,982 @@
+[
+ {
+  "file": "perf-chromium-repeat1.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 160,
+    "dcl": 87,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 23,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 88,
+    "dcl": 18,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 60,
+    "dcl": 12,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 16,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 28,
+    "dcl": 15,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 20,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat10.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 168,
+    "dcl": 98,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 22,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 18,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 60,
+    "dcl": 21,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 20,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 56,
+    "dcl": 28,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 18,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat11.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 172,
+    "dcl": 110,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 20,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 68,
+    "dcl": 29,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 68,
+    "dcl": 23,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 17,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.009,
+    "fcp": 44,
+    "dcl": 17,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 33,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat12.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 124,
+    "dcl": 56,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 15,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 15,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 68,
+    "dcl": 17,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 44,
+    "dcl": 16,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 76,
+    "dcl": 15,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 24,
+    "dcl": 13,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat13.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 136,
+    "dcl": 59,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 14,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 80,
+    "dcl": 15,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 64,
+    "dcl": 14,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 72,
+    "dcl": 25,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 64,
+    "dcl": 22,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 26,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat14.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 156,
+    "dcl": 89,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 15,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 96,
+    "dcl": 12,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 60,
+    "dcl": 15,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 44,
+    "dcl": 12,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 28,
+    "dcl": 14,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 14,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat15.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 136,
+    "dcl": 65,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 18,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 84,
+    "dcl": 13,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 56,
+    "dcl": 15,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 80,
+    "dcl": 26,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 52,
+    "dcl": 18,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 22,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat16.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 140,
+    "dcl": 63,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 68,
+    "dcl": 28,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 76,
+    "dcl": 22,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 56,
+    "dcl": 17,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 68,
+    "dcl": 27,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 56,
+    "dcl": 22,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 24,
+    "dcl": 16,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat17.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 176,
+    "dcl": 119,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 18,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 76,
+    "dcl": 25,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 44,
+    "dcl": 18,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 72,
+    "dcl": 9,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 32,
+    "dcl": 14,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 14,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat18.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 132,
+    "dcl": 59,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 17,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 68,
+    "dcl": 12,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 32,
+    "dcl": 13,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 21,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 64,
+    "dcl": 32,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 22,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat19.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 140,
+    "dcl": 56,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 22,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 72,
+    "dcl": 14,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 52,
+    "dcl": 12,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 68,
+    "dcl": 26,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 52,
+    "dcl": 14,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 13,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat2.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 136,
+    "dcl": 62,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 18,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 19,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 32,
+    "dcl": 13,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 68,
+    "dcl": 15,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 52,
+    "dcl": 16,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 16,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat3.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 172,
+    "dcl": 90,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 24,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 24,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 56,
+    "dcl": 25,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 20,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 64,
+    "dcl": 15,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 28,
+    "dcl": 12,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat4.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 164,
+    "dcl": 76,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 15,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 14,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 64,
+    "dcl": 18,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 14,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 64,
+    "dcl": 35,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 48,
+    "dcl": 23,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat5.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 156,
+    "dcl": 73,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 20,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 88,
+    "dcl": 16,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 60,
+    "dcl": 15,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 48,
+    "dcl": 13,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 52,
+    "dcl": 13,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 32,
+    "dcl": 14,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat6.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 184,
+    "dcl": 106,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 64,
+    "dcl": 19,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 92,
+    "dcl": 15,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 56,
+    "dcl": 19,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 84,
+    "dcl": 32,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 68,
+    "dcl": 20,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 48,
+    "dcl": 22,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat7.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 168,
+    "dcl": 84,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 48,
+    "dcl": 14,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 80,
+    "dcl": 32,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 68,
+    "dcl": 18,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 80,
+    "dcl": 15,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 52,
+    "dcl": 19,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 44,
+    "dcl": 14,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat8.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 164,
+    "dcl": 80,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 21,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 84,
+    "dcl": 17,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 56,
+    "dcl": 13,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 20,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 64,
+    "dcl": 19,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 13,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium-repeat9.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 144,
+    "dcl": 67,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 19,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 80,
+    "dcl": 18,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 52,
+    "dcl": 22,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 40,
+    "dcl": 18,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 60,
+    "dcl": 14,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 52,
+    "dcl": 15,
+    "kB": 8
+   }
+  }
+ },
+ {
+  "file": "perf-chromium.json",
+  "browser": "chromium 156.0.8078.47",
+  "pageErrors": 0,
+  "routes": {
+   "overview": {
+    "cls": 0,
+    "fcp": 168,
+    "dcl": 94,
+    "kB": 295
+   },
+   "verifications": {
+    "cls": 0,
+    "fcp": 48,
+    "dcl": 13,
+    "kB": 3
+   },
+   "detail": {
+    "cls": 0,
+    "fcp": 100,
+    "dcl": 19,
+    "kB": 3
+   },
+   "connections": {
+    "cls": 0.002,
+    "fcp": 72,
+    "dcl": 32,
+    "kB": 3
+   },
+   "rules": {
+    "cls": 0,
+    "fcp": 60,
+    "dcl": 18,
+    "kB": 3
+   },
+   "settings": {
+    "cls": 0.01,
+    "fcp": 60,
+    "dcl": 24,
+    "kB": 3
+   },
+   "states": {
+    "cls": 0,
+    "fcp": 56,
+    "dcl": 22,
+    "kB": 8
+   }
+  }
+ }
+]

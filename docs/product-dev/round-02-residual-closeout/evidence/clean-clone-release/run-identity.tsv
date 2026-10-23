@@ -1,0 +1,8 @@
+run_id	clean-release-f287274
+commit	f287274e70b1a7436741275db7306afae43e942e
+branch	HEAD
+worktree_changes	0
+mode	release
+started_utc	2026-10-23T16:40:03Z
+host	Darwin 27.2.0 arm64
+run_dir	/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/2893971e-8208-4593-9e20-a9e26ca13d0d/scratchpad/clean-f287274/.dev-runtime/regression/clean-release-f287274

@@ -1,0 +1,161 @@
+{
+ "runtime": "/private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/2893971e-8208-4593-9e20-a9e26ca13d0d/scratchpad/clean-f287274/ui/.phase3a-runtime/FlowAssert-Phase3A-Service",
+ "backend_map": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+ "tree_files": 2042,
+ "problems": []
+}
+{
+ "ui-main": {
+  "initial": [
+   "hist_b1d8f902958cc1743626c12ff67a3eb87433fb081a7587b3b3e23b1fb8e31389",
+   "hist_360e3a937cd89cb5cc151d19f95408070bc1b7ddd76506d27168df5c30a83674",
+   "hist_2f9ccef93fa46fc35f5ff433cd6604540019ae9c6b1ea7a61faacbbc3803418c",
+   "hist_bfab96737659fd43faf1ed2dfefe8974c44921be66e28454c474a3cd2b3271aa",
+   "hist_c6bb6d421159c07688e82332d844b3b667fd0a7348ebae191351df936f8226ae"
+  ],
+  "reevaluated": [
+   "hist_aa473a1fb28469ff248c12c2818a21d1c364188c0f6ea0d6e5ad20c906cfc2d0",
+   "hist_d17b03c4eb02760621428a1a218da7fe243e3e69703cb9e4cf9eb852c03f190b",
+   "hist_e24c4e3c56cf2e2267d86823a47a1b972b3a9a2754ea89ddcb00edcbcda9a866",
+   "hist_7fef5ffc23921a9f4b10005f5bbf2594ef1cf37ac9fa35eeb2d18ac2e1de2316",
+   "hist_0c6d0631f3ef2a04728ab27c0a17cdf62e563cb17e496c52d8915ce65ff51ef5"
+  ],
+  "source_set_sha256": "9827338a8d8b2e05611f988ca78cf3fd461b98609f007b7c383e06e9ca8bbbeb",
+  "check": {
+   "validated_archives": 10,
+   "schema_version": 1,
+   "integrity": "INTEGRITY_VERIFIED"
+  }
+ },
+ "ui-empty": {
+  "check": {
+   "validated_archives": 0,
+   "schema_version": 1,
+   "integrity": "INTEGRITY_VERIFIED"
+  }
+ },
+ "ui-corrupt": {
+  "history_ids": [
+   "hist_bb5108d45f0372ea6190ff63e733807c0e77de08c94ed1a06281256b57036d76",
+   "hist_6598ea8a6b5f5130dae07f3e650f4b95910f2cda9448189588d684536152e6a7",
+   "hist_3b0a9d35be48273ee25157ae79250cf210515f9c6c4b6c5788aa8b151fd19598",
+   "hist_a83b212bc76a5cc132c71c1b490f4073e4a052c5dd6dae66eb26ab9801cee7e2",
+   "hist_ab9366cc18de21bf2a7e43a9d156bf24f8cdc7a6fa3a0691c290e36e3e702e4a"
+  ],
+  "damage": {
+   "label": "ui-corrupt-damage",
+   "state": "ui-corrupt",
+   "history_id": "hist_6598ea8a6b5f5130dae07f3e650f4b95910f2cda9448189588d684536152e6a7",
+   "verification_id": "SPEC-002",
+   "position": 0,
+   "reference_id": "SPEC-002-source",
+   "mode": "different-content",
+   "old_payload_sha256": "10f612193c2385c459ba6ab86f4008de11512723e60f185e17ced87454c102d1",
+   "new_payload_sha256": "13e3f5713fc59870f52dc87912ce285eaa05d8c15e5d1bab8f3db61d737665dd",
+   "db_mode_before": "0o600",
+   "db_mode_after": "0o600",
+   "nlink": 1,
+   "side_files": []
+  }
+ },
+ "ui-unverifiable": {
+  "history_ids": [
+   "hist_5b08e222e3bf998a54c0bcb86c59c75acb1b2e81ad008ee0f101934cc5dbed5a",
+   "hist_3f5c3ff85395edf1ceb6f71e8b38be54ffc335ff4b437f7ef4838b9d8bb21c36",
+   "hist_aae8b1e317e93bd5151c3bc8343fccd7cd94d6f4dbff7df8cfef56e304a31d0a",
+   "hist_000f83e12dfcd11a7904bec280c2cc7f069e6828dbee016789880173aa4476f9",
+   "hist_0587f7705350fdefa3d18c2c920f58e58fba5b1cfd8387bc2242e9103376d61c"
+  ],
+  "damage": {
+   "label": "ui-unverifiable-damage",
+   "state": "ui-unverifiable",
+   "history_id": "hist_aae8b1e317e93bd5151c3bc8343fccd7cd94d6f4dbff7df8cfef56e304a31d0a",
+   "verification_id": "SPEC-003",
+   "position": 1,
+   "reference_id": "SPEC-003-destination",
+   "mode": "null-payload",
+   "old_payload_sha256": "cd7ce031d8aed9efe0c42b8f3d18976787a7d964c891c9ac4583ab85452fc612",
+   "new_payload_sha256": null,
+   "db_mode_before": "0o600",
+   "db_mode_after": "0o600",
+   "nlink": 1,
+   "side_files": []
+  }
+ }
+}
+{
+ "SPEC-001": {
+  "cohort_state": "Verified",
+  "records": [
+   "Verified"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-002": {
+  "cohort_state": "Mismatch",
+  "records": [
+   "Mismatch"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-003": {
+  "cohort_state": "Pending",
+  "records": [
+   "Pending"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-004": {
+  "cohort_state": "Unverified",
+  "records": [
+   "Unverified"
+  ],
+  "expected_total": 1,
+  "source_population_known": true
+ },
+ "SPEC-005": {
+  "cohort_state": "Unverified",
+  "records": [
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified",
+   "Verified"
+  ],
+  "expected_total": null,
+  "source_population_known": false
+ }
+}
+OK      chrome   156.0.8078.47
+OK      webkit   26.6
+ABSENT  firefox  browser.newPage: Target page, context or browser has been closed (not mandatory)
+{
+ "problems": [
+  ".venv differs from original"
+ ],
+ "backend_source_sha256": {
+  "handoff": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+  "recomputed_from_copy": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
+  "pinned": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45"
+ },
+ "contract": {
+  "original": "59ac38631982147b547ed2dae57ab4e8b2d218e3fa718861eb0c5828befcd8ae",
+  "copied": "59ac38631982147b547ed2dae57ab4e8b2d218e3fa718861eb0c5828befcd8ae",
+  "pinned": "59ac38631982147b547ed2dae57ab4e8b2d218e3fa718861eb0c5828befcd8ae"
+ },
+ "venv": {
+  "entries": 1901,
+  "identical": false,
+  "aggregate_sha256": "7ad3b957b679834263ffc72b65d0aa1bc8a2f4d6a920a95e3fa36c9bd64916ea"
+ }
+}
