@@ -41,7 +41,11 @@ export interface ArchiveIndex {
   notArchived: number;
   /** Entries whose archive record check the Service did not report as INTEGRITY_VERIFIED. */
   integrityExceptions: number;
-  /** Entries for case IDs outside the reviewed five (kept visible, never dropped). */
+  /**
+   * Entries for case IDs outside the reviewed five, kept in the index rather than dropped. Not rendered: under the
+   * accepted history contract (original_verification_id ^SPEC-00[1-5]$) the decoder refuses such a list page as a
+   * whole, so a decoded archive never contains one.
+   */
   unexpected: HistorySummaryView[];
   /** Newest archive time in the view, or null when empty. */
   newestArchivedAt: string | null;

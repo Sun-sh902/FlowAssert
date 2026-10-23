@@ -23,5 +23,6 @@ curl -s --noproxy '*' "http://127.0.0.1:$PORT/" | cmp -s - dist/index.html || { 
 echo "measuring http://127.0.0.1:$PORT/ served by pid $PID (this build)"
 node scripts/dev/cls-probe.mjs "http://127.0.0.1:$PORT/" '#/rules' 30 "$OUT_JSON"; rc=$?
 [ "$rc" -eq 0 ] || exit "$rc"
-# FIX02: a load with a page error is a failed measurement, not a CLS of 0.
-node -e 'const r=require(process.argv[1]); process.exit(r.some(x=>x.cls>=0.1||x.pageErrors.length)?1:0)' "$OUT_JSON"
+# FIX02: a load with a page error is a failed measurement, not a CLS of 0. Residual closeout R10: so is one taken before
+# every font had loaded.
+node -e 'const r=require(process.argv[1]); process.exit(r.some(x=>x.cls>=0.1||x.pageErrors.length||x.fontsAtEnd!=="loaded")?1:0)' "$OUT_JSON"

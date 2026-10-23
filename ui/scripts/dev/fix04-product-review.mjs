@@ -1,13 +1,22 @@
-// FIX04 supplemental real-Service visual matrix. Run from ui after build/bootstrap --harness.
+// FIX04 supplemental real-Service visual matrix. Run from ui after build/bootstrap --harness (or --product-harness).
 // Usage: node scripts/dev/fix04-product-review.mjs ABSOLUTE_NEW_OUTPUT_DIR [before]
 // Owns only the processes it starts; never changes fixtures or accepted evidence.
+// Residual closeout R13: a release gate in scripts/dev/regression.sh (gate responsive-matrix, checked by
+// scripts/dev/check_test_inventory.py matrix). The output directory may be any new absolute path; inside this
+// repository it must be git-ignored. It measures only the build in dist/: the preview it starts must serve that
+// dist/index.html, whose digest is recorded with the commit.
 import { chromium, webkit } from '@playwright/test';
 import { spawn, execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, isAbsolute } from 'node:path';
 import { createRequire } from 'node:module';
 const ui = process.cwd(), root = resolve(ui, '..'), out = process.argv[2];
-if (!out || !out.startsWith(root + '/') || existsSync(out)) throw Error('Provide a new output directory inside this workspace');
+if (!out || !isAbsolute(out) || existsSync(out)) throw Error('Provide a new absolute output directory');
+if (out.startsWith(root + '/')) {
+  try { execFileSync('git', ['-C', root, 'check-ignore', '-q', out + '/']); } catch { throw Error(`Refusing ${out}: inside the repository it must be git-ignored`); }
+}
+const distIndex = readFileSync(join(ui, 'dist/index.html'));
 for (const port of [5183, 8765]) {
   let listener = '';
   try { listener = execFileSync('lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN'], { encoding: 'utf8' }); } catch { /* no listener */ }
@@ -15,7 +24,7 @@ for (const port of [5183, 8765]) {
 }
 mkdirSync(out, { recursive: true });
 const save = (name, value) => writeFileSync(join(out, name), JSON.stringify(value, null, 2) + '\n');
-save('identity.json', { commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), status: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }), command: process.argv, started: new Date().toISOString() });
+save('identity.json', { commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), status: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }), distIndexSha256: createHash('sha256').update(distIndex).digest('hex'), command: process.argv, started: new Date().toISOString() });
 const processes = [], rows = [];
 function start(name, command, args, env = {}) {
   const p = spawn(command, args, { cwd: ui, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -39,6 +48,7 @@ let svc, browser;
 try {
   const preview = start('preview', process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', '5183', '--strictPort']);
   await ready('http://127.0.0.1:5183', preview);
+  if (!Buffer.from(await (await fetch('http://127.0.0.1:5183/')).arrayBuffer()).equals(distIndex)) throw Error("Port 5183 does not serve this build's dist/index.html");
   for (const state of ['dev-main', 'down', 'ui-corrupt', 'ui-unverifiable']) {
     await stop(svc); svc = null;
     if (state !== 'down') {

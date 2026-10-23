@@ -43,14 +43,19 @@ Stop the Service with Ctrl-C. With it stopped, the workspace pages show *Service
 ```sh
 /usr/bin/python3 -I -B scripts/dev/check_identities.py   # pinned Evaluator, frozen contracts, backend source map
 scripts/dev/regression.sh --portable NEW-LABEL            # self-contained gates: backend, identities, typecheck, lint, Vitest
-scripts/dev/regression.sh NEW-LABEL                       # every gate; logs, exit codes, evidence in .dev-runtime/regression/NEW-LABEL/
+scripts/dev/regression.sh --product NEW-LABEL             # + Chrome/WebKit suites, CLS, responsive matrix (bootstrap.sh --product-harness)
+scripts/dev/regression.sh NEW-LABEL                       # release: every gate; logs, exit codes, evidence in .dev-runtime/regression/NEW-LABEL/
 ```
+
+Release acceptance requires the release profile. The product profile reads nothing outside this repository and lists
+historical custody, `e2e-lookup` and `e2e-local` as NOT RUN; see
+[REGRESSION_PROFILES.md](docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md).
 
 A run writes only into its own git-ignored directory (`run-identity.tsv` names the commit). No gate writes into
 `docs/`: the final `tracked-evidence` gate fails if any tracked file there changed. To keep a run as evidence, copy
 it into `docs/` deliberately and commit it.
 
-Gate status is PASS, FAIL or BLOCKED; a run with a BLOCKED gate exits 3 and is not a pass. Every test runner
+Gate status is PASS, FAIL, BLOCKED or NOT RUN (outside the profile); a run with a BLOCKED gate exits 3 and is not a pass. Every test runner
 (pytest, Vitest, Playwright) is checked against `scripts/dev/test-inventory.json`, so a skipped, missing or unexecuted
 test fails the run. The browser gates need Google Chrome and Playwright WebKit (`cd ui && npx playwright install
 webkit`); `bootstrap.sh --harness` launches both and stops if either fails. Firefox is not run. Unit-test fixtures are
@@ -59,6 +64,8 @@ in the repository and identity-checked (`ui/src/test/fixtures/`, `service/contra
 Two checks need sources outside this repository:
 - **Protected-source custody** (`scripts/dev/protected_custody.sh`, gate `protected-custody`) compares the genuine
   accepted roots under `FLOWASSERT_PROTECTED_PARENT` (default: this checkout's parent); BLOCKED where they are absent.
-- **The accepted browser suites** need their isolated runtimes: `scripts/dev/bootstrap.sh --harness`, which reads the
-  accepted read-only sources at fixed absolute paths and stops BLOCKED if they are absent.
+- **The accepted ID-lookup and Phase 2 browser suites** (`e2e-lookup`, `e2e-local`) need their isolated runtimes:
+  `scripts/dev/bootstrap.sh --harness`, which reads the accepted read-only sources at fixed absolute paths and stops
+  BLOCKED if they are absent. The history runtime, built from this workspace's own Service, needs only
+  `--product-harness`.
   See [docs/product-dev/ROUND_01_REPORT.md](docs/product-dev/ROUND_01_REPORT.md).

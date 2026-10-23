@@ -225,3 +225,57 @@ def test_playwright_inventory_refuses_an_unknown_gate(tmp_path):
 def test_playwright_inventory_fails_a_missing_report(tmp_path):
     r = subprocess.run([sys.executable, "-I", "-B", str(ROOT / "scripts/dev/check_test_inventory.py"), "playwright", "e2e-local", str(tmp_path / "absent.json")], capture_output=True, text=True)
     assert r.returncode == 1 and "missing or unreadable" in r.stdout
+
+
+# ---------- residual closeout R13: the responsive matrix as a release gate ----------
+
+def matrix_rows():
+    inv = INVENTORY["matrix"]["responsive-matrix"]
+    rows = []
+    for e in inv["engines"]:
+        for t in inv["themes"]:
+            for w in inv["widths"]:
+                for n in inv["scenarios"]:
+                    row = {"key": f"{e}-{t}-{w}-{n}", "engine": e, "browser": "1.0", "theme": t, "width": w, "name": n,
+                           "layout": {}, "axe": [], "scrollers": [], "focus": [], "problems": []}
+                    if n == "history" and w in inv["keyboard_scroll_widths"]:
+                        row["tableScroll"] = {"scrollLeft": 1, "maxScroll": 1}
+                    if n == "overview":
+                        row["focus"] = [{"visible": True}] * inv["overview_focus_stops"]
+                    rows.append(row)
+    return rows
+
+
+def check_matrix(tmp_path, rows, gate="responsive-matrix"):
+    path = tmp_path / "results.json"
+    if rows is not None:
+        path.write_text(json.dumps(rows))
+    r = subprocess.run([sys.executable, "-I", "-B", str(ROOT / "scripts/dev/check_test_inventory.py"), "matrix", gate, str(path)], capture_output=True, text=True)
+    return r.returncode, r.stdout
+
+
+def test_matrix_inventory_accepts_every_cell_passed(tmp_path):
+    rc, out = check_matrix(tmp_path, matrix_rows())
+    assert rc == 0 and "200 of 200 cells passed" in out
+
+
+@pytest.mark.parametrize("mutation, message", [
+    (lambda rows: rows.pop(), "cell did not run"),
+    (lambda rows: rows.append(dict(rows[0])), "cell reported twice"),
+    (lambda rows: rows.append({**rows[0], "key": "firefox-light-375-overview"}), "not in scripts/dev/test-inventory.json"),
+    (lambda rows: rows[5].update(problems=["horizontal overflow"]), "horizontal overflow"),
+    (lambda rows: rows[5].pop("axe"), "checks not executed (axe)"),
+    (lambda rows: next(r for r in rows if r["name"] == "history" and r["width"] == 1024).pop("tableScroll"), "checks not executed (tableScroll)"),
+    (lambda rows: next(r for r in rows if r["name"] == "overview").update(focus=[]), "12 focus stops"),
+])
+def test_matrix_inventory_fails_a_missing_extra_failed_or_unchecked_cell(tmp_path, mutation, message):
+    rows = matrix_rows()
+    mutation(rows)
+    rc, out = check_matrix(tmp_path, rows)
+    assert rc == 1 and message in out
+
+
+def test_matrix_inventory_fails_missing_results_and_unknown_gate(tmp_path):
+    assert check_matrix(tmp_path, None)[0] == 1
+    rc, out = check_matrix(tmp_path, matrix_rows(), gate="no-such-matrix")
+    assert rc == 1 and "not in scripts/dev/test-inventory.json" in out

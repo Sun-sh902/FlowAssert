@@ -290,7 +290,7 @@ export function HistoryEntry({ id, location, provider = getHistoryProvider("LOCA
 
 function HistoryEntryRead({ id, location, provider }: { id: string; location: Location; provider: FlowAssertHistoryProvider }) {
   const [generation, setGeneration] = useState(0);
-  const { state, read, cancel } = useProviderRead((signal) => provider.getHistory(id, {}, signal), `${id}#${generation}`);
+  const { state, read, cancel } = useProviderRead((signal) => provider.getHistory(id, {}, signal), `${id}#${generation}`, { source: provider });
   const detail = state.status === "settled" && state.result.kind === "ready" ? state.result.data : null;
 
   useEffect(() => {

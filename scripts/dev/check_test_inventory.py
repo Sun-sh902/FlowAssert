@@ -3,6 +3,7 @@
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py vitest REPORT.json   (npx vitest run --reporter=json)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py pytest JUNIT.xml     (pytest --junitxml, portable set)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py playwright GATE REPORT.json   (--reporter=json; FIX02)
+    /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py matrix GATE results.json      (ui/scripts/dev/fix04-product-review.mjs)
 
 Compares the run with scripts/dev/test-inventory.json. FAIL when a mandatory suite is missing or unlisted, a suite
 has a different number of required tests, or any required test is skipped, pending or not passed. An optional
@@ -12,6 +13,10 @@ inventoried outcome — "passed" N times (N > 1 only with --repeat-each), or "sk
 reason. A test that did not run (a serial file stopped by an earlier failure) carries no declared reason and FAILS, as do
 an unlisted test, a missing one and any error outside a test. Captures interrupted by a page close after a test ended
 (annotation capture-interrupted-by-close, ui/e2e/capture-lifecycle.ts) are listed, not hidden.
+Responsive matrix (residual closeout R13): every inventoried cell (engine × theme × width × scenario) must be present
+exactly once with no problem, and must carry the results of the checks it claims — layout, axe and scroll containers in
+every cell, the keyboard scroll of the History table at 768 and 1024, and twelve focus stops on the Overview. A screenshot
+without those results does not count.
 Exit 0 = every required test executed and passed; 1 = FAIL; 2 = usage.
 """
 import json
@@ -124,13 +129,52 @@ def playwright(gate, report):
     return problems, notes
 
 
+def matrix(gate, rows):
+    inv = INVENTORY["matrix"].get(gate)
+    if inv is None:
+        return [f"gate {gate} is not in scripts/dev/test-inventory.json"], []
+    if not isinstance(rows, list):
+        return ["results are not a list of cells"], []
+    want = {f"{e}-{t}-{w}-{n}" for e in inv["engines"] for t in inv["themes"] for w in inv["widths"] for n in inv["scenarios"]}
+    problems, seen = [], {}
+    for row in rows:
+        key = row.get("key") if isinstance(row, dict) else None
+        if key in seen:
+            problems.append(f"{key}: cell reported twice")
+        seen[key] = row
+    for key in sorted(want - set(seen)):
+        problems.append(f"{key}: cell did not run")
+    for key in sorted(set(seen) - want, key=str):
+        problems.append(f"{key}: cell is not in scripts/dev/test-inventory.json")
+    for key in sorted(want & set(seen)):
+        row = seen[key]
+        if row.get("problems"):
+            problems.append(f"{key}: {'; '.join(map(str, row['problems']))[:300]}")
+            continue
+        missing = [k for k in ("layout", "axe", "scrollers", "focus") if not isinstance(row.get(k), (dict, list))]
+        if row.get("name") == "history" and row.get("width") in inv["keyboard_scroll_widths"] and not isinstance(row.get("tableScroll"), dict):
+            missing.append("tableScroll")
+        if row.get("name") == "overview" and len(row.get("focus") or []) != inv["overview_focus_stops"]:
+            missing.append(f"{inv['overview_focus_stops']} focus stops")
+        if missing:
+            problems.append(f"{key}: checks not executed ({', '.join(missing)})")
+    browsers = sorted({f"{r.get('engine')} {r.get('browser')}" for r in seen.values() if isinstance(r, dict)})
+    passed = sum(1 for k in want & set(seen) if not seen[k].get("problems"))
+    return problems, [f"{gate}: {passed} of {len(want)} cells passed · {', '.join(browsers)}"]
+
+
 def main():
     args = sys.argv[1:]
-    if not ((len(args) == 2 and args[0] in ("vitest", "pytest")) or (len(args) == 3 and args[0] == "playwright")):
+    if not ((len(args) == 2 and args[0] in ("vitest", "pytest")) or (len(args) == 3 and args[0] in ("playwright", "matrix"))):
         print(__doc__, file=sys.stderr)
         return 2
     kind, path = args[0], args[-1]
-    if kind == "playwright":
+    if kind == "matrix":
+        try:
+            problems, notes = matrix(args[1], json.loads(Path(path).read_text(encoding="utf-8")))
+        except (OSError, ValueError) as e:  # the matrix stopped before it wrote its results
+            problems, notes = [f"results {path} missing or unreadable: {e}"], []
+    elif kind == "playwright":
         try:
             report = json.loads(Path(path).read_text(encoding="utf-8"))
         except (OSError, ValueError) as e:  # the run ended before its reporter wrote the file

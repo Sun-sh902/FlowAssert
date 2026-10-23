@@ -60,6 +60,22 @@ test.describe("archive: dev-main (2 archived evaluations per case)", () => {
     writeEvidence(`overview-requests-${test.info().project.name}`, api);
   });
 
+  test("Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05)", async ({ page }) => {
+    // The Service's own 404 for an ID it does not hold, through the gate — then the same answer for SPEC-003's live read.
+    const real = await page.request.get(`${APP_ORIGIN}/api/v1/verifications/SPEC-999`);
+    expect(real.status()).toBe(404);
+    const body = await real.text();
+    expect(JSON.parse(body).error.code).toBe("run_not_found");
+    await page.route(`${APP_ORIGIN}/api/v1/verifications/SPEC-003`, (route) => route.fulfill({ status: 404, headers: real.headers(), body }));
+    await open(page, "#/");
+    await expect(settledComparisons(page)).toHaveCount(5);
+    await expect(page.locator('[data-case="SPEC-003"] [data-comparison]')).toHaveAttribute("data-comparison", "LIVE_MISSING");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("One case contradicts its source. Two cannot be concluded, one is verified, one has no current result at the Service.");
+    await expect(page.getByRole("region", { name: "No current result" })).toContainText("SPEC-003");
+    await expect(page.getByRole("region", { name: "Workspace register" })).toContainText("5 of 5 answered (1 not found)");
+    writeEvidence(`overview-live-not-found-${test.info().project.name}`, { status: real.status(), body: JSON.parse(body), h1: await page.getByRole("heading", { level: 1 }).textContent() });
+  });
+
   test("Service status: reachable from the page's own reads, Check issues one permitted read", async ({ page }) => {
     const seen = recordRequests(page);
     await open(page, "#/verifications");

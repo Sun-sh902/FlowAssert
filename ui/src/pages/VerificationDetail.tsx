@@ -622,7 +622,7 @@ export function LocalVerificationDetail({
 function LocalVerificationRead({ id, location, provider, basePath, baseParams }: { id: string; location: Location; provider: FlowAssertReadProvider; basePath: string; baseParams?: Record<string, string> }) {
   const [generation, setGeneration] = useState(0);
   const [snapshotGone, setSnapshotGone] = useState<string | null>(null);
-  const { state, read, cancel } = useProviderRead((signal) => provider.getVerification(id, {}, signal), `${id}#${generation}`);
+  const { state, read, cancel } = useProviderRead((signal) => provider.getVerification(id, {}, signal), `${id}#${generation}`, { source: provider });
   const reread = () => {
     setSnapshotGone(null);
     setGeneration((g) => g + 1);

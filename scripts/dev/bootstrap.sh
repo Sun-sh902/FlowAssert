@@ -3,6 +3,10 @@
 #
 #   scripts/dev/bootstrap.sh            frontend deps, Python env, identity checks, synthetic archives
 #   scripts/dev/bootstrap.sh --harness  + the accepted E2E harness runtimes (needed by scripts/dev/regression.sh)
+#   scripts/dev/bootstrap.sh --product-harness
+#                                       + only the history runtime built from THIS workspace's Service and the browsers
+#                                       (needed by scripts/dev/regression.sh --product); reads nothing outside this
+#                                       repository. A later --harness keeps that runtime and adds the historical ones.
 #
 # Stages, in order; the first failing stage stops the run with its name, exit code and a hint:
 #   tools      node ≥ 20, npm, git, lsof, curl, Python 3.14 (FA_PYTHON, default python3.14); uv used if present;
@@ -29,7 +33,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PY="${FA_PYTHON:-python3.14}"
 SYS_PY="${FA_SYSTEM_PYTHON:-/usr/bin/python3}"
 HARNESS=0
-[ "${1:-}" = "--harness" ] && HARNESS=1
+PRODUCT_HARNESS=0
+case "${1:-}" in --harness) HARNESS=1 ;; --product-harness) PRODUCT_HARNESS=1 ;; esac
 LOG="$ROOT/.dev-runtime/bootstrap"
 mkdir -p "$LOG"
 
@@ -87,15 +92,16 @@ stage fixtures
 run fixtures "the Service's seed pipeline failed or found an incomplete state (see the log)" "$ROOT/scripts/dev/seed.sh"
 echo "synthetic archives in service/.runtime verified: dev-main (10 evaluations), dev-single (5), dev-empty (0) — only missing ones were created"
 
-if [ "$HARNESS" -eq 1 ]; then
+if [ "$HARNESS" -eq 1 ] || [ "$PRODUCT_HARNESS" -eq 1 ]; then
   stage harness
   UI="$ROOT/ui"
-  # The accepted read-only sources the unchanged harness scripts read, at their fixed absolute paths.
+  # The accepted read-only sources the unchanged harness scripts read, at their fixed absolute paths (--harness only;
+  # --product-harness prepares only the runtime copied from this workspace and never reads them).
   HARNESS_SOURCES="/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/docs/phase3a/id-addressability-remediation-03/evidence/source-identities.json
 /Users/zhangshenghe/Documents/FlowAssert-Service
 /Users/zhangshenghe/Documents/FlowAssert-round03-oracle-fix/experiments/round03/model.py
 /Users/zhangshenghe/Documents/FlowAssert-Phase2-Support/evidence/identity/accepted-source-comparison.json"
-  ABSENT="$(printf '%s\n' "$HARNESS_SOURCES" | while IFS= read -r p; do [ -r "$p" ] || echo "    $p"; done)"
+  ABSENT="$([ "$HARNESS" -eq 1 ] && printf '%s\n' "$HARNESS_SOURCES" | while IFS= read -r p; do [ -r "$p" ] || echo "    $p"; done)"
   [ -z "$ABSENT" ] || fail harness 30 "BLOCKED: the accepted read-only harness sources are not readable on this machine:
 $ABSENT
   The browser regression gates cannot be prepared here; the portable gates need no harness (regression.sh --portable)."
@@ -111,11 +117,11 @@ $ABSENT
     run harness "evaluator oracle failed" "$UI/.phase3a-runtime/FlowAssert-Phase3A-Service/.venv/bin/python" -I -B "$UI/scripts/phase3a/evaluator_oracle.py"
     : > "$LOG/harness-phase3a.complete"
   fi
-  if runtime lookup "$UI/.phase3a-lookup-runtime"; then
+  if [ "$HARNESS" -eq 1 ] && runtime lookup "$UI/.phase3a-lookup-runtime"; then
     run harness "ID-lookup runtime refused (reads the accepted FlowAssert-Phase3A-Service read-only)" "$SYS_PY" -I -B "$UI/scripts/phase3a/prepare_lookup_runtime.py"
     : > "$LOG/harness-lookup.complete"
   fi
-  if runtime phase2 "$UI/.phase2-runtime"; then
+  if [ "$HARNESS" -eq 1 ] && runtime phase2 "$UI/.phase2-runtime"; then
     run harness "Phase 2 runtime refused (reads the accepted FlowAssert-Service read-only)" "$SYS_PY" -I -B "$UI/scripts/phase2/prepare_runtime.py"
     : > "$LOG/harness-phase2.complete"
   fi
@@ -126,7 +132,7 @@ $ABSENT
     fail harness 32 "a mandatory browser does not launch — install Google Chrome, then: cd ui && npx playwright install webkit (report: $LOG/browsers.json)"
   }
   grep -E '^OK +(chrome|webkit) ' "$LOG/harness.log" | tail -n 2 | sed 's/^OK */browser /'
-  echo "harness runtimes ready"
+  echo "harness runtimes ready ($([ "$HARNESS" -eq 1 ] && echo 'history, ID-lookup, Phase 2' || echo 'history only — product profile'))"
 fi
 
 cat <<EOF
@@ -135,5 +141,6 @@ BOOTSTRAP OK
   Service:     scripts/dev/service.sh                 (127.0.0.1:8765; FA_STATE=dev-empty for the empty archive)
   UI:          cd ui && npm run dev                   (http://127.0.0.1:5183)
   Regression:  scripts/dev/regression.sh --portable LABEL   (self-contained gates)
-               scripts/dev/regression.sh LABEL              (all gates; needs --harness; ports 4183/4184/5183/8765 free)
+               scripts/dev/regression.sh --product LABEL    (product gates incl. browsers and matrix; needs --product-harness)
+               scripts/dev/regression.sh LABEL              (release: all gates; needs --harness; ports 4183/4184/5183/8765 free)
 EOF

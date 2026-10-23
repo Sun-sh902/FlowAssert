@@ -7,16 +7,20 @@
  * produce, so a guard that fails for an unrelated reason does not count as a detection.
  *
  * The independent audit's own 12 mutant files are also replayed when that read-only review folder
- * is present (FLOWASSERT_DRIFT_MUTANTS overrides the location). They are historical evidence outside this
- * repository: when absent, the one skipped test below is reported NOT RUN by scripts/dev/check_test_inventory.py.
+ * is present: FlowAssert-UI-Review/evidence/contract/mutants under the historical roots' parent
+ * (FLOWASSERT_PROTECTED_PARENT, else this checkout's parent — as scripts/dev/protected_custody.sh), or
+ * FLOWASSERT_DRIFT_MUTANTS. They are historical evidence outside this repository: when absent, the one skipped test
+ * below is reported NOT RUN by scripts/dev/check_test_inventory.py.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BINDING, CONTRACT, MIRROR_SOURCE } from "./contract/fixtures";
 import { checkContract, type OpenApiDoc } from "./contract/guard";
+import { REPO_ROOT } from "./fixtures/sources";
 
-const AUDIT_MUTANTS = process.env.FLOWASSERT_DRIFT_MUTANTS ?? "/Users/zhangshenghe/Documents/FlowAssert-UI-Review/evidence/contract/mutants";
+const HISTORICAL_PARENT = process.env.FLOWASSERT_PROTECTED_PARENT ?? dirname(REPO_ROOT);
+const AUDIT_MUTANTS = process.env.FLOWASSERT_DRIFT_MUTANTS ?? join(HISTORICAL_PARENT, "FlowAssert-UI-Review/evidence/contract/mutants");
 
 type Doc = OpenApiDoc & { components: { schemas: Record<string, any> }; paths: Record<string, any> };
 const original = readFileSync(CONTRACT, "utf8");

@@ -181,7 +181,9 @@ describe("Workspace Overview (LOCAL_RESEARCH)", () => {
     });
     expect(seals(row)).toEqual(["Pending"]); // the archived seal only
     expect(row.textContent).toContain("no current result");
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/one could not be read/);
+    // A 404 is the Service's answer that it holds no current result — not a failed read (residual closeout R05).
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/one has no current result at the Service/);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).not.toMatch(/could not be read/);
   });
 
   it("shows Service unavailable — never demo data or a verdict — when the Service cannot be reached", async () => {

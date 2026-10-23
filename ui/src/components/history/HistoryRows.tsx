@@ -43,7 +43,7 @@ export function RecordCheck({ entry }: { entry: HistorySummaryView }) {
   const ok = entry.integrity.status === "INTEGRITY_VERIFIED";
   return (
     <span
-      title="The Service re-verified this archive’s stored candidate bytes and relationships when it answered (scope archive_candidate_and_relationships). This browser confirmed that the reported digest names this entry. Evidence payloads are checked on the entry’s page."
+      title="The Service re-verified this archive’s stored candidate bytes and relationships when it answered (scope archive_candidate_and_relationships). This browser did not recompute that digest: it checked that the digest the Service reports is the one in this entry’s history, archive and snapshot IDs. Evidence payload digests are recomputed in this browser on the entry’s page."
     >
       <IntegrityTag state={serviceIntegrityState(entry.integrity.status)}>{ok ? "record check · service" : entry.integrity.status}</IntegrityTag>
     </span>

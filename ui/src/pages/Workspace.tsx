@@ -132,22 +132,29 @@ export function WorkspaceOverview({ history = getHistoryProvider("LOCAL_RESEARCH
 function Statement({ cases }: { cases: WorkspaceCase[] }) {
   const read = cases.filter((c) => c.live.kind === "ready");
   const reading = cases.filter((c) => c.live.kind === "reading").length;
-  const notRead = cases.length - read.length - reading;
-  if (read.length === 0)
+  // A Service 404 is an answer — the Service holds no current result for the case — not a failed read.
+  const notFound = cases.filter((c) => c.live.kind === "not_found").length;
+  const unreachable = cases.filter((c) => c.live.kind === "failed" && c.live.failure.transport).length;
+  const notRead = cases.length - read.length - reading - notFound - unreachable;
+  if (read.length === 0 && (reading || !notFound))
     return <h1 className="display mt-4 text-[36px] leading-[1.04] text-ink sm:text-[44px]">{reading ? "No current result has been read yet." : "No current result could be read."}</h1>;
+  if (notFound === cases.length) return <h1 className="display mt-4 text-[36px] leading-[1.04] text-ink sm:text-[44px]">The Service holds no current result for these cases.</h1>;
   const count = (s: VerificationState) => read.filter((c) => liveState(c) === s).length;
   const lead = count("Mismatch") > 0 ? `${word(count("Mismatch"))} ${count("Mismatch") === 1 ? "case contradicts its" : "cases contradict their"} source.` : null;
   const rest: string[] = [];
   if (count("Unverified")) rest.push(`${word(count("Unverified"), true)} cannot be concluded`);
   if (count("Pending")) rest.push(`${word(count("Pending"), true)} ${count("Pending") === 1 ? "is" : "are"} still waiting`);
   if (count("Verified")) rest.push(`${word(count("Verified"), true)} ${count("Verified") === 1 ? "is" : "are"} verified`);
+  if (notFound) rest.push(`${word(notFound, true)} ${notFound === 1 ? "has" : "have"} no current result at the Service`);
   if (notRead) rest.push(`${word(notRead, true)} could not be read`);
+  if (unreachable) rest.push(`${word(unreachable, true)} could not reach the Service`);
   if (reading) rest.push(`${word(reading, true)} ${reading === 1 ? "is" : "are"} still being read`);
   let tail = rest.join(", ");
   if (tail) tail = `${tail[0]!.toUpperCase()}${tail.slice(1)}.`;
   return (
     <h1 className="display mt-4 max-w-[19ch] text-[36px] leading-[1.04] text-ink sm:text-[46px]">
-      {lead && <em className="text-mismatch-ink">{lead}</em>} <span className="text-ink-3">{tail}</span>
+      {lead && <em className="text-mismatch-ink">{lead}</em>}
+      {read.length === 0 && "No current result was read."} <span className="text-ink-3">{tail}</span>
     </h1>
   );
 }
@@ -324,9 +331,10 @@ function CaseExhibits({ cases }: { cases: WorkspaceCase[] }) {
 
 function Register({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
   const liveOk = w.cases.filter((c) => c.live.kind === "ready").length;
+  const liveNotFound = w.cases.filter((c) => c.live.kind === "not_found").length;
   const a = w.archiveState;
   const rows: [string, ReactNode][] = [
-    ["Live reads", `${liveOk} of ${w.cases.length} answered · ≤${LIVE_CONCURRENCY} at a time`],
+    ["Live reads", `${liveOk + liveNotFound} of ${w.cases.length} answered${liveNotFound ? ` (${liveNotFound} not found)` : ""} · ≤${LIVE_CONCURRENCY} at a time`],
     ["Archive", a.status === "ready" ? `${plural(a.index.totalEntries, "entry", "entries")} · ${plural(a.pages, "page")} · ${HISTORY_LIMITS.listPageLimit} per page` : a.status === "reading" ? "reading…" : `not read (${a.status})`],
     [
       "Record checks",

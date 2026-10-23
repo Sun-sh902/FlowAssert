@@ -33,6 +33,7 @@
    "src/test/phase3a-integrity.test.ts": 14,
    "src/test/provider.test.ts": 15,
    "src/test/remediation.test.tsx": 26,
+   "src/test/residual-closeout.test.tsx": 20,
    "src/test/rules.test.tsx": 10,
    "src/test/settings.test.tsx": 7,
    "src/test/shell.test.tsx": 7,
@@ -46,7 +47,7 @@
     "describe": "drift guard sensitivity — independent audit mutants (read-only replay)",
     "tests_when_present": 13,
     "tests_when_absent_skipped": 1,
-    "category": "B: replay of the independent UI audit's own mutant files (FlowAssert-UI-Review/evidence/contract/mutants, FLOWASSERT_DRIFT_MUTANTS) — historical evidence outside this repository; reported NOT RUN when absent"
+    "category": "B: replay of the independent UI audit's own mutant files (FlowAssert-UI-Review/evidence/contract/mutants under FLOWASSERT_PROTECTED_PARENT, default this checkout's parent; or FLOWASSERT_DRIFT_MUTANTS) — historical evidence outside this repository; reported NOT RUN when absent"
    }
   ]
  },
@@ -589,6 +590,12 @@
    }
   },
   "e2e-workspace": {
+   "chrome › workspace.spec.ts › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05)": {
+    "passed": 1
+   },
+   "webkit › workspace.spec.ts › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05)": {
+    "passed": 1
+   },
    "chrome › workspace.spec.ts › Service stopped › Overview and Verifications show Service unavailable — no verdict, no demo data; the status says so": {
     "passed": 1
    },
@@ -1245,6 +1252,17 @@
     "skipped": 1,
     "reason": "set FA_CAPTURE=1 to write deliverable screenshots"
    }
+  }
+ },
+ "matrix": {
+  "responsive-matrix": {
+   "about": "Residual closeout R13: the FIX04 200-cell responsive matrix (ui/scripts/dev/fix04-product-review.mjs) as a release gate. Each cell runs real assertions on the real local Service: no horizontal overflow, exactly one visible H1, no comparison chip overlap, no clipped status text, no monospaced identifier split mid-token, no keyboard-unreachable scroll container, axe WCAG 2.1 A/AA (aria-hidden [data-ornament] excluded, as in every accepted suite), no page error, no request outside the app origin, visible focus on the Overview's first twelve Tab stops, and the History table's keyboard scroll at 768 and 1024.",
+   "engines": ["chrome", "webkit"],
+   "themes": ["light", "dark"],
+   "widths": [375, 768, 1024, 1280, 1440],
+   "scenarios": ["overview", "verifications", "detail", "history", "archived-detail", "rules", "states", "unavailable", "ui-corrupt", "ui-unverifiable"],
+   "keyboard_scroll_widths": [768, 1024],
+   "overview_focus_stops": 12
   }
  }
 }

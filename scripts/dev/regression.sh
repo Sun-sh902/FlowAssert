@@ -1,6 +1,14 @@
 #!/bin/sh
-# Every product-workspace gate, in order, each logged with its exit code and status.
-#   scripts/dev/regression.sh LABEL              all gates (needs scripts/dev/bootstrap.sh --harness)
+# Every product-workspace gate, in order, each logged with its exit code and status. Three profiles
+# (docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md):
+#   scripts/dev/regression.sh LABEL              RELEASE: every gate (needs scripts/dev/bootstrap.sh --harness and the
+#                                                genuine historical roots). The profile release acceptance requires.
+#   scripts/dev/regression.sh --product LABEL    PRODUCT: every gate that tests this repository's product against its own
+#                                                Service — backend, Vitest, Chrome+WebKit static, CLS, workspace, history
+#                                                and the responsive matrix (needs bootstrap.sh --product-harness, reads
+#                                                nothing outside this repository). Historical custody and the suites that
+#                                                run the accepted Phase 2 / Phase 3A Services (e2e-lookup, e2e-local) are
+#                                                listed NOT RUN: a product pass is not the complete regression.
 #   scripts/dev/regression.sh --portable LABEL   self-contained gates only (needs scripts/dev/bootstrap.sh): backend,
 #                                                identities, typecheck, lint, Vitest — plus the custody check, which
 #                                                reports BLOCKED where the protected roots are absent
@@ -12,18 +20,22 @@
 # directories are redirected into the run directory, and the final tracked-evidence gate fails if any tracked file under
 # docs/ or ui/docs/ changed or any untracked file appeared there during the run. The Playwright gates are checked
 # against scripts/dev/test-inventory.json like the unit-test runners, and the mandatory browsers are probed first.
-# Gate status: PASS (exit 0) · BLOCKED (exit 77: a required historical source is absent; the check did NOT run) · FAIL.
-# Exit: 0 every gate passed · 1 any gate failed · 3 nothing failed but a gate was BLOCKED (not a pass).
+# Gate status: PASS (exit 0) · BLOCKED (exit 77: a required historical source is absent; the check did NOT run) · FAIL ·
+# NOT RUN (outside the selected profile; exit "-").
+# Exit: 0 every gate of the profile passed · 1 any gate failed · 3 nothing failed but a gate was BLOCKED (not a pass).
+# Residual closeout R13: the 200-cell responsive matrix (ui/scripts/dev/fix04-product-review.mjs) is a gate of the product
+# and release profiles, built from this checkout and checked cell by cell against scripts/dev/test-inventory.json.
 # Round 02 hardening FIX01: the protected-source custody check is its own gate (scripts/dev/protected_custody.sh), not
 # part of the portable backend tests; both test runners are checked against scripts/dev/test-inventory.json so a
 # skipped or missing test cannot pass as green; the Rules probe owns and verifies its port.
 # Firefox is not run: the accepted F15 Firefox test-harness defect is documented and unfixed.
-# Full mode: ports 4183, 4184, 5183 and 8765 must be free — the browser suites and the probe own their servers.
+# Product and release: ports 4183, 4184, 5183 and 8765 must be free — the browser suites, the probe and the matrix own
+# their servers.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-PORTABLE=0
-[ "${1:-}" = "--portable" ] && { PORTABLE=1; shift; }
-LABEL="${1:?usage: regression.sh [--portable] LABEL}"
+MODE=release
+case "${1:-}" in --portable) MODE=portable; shift ;; --product) MODE=product; shift ;; esac
+LABEL="${1:?usage: regression.sh [--portable|--product] LABEL}"
 SYS_PY="${FA_SYSTEM_PYTHON:-/usr/bin/python3}"
 BASE="${FA_REGRESSION_DIR:-$ROOT/.dev-runtime/regression}"
 mkdir -p "$BASE" && BASE="$(cd "$BASE" && pwd)"
@@ -34,7 +46,7 @@ case "$OUT/" in "$ROOT"/*)
 esac
 # Decide on lsof's OUTPUT: with several -i selectors its exit status is 1 whenever any one is unmatched, so the
 # round 02 status-based check passed unless every port was taken (FIX01).
-if [ "$PORTABLE" -eq 0 ] && [ -n "$(lsof -nP -t -iTCP:4183,4184,5183,8765 -sTCP:LISTEN 2>/dev/null)" ]; then
+if [ "$MODE" != portable ] && [ -n "$(lsof -nP -t -iTCP:4183,4184,5183,8765 -sTCP:LISTEN 2>/dev/null)" ]; then
   echo "ports 4183/4184/5183/8765 must be free (stop the dev server, previews and Service):" >&2
   lsof -nP -iTCP:4183,4184,5183,8765 -sTCP:LISTEN >&2; exit 1
 fi
@@ -44,7 +56,7 @@ mkdir -p "$OUT"
   printf 'commit\t%s\n' "$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
   printf 'branch\t%s\n' "$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
   printf 'worktree_changes\t%s\n' "$(git -C "$ROOT" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
-  printf 'mode\t%s\n' "$([ "$PORTABLE" -eq 1 ] && echo portable || echo full)"
+  printf 'mode\t%s\n' "$MODE"
   printf 'started_utc\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf 'host\t%s\n' "$(uname -srm)"
   printf 'run_dir\t%s\n' "$OUT"
@@ -71,6 +83,11 @@ gate() {
   printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$rc" "$status" "$start" "$*" >> "$OUT/summary.tsv"
   printf '%-22s exit %-3s %s\n' "$name" "$rc" "$status"
 }
+# not_run GATE REASON: a gate outside the selected profile. Listed, never counted as passed.
+not_run() {
+  printf '%s\t-\tNOT RUN\t%s\t%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" >> "$OUT/summary.tsv"
+  printf '%-22s exit -   NOT RUN (%s profile)\n' "$1" "$MODE"
+}
 SVC="$ROOT/service"
 mkdir -p "$SVC/.runtime/tmp" && chmod 700 "$SVC/.runtime" "$SVC/.runtime/tmp"
 # Portable backend tests: everything except the historical custody test, which needs the genuine protected roots.
@@ -80,7 +97,11 @@ gate backend-pytest "$SVC" env LC_ALL=C PYTHONDONTWRITEBYTECODE=1 TMPDIR="$SVC/.
 gate backend-inventory "$ROOT" "$SYS_PY" -I -B scripts/dev/check_test_inventory.py pytest "$OUT/backend-pytest.xml"
 # Historical custody: the restored test, unchanged, against the accepted roots under FLOWASSERT_PROTECTED_PARENT
 # (default: this checkout's parent). BLOCKED, never substituted, where they are absent.
-gate protected-custody "$ROOT" scripts/dev/protected_custody.sh --basetemp="$SVC/.runtime/tmp/regression-$LABEL-custody"
+if [ "$MODE" = product ]; then
+  not_run protected-custody "historical custody of the accepted protected roots — release profile, or scripts/dev/protected_custody.sh"
+else
+  gate protected-custody "$ROOT" scripts/dev/protected_custody.sh --basetemp="$SVC/.runtime/tmp/regression-$LABEL-custody"
+fi
 gate dev-scripts "$ROOT" "$SVC/.venv/bin/python" -B -m pytest -p no:cacheprovider -q --basetemp="$SVC/.runtime/tmp/regression-$LABEL-dev" scripts/dev/tests
 gate pinned-identities "$ROOT" "$SYS_PY" -I -B scripts/dev/check_identities.py
 gate ui-typecheck "$ROOT/ui" npx tsc -b
@@ -93,7 +114,7 @@ pw_gate() {
   gate "$g" "$ROOT/ui" env PLAYWRIGHT_JSON_OUTPUT_NAME="$OUT/$g.json" "$@" --reporter=list,json --output="$OUT/artifacts/$g"
   gate "$g-inventory" "$ROOT" "$SYS_PY" -I -B scripts/dev/check_test_inventory.py playwright "$g" "$OUT/$g.json"
 }
-if [ "$PORTABLE" -eq 0 ]; then
+if [ "$MODE" != portable ]; then
   EV="$OUT/evidence"
   unset FA_CAPTURE FA_CAPTURE_DIR
   # Mandatory browsers: Google Chrome (channel chrome) and Playwright WebKit must launch; Firefox information only.
@@ -105,12 +126,25 @@ if [ "$PORTABLE" -eq 0 ]; then
   pw_gate e2e-workspace FA_BROWSERS=chrome,webkit FA_WORKSPACE_EVIDENCE_DIR="$EV/e2e-workspace" \
     FA_WORKSPACE_SCREENSHOT_DIR="$EV/e2e-workspace/screenshots" npx playwright test -c playwright.workspace.config.ts
   pw_gate e2e-history FA_BROWSERS=chrome,webkit FA_HISTORY_EVIDENCE_DIR="$EV/e2e-history/e2e" npx playwright test -c playwright.history.config.ts
-  pw_gate e2e-lookup FA_BROWSERS=chrome,webkit FA_LOOKUP_EVIDENCE_DIR="$EV/e2e-lookup" npx playwright test -c playwright.lookup.config.ts
-  pw_gate e2e-local FA_BROWSERS=chrome,webkit FA_E2E_EVIDENCE_DIR="$EV/e2e-local" npx playwright test -c playwright.local.config.ts
+  # Residual closeout R13: 10 routes/states × 5 widths × 2 themes × Chrome and WebKit, on a build of this checkout.
+  gate responsive-matrix "$ROOT/ui" sh -c 'npx vite build && node scripts/dev/fix04-product-review.mjs "$1"' responsive-matrix "$EV/responsive-matrix"
+  gate responsive-matrix-inventory "$ROOT" "$SYS_PY" -I -B scripts/dev/check_test_inventory.py matrix responsive-matrix "$EV/responsive-matrix/results.json"
+  if [ "$MODE" = release ]; then
+    pw_gate e2e-lookup FA_BROWSERS=chrome,webkit FA_LOOKUP_EVIDENCE_DIR="$EV/e2e-lookup" npx playwright test -c playwright.lookup.config.ts
+    pw_gate e2e-local FA_BROWSERS=chrome,webkit FA_E2E_EVIDENCE_DIR="$EV/e2e-local" npx playwright test -c playwright.local.config.ts
+  else
+    for g in e2e-lookup e2e-lookup-inventory e2e-local e2e-local-inventory; do
+      not_run "$g" "runs the UI against the accepted Phase 3A / Phase 2 Service copies built from the historical roots — release profile"
+    done
+  fi
 fi
 gate tracked-evidence "$ROOT" evidence_unchanged
 echo "summary: $OUT/summary.tsv"
 if [ "$FAIL" -eq 1 ]; then echo "verdict: FAIL"; exit 1; fi
 if [ "$BLOCKED" -eq 1 ]; then echo "verdict: INCOMPLETE — blocked gates did not run; this is not a pass"; exit 3; fi
-echo "verdict: PASS ($([ "$PORTABLE" -eq 1 ] && echo 'portable gates only' || echo 'all gates'))"
+case "$MODE" in
+  portable) echo "verdict: PASS (portable gates only — not a product or release regression)" ;;
+  product) echo "verdict: PASS (product profile — historical custody, e2e-lookup and e2e-local NOT RUN; not the complete release regression)" ;;
+  *) echo "verdict: PASS (release profile — all gates)" ;;
+esac
 exit 0

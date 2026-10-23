@@ -26,6 +26,14 @@ export function useHistoryList(provider: Pick<FlowAssertHistoryProvider, "listHi
   const [plan, setPlan] = useState<{ cursor: string | null; index: number }>({ cursor: null, index: 0 });
   const [chain, setChain] = useState<HistoryListChain>(() => startListChain(limit, verificationId));
   const [refusal, setRefusal] = useState<{ code: string; message: string } | null>(null);
+  // Another provider is another list view: start again from its first page, keeping nothing of the previous one.
+  const [listSource, setListSource] = useState(provider);
+  if (listSource !== provider) {
+    setListSource(provider);
+    setPlan({ cursor: null, index: 0 });
+    setChain(startListChain(limit, verificationId));
+    setRefusal(null);
+  }
 
   const key = String(plan.index);
   // The request (key) the newest read was issued for. Right after the plan changes, the previous
@@ -37,7 +45,7 @@ export function useHistoryList(provider: Pick<FlowAssertHistoryProvider, "listHi
       return provider.listHistory({ limit, verificationId, cursor: plan.cursor ?? undefined }, signal);
     },
     key,
-    { pinnedSnapshotId: plan.index === 0 ? null : chain.listSnapshotId },
+    { pinnedSnapshotId: plan.index === 0 ? null : chain.listSnapshotId, source: provider },
   );
   const forThisRequest = state.status === "settled" && issued.current === key;
   const handled = useRef<number | null>(null);

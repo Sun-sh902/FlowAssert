@@ -19,6 +19,11 @@ export interface ReadOptions {
   auto?: boolean;
   /** Snapshot the view is pinned to; responses from another snapshot are refused. */
   pinnedSnapshotId?: string | null;
+  /**
+   * The provider `load` reads from. Replacing it is a new read even under the same key: the previous provider's
+   * read is cancelled and its result is never shown as the new provider's. A stable provider never re-reads.
+   */
+  source?: object;
 }
 
 const isAbort = (e: unknown) => e instanceof DOMException && e.name === "AbortError";
@@ -27,8 +32,15 @@ const isAbort = (e: unknown) => e instanceof DOMException && e.name === "AbortEr
 const snapshotOf = <T>(r: ProviderResult<T>) => (r.kind === "ready" || r.kind === "partial" ? r.context.snapshotId : undefined);
 
 export function useProviderRead<T>(load: (signal: AbortSignal, seq: number) => Promise<ProviderResult<T>>, key: string, options: ReadOptions = {}) {
-  const { auto = true, pinnedSnapshotId = null } = options;
+  const { auto = true, pinnedSnapshotId = null, source } = options;
   const [state, setState] = useState<ReadState<T>>({ status: "idle" });
+  // A replaced provider: drop the previous provider's state before this render commits (the effect below then
+  // cancels its read and starts the new one).
+  const [stateSource, setStateSource] = useState(source);
+  if (stateSource !== source) {
+    setStateSource(source);
+    setState({ status: "idle" });
+  }
   const seq = useRef(0);
   const controller = useRef<AbortController | null>(null);
   /** Sequence number of the read in flight, or null once it has settled or been cancelled. */
@@ -116,7 +128,7 @@ export function useProviderRead<T>(load: (signal: AbortSignal, seq: number) => P
       inFlight.current = null;
       controller.current?.abort();
     };
-  }, [auto, key, read]);
+  }, [auto, key, read, source]);
 
   return { state, read, cancel };
 }
