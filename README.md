@@ -1,8 +1,12 @@
 # FlowAssert — product development workspace
 
-Local product development on the Owner-accepted Phase 3A UI and Python Service.
-**LOCAL / OFFLINE / SYNTHETIC RESEARCH ONLY.** No live n8n or HubSpot, no credentials, no capture pipeline,
-no Phase 3B-1 work. The pinned Python Evaluator is the only source of business verdicts.
+Local product development on the Owner-accepted Phase 3A UI and Python Service. This repository is the current
+development entry point.
+**LOCAL / OFFLINE / SYNTHETIC RESEARCH ONLY.** No live n8n or HubSpot, no credentials, and no capture of external data.
+The experimental local collector re-runs the pinned Evaluator on reviewed fixtures; it is not Phase 3B-1 work and has no
+G1 grant. The pinned Python Evaluator is the only source of business verdicts.
+
+Direction and decisions: [docs/product-dev/final-version/](docs/product-dev/final-version/).
 
 | Path | What |
 | --- | --- |
