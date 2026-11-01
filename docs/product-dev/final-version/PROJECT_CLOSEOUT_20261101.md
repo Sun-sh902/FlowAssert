@@ -12,7 +12,7 @@ Reaching a first version was estimated at 15 to 22 weeks, and no target-user or 
 - A read-only FastAPI service, an append-only SQLite archive, and exact-ID lookup.
 - A React UI for live results, archived results, evidence, and integrity states.
 - Local run receipts on an experimental branch, with no G1 grant.
-- Regression gates. The last portable run passed on 2026-11-01. The last full browser release run passed on `ab74927`.
+- Regression gates. A clean clone of `1bfc787`, with dependencies reinstalled from lock files, passed the full product profile on 2026-11-01, Chrome and WebKit. Historical custody cannot run outside the original machine. The last release profile that passed was on `ab74927`.
 
 All of the above handles five reviewed synthetic cases only.
 
