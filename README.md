@@ -65,8 +65,10 @@ webkit`); `bootstrap.sh --product-harness` and `bootstrap.sh --harness` launch b
 in the repository and identity-checked (`ui/src/test/fixtures/`, `service/contracts/`).
 
 Two checks need sources outside this repository:
-- **Protected-source custody** (`scripts/dev/protected_custody.sh`, gate `protected-custody`) compares the genuine
-  accepted roots under `FLOWASSERT_PROTECTED_PARENT` (default: this checkout's parent); BLOCKED where they are absent.
+- **Protected-source custody** compares the genuine roots under `FLOWASSERT_PROTECTED_PARENT` (default: this checkout's
+  parent); BLOCKED where they are absent. Gate `protected-custody` runs `scripts/dev/protected_custody_reconciled.sh`
+  against the Owner-approved 2026-10-31 baseline. `scripts/dev/protected_custody.sh` still compares the historical
+  baseline, which fails and is recorded as informational. A pass shows no change since that approval, not unbroken custody.
 - **The ID-lookup and frozen-route browser suites** (`e2e-lookup`, `e2e-local`) run on the same runtime as `e2e-history`:
   the identity-checked copy of this workspace's Service, built by `scripts/dev/bootstrap.sh --product-harness`. They no
   longer use the historical Service copies, which refuse `phase3b=true`.
