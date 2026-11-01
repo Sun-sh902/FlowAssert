@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""Compare a source CSV with a destination CSV export. Local files only; no network.
+
+    python3 offline/verify.py --source leads.csv --destination contacts.csv \\
+        --key external_id --field phone --field email:hs_email \\
+        --source-complete --destination-complete --json report.json
+
+Exit: 0 Verified, 1 Mismatch, 3 Unverified, 2 the input was refused, 4 internal failure.
+"""
+import argparse
+import csv
+from datetime import datetime, timezone
+import hashlib
+import io
+import json
+import os
+import sys
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from evaluator_v2 import evaluate  # noqa: E402
+
+EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
+CLAIM = "At this evaluation, the supplied destination rows satisfy the rules for the supplied source rows."
+LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
+          "whether the source is true, whether a record existed by a past deadline.")
+
+
+class Refused(Exception):
+    pass
+
+
+def pair(text):
+    source, _, destination = text.partition(":")
+    if not source:
+        raise Refused("empty column name in " + repr(text))
+    return source, destination or source
+
+
+def read_rows(path, columns):
+    """Read one CSV strictly. A malformed file is refused rather than partly read."""
+    try:
+        with open(path, "rb") as f:
+            raw = f.read()
+        text = raw.decode("utf-8-sig")
+    except OSError as e:
+        raise Refused(f"{path}: {e.strerror}")
+    except UnicodeDecodeError:
+        raise Refused(f"{path}: not UTF-8")
+    try:
+        reader = csv.DictReader(io.StringIO(text, newline=""), strict=True)
+        header = reader.fieldnames or []
+        if len(set(header)) != len(header):
+            raise Refused(f"{path}: repeated column name")
+        missing = [c for c in columns if c not in header]
+        if missing:
+            raise Refused(f"{path}: missing column {', '.join(missing)}")
+        rows = []
+        for row in reader:
+            if None in row or None in row.values():
+                raise Refused(f"{path}: line {reader.line_num} does not match the header")
+            rows.append(row)
+    except csv.Error as e:
+        raise Refused(f"{path}: {e}")
+    return rows, hashlib.sha256(raw).hexdigest()
+
+
+def run(args):
+    key = pair(args.key)
+    fields = [pair(f) for f in args.field]
+    if len({s for s, _ in fields}) != len(fields):
+        raise Refused("a source field is repeated")
+    if os.path.realpath(args.source) == os.path.realpath(args.destination):
+        raise Refused("source and destination are the same file, so the check would not be independent")
+    source_rows, source_sha = read_rows(args.source, [key[0]] + [s for s, _ in fields])
+    destination_rows, destination_sha = read_rows(args.destination, [key[1]] + [d for _, d in fields])
+    if source_sha == destination_sha:
+        raise Refused("source and destination have identical content, so the check would not be independent")
+    report = evaluate({"key": key, "fields": fields}, source_rows, destination_rows,
+                      source_complete=args.source_complete, destination_complete=args.destination_complete)
+    report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    report["inputs"] = {"source_sha256": source_sha, "destination_sha256": destination_sha,
+                        "source_complete_stated": args.source_complete,
+                        "destination_complete_stated": args.destination_complete}
+    report["obligation"] = {"type": "current_state", "key": list(key), "fields": [list(f) for f in fields],
+                            "comparison": "exact-string"}
+    report["claim"] = CLAIM if report["cohort_state"] == "Verified" else None
+    report["limitations"] = LIMITS
+    if args.redact_values:
+        for record in report["records"]:
+            record["key"] = "[redacted]"
+            for rule in record["rules"].values():
+                rule.pop("expected", None)
+                rule.pop("actual", None)
+    return report
+
+
+def summary(report):
+    c = report["counts"]
+    total = report["expected_total"]
+    yield f"{report['cohort_state']}: {report['source_rows_observed']} rows of {'unknown total' if total is None else total}"
+    yield f"Verified {c['Verified']} · Mismatch {c['Mismatch']} · Unverified {c['Unverified']}"
+    if not report["source_population_known"]:
+        yield "Source population unknown: the batch cannot be Verified."
+    if not report["destination_coverage_sufficient"]:
+        yield "Destination coverage not established: absence and uniqueness stay unknown."
+    for record in report["records"]:
+        if record["state"] == "Verified":
+            continue
+        yield f"  record {record['source_row'] + 1} {record['key'] or '(no key)'}: {record['state']}"
+        for name, rule in record["rules"].items():
+            if rule["status"] != "pass":
+                values = f" ({rule['expected']!r} vs {rule['actual']!r})" if "expected" in rule else ""
+                yield f"    {name} {rule['status']}: {rule['reason']}{values}"
+    yield report["limitations"]
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--source", required=True)
+    parser.add_argument("--destination", required=True)
+    parser.add_argument("--key", required=True, help="source column, or source:destination")
+    parser.add_argument("--field", action="append", default=[], help="source column, or source:destination; repeatable")
+    parser.add_argument("--source-complete", action="store_true", help="state that the source is the whole cohort")
+    parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
+    parser.add_argument("--json", help="write the full report to this new file")
+    parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
+    args = parser.parse_args(argv)
+    try:
+        if not args.field:
+            raise Refused("at least one --field is required")
+        report = run(args)
+        if args.json:
+            try:
+                with open(args.json, "x", encoding="utf-8") as f:
+                    json.dump(report, f, indent=2, sort_keys=True)
+            except OSError as e:
+                raise Refused(f"{args.json}: {e.strerror}")
+        print("\n".join(summary(report)))
+        sys.stdout.flush()
+    except Refused as e:
+        print(f"refused: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        # Python's default exit status 1 would read as a Mismatch.
+        if isinstance(e, BrokenPipeError):
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        print(f"failed: {type(e).__name__}", file=sys.stderr)
+        return 4
+    return EXIT[report["cohort_state"]]
+
+
+if __name__ == "__main__":
+    sys.exit(main())

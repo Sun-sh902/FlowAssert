@@ -14,12 +14,14 @@ Reaching a first version was estimated at 15 to 22 weeks, and no target-user or 
 - Local run receipts on an experimental branch, with no G1 grant.
 - Regression gates. The last portable run passed on 2026-11-01. The last full browser release run passed on `ab74927`.
 
-All of it handles five reviewed synthetic cases only.
+All of the above handles five reviewed synthetic cases only.
+
+The final addition is `offline/`: Evaluator v2 and a command that compares two local CSV files on selected fields under the current-state obligation. It uses stated premises, makes no network requests, has had no independent review, and is not connected to the Service or UI.
 
 ## What does not exist
 
 - Any connection to n8n, HubSpot, or Google Sheets, and any capture of external data.
-- Configurable rules, verification of arbitrary input, deployment, or login.
+- Configurable rules in the Service, deployment, or login.
 - User validation.
 - Owner Acceptance or independent review of the Phase 3B work.
 - M1 qualification or R3 acceptance. Both remain blocked or not accepted.
@@ -32,7 +34,7 @@ Listed in `FlowAssert-Active/BACKEND-ACCEPTANCE-20261031/RELEASE-READINESS.md`. 
 
 | Material | Location |
 |---|---|
-| Source and history | This repository; private GitHub archive once pushed |
+| Source and history | This repository |
 | Git bundle | `FlowAssert-Active/BACKUPS-20261101/` |
 | 37 restored originals | Local `Documents`, and Sol |
 | Active working copies and acceptance records | `FlowAssert-Active`, not on Sol or GitHub at this writing |
@@ -47,4 +49,6 @@ Secrets and local state are not in Git: `service/.runtime/`, `service/.state/`, 
 2. Start with [S1_VALIDATION_PLAN.md](S1_VALIDATION_PLAN.md): interviews first, no product code.
 3. Run `scripts/dev/bootstrap.sh`, then `scripts/dev/regression.sh --portable NEW-LABEL`.
 
-A public release, if ever wanted, should be a new repository without this history. This one has personal paths, author emails, and internal governance records, and it has no license.
+## Public release
+
+The Owner then asked for one last push and a public release of everything under Apache 2.0 ("最后再推进一次项目，再准备发布公开版(所有,Apache 2.0)"). This repository is the release scope, without changing its evidence files. Paths in them, including the original username, stay as recorded, because rewriting them would break their digests. The other FlowAssert folders are not part of it.
