@@ -116,8 +116,8 @@ The workspace pages are checked across a 200-cell responsive matrix, in both the
 This needs only Python 3.9 or later. It reads local files and makes no network requests.
 
 ```sh
-git clone <this repository>
-cd <this repository>
+git clone https://github.com/Sun-sh902/FlowAssert.git
+cd FlowAssert
 
 python3 offline/verify.py \
   --source offline/examples/source.csv \
