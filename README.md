@@ -10,9 +10,12 @@ FlowAssert compares what should exist with what a destination system holds, then
 
 License: [Apache 2.0](LICENSE)
 
+![FlowAssert Overview: five synthetic cases with live and archived results](docs/readme/overview-light.png)
+
 ## Contents
 
 - [The problem](#the-problem)
+- [Screenshots](#screenshots)
 - [What is and is not here](#what-is-and-is-not-here)
 - [Quick start: compare two CSV files](#quick-start-compare-two-csv-files)
 - [Quick start: run the Service and UI](#quick-start-run-the-service-and-ui)
@@ -37,6 +40,59 @@ A successful automation run does not prove a correct business outcome. A workflo
 Suppose a workflow should sync 100 leads. 97 match, 2 have wrong values, and 1 is missing after the allowed window. The honest report is 97 Verified and 3 Mismatch, not "100 succeeded". If the check cannot see enough of the destination, that record is Unverified, not missing.
 
 The intended users were independent automation developers and small studios. That profile was never validated: no user interviews took place, and no real account was tested.
+
+## Screenshots
+
+Every screen below shows reviewed synthetic data from a local run. Dates and times are synthetic or local to that run.
+
+### Overview
+
+The opening page states the result in words, then shows live results beside the newest archived results for each case. "Live against archive" compares two Service outputs. It is a diagnostic, not a verdict.
+
+| Light | Dark |
+| --- | --- |
+| ![Overview in light theme](docs/readme/overview-light.png) | ![Overview in dark theme](docs/readme/overview-dark.png) |
+
+### Verifications
+
+Each case on one page, with capture and admission kept apart from the live and archived verdicts. Both of those columns show *Not implemented* for the reviewed fixtures, on purpose.
+
+![Verifications list](docs/readme/verifications.png)
+
+### A Mismatch, from claim to evidence
+
+`SPEC-002` read from top to bottom: the verdict, how it was reached, the four status axes, matching archive entries, the record comparison, what the evidence supports, what stays unknown, the timeline, and the evidence references the browser re-hashes.
+
+<details>
+<summary>Open the full page</summary>
+
+![Full Verification Detail page for a Mismatch](docs/readme/detail-mismatch.png)
+
+</details>
+
+### Every row passes, and the batch is still Unverified
+
+`SPEC-005` is the case the product exists for. All 12 visible records match, but the source total is unknown, so FlowAssert does not call the batch Verified.
+
+![Verification Detail for SPEC-005: 12 records match, batch Unverified](docs/readme/detail-cohort-unverified.png)
+
+### History
+
+Archived evaluations, newest first, each with its own integrity statement. Archive time and evaluation time are kept separate.
+
+![History list](docs/readme/history.png)
+
+### Demo pages
+
+Rules, Connections and Settings are mock pages, and they say so. A rule draft stays in the browser and never runs.
+
+![Rules demo page](docs/readme/rules-demo.png)
+
+### Narrow screens
+
+The workspace pages are checked across a 200-cell responsive matrix, in both themes.
+
+<img src="docs/readme/overview-mobile.png" alt="Overview on a phone-width screen in dark theme" width="320">
 
 ## What is and is not here
 
@@ -523,6 +579,7 @@ ui/
   scripts/                   Harness and evidence tools
   docs/                      Design and integration notes
 scripts/dev/                 Bootstrap, seed, run, regression
+docs/readme/                 Screenshots used by this README
 docs/product-dev/            Reports, screenshots, raw test evidence
 ```
 
