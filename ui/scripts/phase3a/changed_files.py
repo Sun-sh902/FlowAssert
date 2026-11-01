@@ -10,7 +10,7 @@ with SHA-256 before and after) and accepted-files.diff (a unified diff of every 
 import difflib, hashlib, json, os
 
 UI = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ACCEPTED = "/Users/zhangshenghe/Documents/FlowAssert-UI"
+ACCEPTED = "/Users/apple_sun/Documents/FlowAssert-UI"
 OUT = os.path.join(UI, "docs/phase3a/evidence/source-integrity")
 SKIP_TOP = {"node_modules", ".git", ".phase2-runtime", ".phase3a-runtime", ".phase3a-tmp", "dist", "test-results", "test-results-local", "test-results-history"}
 SKIP_PREFIX = ("e2e/.output/",)

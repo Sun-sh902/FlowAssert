@@ -55,8 +55,8 @@ describe("History list", () => {
     expect(screen.queryByRole("button", { name: "Load older entries" })).toBeNull();
     // Each continuation sends the previous page's cursor; the limit is constant.
     expect(svc.log).toHaveLength(3);
-    expect(svc.log[0]).toBe("/api/v1/history?limit=4");
-    for (const u of svc.log.slice(1)) expect(u).toMatch(/^\/api\/v1\/history\?limit=4&cursor=/);
+    expect(svc.log[0]).toBe("/api/v1/history/verifications?limit=4");
+    for (const u of svc.log.slice(1)) expect(u).toMatch(/^\/api\/v1\/history\/verifications\?limit=4&cursor=/);
   });
 
   it("SPEC-005 rows say 'total unknown', never 0 or 12", async () => {
@@ -73,7 +73,7 @@ describe("History list", () => {
     await waitFor(() => expect(rows()).toHaveLength(2));
     expect(rows().every((r) => r.textContent!.includes("SPEC-005"))).toBe(true);
     expect(new Set(rows().map((r) => r.dataset.historyId)).size).toBe(2);
-    expect(svc.log[0]).toBe("/api/v1/history?limit=4&verification_id=SPEC-005");
+    expect(svc.log[0]).toBe("/api/v1/history/verifications?limit=4&verification_id=SPEC-005");
   });
 
   it("refuses an unknown case filter without sending anything", () => {
@@ -313,13 +313,13 @@ describe("async and snapshot safety across histories", () => {
     const real = fakeHistoryService();
     const stub = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const u = String(input);
-      if (u === `/api/v1/history/${A}`) await gate; // ignores abort on purpose
+      if (u === `/api/v1/history/verifications/${A}`) await gate; // ignores abort on purpose
       return real.fetch(input, init);
     });
     vi.stubGlobal("fetch", stub);
     try {
       renderApp(`#/local/history/${A}`);
-      await waitFor(() => expect(stub).toHaveBeenCalledWith(`/api/v1/history/${A}`, expect.anything()));
+      await waitFor(() => expect(stub).toHaveBeenCalledWith(`/api/v1/history/verifications/${A}`, expect.anything()));
       await act(async () => {
         window.location.hash = `#/local/history/${B}`;
       });

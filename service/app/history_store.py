@@ -8,10 +8,14 @@ from pathlib import Path
 import sqlite3
 from uuid import uuid4
 from jsonschema import Draft202012Validator, FormatChecker
+from pydantic import ValidationError
 from .identity import ROOT, MODEL_HASH, CONTRACT_HASH, EXAMPLES_HASH, canonical, digest, checked_bytes, load_evaluator, ServiceError
+from .admission_models import RunBoundExecutionContext, RunBoundEvidenceReceipt
+from .execution_collector import verify_receipt
 from .validation import validate_run, validate_item, time_projection
 from .history_contract import CONTRACT_VERSION, CONTRACT_SHA256
 from .history_security import HistoryError, fail, state_directory, private_file, signing_key, Cursors, history_id
+from .admission_serialization import public_admission
 
 SCHEMA_VERSION = 1
 MIGRATION = ROOT / 'migrations/001.sql'
@@ -51,7 +55,15 @@ def history_spec():
 def validate_response(name, data):
     spec = history_spec()
     s = {'$ref': '#/components/schemas/' + name, 'components': spec['components']}
-    if next(Draft202012Validator(s, format_checker=FormatChecker()).iter_errors(data), None):
+    # The reviewed Phase 3A schemas are frozen and disallow additional fields.
+    # Validate their complete projection before returning the additive 3B fields.
+    projection = json.loads(canonical(data))
+    summaries = ([projection] if name == 'HistoryDetail' else
+                 projection.get('items', []) if name == 'HistoryList' else [])
+    for summary in summaries:
+        for key in ('capture_status', 'admission_status', 'run_bound_metadata'):
+            summary.pop(key, None)
+    if next(Draft202012Validator(s, format_checker=FormatChecker()).iter_errors(projection), None):
         fail('archive_response_schema_invalid', 'INTEGRITY_FAILED')
     return data
 
@@ -66,6 +78,15 @@ def source_identity():
               'research_lock': json.loads((ROOT / 'research-lock.json').read_text()),
               'baseline': sha(baseline.read_bytes()), 'implementation': implementation}
     return source, digest(source)
+
+
+# Detect ordinary on-disk code changes after this module was loaded. This is a
+# development guard, not proof of the bytes executed or protection against an
+# actor able to replace inputs during import or restore them between checks.
+try:
+    _LOADED_SOURCE_IDENTITY = source_identity()
+except (OSError, ValueError, TypeError):
+    _LOADED_SOURCE_IDENTITY = None
 
 
 def make_candidate(bundle, case, snapshot_basis):
@@ -91,10 +112,62 @@ def semantic_run(run):
     return r
 
 
-def validate_candidate(candidate, replay=False):
+def evaluate_admission(candidate, current_execution_context=None, *, signing_secret=None):
+    """Verify run and artifact bindings; untrusted self-reports remain unadmitted.
+
+    A signing secret from the archive state is required to authenticate the
+    collector receipt. ArchiveStore also enforces one-time use at publication.
+    """
+    def result(capture, admission):
+        return {'capture_status': capture, 'admission_status': admission}
+
+    incomplete = result('CAPTURE_INCOMPLETE', 'REJECTED_INCOMPLETE_EXECUTION')
+    if not isinstance(candidate, dict): return incomplete
+    has_context = 'execution_context' in candidate
+    has_receipt = 'evidence_receipt' in candidate
+    if not has_context and not has_receipt:
+        if current_execution_context is not None: return incomplete
+        return result('CAPTURE_NOT_IMPLEMENTED', 'ADMISSION_NOT_IMPLEMENTED')
+    if not has_context or not has_receipt: return incomplete
     try:
-        if set(candidate) != {'bundle', 'snapshot_basis', 'provenance', 'original_contract_sha256', 'history_contract_sha256'}:
+        context = RunBoundExecutionContext.model_validate(candidate['execution_context'])
+        receipt = RunBoundEvidenceReceipt.model_validate(candidate['evidence_receipt'])
+        current = (RunBoundExecutionContext.model_validate(current_execution_context)
+                   if current_execution_context is not None else context)
+        run = candidate['bundle']['run']
+        run_id = run['identity']['id']
+        source_basis = run['result']['source_basis_sha256']
+        rule_basis = run['result']['rule_basis_sha256']
+    except (ValidationError, KeyError, TypeError):
+        return incomplete
+    if (receipt.run_id != current.run_id or
+            receipt.execution_cwd_sha256 != current.execution_cwd_sha256):
+        return result('CAPTURE_STALE_REJECTED', 'REJECTED_STALE_RECEIPT')
+    authenticated = signing_secret is not None and verify_receipt(signing_secret, candidate['execution_context'], candidate['evidence_receipt'])
+    if (context != current or (not authenticated and current.run_id != run_id) or
+            current.source_basis_sha256 != source_basis or
+            current.rule_basis_sha256 != rule_basis):
+        return result('CAPTURE_INCOMPLETE', 'REJECTED_BINDING_MISMATCH')
+    if current.subprocess_failures > 0:
+        return result('CAPTURE_SUBPROCESS_FAILED', 'REJECTED_INCOMPLETE_EXECUTION')
+    if (not current.verifier_work_completed or current.outer_exit_status != 0 or
+            current.completed_mono_ns < current.started_mono_ns):
+        return incomplete
+    if not authenticated: return incomplete
+    if (receipt.input_sha256 != digest(candidate['bundle']['input']) or
+            receipt.result_sha256 != digest(candidate['bundle']['raw'])):
+        return result('CAPTURE_INCOMPLETE', 'REJECTED_BINDING_MISMATCH')
+    return result('CAPTURED_COMPLETE', 'ADMITTED_RUN_BOUND')
+
+
+def validate_candidate(candidate, replay=False, current_execution_context=None, *, signing_secret=None):
+    try:
+        required = {'bundle', 'snapshot_basis', 'provenance', 'original_contract_sha256', 'history_contract_sha256'}
+        if not required <= set(candidate) or set(candidate) - required - {'execution_context', 'evidence_receipt'}:
             fail('archive_schema_invalid', 'INTEGRITY_FAILED')
+        admission = evaluate_admission(candidate, current_execution_context, signing_secret=signing_secret)
+        if admission['admission_status'] not in ('ADMISSION_NOT_IMPLEMENTED', 'ADMITTED_RUN_BOUND'):
+            raise HistoryError(409, admission['admission_status'].lower())
         if candidate['original_contract_sha256'] != CONTRACT_HASH or candidate['history_contract_sha256'] != CONTRACT_SHA256:
             raise HistoryError(409, 'unsupported_contract_identity')
         b, p = candidate['bundle'], candidate['provenance']
@@ -147,6 +220,7 @@ def validate_candidate(candidate, replay=False):
         schema = history_spec()
         validator = Draft202012Validator({'$ref': '#/components/schemas/HistoryProvenance', 'components': schema['components']})
         if next(validator.iter_errors(p), None): fail('archive_provenance_invalid', 'INTEGRITY_FAILED')
+        return admission
     except HistoryError: raise
     except ServiceError as e: fail('archive_' + e.code, 'INTEGRITY_FAILED')
     except (KeyError, TypeError, ValueError, IndexError, OSError): fail('archive_schema_invalid', 'INTEGRITY_FAILED')
@@ -172,18 +246,25 @@ class ArchiveStore:
         private_file(self.path, create=True)
         signing_key(directory, create=True)
         with self.connection(write=True, initializing=True) as c:
+            # Check and migrate while holding the same write lock: a second
+            # initializer must re-read the version after the first commits.
+            c.execute('BEGIN IMMEDIATE')
             version = c.execute('PRAGMA user_version').fetchone()[0]
             if version == 0:
                 if c.execute('SELECT count(*) FROM sqlite_master').fetchone()[0]: fail('unversioned_nonempty_database')
-                try:
-                    c.executescript('BEGIN IMMEDIATE;\n' + MIGRATION.read_text() + '\nPRAGMA user_version=1;\nCOMMIT;')
-                except BaseException:
-                    if c.in_transaction: c.rollback()
-                    raise
+                # executescript() commits an existing transaction before it
+                # runs. Execute complete SQL statements individually instead,
+                # preserving the lock and rollback on any migration failure.
+                statement = ''
+                for char in MIGRATION.read_text():
+                    statement += char
+                    if char == ';' and sqlite3.complete_statement(statement):
+                        c.execute(statement)
+                        statement = ''
+                if statement.strip(): fail('archive_migration_incomplete')
+                c.execute('PRAGMA user_version=1')
             self._check_schema(c)
-            c.execute('BEGIN IMMEDIATE')
             c.execute('INSERT OR IGNORE INTO archive_meta(singleton,database_id) VALUES(1,?)', (str(uuid4()),))
-            c.commit()
 
     def _check_schema(self, c):
         if c.execute('PRAGMA user_version').fetchone()[0] != SCHEMA_VERSION: fail('unsupported_schema_version')
@@ -197,7 +278,7 @@ class ArchiveStore:
             before, _ = private_file(self.path)
             for suffix in ('-journal', '-wal', '-shm'):
                 side = Path(str(self.path) + suffix)
-                if os.path.lexists(side): private_file(side)
+                if os.path.lexists(side): private_file(side, transient=True)
             c = sqlite3.connect(self.path.as_uri() + ('?mode=rw' if write else '?mode=ro'), uri=True, timeout=5, isolation_level=None)
             c.execute('PRAGMA foreign_keys=ON')
             if c.execute('PRAGMA foreign_keys').fetchone()[0] != 1: fail('foreign_keys_disabled')
@@ -230,10 +311,28 @@ class ArchiveStore:
 
     def _cursors(self): return Cursors(signing_key(state_directory(self.directory)))
 
-    def publish(self, candidate, c=None, fault=None):
+    def admission(self, candidate):
+        return evaluate_admission(candidate, signing_secret=signing_key(state_directory(self.directory)))
+
+    def publish(self, candidate, c=None, fault=None, *, current_execution_context=None):
         if c is None:
-            with self.connection(write=True) as own: return self.publish(candidate, own, fault)
-        validate_candidate(candidate, replay=True)
+            with self.connection(write=True) as own:
+                return self.publish(candidate, own, fault, current_execution_context=current_execution_context)
+        # A stored receipt and its stored context can both be replayed.  The
+        # publishing caller must bind Phase 3B evidence to its current run.
+        if ('execution_context' in candidate or 'evidence_receipt' in candidate) and current_execution_context is None:
+            raise HistoryError(409, 'current_execution_context_required')
+        secret = signing_key(state_directory(self.directory))
+        validate_candidate(candidate, replay=True, current_execution_context=current_execution_context, signing_secret=secret)
+        if 'execution_context' in candidate:
+            # The write transaction serializes this check with insertion. UUIDs
+            # are consumed permanently, including across process restarts.
+            execution_id = candidate['execution_context']['run_id']
+            rows = c.execute("SELECT candidate FROM archives WHERE state='PUBLISHED'")
+            for (stored_raw,) in rows:
+                stored = json.loads(stored_raw)
+                if stored.get('execution_context', {}).get('run_id') == execution_id:
+                    raise HistoryError(409, 'execution_receipt_replayed')
         raw = canonical(candidate); identity = sha(raw); hid = 'hist_' + identity
         existing = c.execute('SELECT history_id FROM archives WHERE history_id=?', (hid,)).fetchone()
         if existing:
@@ -275,7 +374,7 @@ class ArchiveStore:
             if not isinstance(raw, bytes) or sha(raw) != r['candidate_sha256']: fail('archive_digest_mismatch', 'INTEGRITY_FAILED')
             candidate = json.loads(raw)
             if canonical(candidate) != raw: fail('archive_noncanonical', 'INTEGRITY_FAILED')
-            try: validate_candidate(candidate)
+            try: validate_candidate(candidate, signing_secret=signing_key(state_directory(self.directory)))
             except HistoryError as e: fail(e.code, 'INTEGRITY_FAILED')
             ident = r['candidate_sha256']; b = candidate['bundle']; run = b['run']
             if hid != 'hist_' + ident or r['archive_id'] != 'archive_' + ident or r['snapshot_id'] != 'history-snapshot_' + ident:
@@ -309,7 +408,8 @@ class ArchiveStore:
             'original_contract_sha256': candidate['original_contract_sha256'],
             'input_evidence_sha256': run['evaluation_context']['input_evidence_sha256'], 'provenance': candidate['provenance'],
             'result_summary': {k: result[k] for k in ('cohort_state', 'counts', 'expected_total', 'source_population_known')},
-            'integrity': integrity('INTEGRITY_VERIFIED', row['candidate_sha256'])}
+            'integrity': integrity('INTEGRITY_VERIFIED', row['candidate_sha256']),
+            **public_admission(self.admission(candidate), candidate.get('execution_context'))}
 
     def detail(self, hid, snapshot=None):
         with self.connection() as c:
@@ -369,8 +469,28 @@ class ArchiveStore:
     def seed(self, reevaluate=False, fault=None):
         from .service import Catalog
         self.initialize()
-        _, identity = source_identity()
+        # Keep the source-set key and every candidate bound to the same
+        # snapshot of on-disk inputs. This does not attest already-loaded code.
+        try:
+            source, identity = source_identity()
+            source = json.loads(canonical(source))
+        except (OSError, ValueError, TypeError):
+            fail('source_identity_unavailable')
+        if digest(source) != identity: fail('source_identity_invalid', 'INTEGRITY_FAILED')
+        if (_LOADED_SOURCE_IDENTITY is None or identity != _LOADED_SOURCE_IDENTITY[1]
+                or not equal(source, _LOADED_SOURCE_IDENTITY[0])):
+            fail('source_restart_required', 'INTEGRITY_FAILED')
+
+        def require_unchanged_source():
+            try:
+                current, current_identity = source_identity()
+                unchanged = current_identity == identity and equal(current, source)
+            except (OSError, ValueError, TypeError):
+                unchanged = False
+            if not unchanged: fail('source_identity_changed', 'INTEGRITY_FAILED')
+
         with self.connection(write=True) as c:
+            require_unchanged_source()
             previous = c.execute('SELECT history_ids FROM seed_sets WHERE identity=?', (identity,)).fetchone()
             if previous and not reevaluate:
                 ids = json.loads(previous[0])
@@ -380,12 +500,25 @@ class ArchiveStore:
                     fail('seed_registry_binding', 'INTEGRITY_FAILED')
                 if any(x['provenance']['source_set_sha256'] != identity for x in runs):
                     fail('seed_registry_source_binding', 'INTEGRITY_FAILED')
+                require_unchanged_source()
                 return {'source_set_sha256': identity, 'history_ids': ids, 'reused': True, 'evaluations': 0}
             catalog = Catalog()
             cases = json.loads(checked_bytes(ROOT/'contracts/verification-examples.json', EXAMPLES_HASH))['examples']
             bundles = {case['proposed_response']['identity']['id']: catalog.read(case['proposed_response']['identity']['id']) for case in cases}
             basis = json.loads(canonical(bundles))
             for bundle in basis.values(): bundle['run']['snapshot_id'] = 'pending-publication'
-            ids = [self.publish(make_candidate(bundles[case['proposed_response']['identity']['id']], case, basis), c, fault) for case in cases]
+            ids = []
+            for case in cases:
+                require_unchanged_source()
+                try:
+                    candidate = make_candidate(bundles[case['proposed_response']['identity']['id']], case, basis)
+                except (OSError, ValueError, TypeError):
+                    fail('source_identity_changed', 'INTEGRITY_FAILED')
+                if (candidate['provenance']['source_set_sha256'] != identity or
+                        candidate['provenance']['implementation_sha256'] != source['implementation']):
+                    fail('source_identity_changed', 'INTEGRITY_FAILED')
+                ids.append(self.publish(candidate, c, fault))
+            require_unchanged_source()
             if not previous: c.execute('INSERT INTO seed_sets(identity,history_ids) VALUES(?,?)', (identity, canonical(ids)))
+            require_unchanged_source()
             return {'source_set_sha256': identity, 'history_ids': ids, 'reused': False, 'evaluations': len(catalog.adapter.calls), 'publication_replays': 5}

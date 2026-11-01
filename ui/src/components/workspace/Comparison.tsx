@@ -10,6 +10,7 @@ import { formatDateTime, plural, shortDigest } from "../../lib/format";
 import { href } from "../../lib/router";
 import { shortHistoryId } from "../history/HistoryRows";
 import { CountGlyphs, Seal } from "../ui/status";
+import { ReportedAdmission } from "./AxisMarks";
 import { NoVerdictMark } from "./StatusAxes";
 
 export const COMPARISON_COPY: Record<ComparisonState, { label: string; glyph: string; meaning: string }> = {
@@ -93,6 +94,7 @@ export function ArchivedVerdict({ entry, state, compact = false }: { entry: Hist
             </a>
           </span>
         )}
+        <ReportedAdmission facts={entry.phase3b} />
       </span>
     );
   return (

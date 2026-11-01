@@ -47,6 +47,12 @@ export interface HistorySummaryView {
   result: { cohort: VerificationState; counts: StateCounts; expectedTotal: number | null; populationKnown: boolean };
   /** The archive record's integrity statement (scope archive_candidate_and_relationships). */
   integrity: ServiceIntegrityView;
+  /**
+   * Capture and admission of this archived evaluation, as the Service reported them; only
+   * src/adapters/phase3bToView.ts sets this, after admission. Null or absent means no statement was read.
+   */
+  phase3b?: import("./statusAxes").Phase3BView | null;
+  workflow_label?: string | null;
 }
 
 export interface HistoryDetailView extends HistorySummaryView {

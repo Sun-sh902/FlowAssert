@@ -23,7 +23,7 @@ export function lookupService(aliases: Record<string, string>) {
     const path = qi === -1 ? raw : raw.slice(0, qi);
     const evidence = path === LOOKUP_PATHS.evidence;
     if (path !== LOOKUP_PATHS.detail && !evidence) return new Response("not found", { status: 404 });
-    const d = decodeStrictQuery(raw.slice(qi + 1), evidence ? ["verification_id", "snapshot_id", "limit", "include_payload", "cursor"] : ["verification_id", "snapshot_id"], true);
+    const d = decodeStrictQuery(raw.slice(qi + 1), evidence ? ["verification_id", "snapshot_id", "limit", "include_payload", "cursor"] : ["verification_id", "snapshot_id", "phase3b"], true);
     if (!d.ok) return json({ error: { code: "invalid_query", message: "x", request_id: "r", retryable: false, details: [] } }, 400);
     const id = d.params.get("verification_id")!;
     const basis = aliases[id];

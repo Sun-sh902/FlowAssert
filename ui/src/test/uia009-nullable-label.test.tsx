@@ -3,12 +3,18 @@
  * Search, display and filtering must be null-safe, keep the original null, and never search the
  * presentation fallback ("Workflow label unavailable") as if it were data.
  */
-import { screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { createLocalHistoryProvider } from "../data/history/provider";
+import { createLocalResearchProvider } from "../data/local/provider";
 import type { RunView } from "../domain/view";
 import { workflowLabelText } from "../lib/format";
 import { matchesSearch, normalizeQuery } from "../lib/search";
+import { DetailBody } from "../pages/VerificationDetail";
 import { searchRuns } from "../pages/Verifications";
+import { WorkspaceOverview, WorkspaceVerifications } from "../pages/Workspace";
+import { fakeHistoryService } from "./local/fakeHistoryService";
+import { captured, fakeService, json } from "./local/fakeService";
 import { renderApp } from "./render";
 
 vi.mock("../data/store", async (importActual) => {
@@ -140,5 +146,82 @@ describe("UIA-009 · pages", () => {
     expect(unavailable.className).toContain("italic");
     expect(screen.getByText("Workflow label empty").className).toContain("italic");
     expect(screen.getByText("Quarterly import · ledger").className).not.toContain("italic");
+  });
+
+  it("renders a clean fallback badge/placeholder on VerificationDetail (DetailBody) for null and empty workflow_label without runtime error", () => {
+    const loc = { route: { name: "demo-verification", id: "VR-N001" } as const, params: new URLSearchParams(), path: "/demo/verifications/VR-N001" };
+    const { unmount } = render(<DetailBody run={nullRun} location={loc} basePath="/demo/verifications/VR-N001" />);
+    const fallbackNull = document.querySelector('[data-workflow-label="fallback"]')!;
+    expect(fallbackNull).not.toBeNull();
+    expect(fallbackNull.textContent).toBe("Workflow label unavailable");
+    expect(fallbackNull.className).toContain("italic");
+    expect(fallbackNull.className).toContain("truncate");
+    unmount();
+
+    render(<DetailBody run={emptyRun} location={loc} basePath="/demo/verifications/VR-N002" />);
+    const fallbackEmpty = document.querySelector('[data-workflow-label="fallback"]')!;
+    expect(fallbackEmpty).not.toBeNull();
+    expect(fallbackEmpty.textContent).toBe("Workflow label empty");
+    expect(fallbackEmpty.className).toContain("italic");
+  });
+
+  it("renders a clean fallback badge/placeholder on WorkspaceOverview and WorkspaceVerifications when workflow.n8n_label is null or empty", async () => {
+    const history = fakeHistoryService();
+    const v1 = fakeService();
+    v1.intercept(
+      (u) => u.pathname === "/api/v1/verifications/SPEC-001",
+      () => {
+        const d = captured("SPEC-001-detail");
+        d.workflow.n8n_label = null;
+        return json(d);
+      },
+    );
+    v1.intercept(
+      (u) => u.pathname === "/api/v1/verifications/SPEC-002",
+      () => {
+        const d = captured("SPEC-002-detail");
+        d.workflow.n8n_label = "";
+        return json(d);
+      },
+    );
+    const fetchImpl = ((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith("/api/v1/history") ? history.fetch(input, init) : v1.fetch(input, init)) as typeof fetch;
+
+    const { unmount } = render(
+      <WorkspaceOverview
+        history={createLocalHistoryProvider({ fetch: fetchImpl })}
+        live={createLocalResearchProvider({ fetch: fetchImpl })}
+      />,
+    );
+    await waitFor(() => expect(document.querySelector('[data-case="SPEC-001"] [data-workflow-label="fallback"]')).not.toBeNull());
+    expect(document.querySelector('[data-case="SPEC-001"] [data-workflow-label="fallback"]')!.textContent).toBe("Workflow label unavailable");
+    expect(document.querySelector('[data-case="SPEC-002"] [data-workflow-label="fallback"]')!.textContent).toBe("Workflow label empty");
+    unmount();
+
+    v1.intercept(
+      (u) => u.pathname === "/api/v1/verifications/SPEC-001",
+      () => {
+        const d = captured("SPEC-001-detail");
+        d.workflow.n8n_label = null;
+        return json(d);
+      },
+    );
+    v1.intercept(
+      (u) => u.pathname === "/api/v1/verifications/SPEC-002",
+      () => {
+        const d = captured("SPEC-002-detail");
+        d.workflow.n8n_label = "";
+        return json(d);
+      },
+    );
+    render(
+      <WorkspaceVerifications
+        history={createLocalHistoryProvider({ fetch: fetchImpl })}
+        live={createLocalResearchProvider({ fetch: fetchImpl })}
+      />,
+    );
+    await waitFor(() => expect(document.querySelector('tr[data-case="SPEC-001"] [data-workflow-label="fallback"]')).not.toBeNull());
+    expect(document.querySelector('tr[data-case="SPEC-001"] [data-workflow-label="fallback"]')!.textContent).toBe("Workflow label unavailable");
+    expect(document.querySelector('tr[data-case="SPEC-002"] [data-workflow-label="fallback"]')!.textContent).toBe("Workflow label empty");
   });
 });

@@ -2,8 +2,9 @@
  * Real-service E2E support: process custody for the isolated local Service, direct (non-browser)
  * reads for comparison, network capture, and evidence files.
  *
- * The Service is the exact-source isolated copy in .phase2-runtime/ (scripts/phase2/prepare_runtime.py),
- * launched only through scripts/phase2/local-service.sh, which fixes 127.0.0.1:8765. Each process is
+ * The Service is this workspace's current Service, frozen v1 routes (run.py), from the identity-checked copy in
+ * .phase3a-runtime/ (scripts/dev/prepare_harness_runtime.py), launched only through
+ * scripts/phase2/local-service.sh, which fixes 127.0.0.1:8765. Each process is
  * owned by this suite, recorded with its PID, and stopped with SIGTERM to that PID only.
  */
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
@@ -15,10 +16,9 @@ import { captureLifecycle } from "../e2e/capture-lifecycle.ts";
 
 export const UI = process.cwd();
 export const SERVICE_ORIGIN = "http://127.0.0.1:8765";
-export const KEY_FILE = join(UI, ".phase2-runtime/state/keys/cursor-hmac.key");
+export const KEY_FILE = join(UI, ".phase3a-runtime/local-state/keys/cursor-hmac.key");
 // Phase 3A: FA_E2E_EVIDENCE_DIR redirects evidence so a regression re-run never overwrites the accepted Phase 2 records.
 export const EVIDENCE_DIR = process.env.FA_E2E_EVIDENCE_DIR ?? join(UI, "docs/phase2/evidence/e2e");
-const HANDOFF = "/Users/zhangshenghe/Documents/FlowAssert-Phase2-Support";
 
 /**
  * Expected outcomes fixed independently of the UI under test, transcribed from
@@ -43,7 +43,7 @@ export const CASES = Object.keys(EXPECTED) as CaseId[];
 
 /** The evaluator's own result for a case, from the handoff's direct-execution trace (read-only). */
 export function evaluatorComputed(id: CaseId): unknown {
-  return JSON.parse(readFileSync(join(HANDOFF, `evidence/evaluator/${id}.json`), "utf8")).computed_result;
+  return JSON.parse(readFileSync(join(UI, `docs/phase3a/evidence/evaluator/${id}.json`), "utf8")).computed_result;
 }
 
 export const sha256 = (b: Buffer | string) => createHash("sha256").update(b).digest("hex");

@@ -44,7 +44,7 @@ describe("LOCAL_RESEARCH Detail — ready", () => {
     // Record order is capture order; identities are runId:source_row.
     const cells = [...document.querySelectorAll<HTMLElement>("[data-row-id]")].map((b) => b.dataset.rowId);
     expect(cells).toEqual(Array.from({ length: 12 }, (_, i) => `SPEC-005:${i}`));
-    expect(svc.log[0]).toBe("/api/v1/verifications/SPEC-005");
+    expect(svc.log[0]).toBe("/api/v1/verifications/SPEC-005?phase3b=true");
   });
 
   it("SPEC-004: no time, no axis position and no age for the missing observation", async () => {
@@ -141,7 +141,7 @@ describe("LOCAL_RESEARCH Detail — snapshots and failures", () => {
     const before = svc.log.length;
     await user.click(screen.getAllByRole("button", { name: /Re-read the whole case/ })[0]!);
     await waitFor(() => expect(screen.getByText(/2 of 4 references/)).toBeTruthy());
-    expect(svc.log[before]).toBe("/api/v1/verifications/SPEC-001"); // a fresh, unpinned Detail read
+    expect(svc.log[before]).toBe("/api/v1/verifications/SPEC-001?phase3b=true"); // a fresh, unpinned Detail read
     expect(svc.log.at(-1)).toContain(`snapshot_id=${svc.snapshot()}`);
     expect(screen.queryByText("This case was read from a snapshot the service no longer serves")).toBeNull();
   });
@@ -285,7 +285,7 @@ describe("P3A-AUD-001 — contract-valid IDs through the routed Detail page", ()
     const f = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const raw = String(input);
       sent.push(raw);
-      if (raw === "/api/v1/verifications/SPEC%3A001") {
+      if (raw === "/api/v1/verifications/SPEC%3A001?phase3b=true") {
         const body = captured("SPEC-001-detail");
         body.identity.id = "SPEC:001";
         body.snapshot_id = svc.snapshot();
@@ -301,7 +301,7 @@ describe("P3A-AUD-001 — contract-valid IDs through the routed Detail page", ()
     vi.stubGlobal("fetch", f);
     const { user } = renderApp("#/local/verifications/SPEC%3A001");
     await waitFor(() => expect(seal()?.getAttribute("data-s")).toBe("Verified"));
-    expect(sent[0]).toBe("/api/v1/verifications/SPEC%3A001");
+    expect(sent[0]).toBe("/api/v1/verifications/SPEC%3A001?phase3b=true");
     const row = document.querySelector<HTMLButtonElement>("[data-row-id]")!;
     expect(row.dataset.rowId).toBe("SPEC:001:0");
     await user.click(row);
@@ -316,7 +316,7 @@ describe("P3A-AUD-001 — contract-valid IDs through the routed Detail page", ()
     vi.stubGlobal("fetch", f);
     renderApp(`#/local/verifications/${encodeURIComponent("中文")}`);
     await waitFor(() => expect(document.querySelector('[data-access="NOT_FOUND"]')).not.toBeNull());
-    expect(sent[0]).toBe("/api/v1/verifications/%E4%B8%AD%E6%96%87");
+    expect(sent[0]).toBe("/api/v1/verifications/%E4%B8%AD%E6%96%87?phase3b=true");
   });
 
   for (const [hash, text] of [

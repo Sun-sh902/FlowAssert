@@ -75,11 +75,11 @@ for (const id of CASES) {
 
     // 1–3. Genuine HTTP: the browser's Detail response came through the proxy from uvicorn, and is
     //      byte-identical to a direct read of the Service (bypassing browser and proxy).
-    const detail = net.api().find((x) => x.pathAndQuery === `/api/v1/verifications/${id}` && x.status === 200)!;
+    const detail = net.api().find((x) => x.pathAndQuery === `/api/v1/verifications/${id}?phase3b=true` && x.status === 200)!;
     expect(detail, "browser Detail response").toBeTruthy();
     expect(detail.server).toBe("uvicorn");
     expect(detail.contentType).toContain("application/json");
-    const viaService = await direct(`/api/v1/verifications/${id}`);
+    const viaService = await direct(`/api/v1/verifications/${id}?phase3b=true`);
     expect(viaService.status).toBe(200);
     expect(viaService.text).toBe(detail.body);
     const dto = JSON.parse(detail.body!);
@@ -206,7 +206,7 @@ test("11 · real Service restart between pages: old cursor → 409, nothing merg
   await waitForCase(page, "Verified");
   await expect(evidenceStatus(page)).toContainText("2 of 4 references", { timeout: 15_000 });
   await net.settle();
-  const before = JSON.parse(net.api().find((x) => x.pathAndQuery === "/api/v1/verifications/SPEC-001")!.body!).snapshot_id;
+  const before = JSON.parse(net.api().find((x) => x.pathAndQuery === "/api/v1/verifications/SPEC-001?phase3b=true")!.body!).snapshot_id;
 
   await stopService(service, `${browserName}:restart`);
   service = await startService(`${browserName}:restart`);
@@ -227,7 +227,7 @@ test("11 · real Service restart between pages: old cursor → 409, nothing merg
   await expect(evidenceStatus(page)).toContainText("2 of 4 references", { timeout: 15_000 });
   await net.settle();
   const reread = net.all.slice(n).filter((x) => x.status === 200);
-  expect(reread[0]!.pathAndQuery).toBe("/api/v1/verifications/SPEC-001"); // fresh, unpinned Detail first
+  expect(reread[0]!.pathAndQuery).toBe("/api/v1/verifications/SPEC-001?phase3b=true"); // fresh, unpinned Detail first
   expect(JSON.parse(reread[0]!.body!).snapshot_id).toBe(after);
   expect(new URL(reread[1]!.url).searchParams.get("snapshot_id")).toBe(after);
   await expect(page.getByRole("region", { name: "Data provenance" }).locator(`[title="${after}"]`)).toHaveCount(1);
@@ -247,7 +247,7 @@ test("12 · Service stopped: SERVICE_UNAVAILABLE, no seal, no demo data — then
     await expect(page.locator("[data-row-id]")).toHaveCount(0);
     await expect(page.getByText(/VR-20\d\d/)).toHaveCount(0);
     await net.settle();
-    const outage = net.all.find((x) => x.pathAndQuery === "/api/v1/verifications/SPEC-002")!;
+    const outage = net.all.find((x) => x.pathAndQuery === "/api/v1/verifications/SPEC-002?phase3b=true")!;
     expect(outage.server).not.toBe("uvicorn"); // the proxy answered, not the Service
   } finally {
     service = await startService(`${browserName}:outage-recovered`);
@@ -302,7 +302,7 @@ test("13 · malformed responses fail closed (a corrupted copy of a real Service 
     ["unknown-verdict", (d: any) => (d.result.records[0].state = "Passed")],
     ["foreign-evaluator", (d: any) => (d.evaluation_context.evaluator.model_sha256 = "0".repeat(64))],
   ] as const) {
-    await page.route("**/api/v1/verifications/SPEC-005", async (route) => {
+    await page.route("**/api/v1/verifications/SPEC-005?phase3b=true", async (route) => {
       const real = await route.fetch(); // the real Service answers; only the copy handed to the page is altered
       const body = JSON.parse(await real.text());
       corrupt(body);
@@ -313,7 +313,7 @@ test("13 · malformed responses fail closed (a corrupted copy of a real Service 
     await expect(notice).toBeVisible({ timeout: 15_000 });
     await expect(seal(page)).toHaveCount(0);
     outcomes[name] = await notice.locator("dd").nth(2).textContent();
-    await page.unroute("**/api/v1/verifications/SPEC-005");
+    await page.unroute("**/api/v1/verifications/SPEC-005?phase3b=true");
   }
   expect(outcomes).toEqual({
     "missing-required-key": "schema_invalid",
@@ -321,10 +321,10 @@ test("13 · malformed responses fail closed (a corrupted copy of a real Service 
     "unknown-verdict": "schema_invalid",
     "foreign-evaluator": "evaluator_identity_conflict",
   });
-  await page.route("**/api/v1/verifications/SPEC-005", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{not json" }));
+  await page.route("**/api/v1/verifications/SPEC-005?phase3b=true", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{not json" }));
   await openLocal(page, "#/local/verifications/SPEC-005");
   await expect(page.locator('[data-access="REQUEST_ERROR"]')).toContainText("malformed_response", { timeout: 15_000 });
-  await page.unroute("**/api/v1/verifications/SPEC-005");
+  await page.unroute("**/api/v1/verifications/SPEC-005?phase3b=true");
   writeEvidence(`${browserName}/malformed`, outcomes);
 });
 
@@ -337,7 +337,7 @@ test("cancellation and late responses: nothing published after cancel or navigat
     await new Promise((r) => setTimeout(r, 1500));
     await route.fulfill({ response: real, body: JSON.stringify(body) }).catch(() => {});
   };
-  await page.route("**/api/v1/verifications/SPEC-003", hold);
+  await page.route("**/api/v1/verifications/SPEC-003?phase3b=true", hold);
   await openLocal(page, "#/local/verifications/SPEC-003");
   await page.getByRole("button", { name: "Cancel read" }).click();
   await expect(page.getByText(/Read cancelled/)).toBeVisible();
@@ -351,11 +351,11 @@ test("cancellation and late responses: nothing published after cancel or navigat
   await page.waitForTimeout(2000);
   await expect(seal(page)).toHaveAttribute("data-s", "Mismatch");
   await expect(page.getByText("LATE RESPONSE")).toHaveCount(0);
-  await page.unroute("**/api/v1/verifications/SPEC-003");
+  await page.unroute("**/api/v1/verifications/SPEC-003?phase3b=true");
 });
 
 test("14 · UIA-009: a real response with n8n_label null renders, keeps search working, and searches no fallback", async ({ page }) => {
-  await page.route("**/api/v1/verifications/SPEC-005", async (route) => {
+  await page.route("**/api/v1/verifications/SPEC-005?phase3b=true", async (route) => {
     const real = await route.fetch();
     const body = JSON.parse(await real.text());
     body.workflow.n8n_label = null;
@@ -369,7 +369,7 @@ test("14 · UIA-009: a real response with n8n_label null renders, keeps search w
   await expect(page.getByText("No records match")).toBeVisible();
   await search.fill("SYN-007");
   await expect(page.locator("[data-row-id]")).toHaveCount(1);
-  await page.unroute("**/api/v1/verifications/SPEC-005");
+  await page.unroute("**/api/v1/verifications/SPEC-005?phase3b=true");
   // The MOCK list search is null-safe as well.
   await openLocal(page, "#/demo/verifications?q=label%20unavailable");
   await expect(page.getByText("No runs match")).toBeVisible();
@@ -398,7 +398,7 @@ test("mode separation: demo pages stay MOCK and never call the Service; local pa
   await expect(page.locator('[data-case-table] [data-comparison="SAME_INPUT_AGREE"]')).toHaveCount(0);
   await expect(page.locator("[data-case-table] .fa-seal")).toHaveCount(5); // live only — no archived verdict without an archive read
   await net.settle();
-  expect(net.all.map((x) => x.pathAndQuery.split("?")[0]).sort()).toEqual(["/api/v1/history", ...["SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-005"].map((id) => `/api/v1/verifications/${id}`)]);
+  expect(net.all.map((x) => x.pathAndQuery.split("?")[0]).sort()).toEqual(["/api/v1/history/verifications", ...["SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-005"].map((id) => `/api/v1/verifications/${id}`)]);
   expectOnlyAppOrigin(net.hosts);
 });
 

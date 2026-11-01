@@ -19,7 +19,7 @@ import hashlib, json, os, shutil, stat, sys
 
 UI = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUNTIME = os.path.join(UI, ".phase3a-runtime")
-SERVICE = "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service"
+SERVICE = "/Users/apple_sun/Documents/FlowAssert-Active/FlowAssert-Phase3A-Service"
 DST = os.path.join(RUNTIME, "FlowAssert-Phase3A-Service")
 OUT = os.path.join(UI, "docs/phase3a/evidence/runtime/runtime-manifest.json")
 EXPECTED = {
@@ -30,6 +30,10 @@ EXPECTED = {
     "vendor/model.py": "b61779e198dd0213b67f8319b77a2daf9feb502dc553784df6d6600e8e3a842d",
 }
 SKIP_DIRS = {".runtime", "__pycache__", ".pytest_cache"}
+
+
+def finder_metadata(name):
+    return name in {".DS_Store", ".AppleDouble"} or name.startswith("._")
 
 
 def sha(path):
@@ -43,8 +47,9 @@ def sha(path):
 def tree(root, skip=()):
     out = {}
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        dirnames[:] = sorted(d for d in dirnames if not (dirpath == root and d in skip) and d != "__pycache__")
-        for name in sorted(dirnames + filenames):
+        dirnames[:] = sorted(d for d in dirnames if not (dirpath == root and d in skip)
+                             and d not in SKIP_DIRS and not finder_metadata(d))
+        for name in sorted(dirnames + [n for n in filenames if n not in SKIP_DIRS and not finder_metadata(n)]):
             full = os.path.join(dirpath, name)
             rel = os.path.relpath(full, root)
             st = os.lstat(full)
@@ -56,7 +61,7 @@ def tree(root, skip=()):
 
 
 def ignore(dirpath, names):
-    return [n for n in names if n in SKIP_DIRS or n == ".DS_Store" and False]
+    return [n for n in names if n in SKIP_DIRS or finder_metadata(n)]
 
 
 def main():
@@ -71,7 +76,7 @@ def main():
     if not (recomputed == manifest["source_snapshot_sha256"] == EXPECTED["source_snapshot_sha256"] == identities["source_snapshot_sha256"]):
         report["problems"].append("source snapshot identity mismatch")
     os.makedirs(RUNTIME, mode=0o700)
-    shutil.copytree(SERVICE, DST, symlinks=True, ignore=lambda d, names: [n for n in names if n in SKIP_DIRS])
+    shutil.copytree(SERVICE, DST, symlinks=True, ignore=ignore)
     for rel, want in sorted(manifest["files"].items()):
         cur, cop = sha(os.path.join(SERVICE, rel)), sha(os.path.join(DST, rel))
         ok = want == cur == cop

@@ -10,7 +10,7 @@
    "src/test/contract-drift-runtime.test.ts": 3,
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
-   "src/test/evidence-mode-switch-race.test.tsx": 90,
+   "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/fix03.test.tsx": 21,
    "src/test/fixture-identity.test.ts": 5,
    "src/test/fixtures.test.ts": 8,
@@ -31,15 +31,17 @@
    "src/test/phase3a-history-provider.test.ts": 103,
    "src/test/phase3a-ids.test.ts": 240,
    "src/test/phase3a-integrity.test.ts": 14,
+   "src/test/phase3b-contract-drift.test.ts": 7,
+   "src/test/phase3b-wiring.test.tsx": 122,
    "src/test/provider.test.ts": 15,
    "src/test/remediation.test.tsx": 26,
    "src/test/residual-closeout.test.tsx": 20,
    "src/test/rules.test.tsx": 10,
    "src/test/settings.test.tsx": 7,
    "src/test/shell.test.tsx": 7,
-   "src/test/uia009-nullable-label.test.tsx": 14,
+   "src/test/uia009-nullable-label.test.tsx": 16,
    "src/test/verifications.test.tsx": 7,
-   "src/test/workspace.test.tsx": 21
+   "src/test/workspace.test.tsx": 38
   },
   "optional": [
    {
@@ -53,7 +55,7 @@
  },
  "pytest": {
   "portable": {
-   "tests": 247,
+   "tests": 297,
    "deselected": [
     "tests/test_service.py::test_protected_repository_integrity"
    ]
@@ -691,6 +693,30 @@
     "reason": "one browser is enough for the delivered screenshots"
    },
    "webkit › workspace.spec.ts › archive: dev-single (exactly one archived evaluation per case) › Detail links to the one exactly matching archived evaluation": {
+    "passed": 1
+   },
+   "chrome › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › the Service itself reports the outcome; the frozen reads stay stripped; live fixtures stay not implemented": {
+    "passed": 1
+   },
+   "chrome › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › History: the admitted entry carries the outcome, its sibling nothing; the app asked the Phase 3B route": {
+    "passed": 1
+   },
+   "chrome › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › History entry: the four axes, the exact reported run, no verdict or coral styling, and no accessibility violation": {
+    "passed": 1
+   },
+   "chrome › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › Verifications and Overview: an archived outcome stays with its archived verdict; the live axes stay the live evaluation's": {
+    "passed": 1
+   },
+   "webkit › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › the Service itself reports the outcome; the frozen reads stay stripped; live fixtures stay not implemented": {
+    "passed": 1
+   },
+   "webkit › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › History: the admitted entry carries the outcome, its sibling nothing; the app asked the Phase 3B route": {
+    "passed": 1
+   },
+   "webkit › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › History entry: the four axes, the exact reported run, no verdict or coral styling, and no accessibility violation": {
+    "passed": 1
+   },
+   "webkit › workspace.spec.ts › archive: dev-run-bound (one evaluation admitted from a real collector run) › Verifications and Overview: an archived outcome stays with its archived verdict; the live axes stay the live evaluation's": {
     "passed": 1
    }
   },

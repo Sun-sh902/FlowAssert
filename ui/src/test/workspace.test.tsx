@@ -5,12 +5,22 @@
  */
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CaptureValue } from "../components/workspace/AxisMarks";
 import { CaseStatusAxes, StatusAxesLedger } from "../components/workspace/StatusAxes";
 import { createLocalHistoryProvider } from "../data/history/provider";
 import { createLocalResearchProvider } from "../data/local/provider";
 import { indexArchive } from "../data/workspace/archiveIndex";
 import type { HistorySummaryView } from "../domain/history";
-import { ADMISSION_NOT_IMPLEMENTED, CAPTURE_NOT_IMPLEMENTED, noVerdict } from "../domain/statusAxes";
+import {
+  ADMISSION_NOT_IMPLEMENTED,
+  CAPTURE_NOT_IMPLEMENTED,
+  deriveAdmissionAxis,
+  deriveCaptureAxis,
+  deriveWorkspaceStatusAxes,
+  noVerdict,
+  type AdmissionStatusCode,
+  type CaptureStatusCode,
+} from "../domain/statusAxes";
 import { CaptureRuns, WorkspaceOverview, WorkspaceVerifications } from "../pages/Workspace";
 import { FIRST_BATCH, fakeHistoryService, historyEnvelope } from "./local/fakeHistoryService";
 import { fakeService } from "./local/fakeService";
@@ -99,6 +109,29 @@ describe("indexArchive", () => {
 /* ---------- Status axes ledger ---------- */
 
 describe("StatusAxesLedger", () => {
+  it.each([
+    { axis: "capture", kind: "CAPTURED_COMPLETE", label: "Captured successfully", basis: "forged capture" } as const,
+    { axis: "admission", kind: "ADMITTED_RUN_BOUND", label: "Admitted successfully", basis: "forged admission" } as const,
+    { axis: "capture", kind: "NOT_IMPLEMENTED", label: "Captured successfully", basis: "forged fallback" } as const,
+  ])("does not render a directly supplied $axis outcome or label", (axis) => {
+    const { container } = render(<CaptureValue axis={axis} />);
+    expect(container.textContent).toBe("Not implemented");
+    expect(container.querySelector("[data-axis-badge]")).toBeNull();
+    expect(container.textContent).not.toContain(axis.label);
+  });
+
+  it("does not render supplied capture or admission labels or explanations", () => {
+    const { container } = render(<StatusAxesLedger axes={{
+      capture: { axis: "capture", kind: "CAPTURED_COMPLETE", label: "Captured successfully", basis: "forged capture" },
+      admission: { axis: "admission", kind: "ADMITTED_RUN_BOUND", label: "Admitted successfully", basis: "forged admission" },
+      archive: { axis: "archive", kind: "NOT_ARCHIVED" },
+      verdict: noVerdict("no receipt"),
+    }} />);
+    expect(container.querySelectorAll("[data-axis-na]")).toHaveLength(2);
+    expect(container.textContent).toContain(CAPTURE_NOT_IMPLEMENTED.basis);
+    expect(container.textContent).toContain(ADMISSION_NOT_IMPLEMENTED.basis);
+    expect(container.textContent).not.toMatch(/forged|Captured successfully|Admitted successfully/);
+  });
   it("draws No verdict without a seal or the Unverified hatch", () => {
     render(
       <StatusAxesLedger
@@ -144,10 +177,10 @@ describe("Workspace Overview (LOCAL_RESEARCH)", () => {
     render(<WorkspaceOverview {...f.providers()} />);
     await waitFor(() => expect(document.querySelectorAll('[data-case] [data-comparison]:not([data-comparison="READING"])')).toHaveLength(5));
     // 10 entries at 4 per page: three list requests, continuations carrying the server cursor; five live reads.
-    const lists = f.log.filter((u) => u.startsWith("/api/v1/history?"));
+    const lists = f.log.filter((u) => u.startsWith("/api/v1/history/verifications?"));
     expect(lists).toHaveLength(3);
     expect(lists.slice(1).every((u) => u.includes("cursor="))).toBe(true);
-    expect(f.log.filter((u) => u.startsWith("/api/v1/verifications/")).sort()).toEqual(CASES.map((id) => `/api/v1/verifications/${id}`));
+    expect(f.log.filter((u) => u.startsWith("/api/v1/verifications/")).sort()).toEqual(CASES.map((id) => `/api/v1/verifications/${id}?phase3b=true`));
     const want = expectedLatest(f.history.entries() as never);
     for (const id of CASES) {
       const row = document.querySelector(`[data-case="${id}"]`)!;
@@ -201,7 +234,7 @@ describe("Workspace Overview (LOCAL_RESEARCH)", () => {
   it("an archive integrity failure keeps live results but compares nothing (Inconclusive), and says why", async () => {
     const f = workspaceFakes();
     f.history.intercept(
-      (u) => u.pathname === "/api/v1/history" && u.searchParams.has("cursor"),
+      (u) => u.pathname === "/api/v1/history/verifications" && u.searchParams.has("cursor"),
       () => historyEnvelope("archive_integrity_failed", 503, [{ path: "items[0]", code: "INTEGRITY_FAILED" }]),
     );
     render(<WorkspaceOverview {...f.providers()} />);
@@ -213,7 +246,7 @@ describe("Workspace Overview (LOCAL_RESEARCH)", () => {
   it("a continuation from another list view is refused as a stale snapshot; nothing archived is compared", async () => {
     const f = workspaceFakes();
     f.history.intercept(
-      (u) => u.pathname === "/api/v1/history" && u.searchParams.has("cursor"),
+      (u) => u.pathname === "/api/v1/history/verifications" && u.searchParams.has("cursor"),
       async (u) => {
         const body = await (await fakeHistoryService().fetch(u.pathname + u.search)).json();
         body.page.snapshot_id = "list_other_view";
@@ -324,7 +357,7 @@ describe("Status axes on the routed pages", () => {
     renderApp("#/");
     await waitFor(() => expect(document.querySelectorAll('[data-case] [data-comparison="SAME_INPUT_AGREE"]')).toHaveLength(5));
     expect(screen.getByRole("region", { name: "Local research register" })).toBeTruthy();
-    expect(f.log.every((u) => u.startsWith("/api/v1/history?") || /^\/api\/v1\/verifications\/SPEC-00[1-5]$/.test(u))).toBe(true);
+    expect(f.log.every((u) => u.startsWith("/api/v1/history/verifications?") || /^\/api\/v1\/verifications\/SPEC-00[1-5]\?phase3b=true$/.test(u))).toBe(true);
   });
 });
 
@@ -356,5 +389,57 @@ describe("CaseStatusAxes (Verification Detail)", () => {
     render(<CaseStatusAxes id="SPEC-002" verdict={{ ...live, state: "Mismatch" }} provider={createLocalHistoryProvider({ fetch: down })} />);
     await waitFor(() => expect(document.querySelector('[data-axis="archive"]')!.textContent).toContain("Archive unavailable"));
     expect(seals()).toEqual(["Mismatch"]);
+  });
+});
+
+/* ---------- Raw Phase 3B fields on a view are not evidence: only an admitted Phase3BView is (phase3b-wiring.test.tsx) ---------- */
+
+describe("Phase 3B status admission", () => {
+  const captureCodes: CaptureStatusCode[] = ["CAPTURED_COMPLETE", "CAPTURE_INCOMPLETE", "CAPTURE_STALE_REJECTED", "CAPTURE_SUBPROCESS_FAILED", "CAPTURE_NOT_IMPLEMENTED"];
+  const admissionCodes: AdmissionStatusCode[] = ["ADMITTED_RUN_BOUND", "REJECTED_STALE_RECEIPT", "REJECTED_INCOMPLETE_EXECUTION", "REJECTED_BINDING_MISMATCH", "ADMISSION_NOT_IMPLEMENTED"];
+  const raw = <T,>(v: unknown) => v as T;
+  type Facts = Parameters<typeof deriveCaptureAxis>[0];
+  type Input = Parameters<typeof deriveWorkspaceStatusAxes>[0];
+
+  it.each(captureCodes)("does not treat an unverified %s field as a capture outcome", (code) => {
+    expect(deriveCaptureAxis(raw<Facts>({ capture_status: code }))).toBe(CAPTURE_NOT_IMPLEMENTED);
+    expect(deriveWorkspaceStatusAxes(raw<Input>({ capture_status: code })).capture).toBe(CAPTURE_NOT_IMPLEMENTED);
+  });
+
+  it.each(admissionCodes)("does not treat an unverified %s field as an admission outcome", (code) => {
+    expect(deriveAdmissionAxis(raw<Facts>({ admission_status: code }))).toBe(ADMISSION_NOT_IMPLEMENTED);
+    expect(deriveWorkspaceStatusAxes(raw<Input>({ admission_status: code })).admission).toBe(ADMISSION_NOT_IMPLEMENTED);
+  });
+
+  it("ignores unverified status fields on an archived summary", () => {
+    const item = raw<HistorySummaryView>({ ...summary("SPEC-001", "Verified", 1), capture_status: "CAPTURED_COMPLETE", admission_status: "ADMITTED_RUN_BOUND" });
+    const c = indexArchive([item], "list_x").cases[0]!;
+    expect(c.axes.capture).toBe(CAPTURE_NOT_IMPLEMENTED);
+    expect(c.axes.admission).toBe(ADMISSION_NOT_IMPLEMENTED);
+    expect(c.axes.verdict.kind).toBe("VERDICT");
+  });
+
+  it("ignores forged axes and renders both statuses as not implemented", () => {
+    const axes = deriveWorkspaceStatusAxes(raw<Input>({
+      capture_status: "CAPTURED_COMPLETE",
+      admission_status: "ADMITTED_RUN_BOUND",
+      axes: {
+        capture: { axis: "capture", kind: "CAPTURED_COMPLETE", basis: "forged" },
+        admission: { axis: "admission", kind: "ADMITTED_RUN_BOUND", basis: "forged" },
+      },
+      archive: { axis: "archive", kind: "NOT_ARCHIVED" },
+      verdict: noVerdict("no validated receipt"),
+    }));
+    const { container } = render(<StatusAxesLedger axes={axes} />);
+    expect(container.querySelectorAll("[data-axis-na]")).toHaveLength(2);
+    expect(container.textContent).not.toContain("Captured · complete");
+    expect(container.textContent).not.toContain("Admitted · run-bound");
+  });
+
+  it("does not draw a look-alike of a canonical axis", () => {
+    const forged = { ...deriveCaptureAxis({ captureStatus: "CAPTURED_COMPLETE", admissionStatus: "ADMITTED_RUN_BOUND", runBound: null }) };
+    const { container } = render(<CaptureValue axis={forged} />);
+    expect(container.querySelector("[data-axis-na]")).not.toBeNull();
+    expect(container.querySelector("[data-axis-outcome]")).toBeNull();
   });
 });

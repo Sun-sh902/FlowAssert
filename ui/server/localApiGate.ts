@@ -6,12 +6,14 @@
  * (`/api/v1/../../docs`). This gate forwards ONLY these exact GET operations to the fixed loopback
  * Service at 127.0.0.1:8765, byte-for-byte as requested (no rewriting, no normalization, no re-encoding):
  *
- *   GET /api/v1/verifications/{id}                   ?snapshot_id                                (frozen, Phase 2)
+ *   GET /api/v1/verifications/{id}                   ?snapshot_id &phase3b=true                  (frozen, Phase 2; flag Phase 3B)
  *   GET /api/v1/verifications/{id}/evidence          ?snapshot_id &limit &include_payload &cursor (frozen, Phase 2)
  *   GET /api/v1/history                              ?limit &cursor &verification_id              (additive, Phase 3A)
  *   GET /api/v1/history/{history_id}                 ?snapshot_id                                (additive, Phase 3A)
  *   GET /api/v1/history/{history_id}/evidence        ?limit &cursor &snapshot_id &include_payload (additive, Phase 3A)
- *   GET /api/v1/verification-lookup                  ?verification_id &snapshot_id               (additive, remediation-03)
+ *   GET /api/v1/history/verifications                ?limit &cursor &verification_id              (additive, Phase 3B)
+ *   GET /api/v1/history/verifications/{history_id}   ?snapshot_id                                (additive, Phase 3B)
+ *   GET /api/v1/verification-lookup                  ?verification_id &snapshot_id &phase3b=true (additive, remediation-03; flag Phase 3B)
  *   GET /api/v1/verification-evidence                ?verification_id &snapshot_id &limit &include_payload &cursor
  *                                                                                                 (additive, remediation-03)
  * The two remediation-03 routes are the additive contract phase3a-id-addressability-1.0.0
@@ -23,6 +25,7 @@
  * bounds the backend applies (ID 1–128 code points, snapshot_id 1–128, cursor ≤ 2048, limit 1–100 in 1–3 ASCII
  * digits, include_payload true|false). Everything admitted is decoded by the Service exactly as here — once — and
  * the target is still forwarded unchanged; query data never becomes a path. Cursor meaning stays the Service's.
+ * `phase3b` is admitted only on the two Detail reads and only as the one spelling the app sends, `phase3b=true`.
  *
  * Every request whose path begins with `/api` (any case) is decided here and never reaches Vite's
  * own handlers; everything else is the app's static/SPA traffic and is never forwarded anywhere.
@@ -40,7 +43,7 @@
  *   404 route_not_allowed     any other path, including adjacent prefixes (/api/v1x, /api/v2, /API/v1)
  *   400 query_not_allowed     a query key outside that route's list, a repeated key, or a malformed pair; on the two
  *                             lookup routes also a missing verification_id, an encoded/non-canonical/non-UTF-8 value
- *                             or a value outside the bounds above
+ *                             or a value outside the bounds above; on the two Detail reads, phase3b other than true
  *   400 body_not_allowed      a GET with a body
  *   502 upstream_redirect_refused  the Service answered 3xx — never followed, Location never passed on
  *   502 service_unreachable / 504 service_timeout   transport failure towards the Service
@@ -72,12 +75,14 @@ export interface GateRoute {
 }
 
 export const ROUTES: readonly GateRoute[] = [
-  { name: "verification", pattern: new RegExp(`^/api/v1/verifications/${VERIFICATION_ID}$`), query: ["snapshot_id"] },
+  { name: "verification", pattern: new RegExp(`^/api/v1/verifications/${VERIFICATION_ID}$`), query: ["snapshot_id", "phase3b"] },
   { name: "verification-evidence", pattern: new RegExp(`^/api/v1/verifications/${VERIFICATION_ID}/evidence$`), query: ["snapshot_id", "limit", "include_payload", "cursor"] },
   { name: "history-list", pattern: /^\/api\/v1\/history$/, query: ["limit", "cursor", "verification_id"] },
   { name: "history-detail", pattern: new RegExp(`^/api/v1/history/${HISTORY_ID}$`), query: ["snapshot_id"] },
   { name: "history-evidence", pattern: new RegExp(`^/api/v1/history/${HISTORY_ID}/evidence$`), query: ["limit", "cursor", "snapshot_id", "include_payload"] },
-  { name: "verification-lookup", pattern: /^\/api\/v1\/verification-lookup$/, query: ["verification_id", "snapshot_id"], lookup: true },
+  { name: "history-verifications", pattern: /^\/api\/v1\/history\/verifications$/, query: ["limit", "cursor", "verification_id"] },
+  { name: "history-verification-detail", pattern: new RegExp(`^/api/v1/history/verifications/${HISTORY_ID}$`), query: ["snapshot_id"] },
+  { name: "verification-lookup", pattern: /^\/api\/v1\/verification-lookup$/, query: ["verification_id", "snapshot_id", "phase3b"], lookup: true },
   { name: "verification-lookup-evidence", pattern: /^\/api\/v1\/verification-evidence$/, query: ["verification_id", "snapshot_id", "limit", "include_payload", "cursor"], lookup: true },
 ];
 
@@ -100,6 +105,8 @@ export function lookupQueryProblem(route: GateRoute, query: string): string | nu
   if (limit !== undefined && (!/^[0-9]{1,3}$/.test(limit) || Number(limit) < 1 || Number(limit) > 100)) return "limit must be 1–100 written as 1–3 ASCII digits";
   const payload = p.get("include_payload");
   if (payload !== undefined && payload !== "true" && payload !== "false") return "include_payload must be exactly true or false";
+  const flag = p.get("phase3b");
+  if (flag !== undefined && flag !== "true") return "phase3b must be exactly true";
   return null;
 }
 
@@ -141,9 +148,10 @@ export function decide(input: { method: string | undefined; rawTarget: string; h
     for (const pair of query.split("&")) {
       const eq = pair.indexOf("=");
       const key = eq === -1 ? pair : pair.slice(0, eq);
-      if (eq === -1 || !/^[a-z_]+$/.test(key)) return refuse(400, "query_not_allowed", `Malformed query pair ${JSON.stringify(pair.slice(0, 64))}.`);
+      if (eq === -1 || !/^[a-z][a-z0-9_]*$/.test(key)) return refuse(400, "query_not_allowed", `Malformed query pair ${JSON.stringify(pair.slice(0, 64))}.`);
       if (!route.query.includes(key)) return refuse(400, "query_not_allowed", `Query key ${key} is not accepted on ${route.name}.`);
       if (seen.has(key)) return refuse(400, "query_not_allowed", `Query key ${key} is repeated.`);
+      if (key === "phase3b" && pair !== "phase3b=true") return refuse(400, "query_not_allowed", "phase3b must be exactly true.");
       seen.add(key);
     }
   }

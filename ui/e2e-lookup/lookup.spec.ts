@@ -1,8 +1,8 @@
 /**
- * ID-addressability remediation-03 — real browsers, real HTTP, the isolated Service at the handoff identity.
+ * ID-addressability remediation-03 — real browsers, real HTTP, the identity-checked copy of the current Service.
  *
- * Every identifier below is a TEST-ONLY identity alias registered by the backend's own launcher (17) or the two the
- * frontend suite adds by the same mechanism (labelled fe-*). An alias changes only run.identity.id of one of the five
+ * Every identifier below is a TEST-ONLY identity alias registered by scripts/phase3a/lookup_alias_entry.py.
+ * An alias changes only run.identity.id of one of the five
  * evaluator-backed synthetic cases; it is not an external business record and observes no external source.
  *
  * For each ID, in each browser: direct entry at #/local/verification-lookup?verification_id=…, the exact ID shown,
@@ -32,7 +32,7 @@ import {
 } from "./support.ts";
 
 const LAB = "\u{1F9EA}";
-/** label → exact ID. The backend corpus (corpus.ALIASES) plus the two frontend-added aliases. */
+/** label → exact ID, as scripts/phase3a/lookup_alias_entry.py registers them. */
 const IDS: [string, string][] = [
   ["dot", "."],
   ["dotdot", ".."],
@@ -224,7 +224,7 @@ test("in-app navigation: legacy x/evidence refusal → lookup link → Back → 
   await expect(retrieval(page)).toContainText(/more pages remain|All evidence pages retrieved/, { timeout: 20_000 });
   await net.settle();
   const after = net.all.slice(before);
-  expect(after[0]!.url).toBe("http://127.0.0.1:5183/api/v1/verification-lookup?verification_id=x%2Fevidence");
+  expect(after[0]!.url).toBe("http://127.0.0.1:5183/api/v1/verification-lookup?verification_id=x%2Fevidence&phase3b=true");
   for (const ex of after) expect(new URLSearchParams(ex.query).get("verification_id")).toBe("x/evidence");
   writeEvidence(`browser/${info.project.name}/navigation`, { urls: net.all.map((x) => ({ url: x.url, status: x.status })), selected });
 });

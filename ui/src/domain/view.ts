@@ -129,6 +129,12 @@ export interface RunView {
   records: RecordView[];
   /** Facts that exist only for a run read from the local Python Service; null for MOCK. */
   local: LocalRunFacts | null;
+  /**
+   * Capture and admission, as the Service reported them on a live read; only src/adapters/phase3bToView.ts sets this,
+   * after admission. Null or absent means no statement was read (MOCK, or an archived run, whose statement is on its
+   * HistorySummaryView): the axes then stay "not implemented".
+   */
+  phase3b?: import("./statusAxes").Phase3BView | null;
 }
 
 /** Identity, provenance and assurance of a LOCAL_RESEARCH run, copied from the response. */

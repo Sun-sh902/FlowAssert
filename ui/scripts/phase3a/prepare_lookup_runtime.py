@@ -22,7 +22,7 @@ import hashlib, json, os, shutil, stat, sys
 
 UI = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUNTIME = os.path.join(UI, ".phase3a-lookup-runtime")
-SERVICE = "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service"
+SERVICE = "/Users/apple_sun/Documents/FlowAssert-Active/FlowAssert-Phase3A-Service"
 DST = os.path.join(RUNTIME, "FlowAssert-Phase3A-Service")
 HANDOFF = "docs/phase3a/id-addressability-remediation-03"
 OUT = os.path.join(UI, "docs/phase3a/id-addressability-remediation-03/evidence/runtime/runtime-manifest.json")
@@ -34,7 +34,17 @@ PINNED = {
 # and its corpus, and the one docs file the Service reads at runtime (app/history_store.py source_identity()).
 HELPERS = [f"{HANDOFF}/evidence/http_server.py", f"{HANDOFF}/evidence/corpus.py", "docs/phase3a/evidence/baseline-source.json"]
 SKIP_TOP = {".runtime", "docs", "baseline", "evidence"}
-SKIP_ANY = {"__pycache__", ".pytest_cache", ".DS_Store"}
+SKIP_ANY = {"__pycache__", ".pytest_cache"}
+
+
+def finder_metadata(name):
+    # AppleDouble sidecars are named ._foo; ordinary _foo files are real code.
+    return name in {".DS_Store", ".AppleDouble"} or name.startswith("._")
+
+
+def ignore(dirpath, names):
+    return [n for n in names if n in SKIP_ANY or finder_metadata(n)
+            or (dirpath == SERVICE and n in SKIP_TOP)]
 
 
 def sha(path):
@@ -48,8 +58,8 @@ def sha(path):
 def tree(root):
     out = {}
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        dirnames[:] = sorted(d for d in dirnames if d != "__pycache__")
-        for name in sorted(dirnames + filenames):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_ANY and not finder_metadata(d))
+        for name in sorted(dirnames + [n for n in filenames if n not in SKIP_ANY and not finder_metadata(n)]):
             full = os.path.join(dirpath, name)
             st = os.lstat(full)
             rel = os.path.relpath(full, root)
@@ -66,8 +76,7 @@ def main():
     ids = json.load(open(os.path.join(SERVICE, HANDOFF, "evidence/source-identities.json")))
     report = {"service": SERVICE, "copy": DST, "pinned": PINNED, "files": {}, "helpers": {}, "venv": {}, "problems": []}
     os.makedirs(RUNTIME, mode=0o700)
-    shutil.copytree(SERVICE, DST, symlinks=True,
-                    ignore=lambda d, names: [n for n in names if n in SKIP_ANY or (d == SERVICE and n in SKIP_TOP)])
+    shutil.copytree(SERVICE, DST, symlinks=True, ignore=ignore)
     mapping = {}
     for rel, want in sorted(ids["files"].items()):
         cur, cop = sha(os.path.join(SERVICE, rel)), sha(os.path.join(DST, rel))

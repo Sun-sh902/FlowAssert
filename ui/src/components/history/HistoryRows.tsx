@@ -5,16 +5,19 @@
  * Every value shown is a field of the additive contract's HistorySummary: case, history ID, cohort
  * result and counts (result_summary), expected total (null → "total unknown", never 0 or the row
  * count), evaluator digest, archive time and the archive record's integrity statement. No field is
- * invented to fill a column.
+ * invented to fill a column. An admission outcome the Service reported sits with the archive record; an
+ * entry with none shows nothing extra.
  */
 import { ChevronRight } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
 import type { HistorySummaryView } from "../../domain/history";
 import { serviceIntegrityState } from "../../domain/integrity";
+import { deriveAdmissionAxis, hasReportedOutcome } from "../../domain/statusAxes";
 import { formatDateTime, plural, shortDigest } from "../../lib/format";
 import { href } from "../../lib/router";
 import { IntegrityTag } from "../integrity/Integrity";
 import { CountGlyphs, Seal } from "../ui/status";
+import { ReportedAdmission } from "../workspace/AxisMarks";
 import { scrollByKey, useScrollsHorizontally } from "../states/EvidenceLedger";
 
 export const shortHistoryId = (id: string) => `${id.slice(0, 13)}…${id.slice(-4)}`;
@@ -51,7 +54,7 @@ export function RecordCheck({ entry }: { entry: HistorySummaryView }) {
 }
 
 const label = (e: HistorySummaryView) =>
-  `${e.verificationId}, archived evaluation ${e.historyId}. Cohort result ${e.result.cohort}. ${plural(rowsOf(e), "record")}${e.result.expectedTotal === null ? ", total unknown" : `, ${e.result.expectedTotal} expected`}. Archived ${formatDateTime(e.archivedAt)}.`;
+  `${e.verificationId}, archived evaluation ${e.historyId}. Cohort result ${e.result.cohort}. ${plural(rowsOf(e), "record")}${e.result.expectedTotal === null ? ", total unknown" : `, ${e.result.expectedTotal} expected`}. Archived ${formatDateTime(e.archivedAt)}.${hasReportedOutcome(e.phase3b) ? ` Admission: ${deriveAdmissionAxis(e.phase3b).label}.` : ""}`;
 
 /**
  * Arrow keys move between entries; Home and End jump to the first and last. Tab order is unchanged.
@@ -132,6 +135,7 @@ export function HistoryRows({ entries, caption }: { entries: HistorySummaryView[
                 </td>
                 <td className="py-2 pr-4 align-middle">
                   <RecordCheck entry={e} />
+                  <ReportedAdmission facts={e.phase3b} className="mt-1" />
                 </td>
                 <td className="py-2 pr-5 text-right align-middle whitespace-nowrap">
                   <span className="inline-flex items-center gap-2">
@@ -159,7 +163,10 @@ export function HistoryRows({ entries, caption }: { entries: HistorySummaryView[
               </span>
               <span className="mt-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
                 <ArchivedRecordResults entry={e} />
-                <RecordCheck entry={e} />
+                <span className="grid justify-items-start gap-1">
+                  <RecordCheck entry={e} />
+                  <ReportedAdmission facts={e.phase3b} />
+                </span>
               </span>
             </a>
           </li>

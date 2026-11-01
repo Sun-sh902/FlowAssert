@@ -67,7 +67,7 @@ describe("F-01 integrity states stay distinct", () => {
 
   it("a 503 with INTEGRITY_UNVERIFIABLE (archive_unavailable) is not reported as an integrity failure on the Detail axes", async () => {
     const svc = fakeHistoryService();
-    svc.intercept((u) => u.pathname === "/api/v1/history", () => historyEnvelope("archive_unavailable", 503, [{ path: "archive", code: "INTEGRITY_UNVERIFIABLE" }]));
+    svc.intercept((u) => u.pathname === "/api/v1/history/verifications", () => historyEnvelope("archive_unavailable", 503, [{ path: "archive", code: "INTEGRITY_UNVERIFIABLE" }]));
     const live = await liveRun("SPEC-002");
     render(<CaseStatusAxes id="SPEC-002" verdict={verdict} live={live} provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
     await waitFor(() => expect(archiveAxis().textContent).toContain("Archive unavailable"));
@@ -78,7 +78,7 @@ describe("F-01 integrity states stay distinct", () => {
 
   it("a 503 with INTEGRITY_FAILED is still reported as an integrity failure", async () => {
     const svc = fakeHistoryService();
-    svc.intercept((u) => u.pathname === "/api/v1/history", () => historyEnvelope("archive_digest_mismatch", 503, [{ path: "archive", code: "INTEGRITY_FAILED" }]));
+    svc.intercept((u) => u.pathname === "/api/v1/history/verifications", () => historyEnvelope("archive_digest_mismatch", 503, [{ path: "archive", code: "INTEGRITY_FAILED" }]));
     render(<CaseStatusAxes id="SPEC-002" verdict={verdict} live={await liveRun("SPEC-002")} provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
     await waitFor(() => expect(archiveAxis().textContent).toContain("integrity failure"));
     expect(archiveAxis().querySelector(".fa-itag")!.getAttribute("data-i")).toBe("failed");
@@ -195,7 +195,7 @@ describe("F-04 truthful UI claims", () => {
 
   it("the headline does not say no result could be read while reads are still in flight", async () => {
     const live = createLocalResearchProvider({
-      fetch: ((input: RequestInfo | URL) => (String(input).endsWith("/SPEC-001") ? Promise.reject(new TypeError("fetch failed")) : new Promise<Response>(() => {}))) as typeof fetch,
+      fetch: ((input: RequestInfo | URL) => (String(input).endsWith("/SPEC-001?phase3b=true") ? Promise.reject(new TypeError("fetch failed")) : new Promise<Response>(() => {}))) as typeof fetch,
     });
     render(<WorkspaceOverview history={createLocalHistoryProvider({ fetch: (() => new Promise<Response>(() => {})) as typeof fetch })} live={live} />);
     await waitFor(() => expect(document.querySelector('[data-case="SPEC-001"]')).not.toBeNull());
@@ -215,7 +215,7 @@ describe("F-04 truthful UI claims", () => {
 
   it("a list 404 on the Detail axes is not found — not a read failure", async () => {
     const svc = fakeHistoryService();
-    svc.intercept((u) => u.pathname === "/api/v1/history", () => historyEnvelope("history_not_found", 404));
+    svc.intercept((u) => u.pathname === "/api/v1/history/verifications", () => historyEnvelope("history_not_found", 404));
     render(<CaseStatusAxes id="SPEC-002" verdict={verdict} live={await liveRun("SPEC-002")} provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);
     await waitFor(() => expect(archiveAxis().textContent).toContain("Archive list not found"));
     expect(document.body.textContent).not.toContain("read failure");

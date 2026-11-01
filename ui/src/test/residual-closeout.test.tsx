@@ -49,7 +49,7 @@ describe("R04 an out-of-contract case ID never reaches the archive index", () =>
     const history = fakeHistoryService();
     const v1 = fakeService();
     history.intercept(
-      (u) => u.pathname === "/api/v1/history",
+      (u) => u.pathname === "/api/v1/history/verifications",
       () => {
         const body = list();
         body.items = body.items.slice(0, 4);
@@ -80,7 +80,7 @@ function overview(outcomes: Record<(typeof CASES)[number], Outcome>, archive: "o
   const fetchImpl = ((input: RequestInfo | URL, init?: RequestInit) => {
     const raw = String(input);
     if (raw.startsWith("/api/v1/history")) return archive === "transport" ? Promise.reject(new TypeError("fetch failed")) : history.fetch(input, init);
-    const id = CASES.find((c) => raw.endsWith(`/${c}`));
+    const id = CASES.find((c) => raw.endsWith(`/${c}?phase3b=true`));
     const o = id ? outcomes[id] : "ready";
     if (o === "not_found") return Promise.resolve(notFound());
     if (o === "error") return Promise.resolve(serverError());
@@ -267,7 +267,7 @@ describe("R07 useHistoryList starts a new list view when the provider object cha
     expect(result.current.chain.items).toHaveLength(0);
     await waitFor(() => expect(result.current.status).toBe("complete"));
     expect(result.current.chain.items).toHaveLength(0);
-    expect(svcB.log.filter((u) => u.startsWith("/api/v1/history?"))).toHaveLength(1);
+    expect(svcB.log.filter((u) => u.startsWith("/api/v1/history/verifications?"))).toHaveLength(1);
   });
 
   it("after loading more from A, provider B starts again at its first page (no cursor carried over)", async () => {
@@ -279,7 +279,7 @@ describe("R07 useHistoryList starts a new list view when the provider object cha
     await waitFor(() => expect(result.current.chain.pages).toBe(2));
     rerender({ p: providerOf(svcB) });
     await waitFor(() => expect(result.current.chain.pages).toBe(1));
-    expect(svcB.log.filter((u) => u.startsWith("/api/v1/history?"))).toEqual(["/api/v1/history?limit=4"]);
+    expect(svcB.log.filter((u) => u.startsWith("/api/v1/history/verifications?"))).toEqual(["/api/v1/history/verifications?limit=4"]);
   });
 
   it("a stable provider reads its first page once", async () => {
@@ -288,6 +288,6 @@ describe("R07 useHistoryList starts a new list view when the provider object cha
     const { result, rerender } = renderHook(({ p }) => useHistoryList(p, undefined), { initialProps: { p } });
     await waitFor(() => expect(result.current.status).toBe("more"));
     for (let i = 0; i < 5; i++) rerender({ p });
-    expect(svc.log.filter((u) => u.startsWith("/api/v1/history?"))).toHaveLength(1);
+    expect(svc.log.filter((u) => u.startsWith("/api/v1/history/verifications?"))).toHaveLength(1);
   });
 });

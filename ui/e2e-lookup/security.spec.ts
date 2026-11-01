@@ -1,6 +1,6 @@
 /**
  * ID-addressability remediation-03 — negative security probes against the REAL gate (vite preview :5183) and the
- * REAL Service (:8765, isolated copy at the handoff identity).
+ * REAL Service (:8765, the identity-checked copy of the current Service).
  *  - raw HTTP (exact target bytes, no client-side normalization), once (browser-independent; "chrome" project);
  *  - in-browser fetch probes, in every browser (what a page could send through the gate).
  * Every refusal is recorded with the status and code actually returned. The Service's outbound-connection audit

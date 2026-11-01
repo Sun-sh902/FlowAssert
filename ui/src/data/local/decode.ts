@@ -7,8 +7,10 @@
  * these checks compare values the service returned with each other and with the accepted scope.
  * None of them computes a verdict — cohort and record states are only ever copied.
  */
+import type { Phase3BFieldsDTO, WithPhase3B } from "../contract/phase3b";
 import type { CountsDTO, ErrorDTO, EvidencePageDTO, ResearchResultDTO, VerificationRunDTO } from "../contract/v1";
 import { ACCEPTED_EVALUATOR, LOCAL_SCOPE } from "./config";
+import { phase3bProblems, phase3bSplit } from "./phase3b";
 import { stableJson, validateSchema } from "./schema";
 
 export type Decoded<T> = { ok: true; value: T } | { ok: false; code: string; problems: string[] };
@@ -150,6 +152,20 @@ export function decodeVerificationRun(json: unknown, request: { id: string; snap
     return refuse("assurance_conflict", ["assurance claims more than research_only / not_authenticated for the synthetic local scope"]);
 
   return { ok: true, value: run };
+}
+
+/**
+ * Decode a 200 body of a live Detail read made with phase3b=true: the frozen body goes through decodeVerificationRun
+ * unchanged, and the additive fields are admitted against that run. An archived run (a History Detail's `run`) never
+ * comes through here — it is an exact frozen body.
+ */
+export function decodeLiveVerificationRun(json: unknown, request: { id: string; snapshotId?: string }): Decoded<WithPhase3B<VerificationRunDTO>> {
+  const { frozen, fields } = phase3bSplit(json);
+  const decoded = decodeVerificationRun(frozen, request);
+  if (!decoded.ok) return decoded;
+  const problems = phase3bProblems(fields, "", decoded.value.result);
+  if (problems.length) return refuse("phase3b_status_conflict", problems);
+  return { ok: true, value: { ...decoded.value, ...(fields as Partial<Phase3BFieldsDTO> | null) } };
 }
 
 /** Decode a 200 body of GET /api/v1/verifications/{id}/evidence for one exact request. */

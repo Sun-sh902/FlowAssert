@@ -2,8 +2,10 @@
  * LocalResearchProvider — LOCAL_RESEARCH over real HTTP to the accepted local Python Service.
  *
  * Only the two authorized reads, with the frozen wire names:
- *   GET /api/v1/verifications/{id}?snapshot_id=…
+ *   GET /api/v1/verifications/{id}?snapshot_id=…&phase3b=true
  *   GET /api/v1/verifications/{id}/evidence?snapshot_id=…&limit=…&include_payload=true|false&cursor=…
+ * `phase3b=true` asks a Detail read for the additive capture and admission fields (src/data/contract/phase3b.ts). The
+ * frozen body is unchanged and still admitted by its frozen schema; Evidence reads refuse the flag and never send it.
  * Requests are relative (same origin); the Vite dev/preview proxy forwards `/api/v1` to 127.0.0.1:8765.
  *
  * Every outcome is a ProviderResult. Nothing here falls back to MOCK, computes a verdict, retries,
@@ -29,7 +31,7 @@
  *   "path"  (default) the frozen Phase 0 routes above; unchanged, and the only addressing the accepted Phase 1
  *           Service (run.py) serves.
  *   "query" the additive phase3a-id-addressability-1.0.0 routes (FlowAssert-Phase3A-Service run_history.py only):
- *             GET /api/v1/verification-lookup?verification_id=…[&snapshot_id=…]
+ *             GET /api/v1/verification-lookup?verification_id=…[&snapshot_id=…]&phase3b=true
  *             GET /api/v1/verification-evidence?verification_id=…[&snapshot_id=…]&limit=…&include_payload=…[&cursor=…]
  *           The exact ID is one URLSearchParams value, encoded once; admission is checkLookupVerificationId (1–128
  *           code points, no lone surrogate), so ".", "..", "/", "?", "#", "+", "%" IDs are all requestable.
@@ -39,14 +41,16 @@
  * A provider never falls back from one addressing to the other.
  */
 import { classifyExchange, exchangeAborted, exchangeSettled, exchangeStarted } from "../serviceStatus";
+import { monoLexemes, toPhase3BView } from "../../adapters/phase3bToView";
 import { toEvidenceReferenceView, wireToRunView } from "../../adapters/wireToView";
 import type { EvidencePageView, EvidenceReferenceView } from "../../domain/evidence";
 import type { RunView } from "../../domain/view";
 import { abortError, classifyHttpFailure, type ProviderContext, type ProviderResult } from "../access";
+import { PHASE3B_FLAG } from "../contract/phase3b";
 import type { FlowAssertReadProvider } from "../provider";
 import { checkPayloadDigest, losslessAt, losslessParse } from "./canonical";
 import { LOCAL_API_PREFIX, LOCAL_LIMITS } from "./config";
-import { decodeErrorEnvelope, decodeEvidencePage, decodeVerificationRun } from "./decode";
+import { decodeErrorEnvelope, decodeEvidencePage, decodeLiveVerificationRun } from "./decode";
 import { checkLookupVerificationId, checkVerificationId, encodeIdSegment, type IdCheck } from "./ids";
 
 /** How a provider names a Verification ID on the wire (see the header). Fixed per provider instance. */
@@ -161,6 +165,11 @@ function successBody(ex: Exchange): { ok: true; value: unknown } | Failure {
 const refusal = (code: string, problems: string[]) =>
   failure("REQUEST_ERROR", code, `Response refused (${code}): ${problems.slice(0, 3).join("; ")}${problems.length > 3 ? ` (+${problems.length - 3} more)` : ""}. Nothing was published.`);
 
+/** The exact monotonic readings at `at`, when that object carries run_bound_metadata (nothing is parsed otherwise). */
+export function runBoundLexemes(ex: Exchange, at: (string | number)[]) {
+  return ex.kind === "response" && ex.text.includes("run_bound_metadata") ? monoLexemes(losslessParse(ex.text), at) : {};
+}
+
 function context(meta: { workspace_id: string; contract_version: string; synthetic: boolean }, snapshotId: string, assurance?: RunView["local"]): ProviderContext {
   return {
     mode: "LOCAL_RESEARCH",
@@ -178,8 +187,8 @@ function context(meta: { workspace_id: string; contract_version: string; synthet
 export function verificationUrl(id: string, snapshotId?: string): string {
   const q = new URLSearchParams();
   if (snapshotId !== undefined) q.set("snapshot_id", snapshotId);
-  const qs = q.toString();
-  return `${LOCAL_API_PREFIX}/verifications/${encodeIdSegment(id)}${qs ? `?${qs}` : ""}`;
+  q.set(PHASE3B_FLAG.name, PHASE3B_FLAG.value);
+  return `${LOCAL_API_PREFIX}/verifications/${encodeIdSegment(id)}?${q.toString()}`;
 }
 
 export function evidenceUrl(id: string, query: { snapshotId?: string; limit: number; includePayload: boolean; cursor?: string }): string {
@@ -196,6 +205,7 @@ export function lookupUrl(id: string, snapshotId?: string): string {
   const q = new URLSearchParams();
   q.set("verification_id", id);
   if (snapshotId !== undefined) q.set("snapshot_id", snapshotId);
+  q.set(PHASE3B_FLAG.name, PHASE3B_FLAG.value);
   return `${LOCAL_API_PREFIX}/verification-lookup?${q.toString()}`;
 }
 
@@ -232,9 +242,9 @@ export function createLocalResearchProvider(options: LocalProviderOptions = {}):
       if (fail) return fail;
       const body = successBody(ex);
       if (!("ok" in body)) return body;
-      const decoded = decodeVerificationRun(body.value, { id, snapshotId: query.snapshotId });
+      const decoded = decodeLiveVerificationRun(body.value, { id, snapshotId: query.snapshotId });
       if (!decoded.ok) return refusal(decoded.code, decoded.problems);
-      const run = wireToRunView(decoded.value);
+      const run: RunView = { ...wireToRunView(decoded.value), phase3b: toPhase3BView(decoded.value, runBoundLexemes(ex, [])) };
       return { kind: "ready", data: run, context: context(decoded.value.meta, decoded.value.snapshot_id, run.local) };
     },
 

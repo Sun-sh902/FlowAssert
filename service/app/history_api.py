@@ -10,8 +10,8 @@ from .main import create_app
 from .history_store import ArchiveStore, history_spec
 from .history_security import HistoryError, history_id as validate_history_id
 from .verification_lookup import add_verification_lookup
-
-ALLOWED_ORIGINS = {'http://127.0.0.1:5183', 'http://127.0.0.1:8765'}
+from .local_boundary import ALLOWED_ORIGINS
+from .admission_serialization import legacy_history_response
 
 
 def create_history_app(directory=None):
@@ -68,10 +68,19 @@ def create_history_app(directory=None):
         return q
 
     @app.get('/api/v1/history')
-    def listing(request: Request): return store.listing(**query(request, 'list'))
+    def listing(request: Request): return legacy_history_response(store.listing(**query(request, 'list')))
+
+    @app.get('/api/v1/history/verifications')
+    def verification_listing(request: Request): return store.listing(**query(request, 'list'))
+
+    @app.get('/api/v1/history/verifications/{history_id}')
+    def verification_detail(history_id: str, request: Request): return store.detail(validate_history_id(history_id), **query(request, 'detail'))
+
+    @app.get('/api/v1/history/verifications/{history_id}/evidence')
+    def verification_evidence(history_id: str, request: Request): return store.evidence(validate_history_id(history_id), **query(request, 'evidence'))
 
     @app.get('/api/v1/history/{history_id}')
-    def detail(history_id: str, request: Request): return store.detail(validate_history_id(history_id), **query(request, 'detail'))
+    def detail(history_id: str, request: Request): return legacy_history_response(store.detail(validate_history_id(history_id), **query(request, 'detail')))
 
     @app.get('/api/v1/history/{history_id}/evidence')
     def evidence(history_id: str, request: Request): return store.evidence(validate_history_id(history_id), **query(request, 'evidence'))

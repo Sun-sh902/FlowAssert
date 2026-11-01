@@ -19,11 +19,11 @@ const bindingOf = (d: HistoryDetailView): EvidenceBinding => ({ historyId: d.his
 
 describe("wire requests", () => {
   it("use the additive contract's snake_case names, in a fixed order, and nothing else", () => {
-    expect(historyListUrl({ limit: 4 })).toBe("/api/v1/history?limit=4");
-    expect(historyListUrl({ limit: 4, verificationId: "SPEC-005", cursor: "a+b/c=" })).toBe("/api/v1/history?limit=4&verification_id=SPEC-005&cursor=a%2Bb%2Fc%3D");
+    expect(historyListUrl({ limit: 4 })).toBe("/api/v1/history/verifications?limit=4");
+    expect(historyListUrl({ limit: 4, verificationId: "SPEC-005", cursor: "a+b/c=" })).toBe("/api/v1/history/verifications?limit=4&verification_id=SPEC-005&cursor=a%2Bb%2Fc%3D");
     const h = `hist_${"a".repeat(64)}`;
-    expect(historyDetailUrl(h)).toBe(`/api/v1/history/${h}`);
-    expect(historyDetailUrl(h, "history-snapshot_x")).toBe(`/api/v1/history/${h}?snapshot_id=history-snapshot_x`);
+    expect(historyDetailUrl(h)).toBe(`/api/v1/history/verifications/${h}`);
+    expect(historyDetailUrl(h, "history-snapshot_x")).toBe(`/api/v1/history/verifications/${h}?snapshot_id=history-snapshot_x`);
     const u = new URL(historyEvidenceUrl(h, { snapshotId: "s", limit: 2, includePayload: false, cursor: "c.1" }), "http://x");
     expect([...u.searchParams.keys()]).toEqual(["snapshot_id", "limit", "include_payload", "cursor"]);
     expect(u.searchParams.get("cursor")).toBe("c.1");
@@ -33,7 +33,7 @@ describe("wire requests", () => {
     const seen: { url: string; init?: RequestInit }[] = [];
     const p = createLocalHistoryProvider({ fetch: (async (url: string, init?: RequestInit) => (seen.push({ url, init }), json({}, 500))) as unknown as typeof fetch });
     await p.listHistory({ limit: 4 });
-    expect(seen[0]!.url).toBe("/api/v1/history?limit=4");
+    expect(seen[0]!.url).toBe("/api/v1/history/verifications?limit=4");
     expect(seen[0]!.init).toMatchObject({ method: "GET", credentials: "omit", redirect: "error", cache: "no-store" });
   });
 

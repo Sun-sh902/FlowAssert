@@ -1,14 +1,13 @@
 #!/bin/sh
 # Every product-workspace gate, in order, each logged with its exit code and status. Three profiles
 # (docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md):
-#   scripts/dev/regression.sh LABEL              RELEASE: every gate (needs scripts/dev/bootstrap.sh --harness and the
-#                                                genuine historical roots). The profile release acceptance requires.
+#   scripts/dev/regression.sh LABEL              RELEASE: every product gate plus historical custody (needs the genuine
+#                                                historical roots). The profile release acceptance requires.
 #   scripts/dev/regression.sh --product LABEL    PRODUCT: every gate that tests this repository's product against its own
-#                                                Service — backend, Vitest, Chrome+WebKit static, CLS, workspace, history
-#                                                and the responsive matrix (needs bootstrap.sh --product-harness, reads
-#                                                nothing outside this repository). Historical custody and the suites that
-#                                                run the accepted Phase 2 / Phase 3A Services (e2e-lookup, e2e-local) are
-#                                                listed NOT RUN: a product pass is not the complete regression.
+#                                                current Service — backend, Vitest, Chrome+WebKit static, CLS, workspace,
+#                                                history, the responsive matrix, exact-ID lookup and frozen-route local
+#                                                (needs bootstrap.sh --product-harness, reads nothing outside this
+#                                                repository). Historical custody is listed NOT RUN.
 #   scripts/dev/regression.sh --portable LABEL   self-contained gates only (needs scripts/dev/bootstrap.sh): backend,
 #                                                identities, typecheck, lint, Vitest — plus the custody check, which
 #                                                reports BLOCKED where the protected roots are absent
@@ -129,14 +128,8 @@ if [ "$MODE" != portable ]; then
   # Residual closeout R13: 10 routes/states × 5 widths × 2 themes × Chrome and WebKit, on a build of this checkout.
   gate responsive-matrix "$ROOT/ui" sh -c 'npx vite build && node scripts/dev/fix04-product-review.mjs "$1"' responsive-matrix "$EV/responsive-matrix"
   gate responsive-matrix-inventory "$ROOT" "$SYS_PY" -I -B scripts/dev/check_test_inventory.py matrix responsive-matrix "$EV/responsive-matrix/results.json"
-  if [ "$MODE" = release ]; then
-    pw_gate e2e-lookup FA_BROWSERS=chrome,webkit FA_LOOKUP_EVIDENCE_DIR="$EV/e2e-lookup" npx playwright test -c playwright.lookup.config.ts
-    pw_gate e2e-local FA_BROWSERS=chrome,webkit FA_E2E_EVIDENCE_DIR="$EV/e2e-local" npx playwright test -c playwright.local.config.ts
-  else
-    for g in e2e-lookup e2e-lookup-inventory e2e-local e2e-local-inventory; do
-      not_run "$g" "runs the UI against the accepted Phase 3A / Phase 2 Service copies built from the historical roots — release profile"
-    done
-  fi
+  pw_gate e2e-lookup FA_BROWSERS=chrome,webkit FA_LOOKUP_EVIDENCE_DIR="$EV/e2e-lookup" npx playwright test -c playwright.lookup.config.ts
+  pw_gate e2e-local FA_BROWSERS=chrome,webkit FA_E2E_EVIDENCE_DIR="$EV/e2e-local" npx playwright test -c playwright.local.config.ts
 fi
 gate tracked-evidence "$ROOT" evidence_unchanged
 echo "summary: $OUT/summary.tsv"
@@ -144,7 +137,7 @@ if [ "$FAIL" -eq 1 ]; then echo "verdict: FAIL"; exit 1; fi
 if [ "$BLOCKED" -eq 1 ]; then echo "verdict: INCOMPLETE — blocked gates did not run; this is not a pass"; exit 3; fi
 case "$MODE" in
   portable) echo "verdict: PASS (portable gates only — not a product or release regression)" ;;
-  product) echo "verdict: PASS (product profile — historical custody, e2e-lookup and e2e-local NOT RUN; not the complete release regression)" ;;
+  product) echo "verdict: PASS (product profile — historical custody NOT RUN; not the complete release regression)" ;;
   *) echo "verdict: PASS (release profile — all gates)" ;;
 esac
 exit 0

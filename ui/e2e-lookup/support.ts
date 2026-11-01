@@ -1,10 +1,10 @@
 /**
- * ID-addressability remediation-03 real-service E2E support: custody of the isolated Service process (the
- * backend's own test-only alias launcher, scripts/phase3a/lookup-alias-service.sh), its receipts, raw HTTP probes,
+ * ID-addressability remediation-03 real-service E2E support: custody of the Service process (the current Service
+ * with test-only aliases, scripts/phase3a/lookup-alias-service.sh), its receipts, raw HTTP probes,
  * browser network capture and evidence files.
  *
- * Expected verdicts are fixed independently of the UI: an alias's basis case (from the backend-written
- * alias-manifest.json) and the case table of FlowAssert-Phase2-Support/SYNTHETIC_CASES.md.
+ * Expected verdicts are fixed independently of the UI: an alias's basis case (from the launcher-written
+ * alias-manifest.json) and the reviewed case table below.
  */
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";

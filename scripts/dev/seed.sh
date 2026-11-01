@@ -4,6 +4,8 @@
 #   dev-main    seed + seed --reevaluate → 10 archived evaluations (5 reviewed synthetic cases × 2 batches)
 #   dev-single  seed only → 5 archived evaluations, exactly one per case (round 02: exact Detail → Archive match)
 #   dev-empty   init only → valid empty archive
+#   dev-run-bound  seed, then SPEC-001 again through the Service's ExecutionCollector and its signed receipt
+#               (scripts/dev/seed_run_bound.py) → 6 archived evaluations, the newest SPEC-001 entry ADMITTED_RUN_BOUND
 # Creates only the states that do not exist yet; never writes into an existing state.
 # Every state, new or existing, is then verified with the Service's read-only `check` (SQLite opened mode=ro) and must
 # hold exactly its expected number of evaluations: an interrupted seed leaves a state that exists but is incomplete,
@@ -44,7 +46,13 @@ if [ ! -e "$RT/dev-empty" ]; then
   run init-empty   --state "$RT/dev-empty" init
   created=1
 fi
+if [ ! -e "$RT/dev-run-bound" ]; then
+  env -i PATH=/usr/bin:/bin HOME="$HOME" LC_ALL=C PYTHONDONTWRITEBYTECODE=1 TMPDIR="$RT/tmp" PYTHONPATH="$SVC" \
+    "$SVC/.venv/bin/python" -B "$ROOT/scripts/dev/seed_run_bound.py" "$RT/dev-run-bound"
+  created=1
+fi
 validate dev-main 10
 validate dev-single 5
 validate dev-empty 0
+validate dev-run-bound 6
 [ "$created" -eq 1 ] || echo "all states existed and verified; nothing written"

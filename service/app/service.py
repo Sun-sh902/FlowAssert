@@ -2,7 +2,6 @@
 import copy
 import json
 import os
-import stat
 import secrets
 import hmac
 import hashlib
@@ -10,6 +9,7 @@ import base64
 from pathlib import Path
 from .adapter import Adapter
 from .identity import ROOT, EXAMPLES_HASH, checked_bytes, canonical, digest, check_sources, ServiceError
+from .history_security import HistoryError, private_file
 from .validation import validate_run, validate_item, time_projection, require, schema
 
 KEY_FILE_ENV = 'FLOWASSERT_CURSOR_KEY_FILE'
@@ -23,23 +23,15 @@ def cursor_key():
     path = Path(os.environ.get(KEY_FILE_ENV, str(DEFAULT_KEY_FILE)))
     try:
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        if not os.path.lexists(path):
-            temp = path.with_name(f'.{path.name}.{secrets.token_hex(8)}.tmp')
-            fd = os.open(temp, os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW, 0o600)
-            try:
-                with os.fdopen(fd, 'w') as f: f.write(secrets.token_hex(32))
-                try: os.link(temp, path)
-                except FileExistsError: pass
-            finally: os.unlink(temp)
-        fd = os.open(path, os.O_RDONLY|os.O_NOFOLLOW)
-        try:
-            info = os.fstat(fd)
-            text = os.read(fd, 65).decode('ascii') if stat.S_ISREG(info.st_mode) else ''
-        finally: os.close(fd)
-    except (OSError, UnicodeDecodeError): raise ServiceError(503,'cursor_key_unavailable') from None
-    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or info.st_uid != os.getuid() \
-            or len(text) != 64 or any(c not in '0123456789abcdef' for c in text):
-        raise ServiceError(503,'cursor_key_unavailable')
+        # Publish complete, fsynced bytes atomically under a directory lock.
+        # The shared helper also refuses FIFOs, links and unsafe permissions,
+        # and recovers a valid key after a crash between link and unlink.
+        _, data = private_file(path, create=True, content=secrets.token_hex(32).encode('ascii'))
+        text = data.decode('ascii')
+    except (OSError, UnicodeDecodeError, HistoryError):
+        raise ServiceError(503, 'cursor_key_unavailable') from None
+    if len(text) != 64 or any(c not in '0123456789abcdef' for c in text):
+        raise ServiceError(503, 'cursor_key_unavailable')
     return bytes.fromhex(text)
 
 
@@ -52,7 +44,12 @@ class Catalog:
         # The frozen package supplies controlled metadata/inputs, never serving verdicts.
         package = json.loads(checked_bytes(ROOT/'contracts/verification-examples.json', EXAMPLES_HASH))
         for reviewed_case in package['examples']:
-            case = json.loads((ROOT/'fixtures'/f"{reviewed_case['case_id']}.json").read_text())
+            try:
+                case = json.loads((ROOT/'fixtures'/f"{reviewed_case['case_id']}.json").read_text())
+            except OSError:
+                raise ServiceError(503, 'fixture_unavailable') from None
+            except (UnicodeError, json.JSONDecodeError):
+                raise ServiceError(503, 'fixture_invalid') from None
             require(case == reviewed_case, 'fixture_identity_conflict')
             evidence = copy.deepcopy(case['input_evidence'])
             raw, at = self.adapter.evaluate(evidence)

@@ -40,7 +40,7 @@ def seeded(store):
 @pytest.fixture
 def http(seeded):
     s, ids = seeded
-    with TestClient(create_history_app(s.directory)) as client: yield client, s, ids
+    with TestClient(create_history_app(s.directory), base_url='http://127.0.0.1:8765') as client: yield client, s, ids
 
 
 def mutation(s, table, assignments, parameters=(), where=''):
@@ -200,7 +200,7 @@ def test_A17_new_inserts_during_list_pagination(seeded):
 
 def test_empty_list_and_unknown_history(store):
     assert store.listing()['items']==[] and store.listing()['page']['total']==0
-    with TestClient(create_history_app(store.directory)) as c:error(c.get('/api/v1/history/hist_'+'0'*64),404,'history_not_found')
+    with TestClient(create_history_app(store.directory), base_url='http://127.0.0.1:8765') as c:error(c.get('/api/v1/history/hist_'+'0'*64),404,'history_not_found')
 
 
 @pytest.mark.parametrize('bad',['SPEC-001','hist_bad','%2e%2e','%2E','hist_'+('f'*65),'hist_'+('G'*64),'abc/def','%2fetc%2fpasswd','%252e%252e','a\\b'])
@@ -381,7 +381,7 @@ def test_local_security(http,tmp_path,damage):
 
 def test_no_http_state_creation(tmp_path):
     missing=tmp_path/'missing'
-    with TestClient(create_history_app(missing)) as c:error(c.get('/api/v1/history'),503)
+    with TestClient(create_history_app(missing), base_url='http://127.0.0.1:8765') as c:error(c.get('/api/v1/history'),503)
     assert not missing.exists()
 
 

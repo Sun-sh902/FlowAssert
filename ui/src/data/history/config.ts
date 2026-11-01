@@ -8,6 +8,8 @@ import { LOCAL_API_PREFIX } from "../local/config";
 
 /** Same-origin prefix, reached through the dev/preview gate (vite.config.ts → server/localApiGate.ts). */
 export const HISTORY_API = `${LOCAL_API_PREFIX}/history` as const;
+/** The same archive reads with the additive Phase 3B fields (src/data/contract/phase3b.ts). HISTORY_API strips them. */
+export const HISTORY_VERIFICATIONS_API = `${HISTORY_API}/verifications` as const;
 
 /** Configured archive scope: one synthetic workspace, LOCAL_RESEARCH, research_only (handoff). */
 export const HISTORY_SCOPE = {

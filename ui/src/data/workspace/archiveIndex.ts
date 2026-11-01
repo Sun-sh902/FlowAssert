@@ -10,14 +10,7 @@
  * new verdict. A case the archive does not hold has NO_VERDICT, not Unverified.
  */
 import type { HistorySummaryView } from "../../domain/history";
-import {
-  ADMISSION_NOT_IMPLEMENTED,
-  CAPTURE_NOT_IMPLEMENTED,
-  archiveAxisOf,
-  archivedVerdict,
-  noVerdict,
-  type StatusAxes,
-} from "../../domain/statusAxes";
+import { archiveAxisOf, archivedVerdict, deriveAdmissionAxis, deriveCaptureAxis, noVerdict, type StatusAxes } from "../../domain/statusAxes";
 import { STATES, type StateCounts } from "../../domain/view";
 import { KNOWN_LOCAL_CASES } from "../local/config";
 
@@ -65,9 +58,10 @@ export function indexArchive(items: readonly HistorySummaryView[], listSnapshotI
       fixture: c.fixture,
       entries,
       latest,
+      // Of the same evaluation as the verdict: the newest archived one, as the Service reported it.
       axes: {
-        capture: CAPTURE_NOT_IMPLEMENTED,
-        admission: ADMISSION_NOT_IMPLEMENTED,
+        capture: deriveCaptureAxis(latest?.phase3b),
+        admission: deriveAdmissionAxis(latest?.phase3b),
         archive: archiveAxisOf(entries),
         verdict: latest ? archivedVerdict(latest) : noVerdict("The archive holds no evaluation of this case. Nothing was evaluated for this page."),
       },

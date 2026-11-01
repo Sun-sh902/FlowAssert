@@ -18,12 +18,20 @@ import hashlib, json, os, shutil, sys
 
 UI = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUNTIME = os.path.join(UI, ".phase2-runtime")
-SERVICE = "/Users/zhangshenghe/Documents/FlowAssert-Service"
-RESEARCH_MODEL = "/Users/zhangshenghe/Documents/FlowAssert-round03-oracle-fix/experiments/round03/model.py"
-HANDOFF = "/Users/zhangshenghe/Documents/FlowAssert-Phase2-Support/evidence/identity/accepted-source-comparison.json"
+SERVICE = "/Users/apple_sun/Documents/FlowAssert-Active/FlowAssert-Service"
+RESEARCH_MODEL = "/Users/apple_sun/Documents/FlowAssert-Active/FlowAssert-round03-oracle-fix/experiments/round03/model.py"
+HANDOFF = "/Users/apple_sun/Documents/FlowAssert-Phase2-Support/evidence/identity/accepted-source-comparison.json"
 MODEL_SHA256 = "b61779e198dd0213b67f8319b77a2daf9feb502dc553784df6d6600e8e3a842d"
 # Phase 3A: FA_PHASE2_RUNTIME_MANIFEST redirects this record so a re-preparation never overwrites the accepted Phase 2 evidence.
 OUT = os.environ.get("FA_PHASE2_RUNTIME_MANIFEST", os.path.join(UI, "docs/phase2/evidence/runtime/runtime-manifest.json"))
+
+
+def finder_metadata(name):
+    return name in {".DS_Store", ".AppleDouble"} or name.startswith("._")
+
+
+def ignore(dirpath, names):
+    return [n for n in names if finder_metadata(n)]
 
 
 def sha(path):
@@ -37,7 +45,8 @@ def sha(path):
 def tree(root):
     out = {}
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        for name in sorted(dirnames + filenames):
+        dirnames[:] = sorted(d for d in dirnames if not finder_metadata(d))
+        for name in sorted(dirnames + [n for n in filenames if not finder_metadata(n)]):
             full = os.path.join(dirpath, name)
             rel = os.path.relpath(full, root)
             if os.path.islink(full):
@@ -74,7 +83,7 @@ def main():
     if not (MODEL_SHA256 == report["model"]["original_now"] == report["model"]["copied"]):
         report["problems"].append("model identity mismatch")
     venv_src, venv_dst = os.path.join(SERVICE, ".venv"), os.path.join(dst_service, ".venv")
-    shutil.copytree(venv_src, venv_dst, symlinks=True)
+    shutil.copytree(venv_src, venv_dst, symlinks=True, ignore=ignore)
     a, b = tree(venv_src), tree(venv_dst)
     report["venv"] = {"files": len(a), "identical": a == b}
     if a != b:

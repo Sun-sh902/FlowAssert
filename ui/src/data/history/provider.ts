@@ -1,10 +1,13 @@
 /**
  * LocalHistoryProvider — Phase 3A LOCAL_RESEARCH archive reads over real HTTP to the local Python
- * Service's SQLite-backed history routes. Exactly the three additive read operations, wire names as
- * in the reviewed additive contract (contracts/openapi-history-v1.yaml):
- *   GET /api/v1/history?limit=…&verification_id=…&cursor=…
- *   GET /api/v1/history/{history_id}?snapshot_id=…
+ * Service's SQLite-backed history routes. Exactly three read operations, wire names as in the reviewed
+ * additive contract (contracts/openapi-history-v1.yaml):
+ *   GET /api/v1/history/verifications?limit=…&verification_id=…&cursor=…
+ *   GET /api/v1/history/verifications/{history_id}?snapshot_id=…
  *   GET /api/v1/history/{history_id}/evidence?snapshot_id=…&limit=…&include_payload=true|false&cursor=…
+ * The list and Detail use the Phase 3B routes: the same reviewed bodies plus capture and admission fields, which the
+ * frozen /api/v1/history reads strip (src/data/contract/phase3b.ts). The Service refuses a phase3b flag here; the
+ * route is what selects them. Evidence pages carry no status and stay on the reviewed route.
  * Requests are relative (same origin) and use the accepted Phase 2 transport (exchange: GET only,
  * credentials omitted, redirects refused, bounded time and body). Nothing falls back to MOCK,
  * computes a verdict, retries, caches or polls. Every body is admitted by ./decode.ts first.
@@ -22,6 +25,7 @@
  *   caller aborts                              → rejects AbortError (no result)
  */
 import { toArchivedEvidenceView, toHistoryDetailView, toHistoryListPageView } from "../../adapters/historyToView";
+import { monoLexemes } from "../../adapters/phase3bToView";
 import type { EvidencePageView, EvidenceReferenceView } from "../../domain/evidence";
 import type { HistoryDetailView, HistoryListPageView } from "../../domain/history";
 import { abortError, type ProviderContext, type ProviderResult } from "../access";
@@ -29,9 +33,9 @@ import { HISTORY_CONTRACT_VERSION } from "../contract/history";
 import { checkPayloadDigest, losslessAt, losslessParse } from "../local/canonical";
 import { LOCAL_LIMITS } from "../local/config";
 import { checkHistoryId } from "../local/ids";
-import { exchange, failure, parseJson, type Exchange } from "../local/provider";
+import { exchange, failure, parseJson, runBoundLexemes, type Exchange } from "../local/provider";
 import type { FlowAssertHistoryProvider, HistoryDetailQuery, HistoryEvidenceQuery, HistoryListQuery } from "../provider";
-import { HISTORY_API, HISTORY_SCOPE } from "./config";
+import { HISTORY_API, HISTORY_SCOPE, HISTORY_VERIFICATIONS_API } from "./config";
 import { decodeHistoryDetail, decodeHistoryError, decodeHistoryEvidencePage, decodeHistoryList, integrityFromDetails, type IntegrityOutcome } from "./decode";
 
 export interface HistoryProviderOptions {
@@ -101,14 +105,14 @@ export function historyListUrl(query: { limit: number; cursor?: string; verifica
   q.set("limit", String(query.limit));
   if (query.verificationId !== undefined) q.set("verification_id", query.verificationId);
   if (query.cursor !== undefined) q.set("cursor", query.cursor);
-  return `${HISTORY_API}?${q.toString()}`;
+  return `${HISTORY_VERIFICATIONS_API}?${q.toString()}`;
 }
 
 export function historyDetailUrl(historyId: string, snapshotId?: string): string {
   const q = new URLSearchParams();
   if (snapshotId !== undefined) q.set("snapshot_id", snapshotId);
   const qs = q.toString();
-  return `${HISTORY_API}/${encodeURIComponent(historyId)}${qs ? `?${qs}` : ""}`;
+  return `${HISTORY_VERIFICATIONS_API}/${encodeURIComponent(historyId)}${qs ? `?${qs}` : ""}`;
 }
 
 export function historyEvidenceUrl(historyId: string, query: { snapshotId: string; limit: number; includePayload: boolean; cursor?: string }): string {
@@ -134,7 +138,8 @@ export function createLocalHistoryProvider(options: HistoryProviderOptions = {})
       if (!("ok" in body)) return body;
       const decoded = decodeHistoryList(body.value, { limit: query.limit, verificationId: query.verificationId });
       if (!decoded.ok) return refusal(decoded.code, decoded.problems, decoded.integrity);
-      return { kind: "ready", data: toHistoryListPageView(decoded.value), context: context(decoded.value.page.snapshot_id) };
+      const tree = ex.kind === "response" && ex.text.includes("run_bound_metadata") ? losslessParse(ex.text) : undefined;
+      return { kind: "ready", data: toHistoryListPageView(decoded.value, (i) => monoLexemes(tree, ["items", i])), context: context(decoded.value.page.snapshot_id) };
     },
 
     async getHistory(historyId: string, query: HistoryDetailQuery = {}, signal?: AbortSignal): Promise<ProviderResult<HistoryDetailView>> {
@@ -147,7 +152,7 @@ export function createLocalHistoryProvider(options: HistoryProviderOptions = {})
       if (!("ok" in body)) return body;
       const decoded = decodeHistoryDetail(body.value, { historyId, snapshotId: query.snapshotId });
       if (!decoded.ok) return refusal(decoded.code, decoded.problems, decoded.integrity);
-      return { kind: "ready", data: toHistoryDetailView(decoded.value), context: context(decoded.value.snapshot_id) };
+      return { kind: "ready", data: toHistoryDetailView(decoded.value, runBoundLexemes(ex, [])), context: context(decoded.value.snapshot_id) };
     },
 
     async getHistoryEvidence(historyId: string, query: HistoryEvidenceQuery, signal?: AbortSignal): Promise<ProviderResult<EvidencePageView>> {

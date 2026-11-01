@@ -38,7 +38,7 @@ test("P3A-AUD-001 · contract-valid IDs reach the real Service as one canonical 
     await expect(notice.getByRole("heading", { level: 1 }), id).toContainText(id.trim());
     await net.settle();
     const sent = net.all.slice(before);
-    expect(sent.map((x) => x.pathAndQuery), id).toEqual([`/api/v1/verifications/${seg}`]);
+    expect(sent.map((x) => x.pathAndQuery), id).toEqual([`/api/v1/verifications/${seg}?phase3b=true`]);
     expect([sent[0]!.status, sent[0]!.server, sent[0]!.gate], id).toEqual([404, "uvicorn", null]);
     expect(JSON.parse(sent[0]!.body!).error.code, id).toBe("run_not_found");
     outcomes.push({ id, segment: seg, request: sent[0]!.pathAndQuery, status: sent[0]!.status, server: sent[0]!.server, code: "run_not_found" });

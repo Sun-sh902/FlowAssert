@@ -12,7 +12,7 @@ Nothing in either contract is edited or reinterpreted. The frozen copy (v1.schem
 """
 import hashlib, json, os
 
-SRC = "/Users/zhangshenghe/Documents/FlowAssert-Phase3A-Service/contracts/openapi-history-v1.yaml"
+SRC = "/Users/apple_sun/Documents/FlowAssert-Active/FlowAssert-Phase3A-Service/contracts/openapi-history-v1.yaml"
 EXPECTED = "f341d8d5ec9da1b933b06efe998c07a1045226500a6b5837e9c8a9ead74bd69f"
 FROZEN = "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230"
 UI = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

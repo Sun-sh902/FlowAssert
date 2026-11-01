@@ -216,6 +216,6 @@ describe("providers request exactly the canonical segment for a contract-valid I
       expect(await local.getVerification(id)).toMatchObject({ kind: "not_found" });
       expect(await local.getEvidence(id, { limit: 2 })).toMatchObject({ kind: "not_found" });
       const seg = encodeIdSegment(id);
-      expect(sent).toEqual([`/api/v1/verifications/${seg}`, `/api/v1/verifications/${seg}/evidence?limit=2&include_payload=true`]);
+      expect(sent).toEqual([`/api/v1/verifications/${seg}?phase3b=true`, `/api/v1/verifications/${seg}/evidence?limit=2&include_payload=true`]);
     });
 });

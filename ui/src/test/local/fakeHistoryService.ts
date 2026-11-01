@@ -7,9 +7,12 @@
  * evidence pages. Pagination, filter, snapshot pin and payload omission follow the handoff; cursors
  * here are fake and unsigned — the real HMAC cursors, restarts and SQLite archive are exercised against
  * the real Service by e2e-history/. Nothing in the app imports this file.
+ * As in the Service, the list and Detail exist twice: /api/v1/history/verifications… adds the Phase 3B fields, and
+ * /api/v1/history… is the frozen shape. A `phase3b` query key is refused on all of them.
  */
 import { readFileSync } from "node:fs";
 import { requiredFixture } from "../fixtures/sources";
+import { LEGACY_ADMISSION } from "./fakeService";
 
 /** The Service's own copy (service/contracts, in the accepted backend source map); FLOWASSERT_HISTORY_EXAMPLES overrides. */
 export const HISTORY_EXAMPLES = requiredFixture("FLOWASSERT_HISTORY_EXAMPLES", "service/contracts/history-examples.json");
@@ -78,8 +81,11 @@ export function fakeHistoryService(): FakeHistoryService {
     const i = intercepts.findIndex((x) => x.match(url));
     if (i >= 0) return intercepts.splice(i, 1)[0]!.respond(url);
     const q = url.searchParams;
+    if (q.has("phase3b")) return historyEnvelope("invalid_query", 400);
+    const extended = url.pathname.startsWith("/api/v1/history/verifications");
+    const path = extended ? url.pathname.replace("/history/verifications", "/history") : url.pathname;
 
-    if (url.pathname === "/api/v1/history") {
+    if (path === "/api/v1/history") {
       const limit = Number(q.get("limit") ?? "25");
       const filter = q.get("verification_id");
       const scoped = list.filter((x: { original_verification_id: string }) => filter === null || x.original_verification_id === filter);
@@ -91,11 +97,11 @@ export function fakeHistoryService(): FakeHistoryService {
         if (c.l !== limit || c.v !== filter) return historyEnvelope("cursor_query_conflict", 400);
         offset = c.o;
       }
-      const items = scoped.slice(offset, offset + limit);
+      const items = scoped.slice(offset, offset + limit).map((x: object) => (extended ? { ...x, ...LEGACY_ADMISSION } : x));
       const next = offset + limit < scoped.length ? enc({ o: offset + limit, l: limit, v: filter }) : null;
       return json({ contract_version: "phase3a-1.0.0", workspace_id: "ws-synthetic-01", items, page: { snapshot_id: `list_fake_${filter ?? "all"}_${limit}`, next_cursor: next, total: scoped.length } });
     }
-    const m = url.pathname.match(/^\/api\/v1\/history\/([^/]+)(\/evidence)?$/);
+    const m = path.match(/^\/api\/v1\/history\/([^/]+)(\/evidence)?$/);
     if (!m) return new Response("not found", { status: 404, headers: { "content-type": "text/plain" } });
     const id = decodeURIComponent(m[1]!);
     if (!/^hist_[a-f0-9]{64}$/.test(id)) return historyEnvelope("invalid_history_id", 422);
@@ -104,7 +110,7 @@ export function fakeHistoryService(): FakeHistoryService {
     const pinned = q.get("snapshot_id");
     if (!m[2]) {
       if (pinned !== null && pinned !== detail.snapshot_id) return historyEnvelope("history_snapshot_conflict", 409);
-      return json(JSON.parse(JSON.stringify(detail)));
+      return json({ ...(JSON.parse(JSON.stringify(detail)) as object), ...(extended ? LEGACY_ADMISSION : {}) });
     }
     const full = JSON.parse(JSON.stringify(evidence.get(id))) as { items: { payload: unknown; payload_reason: string | null; reference: { availability: string } }[]; page: unknown };
     const limit = Number(q.get("limit") ?? "25");

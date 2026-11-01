@@ -59,9 +59,9 @@ export function relativeTo(iso: string | null, reference: string | null, referen
  * Display text for a nullable workflow label. Presentation only: the view model keeps null, and
  * search never sees this fallback (src/lib/search.ts).
  */
-export function workflowLabelText(label: string | null): { text: string; fallback: boolean } {
-  if (label === null) return { text: "Workflow label unavailable", fallback: true };
-  if (label === "") return { text: "Workflow label empty", fallback: true };
+export function workflowLabelText(label: string | null | undefined): { text: string; fallback: boolean } {
+  if (label === null || label === undefined) return { text: "Workflow label unavailable", fallback: true };
+  if (label.trim() === "") return { text: "Workflow label empty", fallback: true };
   return { text: label, fallback: false };
 }
 

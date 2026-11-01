@@ -15,40 +15,43 @@ Baseline commit `phase3a-baseline` holds the accepted bytes. Identities: [docs/p
 
 ## Run it
 
-On a fresh clone run `scripts/dev/bootstrap.sh` once: it checks the tools (Node 20+, Python 3.14, a system
+On a fresh clone run `scripts/dev/bootstrap.sh` once: it checks the tools (Node 22.12+ in the 22.x line,
+24.x, or 26+; developed with 26.10; Python 3.14; a system
 Python 3 for the read-only checks), installs `ui/node_modules` from the lock file and `service/.venv` from
 `service/requirements.lock`, verifies the pinned identities and seeds the synthetic archives. Each stage names its
 failure and log.
 
 ```sh
-scripts/dev/seed.sh                 # synthetic SQLite archives dev-main (10), dev-single (5), dev-empty; verifies existing ones
-scripts/dev/service.sh              # Service on 127.0.0.1:8765   (FA_STATE=dev-empty for the empty archive)
+scripts/dev/seed.sh                 # synthetic SQLite archives dev-main (10), dev-single (5), dev-empty, dev-run-bound (6); verifies existing ones
+scripts/dev/service.sh              # Service on 127.0.0.1:8765   (FA_STATE=dev-single | dev-empty | dev-run-bound for the other archives)
 cd ui && npm run dev                # UI on http://127.0.0.1:5183
 ```
 
 | Page | Address | Data |
 | --- | --- | --- |
-| Overview | `#/` | Service archive (real) |
-| Verifications | `#/verifications` | Service archive (real); each case opens its live Detail |
+| Overview | `#/` | Service live results + archive (real) |
+| Verifications | `#/verifications` (also `#/local/verifications`) | Service live results + archive (real); each case opens its live Detail |
 | Verification Detail + Evidence | `#/local/verifications/SPEC-00N` | Service, live read |
-| History | `#/local/history` | Service archive (real) |
+| Detail by exact ID | `#/local/verification-lookup?verification_id=…` | Service, ID-lookup routes |
+| History | `#/local/history`, `#/local/history/:historyId` | Service archive (real) |
 | Capture runs | `#/capture` | not implemented — no action offered |
-| Connections, Rules, Settings | `#/connections` … | MOCK configuration demo |
+| Connections, Rules, Settings | `#/connections`, `#/rules`, `#/settings` | MOCK configuration demo |
 | Demo overview / runs | `#/demo`, `#/demo/verifications` | MOCK demo |
+| Interface states | `#/states` | simulated access states, never verdicts |
 
 Stop the Service with Ctrl-C. With it stopped, the workspace pages show *Service unavailable* — never demo data.
 
 ## Verify it
 
 ```sh
-/usr/bin/python3 -I -B scripts/dev/check_identities.py   # pinned Evaluator, frozen contracts, backend source map
+/usr/bin/python3 -I -B scripts/dev/check_identities.py   # pinned Evaluator, frozen contracts, current backend source map
 scripts/dev/regression.sh --portable NEW-LABEL            # self-contained gates: backend, identities, typecheck, lint, Vitest
-scripts/dev/regression.sh --product NEW-LABEL             # + Chrome/WebKit suites, CLS, responsive matrix (bootstrap.sh --product-harness)
-scripts/dev/regression.sh NEW-LABEL                       # release: every gate; logs, exit codes, evidence in .dev-runtime/regression/NEW-LABEL/
+scripts/dev/regression.sh --product NEW-LABEL             # + every Chrome/WebKit suite, CLS, responsive matrix (bootstrap.sh --product-harness)
+scripts/dev/regression.sh NEW-LABEL                       # release: + historical custody; logs, exit codes, evidence in .dev-runtime/regression/NEW-LABEL/
 ```
 
 Release acceptance requires the release profile. The product profile reads nothing outside this repository and lists
-historical custody, `e2e-lookup` and `e2e-local` as NOT RUN; see
+historical custody as NOT RUN; see
 [REGRESSION_PROFILES.md](docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md).
 
 A run writes only into its own git-ignored directory (`run-identity.tsv` names the commit). No gate writes into
@@ -56,16 +59,24 @@ A run writes only into its own git-ignored directory (`run-identity.tsv` names t
 it into `docs/` deliberately and commit it.
 
 Gate status is PASS, FAIL, BLOCKED or NOT RUN (outside the profile); a run with a BLOCKED gate exits 3 and is not a pass. Every test runner
-(pytest, Vitest, Playwright) is checked against `scripts/dev/test-inventory.json`, so a skipped, missing or unexecuted
-test fails the run. The browser gates need Google Chrome and Playwright WebKit (`cd ui && npx playwright install
-webkit`); `bootstrap.sh --harness` launches both and stops if either fails. Firefox is not run. Unit-test fixtures are
+(pytest, Vitest, Playwright) and the 200-cell responsive matrix are checked against `scripts/dev/test-inventory.json`, so a skipped, missing or unexecuted
+test or cell fails the run. The browser gates need Google Chrome and Playwright WebKit (`cd ui && npx playwright install
+webkit`); `bootstrap.sh --product-harness` and `bootstrap.sh --harness` launch both and stop if either fails. Firefox is not run. Unit-test fixtures are
 in the repository and identity-checked (`ui/src/test/fixtures/`, `service/contracts/`).
 
 Two checks need sources outside this repository:
 - **Protected-source custody** (`scripts/dev/protected_custody.sh`, gate `protected-custody`) compares the genuine
   accepted roots under `FLOWASSERT_PROTECTED_PARENT` (default: this checkout's parent); BLOCKED where they are absent.
-- **The accepted ID-lookup and Phase 2 browser suites** (`e2e-lookup`, `e2e-local`) need their isolated runtimes:
-  `scripts/dev/bootstrap.sh --harness`, which reads the accepted read-only sources at fixed absolute paths and stops
-  BLOCKED if they are absent. The history runtime, built from this workspace's own Service, needs only
-  `--product-harness`.
+- **The ID-lookup and frozen-route browser suites** (`e2e-lookup`, `e2e-local`) run on the same runtime as `e2e-history`:
+  the identity-checked copy of this workspace's Service, built by `scripts/dev/bootstrap.sh --product-harness`. They no
+  longer use the historical Service copies, which refuse `phase3b=true`.
   See [docs/product-dev/ROUND_01_REPORT.md](docs/product-dev/ROUND_01_REPORT.md).
+
+The current Service source identity is recorded separately in `scripts/dev/backend-current-identity.json`;
+its map differs from the historical Phase 3A acceptance after the backend remediation and the Phase 3B
+experimental fail-closed admission boundary ([service/docs/phase3b/EXPERIMENTAL_ADMISSION_BOUNDARY.md](service/docs/phase3b/EXPERIMENTAL_ADMISSION_BOUNDARY.md)).
+The UI reads the capture and admission fields the Service reports (`phase3b=true` on the two live Detail reads, and
+`/api/v1/history/verifications*` for the archive), admits them in `ui/src/data/local/phase3b.ts`, and shows them on their
+own status axes. They are the Service's own statements about a local synthetic run: never a verdict, and no proof of
+capture or authenticity outside this Service. The reviewed fixtures report *Not implemented*. The historical
+acceptance record is retained as evidence and does not confer acceptance on the modified code.

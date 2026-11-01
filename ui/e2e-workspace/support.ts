@@ -20,7 +20,7 @@ export const APP_ORIGIN = "http://127.0.0.1:5183";
 export const OUT = process.env.FA_WORKSPACE_EVIDENCE_DIR ?? join(UI, "test-results-evidence/e2e-workspace");
 export const SHOTS = process.env.FA_WORKSPACE_SCREENSHOT_DIR ?? join(UI, "test-results-evidence/e2e-workspace/screenshots");
 
-export type State = "dev-main" | "dev-single" | "dev-empty";
+export type State = "dev-main" | "dev-single" | "dev-empty" | "dev-run-bound";
 
 /**
  * Expected newest archived cohort result per case — the backend handoff's case table

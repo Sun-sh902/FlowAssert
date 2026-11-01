@@ -1,13 +1,14 @@
 /**
  * The workspace pages against the real local Service (../service), in a real browser (product rounds 01–02).
  * Expected cohort results are the backend handoff's case table (support.ts), never read from the UI.
- * States: dev-main (2 archived evaluations per case), dev-single (exactly 1 per case), dev-empty, and Service stopped.
+ * States: dev-main (2 archived evaluations per case), dev-single (exactly 1 per case), dev-empty, dev-run-bound (the newest
+ * SPEC-001 entry admitted by the Service from a real ExecutionCollector run), and Service stopped.
  */
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { APP_ORIGIN, CASES, EXPECTED_COHORT, SHOTS, custody, open, recordRequests, seals, startService, stopService, writeEvidence, type ServiceProcess, type State } from "./support.ts";
+import { APP_ORIGIN, CASES, EXPECTED_COHORT, SERVICE_ORIGIN, SHOTS, custody, open, recordRequests, seals, startService, stopService, writeEvidence, type ServiceProcess, type State } from "./support.ts";
 
 test.describe.configure({ mode: "serial" });
 
@@ -52,8 +53,8 @@ test.describe("archive: dev-main (2 archived evaluations per case)", () => {
     }
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("One case contradicts its source. Two cannot be concluded, one is still waiting, one is verified.");
     const api = seen.filter((r) => r.url.includes("/api/"));
-    expect(api.filter((r) => r.url.includes("/api/v1/history?")).length).toBe(3);
-    expect(api.filter((r) => r.url.includes("/api/v1/verifications/")).map((r) => r.url.replace(APP_ORIGIN, "")).sort()).toEqual(CASES.map((id) => `/api/v1/verifications/${id}`));
+    expect(api.filter((r) => r.url.includes("/api/v1/history/verifications?")).length).toBe(3);
+    expect(api.filter((r) => r.url.includes("/api/v1/verifications/")).map((r) => r.url.replace(APP_ORIGIN, "")).sort()).toEqual(CASES.map((id) => `/api/v1/verifications/${id}?phase3b=true`));
     expect(api.every((r) => r.method === "GET")).toBe(true);
     expect(api).toHaveLength(8);
     expect(notOwnOrigin(seen)).toEqual([]);
@@ -66,7 +67,7 @@ test.describe("archive: dev-main (2 archived evaluations per case)", () => {
     expect(real.status()).toBe(404);
     const body = await real.text();
     expect(JSON.parse(body).error.code).toBe("run_not_found");
-    await page.route(`${APP_ORIGIN}/api/v1/verifications/SPEC-003`, (route) => route.fulfill({ status: 404, headers: real.headers(), body }));
+    await page.route(`${APP_ORIGIN}/api/v1/verifications/SPEC-003?phase3b=true`, (route) => route.fulfill({ status: 404, headers: real.headers(), body }));
     await open(page, "#/");
     await expect(settledComparisons(page)).toHaveCount(5);
     await expect(page.locator('[data-case="SPEC-003"] [data-comparison]')).toHaveAttribute("data-comparison", "LIVE_MISSING");
@@ -114,8 +115,8 @@ test.describe("archive: dev-main (2 archived evaluations per case)", () => {
     await expect(page.getByText("Expected total", { exact: true }).locator("..")).toContainText("unknown");
     // The Detail reads its own case only: live Detail and evidence, this case's archive list, its candidates' archived Details.
     const api = seen.filter((r) => r.url.includes("/api/")).map((r) => r.url.replace(APP_ORIGIN, ""));
-    expect(api.filter((u) => !u.startsWith("/api/v1/verifications/SPEC-005") && !u.startsWith("/api/v1/history?limit=4&verification_id=SPEC-005") && !/^\/api\/v1\/history\/hist_[0-9a-f]{64}$/.test(u))).toEqual([]);
-    expect(api.filter((u) => u.startsWith("/api/v1/history/hist_"))).toHaveLength(2);
+    expect(api.filter((u) => !u.startsWith("/api/v1/verifications/SPEC-005") && !u.startsWith("/api/v1/history/verifications?limit=4&verification_id=SPEC-005") && !/^\/api\/v1\/history\/verifications\/hist_[0-9a-f]{64}$/.test(u))).toEqual([]);
+    expect(api.filter((u) => u.startsWith("/api/v1/history/verifications/hist_"))).toHaveLength(2);
   });
 
   test("History entry: archived axes, and a link to the case's current result", async ({ page }) => {
@@ -219,6 +220,84 @@ test.describe("archive: dev-single (exactly one archived evaluation per case)", 
       await settled(page);
       await page.screenshot({ path: join(SHOTS, "detail-SPEC-002-single-match-1440-light.png"), fullPage: true });
     }
+  });
+});
+
+test.describe("archive: dev-run-bound (one evaluation admitted from a real collector run)", () => {
+  test.beforeAll(async () => useState("dev-run-bound"));
+
+  const direct = async (path: string) => (await fetch(`${SERVICE_ORIGIN}${path}`)).text();
+  /** The Service's own statement, and the exact lexemes of its monotonic readings. */
+  async function admittedEntry() {
+    const items = (JSON.parse(await direct("/api/v1/history/verifications?verification_id=SPEC-001&limit=100")) as { items: { history_id: string; admission_status: string }[] }).items;
+    const hid = items.find((x) => x.admission_status === "ADMITTED_RUN_BOUND")!.history_id;
+    const text = await direct(`/api/v1/history/verifications/${hid}`);
+    return { hid, count: items.length, detail: JSON.parse(text) as { capture_status: string; run_bound_metadata: { run_id: string; source_basis_sha256: string }; run: { result: { source_basis_sha256: string } } }, started: /"started_mono_ns":(\d+)/.exec(text)![1]! };
+  }
+
+  test("the Service itself reports the outcome; the frozen reads stay stripped; live fixtures stay not implemented", async () => {
+    const { hid, detail } = await admittedEntry();
+    expect(detail.capture_status).toBe("CAPTURED_COMPLETE");
+    expect(detail.run_bound_metadata.source_basis_sha256).toBe(detail.run.result.source_basis_sha256);
+    expect(await direct(`/api/v1/history/${hid}`)).not.toContain("capture_status");
+    expect(JSON.parse(await direct("/api/v1/verifications/SPEC-001?phase3b=true"))).toMatchObject({ capture_status: "CAPTURE_NOT_IMPLEMENTED", admission_status: "ADMISSION_NOT_IMPLEMENTED" });
+    expect(await direct("/api/v1/verifications/SPEC-001")).not.toContain("capture_status");
+  });
+
+  test("History: the admitted entry carries the outcome, its sibling nothing; the app asked the Phase 3B route", async ({ page }) => {
+    const { hid, count } = await admittedEntry();
+    const seen = recordRequests(page);
+    await open(page, "#/local/history?case=SPEC-001");
+    const rows = page.locator('[data-history-layout="wide"] tr[data-history-id]');
+    await expect(rows).toHaveCount(count);
+    await expect(page.locator(`[data-history-layout="wide"] tr[data-history-id="${hid}"] [data-axis-outcome="ADMITTED_RUN_BOUND"]`)).toBeVisible();
+    await expect(page.locator('[data-history-layout="wide"] [data-axis-outcome]')).toHaveCount(1);
+    expect(seen.some((r) => r.url === `${APP_ORIGIN}/api/v1/history/verifications?limit=4&verification_id=SPEC-001`)).toBe(true);
+    await settled(page);
+    expect(await axe(page)).toEqual([]);
+  });
+
+  test("History entry: the four axes, the exact reported run, no verdict or coral styling, and no accessibility violation", async ({ page }) => {
+    const { hid, detail, started } = await admittedEntry();
+    for (const theme of ["light", "dark"] as const) {
+      await open(page, `#/local/history/${hid}`, theme);
+      const axes = page.locator("[data-status-axes]");
+      await expect(axes.locator('[data-axis="capture"] [data-axis-outcome="CAPTURED_COMPLETE"]')).toHaveText("Captured · complete");
+      await expect(axes.locator('[data-axis="admission"] [data-axis-outcome="ADMITTED_RUN_BOUND"]')).toHaveText("Admitted · run-bound");
+      await expect(axes.locator('[data-axis="verdict"] .fa-seal')).toHaveAttribute("data-s", "Verified");
+      const run = page.locator("[data-run-bound]");
+      await expect(run).toContainText(detail.run_bound_metadata.run_id);
+      await expect(run).toContainText(started);
+      await expect(run).toContainText("verifier_work_completedtrue");
+      const own = await axes.locator("[data-axis-outcome]").first().evaluate((el) => getComputedStyle(el).color);
+      const token = await page.evaluate((names) => names.map((n) => {
+        const probe = document.createElement("span");
+        probe.style.color = `var(${n})`;
+        document.body.append(probe);
+        const c = getComputedStyle(probe).color;
+        probe.remove();
+        return c;
+      }), ["--fa-brand-ink", "--fa-mismatch-ink", "--fa-mismatch", "--fa-verified-ink"]);
+      expect(own).toBe(token[0]);
+      expect(token.slice(1)).not.toContain(own);
+      await settled(page);
+      expect(await axe(page)).toEqual([]);
+      await axes.screenshot({ path: join(SHOTS, `run-bound-entry-${theme}.png`) });
+      await page.setViewportSize({ width: 375, height: 800 });
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+      await axes.screenshot({ path: join(SHOTS, `run-bound-entry-${theme}-375.png`) });
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
+  });
+
+  test("Verifications and Overview: an archived outcome stays with its archived verdict; the live axes stay the live evaluation's", async ({ page }) => {
+    await open(page, "#/verifications");
+    const row = page.locator('[data-case-table] [data-case="SPEC-001"]');
+    await expect(row.locator('[data-axis-outcome="ADMITTED_RUN_BOUND"]')).toBeVisible();
+    await expect(row.locator("[data-axis-na]")).toHaveCount(2);
+    await expect(page.locator('[data-case-table] [data-case="SPEC-002"] [data-axis-outcome]')).toHaveCount(0);
+    await open(page, "#/");
+    await expect(page.locator("[data-reported-outcomes]")).toHaveText(/1 of 5 cases report an outcome/);
   });
 });
 

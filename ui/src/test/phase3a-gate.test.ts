@@ -132,7 +132,7 @@ describe("decision table", () => {
   // ID-addressability remediation-03: the Owner-authorized allowlist is the five accepted operations plus exactly the
   // two additive exact-ID lookup operations (still an exact list; see src/test/lookup-gate.test.ts).
   it("forwards exactly the seven documented operations", () =>
-    expect(ROUTES.map((r) => r.name)).toEqual(["verification", "verification-evidence", "history-list", "history-detail", "history-evidence", "verification-lookup", "verification-lookup-evidence"]));
+    expect(ROUTES.map((r) => r.name)).toEqual(["verification", "verification-evidence", "history-list", "history-detail", "history-evidence", "history-verifications", "history-verification-detail", "verification-lookup", "verification-lookup-evidence"]));
 });
 
 /* ---------- Real sockets: gate + stub upstream ---------- */

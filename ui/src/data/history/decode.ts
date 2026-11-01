@@ -15,12 +15,16 @@
  *   failure — never as success and never as a verdict.
  * The archived run is admitted with the accepted Phase 2 decoder (decodeVerificationRun) against the
  * original verification ID and the ORIGINAL snapshot (run.snapshot_id), the two namespaces kept apart.
+ * Phase 3B additive fields (list items and Detail) are set aside before the closed schema and admitted by
+ * ../local/phase3b.ts; on a Detail the digests of an admission are compared with the archived run's own.
  */
 import contract from "../contract/history.schemas.json";
 import type { HistoryDetailDTO, HistoryEvidencePageDTO, HistoryIntegrityDTO, HistoryListDTO, HistorySummaryDTO } from "../contract/history";
+import type { WithPhase3B } from "../contract/phase3b";
 import type { ErrorDTO } from "../contract/v1";
 import { ACCEPTED_EVALUATOR } from "../local/config";
 import { decodeVerificationRun } from "../local/decode";
+import { phase3bProblems, phase3bSplit } from "../local/phase3b";
 import { createSchemaValidator, stableJson } from "../local/schema";
 import { HISTORY_SCOPE } from "./config";
 
@@ -29,6 +33,9 @@ export const validateHistorySchema = createSchemaValidator(contract.schemas as u
 export const HISTORY_SCHEMA_SOURCE = { file: contract.source, sha256: contract.source_sha256, contractVersion: contract.contract_version, count: Object.keys(contract.schemas).length };
 
 export type IntegrityOutcome = "INTEGRITY_FAILED" | "INTEGRITY_UNVERIFIABLE";
+/** The list body with each item's additive fields, as admitted. */
+export type HistoryListWithPhase3B = Omit<HistoryListDTO, "items"> & { items: WithPhase3B<HistorySummaryDTO>[] };
+
 export type HistoryDecoded<T> = { ok: true; value: T } | { ok: false; code: string; problems: string[]; integrity?: IntegrityOutcome };
 
 const refuse = <T>(code: string, problems: string[], integrity?: IntegrityOutcome): HistoryDecoded<T> => ({ ok: false, code, problems, ...(integrity ? { integrity } : {}) });
@@ -66,10 +73,12 @@ function summaryProblems(s: HistorySummaryDTO, at: string): HistoryDecoded<never
 }
 
 /** Decode a 200 body of GET /api/v1/history for one exact request. */
-export function decodeHistoryList(json: unknown, request: { limit: number; verificationId?: string }): HistoryDecoded<HistoryListDTO> {
-  const bad = schemaOrRefuse<HistoryListDTO>("HistoryList", json);
+export function decodeHistoryList(json: unknown, request: { limit: number; verificationId?: string }): HistoryDecoded<HistoryListWithPhase3B> {
+  const body = json as { items?: unknown } | null;
+  const items = typeof body === "object" && body !== null && Array.isArray(body.items) ? body.items.map(phase3bSplit) : null;
+  const bad = schemaOrRefuse<HistoryListWithPhase3B>("HistoryList", items ? { ...body, items: items.map((x) => x.frozen) } : json);
   if (bad) return bad;
-  const list = json as HistoryListDTO;
+  const list = json as HistoryListWithPhase3B;
   if (list.items.length > request.limit) return refuse("page_conflict", [`${list.items.length} items exceed limit ${request.limit}`]);
   if (list.page.next_cursor === "") return refuse("page_conflict", ["next_cursor is an empty string"]);
   if (list.page.total < list.items.length) return refuse("page_conflict", [`page.total ${list.page.total} is smaller than the ${list.items.length} entries returned`]);
@@ -84,15 +93,18 @@ export function decodeHistoryList(json: unknown, request: { limit: number; verif
     if (binding) return binding;
     const other = summaryProblems(item, at);
     if (other) return other;
+    const status = phase3bProblems(items![i]!.fields, at);
+    if (status.length) return refuse("phase3b_status_conflict", status);
   }
   return { ok: true, value: list };
 }
 
 /** Decode a 200 body of GET /api/v1/history/{history_id}. */
-export function decodeHistoryDetail(json: unknown, request: { historyId: string; snapshotId?: string }): HistoryDecoded<HistoryDetailDTO> {
-  const bad = schemaOrRefuse<HistoryDetailDTO>("HistoryDetail", json);
+export function decodeHistoryDetail(json: unknown, request: { historyId: string; snapshotId?: string }): HistoryDecoded<WithPhase3B<HistoryDetailDTO>> {
+  const { frozen, fields } = phase3bSplit(json);
+  const bad = schemaOrRefuse<WithPhase3B<HistoryDetailDTO>>("HistoryDetail", frozen);
   if (bad) return bad;
-  const d = json as HistoryDetailDTO;
+  const d = json as WithPhase3B<HistoryDetailDTO>;
   if (d.history_id !== request.historyId) return refuse("identity_conflict", [`history_id is ${d.history_id}, requested ${request.historyId}`]);
   if (request.snapshotId !== undefined && d.snapshot_id !== request.snapshotId) return refuse("snapshot_conflict", [`snapshot_id is ${d.snapshot_id}, pinned ${request.snapshotId}`]);
   const binding = recordBinding(d, "");
@@ -117,6 +129,8 @@ export function decodeHistoryDetail(json: unknown, request: { historyId: string;
   const r = run.result;
   const fromRun = { cohort_state: r.cohort_state, counts: r.counts, expected_total: r.expected_total, source_population_known: r.source_population_known };
   if (stableJson(fromRun) !== stableJson(d.result_summary)) return refuse("summary_conflict", [`result_summary ${stableJson(d.result_summary)} differs from the archived run.result ${stableJson(fromRun)}`]);
+  const status = phase3bProblems(fields, "", r);
+  if (status.length) return refuse("phase3b_status_conflict", status);
   return { ok: true, value: d };
 }
 

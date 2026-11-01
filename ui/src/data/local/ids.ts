@@ -131,7 +131,7 @@ export function decodeStrictQuery(query: string, allowed: readonly string[], can
   for (const pair of query.split("&")) {
     const eq = pair.indexOf("=");
     const name = eq === -1 ? pair : pair.slice(0, eq);
-    if (eq === -1 || !/^[a-z_]+$/.test(name)) return { ok: false, reason: `malformed query pair ${JSON.stringify(pair.slice(0, 64))}` };
+    if (eq === -1 || !/^[a-z][a-z0-9_]*$/.test(name)) return { ok: false, reason: `malformed query pair ${JSON.stringify(pair.slice(0, 64))}` };
     if (!allowed.includes(name)) return { ok: false, reason: `query key ${name} is not accepted here` };
     if (params.has(name)) return { ok: false, reason: `query key ${name} is repeated` };
     const written = pair.slice(eq + 1);

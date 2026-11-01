@@ -25,8 +25,8 @@ const EXPECTED = {
 
 describe("wire requests", () => {
   it("use the frozen snake_case names, encode opaque values and add nothing else", () => {
-    expect(verificationUrl("SPEC-001")).toBe("/api/v1/verifications/SPEC-001");
-    expect(verificationUrl("A/B C", "snap 1&x")).toBe("/api/v1/verifications/A%2FB%20C?snapshot_id=snap+1%26x");
+    expect(verificationUrl("SPEC-001")).toBe("/api/v1/verifications/SPEC-001?phase3b=true");
+    expect(verificationUrl("A/B C", "snap 1&x")).toBe("/api/v1/verifications/A%2FB%20C?snapshot_id=snap+1%26x&phase3b=true");
     const u = new URL(evidenceUrl("SPEC-001", { snapshotId: "s-1", limit: 2, includePayload: false, cursor: "ab+/=" }), "http://x");
     expect([...u.searchParams.keys()]).toEqual(["snapshot_id", "limit", "include_payload", "cursor"]);
     expect(u.searchParams.get("include_payload")).toBe("false");
@@ -43,7 +43,7 @@ describe("wire requests", () => {
       }) as typeof fetch,
     });
     await p.getVerification("SPEC-404");
-    expect(seen[0]!.url).toBe("/api/v1/verifications/SPEC-404");
+    expect(seen[0]!.url).toBe("/api/v1/verifications/SPEC-404?phase3b=true");
     expect(seen[0]!.init).toMatchObject({ method: "GET", credentials: "omit", redirect: "error", cache: "no-store" });
   });
 

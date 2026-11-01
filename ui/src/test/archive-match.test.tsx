@@ -32,7 +32,7 @@ describe("ArchiveMatchPanel", () => {
     expect(link.hash).toBe(`#/local/history/${FIRST_BATCH["SPEC-005"]}`);
     await waitFor(() => expect(document.querySelector("[data-result-relation]")!.getAttribute("data-result-relation")).toBe("identical"));
     expect(document.body.textContent).toContain("record check · service");
-    expect(svc.log).toEqual([`/api/v1/history/${FIRST_BATCH["SPEC-005"]}`]);
+    expect(svc.log).toEqual([`/api/v1/history/verifications/${FIRST_BATCH["SPEC-005"]}`]);
   });
 
   it("several exact matches: all listed in archive order, none chosen; a candidate that cannot be retrieved says so", async () => {
@@ -53,7 +53,7 @@ describe("ArchiveMatchPanel", () => {
     const one = (await entriesOf("SPEC-003")).filter((e) => e.historyId === FIRST_BATCH["SPEC-003"]);
     const svc = fakeHistoryService();
     svc.intercept(
-      (u) => u.pathname === `/api/v1/history/${FIRST_BATCH["SPEC-003"]}`,
+      (u) => u.pathname === `/api/v1/history/verifications/${FIRST_BATCH["SPEC-003"]}`,
       () => historyEnvelope("archive_integrity_failed", 503, [{ path: "run", code: "INTEGRITY_FAILED" }]),
     );
     render(<ArchiveMatchPanel live={live} entries={one} provider={createLocalHistoryProvider({ fetch: svc.fetch })} />);

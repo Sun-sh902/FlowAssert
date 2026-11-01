@@ -100,7 +100,7 @@ def error(response, status=400, code='invalid_cursor'):
 
 @pytest.fixture
 def client():
-    with TestClient(create_app()) as current:
+    with TestClient(create_app(), base_url='http://127.0.0.1:8765') as current:
         yield current
 
 
@@ -397,10 +397,10 @@ class FixedClock:
 @pytest.mark.parametrize('legacy', [False, True])
 def test_legacy_and_v2_survive_same_snapshot_lifespan_restart(legacy):
     with patch('app.adapter.datetime', FixedClock):
-        with TestClient(create_app()) as first:
+        with TestClient(create_app(), base_url='http://127.0.0.1:8765') as first:
             snapshot = first.app.state.catalog.snapshot
             token = sign(token_body('SPEC-001', snapshot, legacy=legacy), first.app.state.catalog._key)
-        with TestClient(create_app()) as second:
+        with TestClient(create_app(), base_url='http://127.0.0.1:8765') as second:
             assert second.app.state.catalog.snapshot == snapshot
             response = evidence(second, cursor=token, limit=1)
             assert response.status_code == 200
@@ -411,10 +411,10 @@ def test_legacy_and_v2_survive_same_snapshot_lifespan_restart(legacy):
 @pytest.mark.parametrize('legacy', [False, True])
 def test_legacy_and_v2_remain_authentic_after_unavailable_snapshot_restart(legacy):
     with patch('app.adapter.datetime', FixedClock):
-        with TestClient(create_app()) as first:
+        with TestClient(create_app(), base_url='http://127.0.0.1:8765') as first:
             snapshot = first.app.state.catalog.snapshot
             token = sign(token_body('SPEC-001', snapshot, legacy=legacy), first.app.state.catalog._key)
-    with TestClient(create_app()) as second:
+    with TestClient(create_app(), base_url='http://127.0.0.1:8765') as second:
         assert second.app.state.catalog.snapshot != snapshot
         error(evidence(second, cursor=token, limit=1), 409, 'snapshot_unavailable')
         error(evidence(second, cursor=token, limit=1, snapshot_id=snapshot), 409, 'snapshot_unavailable')

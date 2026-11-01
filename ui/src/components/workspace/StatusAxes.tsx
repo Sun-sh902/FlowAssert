@@ -1,6 +1,7 @@
 /**
  * The four status axes (src/domain/statusAxes.ts), drawn so they cannot be mistaken for one another:
- *   Capture / Admission  — a dashed empty frame: "not implemented" is a fact about this build, not a state of a record
+ *   Capture / Admission  — a dashed empty frame when nothing is recorded; a ruled mark (AxisMarks.tsx) for an outcome the
+ *                          Service reported, with no verdict colour
  *   Archive              — the integrity vocabulary (linked evidence squares), never a verdict colour
  *   Evaluator verdict    — the verdict Seal, only when a Python result was copied; otherwise "No verdict"
  *                          in plain mono — never the Unverified hatch.
@@ -8,16 +9,7 @@
 import { useEffect, type ReactNode } from "react";
 import { isHistoryCaseFilter } from "../../data/history/config";
 import { getHistoryProvider, type FlowAssertHistoryProvider } from "../../data/provider";
-import {
-  ADMISSION_NOT_IMPLEMENTED,
-  CAPTURE_NOT_IMPLEMENTED,
-  archiveAxisOf,
-  type AdmissionAxis,
-  type ArchiveAxis,
-  type CaptureAxis,
-  type StatusAxes,
-  type VerdictAxis,
-} from "../../domain/statusAxes";
+import { archiveAxisOf, deriveAdmissionAxis, deriveCaptureAxis, type ArchiveAxis, type Phase3BView, type RunBoundMetadataView, type StatusAxes, type VerdictAxis } from "../../domain/statusAxes";
 import { cn } from "../../lib/cn";
 import { formatDateTime, plural } from "../../lib/format";
 import { href } from "../../lib/router";
@@ -25,6 +17,7 @@ import { useHistoryList } from "../../lib/useHistoryList";
 import type { RunView } from "../../domain/view";
 import { Panel } from "../ui/primitives";
 import { ArchiveMatchPanel } from "./ArchiveMatch";
+import { CaptureValue, axisNote } from "./AxisMarks";
 import { shortHistoryId } from "../history/HistoryRows";
 import { serviceIntegrityState } from "../../domain/integrity";
 import { IntegrityTag } from "../integrity/Integrity";
@@ -37,18 +30,6 @@ export const AXIS_LABEL = {
   verdict: "Evaluator verdict",
 } as const;
 
-/** A dashed, empty frame: nothing exists to have a state. */
-function NotImplementedMark({ children = "Not implemented" }: { children?: ReactNode }) {
-  return (
-    <span data-axis-na className="inline-flex h-[22px] items-center whitespace-nowrap gap-1.5 rounded-xs border border-dashed border-line-strong px-1.5 font-mono text-[10.5px] tracking-[0.06em] text-ink-3 uppercase">
-      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
-        <rect x="1" y="1" width="8" height="8" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" strokeDasharray="1.6 1.4" />
-      </svg>
-      {children}
-    </span>
-  );
-}
-
 /** "No verdict": deliberately not a seal, not a state colour, not the Unverified hatch. */
 export function NoVerdictMark() {
   return (
@@ -57,10 +38,6 @@ export function NoVerdictMark() {
       No verdict
     </span>
   );
-}
-
-export function CaptureValue({ axis }: { axis: CaptureAxis | AdmissionAxis }) {
-  return axis.kind === "NOT_IMPLEMENTED" ? <NotImplementedMark /> : null;
 }
 
 export function ArchiveValue({ axis, compact = false }: { axis: ArchiveAxis; compact?: boolean }) {
@@ -145,11 +122,49 @@ function archiveNote(axis: ArchiveAxis): string {
   }
 }
 
+/** Two reported monotonic readings apart. Never wall time; a negative span is shown, not corrected. */
+function elapsedText(ns: string | null): string {
+  if (ns === null) return "not stated exactly";
+  return ns.startsWith("-") ? `${ns} ns · completed before started` : `${ns} ns (${(Number(ns) / 1e6).toFixed(3)} ms)`;
+}
+
+/** The reported execution context of a run-bound evaluation. Copied; the digests are stated, not recomputed here. */
+function RunBoundFacts({ meta }: { meta: RunBoundMetadataView }) {
+  const rows: [string, string][] = [
+    ["run_id", meta.runId],
+    ["execution_cwd_sha256", meta.executionCwdSha256],
+    ["source_basis_sha256", meta.sourceBasisSha256],
+    ["rule_basis_sha256", meta.ruleBasisSha256],
+    ["started_mono_ns", meta.startedMonoNs ?? "not stated exactly"],
+    ["completed_mono_ns", meta.completedMonoNs ?? "not stated exactly"],
+    ["elapsed · monotonic", elapsedText(meta.elapsedNs)],
+    ["verifier_work_completed", String(meta.verifierWorkCompleted)],
+    ["outer_exit_status", meta.outerExitStatus === null ? "null" : String(meta.outerExitStatus)],
+    ["subprocess_failures", String(meta.subprocessFailures)],
+  ];
+  return (
+    <section aria-labelledby="run-bound-h" className="mt-5" data-run-bound>
+      <h3 id="run-bound-h" className="kicker mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span>Run-bound execution</span>
+        <span className="text-ink-3">reported by the Service · monotonic clock, not wall time</span>
+      </h3>
+      <dl className="fa-ledger grid gap-x-8 text-[12.5px] md:grid-cols-2">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex min-w-0 items-baseline justify-between gap-4 border-b border-line-subtle py-[6px]">
+            <dt className="shrink-0 font-mono text-[10.5px] text-ink-3">{k}</dt>
+            <dd className="min-w-0 text-right font-mono text-[11px] break-all text-ink">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 /** The four axes as a ruled strip: one column per question, each answering only its own. */
-export function StatusAxesLedger({ axes, className }: { axes: StatusAxes; className?: string }) {
+export function StatusAxesLedger({ axes, runBound = null, className }: { axes: StatusAxes; runBound?: RunBoundMetadataView | null; className?: string }) {
   const cols: { key: keyof StatusAxes; n: string; value: ReactNode; note: string }[] = [
-    { key: "capture", n: "01", value: <CaptureValue axis={axes.capture} />, note: axes.capture.basis },
-    { key: "admission", n: "02", value: <CaptureValue axis={axes.admission} />, note: axes.admission.basis },
+    { key: "capture", n: "01", value: <CaptureValue axis={axes.capture} />, note: axisNote(axes.capture) },
+    { key: "admission", n: "02", value: <CaptureValue axis={axes.admission} />, note: axisNote(axes.admission) },
     { key: "archive", n: "03", value: <ArchiveValue axis={axes.archive} />, note: archiveNote(axes.archive) },
     { key: "verdict", n: "04", value: <VerdictValue axis={axes.verdict} />, note: verdictSourceText(axes.verdict) },
   ];
@@ -185,6 +200,7 @@ export function StatusAxesLedger({ axes, className }: { axes: StatusAxes; classN
           </div>
         ))}
       </dl>
+      {runBound && <RunBoundFacts meta={runBound} />}
     </section>
   );
 }
@@ -192,8 +208,8 @@ export function StatusAxesLedger({ axes, className }: { axes: StatusAxes; classN
 /* ---------- The four axes of one case, with its archive axis read from the Service ---------- */
 
 /**
- * For a Verification Detail: capture and admission are build facts, the verdict is the live result the page already
- * read, and the archive axis is read here — this case's archive entries, every page under one list view. The same
+ * For a Verification Detail: the verdict, capture and admission all belong to the live result the page already read
+ * (an archived evaluation states its own on its History entry), and the archive axis is read here — this case's archive entries, every page under one list view. The same
  * read feeds the exact Detail → Archive match (ArchiveMatchPanel) when the live result is given. IDs the archive
  * contract cannot address (it admits only the reviewed case IDs) send no request.
  */
@@ -210,12 +226,13 @@ export function CaseStatusAxes({
   provider?: Pick<FlowAssertHistoryProvider, "listHistory" | "getHistory">;
   className?: string;
 }) {
-  const axes = (archive: ArchiveAxis): StatusAxes => ({ capture: CAPTURE_NOT_IMPLEMENTED, admission: ADMISSION_NOT_IMPLEMENTED, archive, verdict });
+  const facts: Phase3BView | null = live?.phase3b ?? null;
+  const axes = (archive: ArchiveAxis): StatusAxes => ({ capture: deriveCaptureAxis(facts), admission: deriveAdmissionAxis(facts), archive, verdict });
   if (!isHistoryCaseFilter(id)) {
     const reason = "The archive contract addresses only the five reviewed case IDs. No archive request was sent for this ID.";
     return (
       <div className={cn("grid gap-6", className)} data-archive-list="settled">
-        <StatusAxesLedger axes={axes({ axis: "archive", kind: "NOT_ADDRESSABLE", reason })} />
+        <StatusAxesLedger axes={axes({ axis: "archive", kind: "NOT_ADDRESSABLE", reason })} runBound={facts?.runBound} />
         {live && <MatchUnavailable title="Archive matching not available" body={reason} />}
       </div>
     );
@@ -281,7 +298,7 @@ function ArchivedCaseAxes({
   const listSettled = status === "complete" || status === "failed" || status === "refused" || status === "cancelled";
   return (
     <div className={cn("grid gap-6", className)} data-archive-list={listSettled ? "settled" : "pending"}>
-      <StatusAxesLedger axes={axes(archive)} />
+      <StatusAxesLedger axes={axes(archive)} runBound={live?.phase3b?.runBound} />
       {match}
     </div>
   );

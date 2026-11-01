@@ -8,6 +8,7 @@ from fastapi import Request
 from .identity import ROOT, ServiceError, checked_bytes
 from .lookup_contract import CONTRACT_SHA256
 from .models import EvidencePage, VerificationRun
+from .admission_serialization import public_live_run
 
 DETAIL = '/api/v1/verification-lookup'
 EVIDENCE = '/api/v1/verification-evidence'
@@ -34,12 +35,14 @@ def lookup_query(request, evidence=False):
                          max_num_fields=5, separator='&')
     except (ValueError, UnicodeError):
         raise ServiceError(400, 'invalid_query') from None
-    allowed = {'verification_id', 'snapshot_id'}
+    allowed = {'verification_id', 'snapshot_id'} | (set() if evidence else {'phase3b'})
     if evidence:
         allowed |= {'limit', 'cursor', 'include_payload'}
     if any(k not in allowed for k, _ in pairs) or len({k for k, _ in pairs}) != len(pairs):
         raise ServiceError(400, 'invalid_query')
     q = dict(pairs)
+    if 'phase3b' in q and q.pop('phase3b') not in ('true', 'false'):
+        raise ServiceError(422, 'invalid_parameter')
     identity = q.pop('verification_id', '')
     if not 1 <= len(identity) <= 128:
         raise ServiceError(422, 'invalid_parameter')
@@ -107,7 +110,7 @@ def add_verification_lookup(app, allowed_origins):
         identity, params = lookup_query(request)
         data = catalog(request).read(identity, **params)['run']
         VerificationRun.model_validate(data)
-        return data
+        return public_live_run(data) if request.query_params.get('phase3b') == 'true' else data
 
     @app.get(EVIDENCE)
     def lookup_evidence(request: Request):

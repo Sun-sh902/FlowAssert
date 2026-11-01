@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ROUTES } from "../../server/localApiGate.ts";
+import { PHASE3B_FLAG } from "../data/contract/phase3b";
 import frozenCopy from "../data/contract/v1.schemas.json";
 import { LOOKUP_BOUNDS, LOOKUP_CONTRACT_SHA256, LOOKUP_CONTRACT_VERSION, LOOKUP_PATHS, LOOKUP_QUERY } from "../data/contract/lookup";
 import { lookupEvidenceUrl, lookupUrl } from "../data/local/provider";
@@ -51,7 +52,9 @@ export function lookupDrift(doc: Doc, frozen: Doc): string[] {
     const names = params.map((x) => x.name);
     if (JSON.stringify(names) !== JSON.stringify(LOOKUP_QUERY[op])) p.push(`${path}: query keys ${names.join(",")}`);
     const gate = ROUTES.find((r) => r.pattern.test(path));
-    if (!gate || JSON.stringify([...gate.query].sort()) !== JSON.stringify([...names].sort())) p.push(`${path}: gate query keys differ`);
+    // The Phase 3B flag is additive to this frozen contract, on the Detail read only (src/data/contract/phase3b.ts).
+    const gateKeys = gate?.query.filter((k) => !(op === "detail" && k === PHASE3B_FLAG.name)) ?? [];
+    if (!gate || JSON.stringify([...gateKeys].sort()) !== JSON.stringify([...names].sort())) p.push(`${path}: gate query keys differ`);
     for (const x of params) {
       if (x.in !== "query" || x.style !== "form" || x.explode !== true || x.allowReserved !== false) p.push(`${path} ${x.name}: not a plain form query parameter`);
       if (x.required !== (x.name === "verification_id")) p.push(`${path} ${x.name}: required is ${x.required}`);
@@ -106,7 +109,7 @@ describe("additive exact-ID query contract vs frontend addressing", () => {
     const e = new URL(lookupEvidenceUrl("x", { snapshotId: "s", limit: 1, includePayload: true, cursor: "c" }), "http://h");
     expect(d.pathname).toBe(LOOKUP_PATHS.detail);
     expect(e.pathname).toBe(LOOKUP_PATHS.evidence);
-    expect([...d.searchParams.keys()].sort()).toEqual([...LOOKUP_QUERY.detail].sort());
+    expect([...d.searchParams.keys()].sort()).toEqual([...LOOKUP_QUERY.detail, PHASE3B_FLAG.name].sort());
     expect([...e.searchParams.keys()].sort()).toEqual([...LOOKUP_QUERY.evidence].sort());
   });
 

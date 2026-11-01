@@ -6,14 +6,17 @@
  * records, rule outcomes, record order, evidence references and times are exactly the archived ones.
  * Nothing here imports the demo fixtures, the demo clock, the demo store or the MOCK adapter.
  */
-import type { HistoryDetailDTO, HistoryIntegrityDTO, HistoryItemDTO, HistoryListDTO, HistorySummaryDTO } from "../data/contract/history";
+import type { HistoryDetailDTO, HistoryIntegrityDTO, HistoryItemDTO, HistorySummaryDTO } from "../data/contract/history";
+import type { WithPhase3B } from "../data/contract/phase3b";
+import type { HistoryListWithPhase3B } from "../data/history/decode";
 import type { EvidenceReferenceView } from "../domain/evidence";
 import type { HistoryDetailView, HistoryListPageView, HistorySummaryView, ServiceIntegrityView } from "../domain/history";
+import { toPhase3BView, type MonoLexemes } from "./phase3bToView";
 import { toEvidenceReferenceView, wireToRunView } from "./wireToView";
 
 export const toServiceIntegrity = (i: HistoryIntegrityDTO): ServiceIntegrityView => ({ status: i.status, checkedSha256: i.checked_sha256, scope: i.content_scope });
 
-export function toHistorySummaryView(s: HistorySummaryDTO): HistorySummaryView {
+export function toHistorySummaryView(s: WithPhase3B<HistorySummaryDTO>, lexemes?: MonoLexemes): HistorySummaryView {
   return {
     contractVersion: s.contract_version,
     historyId: s.history_id,
@@ -44,16 +47,17 @@ export function toHistorySummaryView(s: HistorySummaryDTO): HistorySummaryView {
       populationKnown: s.result_summary.source_population_known,
     },
     integrity: toServiceIntegrity(s.integrity),
+    phase3b: toPhase3BView(s, lexemes),
   };
 }
 
-export function toHistoryListPageView(list: HistoryListDTO): HistoryListPageView {
-  return { items: list.items.map(toHistorySummaryView), listSnapshotId: list.page.snapshot_id, nextCursor: list.page.next_cursor, total: list.page.total };
+export function toHistoryListPageView(list: HistoryListWithPhase3B, lexemes?: (index: number) => MonoLexemes): HistoryListPageView {
+  return { items: list.items.map((item, i) => toHistorySummaryView(item, lexemes?.(i))), listSnapshotId: list.page.snapshot_id, nextCursor: list.page.next_cursor, total: list.page.total };
 }
 
-export function toHistoryDetailView(d: HistoryDetailDTO): HistoryDetailView {
+export function toHistoryDetailView(d: WithPhase3B<HistoryDetailDTO>, lexemes?: MonoLexemes): HistoryDetailView {
   const { run, ...summary } = d;
-  return { ...toHistorySummaryView(summary), run: wireToRunView(run) };
+  return { ...toHistorySummaryView(summary, lexemes), run: wireToRunView(run) };
 }
 
 /** One archived evidence item, with its payload outcome supplied by the provider. */

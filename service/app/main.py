@@ -7,6 +7,8 @@ from .identity import ServiceError
 from .service import Catalog
 from .validation import SPEC
 from .models import VerificationRun, EvidencePage
+from .local_boundary import local_request_error
+from .admission_serialization import public_live_run
 
 
 def create_app():
@@ -23,6 +25,9 @@ def create_app():
 
     @app.middleware('http')
     async def boundary(request, call_next):
+        code = local_request_error(request)
+        if code is not None:
+            return await operational_error(request, ServiceError(403, code))
         try: response=await call_next(request)
         except Exception:
             response=await operational_error(request,ServiceError(500,'internal_error'))
@@ -30,10 +35,11 @@ def create_app():
         return response
 
     def query(request, evidence=False):
-        allowed={'snapshot_id'} | ({'limit','cursor','include_payload'} if evidence else set())
+        allowed={'snapshot_id'} | ({'limit','cursor','include_payload'} if evidence else {'phase3b'})
         pairs=list(request.query_params.multi_items())
         if any(k not in allowed for k,v in pairs) or len({k for k,v in pairs}) != len(pairs): raise ServiceError(400,'invalid_query')
         q=dict(pairs)
+        if 'phase3b' in q and q.pop('phase3b') not in ('true', 'false'): raise ServiceError(422,'invalid_parameter')
         for k, cap in [('snapshot_id',128),('cursor',2048)]:
             if k in q and (len(q[k])>cap or (k=='snapshot_id' and not q[k])): raise ServiceError(422,'invalid_parameter')
         if evidence:
@@ -58,7 +64,7 @@ def create_app():
     def detail(id:str,request:Request):
         data = catalog(request,id).read(id,**query(request))['run']
         VerificationRun.model_validate(data)
-        return data
+        return public_live_run(data) if request.query_params.get('phase3b') == 'true' else data
 
     @app.get('/api/v1/verifications/{id}/evidence')
     def evidence(id:str,request:Request):

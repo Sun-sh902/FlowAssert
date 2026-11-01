@@ -9,7 +9,7 @@ it still equals the frozen file. Nothing in the contract is edited or reinterpre
 """
 import hashlib, json, os
 
-SRC = "/Users/zhangshenghe/Documents/FlowAssert-Integration-Planning/contracts/openapi-v1-proposed.yaml"
+SRC = "/Users/apple_sun/Documents/FlowAssert-Integration-Planning/contracts/openapi-v1-proposed.yaml"
 EXPECTED = "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230"
 UI = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(UI, "src/data/contract/v1.schemas.json")

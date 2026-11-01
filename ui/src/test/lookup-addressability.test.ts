@@ -68,7 +68,7 @@ describe("exact request targets (backend IDENTIFIER_TRANSPORT_MODEL.md table)", 
   ];
   for (const [id, value] of TABLE)
     it(`${JSON.stringify(id.slice(0, 12))} → verification_id=${value.slice(0, 36)}`, () => {
-      expect(lookupUrl(id)).toBe(`${LOOKUP_PATHS.detail}?verification_id=${value}`);
+      expect(lookupUrl(id)).toBe(`${LOOKUP_PATHS.detail}?verification_id=${value}&phase3b=true`);
     });
 
   it("a space is +, a literal + is %2B; both decode back exactly", () => {
@@ -80,7 +80,7 @@ describe("exact request targets (backend IDENTIFIER_TRANSPORT_MODEL.md table)", 
     it(`${label}: Detail and Evidence targets decode back to the exact ID, once`, () => {
       for (const target of [lookupUrl(id, "snapshot-1"), lookupEvidenceUrl(id, { snapshotId: "snapshot-1", limit: 2, includePayload: true, cursor: "v2.abc_-~" })]) {
         const q = target.slice(target.indexOf("?") + 1);
-        const keys = target.startsWith(LOOKUP_PATHS.detail) ? ["verification_id", "snapshot_id"] : ["verification_id", "snapshot_id", "limit", "include_payload", "cursor"];
+        const keys = target.startsWith(LOOKUP_PATHS.detail) ? ["verification_id", "snapshot_id", "phase3b"] : ["verification_id", "snapshot_id", "limit", "include_payload", "cursor"];
         const d = decodeStrictQuery(q, keys, true);
         expect(d.ok).toBe(true);
         if (d.ok) expect(d.params.get("verification_id")).toBe(id);
@@ -222,7 +222,7 @@ describe("LOCAL_RESEARCH provider with query addressing", () => {
     const svc = lookupService(aliases);
     const p = createLocalResearchProvider({ fetch: svc.fetch, addressing: "query" });
     const r = await p.getVerification("x/evidence");
-    expect(svc.log).toEqual(["/api/v1/verification-lookup?verification_id=x%2Fevidence"]);
+    expect(svc.log).toEqual(["/api/v1/verification-lookup?verification_id=x%2Fevidence&phase3b=true"]);
     expect(r.kind).toBe("ready");
     if (r.kind !== "ready") return;
     expect(r.data.id).toBe("x/evidence");
@@ -274,7 +274,7 @@ describe("LOCAL_RESEARCH provider with query addressing", () => {
     const p = createLocalResearchProvider({ fetch: svc.fetch, addressing: "query" });
     const a = await p.getVerification("a%2Fb");
     const b = await p.getVerification("a/b");
-    expect(svc.log).toEqual(["/api/v1/verification-lookup?verification_id=a%252Fb", "/api/v1/verification-lookup?verification_id=a%2Fb"]);
+    expect(svc.log).toEqual(["/api/v1/verification-lookup?verification_id=a%252Fb&phase3b=true", "/api/v1/verification-lookup?verification_id=a%2Fb&phase3b=true"]);
     expect(a.kind === "ready" && a.data.state).toBe("Unverified"); // SPEC-004 basis
     expect(b.kind === "ready" && b.data.state).toBe("Verified"); // SPEC-001 basis
   });
@@ -285,7 +285,7 @@ describe("LOCAL_RESEARCH provider with query addressing", () => {
     expect(await p.getVerification("SPEC-404")).toMatchObject({ kind: "not_found" });
     expect(await p.getVerification("\ud800")).toMatchObject({ kind: "error", code: "verification_id_not_transportable" });
     expect(await p.getVerification(LAB.repeat(129))).toMatchObject({ kind: "error", code: "invalid_verification_id" });
-    expect(svc.log).toEqual(["/api/v1/verification-lookup?verification_id=SPEC-404"]);
+    expect(svc.log).toEqual(["/api/v1/verification-lookup?verification_id=SPEC-404&phase3b=true"]);
   });
 
   const envelope = (code: string, status: number) => json({ error: { code, message: "m", request_id: `req-${code}`, retryable: status === 503, details: [] } }, status);
@@ -323,7 +323,7 @@ describe("LOCAL_RESEARCH provider with query addressing", () => {
       }) as typeof fetch,
     });
     expect(await p.getVerification("SPEC-001")).toMatchObject({ kind: "error", access: "SERVICE_UNAVAILABLE", code: "no_service_envelope" });
-    expect(log).toEqual(["/api/v1/verification-lookup?verification_id=SPEC-001"]);
+    expect(log).toEqual(["/api/v1/verification-lookup?verification_id=SPEC-001&phase3b=true"]);
   });
 
   it("the default provider still uses the frozen path routes", async () => {
@@ -335,6 +335,6 @@ describe("LOCAL_RESEARCH provider with query addressing", () => {
       }) as typeof fetch,
     });
     await p.getVerification("SPEC:006");
-    expect(log).toEqual(["/api/v1/verifications/SPEC%3A006"]);
+    expect(log).toEqual(["/api/v1/verifications/SPEC%3A006?phase3b=true"]);
   });
 });

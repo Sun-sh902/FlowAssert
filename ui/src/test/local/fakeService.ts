@@ -54,6 +54,9 @@ export interface FakeService {
   intercept: (match: (url: URL) => boolean, respond: (url: URL) => Response | Promise<Response>) => void;
 }
 
+/** What the Service reports for an evaluation with no execution receipt (service/app/admission_serialization.py). */
+export const LEGACY_ADMISSION = { capture_status: "CAPTURE_NOT_IMPLEMENTED", admission_status: "ADMISSION_NOT_IMPLEMENTED" } as const;
+
 export function fakeService(): FakeService {
   let generation = 1;
   const snap = () => `snapshot-fake-${generation}`;
@@ -75,11 +78,15 @@ export function fakeService(): FakeService {
     const q = url.searchParams;
     const pinned = q.get("snapshot_id");
     if (!m[2]) {
+      const flag = q.get("phase3b");
+      if (flag !== null && flag !== "true" && flag !== "false") return envelope("invalid_parameter", 422);
       if (pinned !== null && pinned !== snap()) return envelope("snapshot_unavailable", 409);
       const body = captured(`${id}-detail`);
       body.snapshot_id = snap();
-      return json(body);
+      // As the Service does: the frozen shape without the flag; the fixture catalogue has no run-bound receipt with it.
+      return json(flag === "true" ? { ...body, ...LEGACY_ADMISSION } : body);
     }
+    if (q.has("phase3b")) return envelope("invalid_query", 400);
     const limit = Number(q.get("limit") ?? "25");
     const include = (q.get("include_payload") ?? "true") === "true";
     const cursor = q.get("cursor");

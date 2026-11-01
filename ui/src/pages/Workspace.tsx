@@ -2,9 +2,9 @@
  * The LOCAL_RESEARCH workspace pages, read from the local Python Service:
  *   #/               Overview       current (live) and newest archived result of each known case, their comparison,
  *                                   and the workspace register
- *   #/verifications  Verifications  each known case: capture · admission (not implemented), live verdict, newest archived
- *                                   verdict, and a diagnostic comparison
- *   #/capture        Capture runs   not implemented in this build; says so and offers no action
+ *   #/verifications  Verifications  each known case: capture · admission as the Service reports them, live verdict, newest
+ *                                   archived verdict, and a diagnostic comparison
+ *   #/capture        Capture runs   nothing can be started from this build; says so and offers no action
  *
  * Reads (round 02): ONE archive list view read to its end, plus ONE live Detail read per known case with at most two
  * in flight (src/lib/useWorkspaceCases.ts). The five IDs are the reviewed handoff inventory, never a source population.
@@ -12,26 +12,28 @@
  * a comparison is a diagnostic about two Service outputs; a missing result has no verdict — never Unverified.
  */
 import { ArrowRight, RotateCcw } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArchiveIntegrityFailure } from "../components/history/HistoryEntry";
 import { LocalModeStamp } from "../components/local/LocalResearch";
 import { AccessNotice, CancelledNotice } from "../components/states/AccessStates";
+import { scrollByKey, useScrollsHorizontally } from "../components/states/EvidenceLedger";
 import { PageHead } from "../components/ui/atelier";
 import { Panel, buttonClass } from "../components/ui/primitives";
 import { StatusGlyph } from "../components/ui/status";
 import { ArchivedVerdict, COMPARISON_COPY, ComparisonChip, LiveVerdict, SummaryCounts } from "../components/workspace/Comparison";
-import { AXIS_LABEL, CaptureValue } from "../components/workspace/StatusAxes";
+import { CaptureValue } from "../components/workspace/AxisMarks";
+import { AXIS_LABEL } from "../components/workspace/StatusAxes";
 import { ACCESS_COPY } from "../data/access";
 import { HISTORY_CONTRACT_VERSION } from "../data/contract/history";
 import { HISTORY_LIMITS, HISTORY_SCOPE } from "../data/history/config";
 import { ACCEPTED_EVALUATOR, KNOWN_LOCAL_CASES, LOCAL_SCOPE, LOCAL_SERVICE_TARGET } from "../data/local/config";
 import { localResearchProvider } from "../data/local/provider";
 import { getHistoryProvider, type FlowAssertHistoryProvider, type FlowAssertReadProvider } from "../data/provider";
-import { ADMISSION_NOT_IMPLEMENTED, CAPTURE_NOT_IMPLEMENTED } from "../domain/statusAxes";
+import { ADMISSION_NOT_IMPLEMENTED, CAPTURE_NOT_IMPLEMENTED, deriveAdmissionAxis, deriveCaptureAxis, hasReportedOutcome } from "../domain/statusAxes";
 import { archivedSummary, liveSummary, type ComparisonState, type ResultSummary } from "../data/workspace/comparison";
 import type { VerificationState } from "../domain/view";
 import { cn } from "../lib/cn";
-import { plural, shortDigest } from "../lib/format";
+import { plural, shortDigest, workflowLabelText } from "../lib/format";
 import { href } from "../lib/router";
 import { type ArchiveIndexState } from "../lib/useArchiveIndex";
 import { LIVE_CONCURRENCY } from "../lib/useLiveCases";
@@ -72,6 +74,51 @@ function caseLine(c: WorkspaceCase): string {
   if (c.live.kind === "ready") return summaryLine(liveSummary(c.live.run));
   if (c.comparison.archived) return `No current result was read. Newest archived: ${summaryLine(archivedSummary(c.comparison.archived)).toLowerCase()}`;
   return "No current result was read, and the archive holds none.";
+}
+
+/**
+ * The row's capture and admission: the live evaluation's, as the Service reported them. With no live result, the newest
+ * archived evaluation's. An archived outcome beside a live result is shown with that archived verdict.
+ */
+function caseAxes(c: WorkspaceCase) {
+  const facts = c.live.kind === "ready" ? c.live.run.phase3b : c.comparison.archived?.phase3b;
+  return { capture: deriveCaptureAxis(facts), admission: deriveAdmissionAxis(facts) };
+}
+
+const caseReportsOutcome = (c: WorkspaceCase) => (c.live.kind === "ready" && hasReportedOutcome(c.live.run.phase3b)) || c.entries.some((e) => hasReportedOutcome(e.phase3b));
+
+function caseWorkflowLabel(c: WorkspaceCase): { text: string; fallback: boolean } | null {
+  const anyCase = c as WorkspaceCase & { workflow_label?: string | null; workflowLabel?: string | null };
+  if ("workflow_label" in anyCase) return workflowLabelText(anyCase.workflow_label ?? null);
+  if ("workflowLabel" in anyCase) return workflowLabelText(anyCase.workflowLabel ?? null);
+  if (c.live.kind === "ready") {
+    const runAny = c.live.run as typeof c.live.run & { workflow_label?: string | null };
+    if ("workflow_label" in runAny) return workflowLabelText(runAny.workflow_label ?? null);
+    const w = c.live.run.workflow as { n8nLabel?: string | null; workflow_label?: string | null } | undefined;
+    const raw = w && "workflow_label" in w ? w.workflow_label : w?.n8nLabel;
+    return workflowLabelText(raw ?? null);
+  }
+  const latestAny = (c.comparison.archived ?? c.entries[0] ?? null) as { workflow_label?: string | null; workflowLabel?: string | null } | null;
+  if (latestAny && ("workflow_label" in latestAny || "workflowLabel" in latestAny)) {
+    return workflowLabelText(latestAny.workflow_label ?? latestAny.workflowLabel ?? null);
+  }
+  return null;
+}
+
+function WorkflowLabelBadge({ label }: { label: { text: string; fallback: boolean } | null }) {
+  if (!label) return null;
+  return (
+    <span
+      data-workflow-label={label.fallback ? "fallback" : "present"}
+      className={cn(
+        "mono-id inline-flex max-w-[220px] items-center truncate rounded-xs border border-line-subtle bg-sunken/50 px-1.5 py-0.5 text-[10.5px]",
+        label.fallback ? "italic text-ink-3" : "text-ink-2",
+      )}
+      title={label.text}
+    >
+      {label.text}
+    </span>
+  );
 }
 
 /* ======================================================================================
@@ -281,11 +328,12 @@ function CaseExhibits({ cases }: { cases: WorkspaceCase[] }) {
                       {numeral}
                     </span>
                     <div className="min-w-0">
-                      <p className="flex flex-wrap items-baseline gap-x-2.5">
+                      <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                         <a href={href(`/local/verifications/${c.id}`)} className="mono-id fa-hit rounded-xs text-[15px] font-semibold text-ink hover:text-brand">
                           {c.id}
                         </a>
                         <span className="mono-id text-[10.5px] text-ink-3">fixture {c.fixture}</span>
+                        <WorkflowLabelBadge label={caseWorkflowLabel(c)} />
                       </p>
                       <p className="mt-1 text-sm leading-[1.5] text-ink-2">{caseLine(c)}</p>
                       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -333,6 +381,7 @@ function Register({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
   const liveOk = w.cases.filter((c) => c.live.kind === "ready").length;
   const liveNotFound = w.cases.filter((c) => c.live.kind === "not_found").length;
   const a = w.archiveState;
+  const reported = w.cases.filter(caseReportsOutcome).length;
   const rows: [string, ReactNode][] = [
     ["Live reads", `${liveOk + liveNotFound} of ${w.cases.length} answered${liveNotFound ? ` (${liveNotFound} not found)` : ""} · ≤${LIVE_CONCURRENCY} at a time`],
     ["Archive", a.status === "ready" ? `${plural(a.index.totalEntries, "entry", "entries")} · ${plural(a.pages, "page")} · ${HISTORY_LIMITS.listPageLimit} per page` : a.status === "reading" ? "reading…" : `not read (${a.status})`],
@@ -357,18 +406,31 @@ function Register({ w }: { w: ReturnType<typeof useWorkspaceCases> }) {
         ))}
       </dl>
       <div className="border-t border-line px-4 py-3 sm:px-5">
-        <p className="kicker mb-2">Not implemented in this build</p>
+        <p className="kicker mb-2">{reported ? "Capture · admission · connections" : "Not implemented in this build"}</p>
         <ul className="grid gap-2 text-xs text-ink-2">
-          <li className="flex flex-wrap items-center justify-between gap-2">
-            <span>{AXIS_LABEL.capture}</span>
-            <a href="#/capture" className="fa-hit rounded-xs">
-              <CaptureValue axis={CAPTURE_NOT_IMPLEMENTED} />
-            </a>
-          </li>
-          <li className="flex flex-wrap items-center justify-between gap-2">
-            <span>{AXIS_LABEL.admission}</span>
-            <CaptureValue axis={ADMISSION_NOT_IMPLEMENTED} />
-          </li>
+          {reported ? (
+            <li className="flex flex-wrap items-center justify-between gap-2" data-reported-outcomes={reported}>
+              <span>
+                {AXIS_LABEL.capture} · {AXIS_LABEL.admission.toLowerCase()}
+              </span>
+              <span className="font-mono text-[10.5px] text-ink-3">
+                {reported} of {w.cases.length} cases report an outcome
+              </span>
+            </li>
+          ) : (
+            <>
+              <li className="flex flex-wrap items-center justify-between gap-2">
+                <span>{AXIS_LABEL.capture}</span>
+                <a href="#/capture" className="fa-hit rounded-xs">
+                  <CaptureValue axis={CAPTURE_NOT_IMPLEMENTED} />
+                </a>
+              </li>
+              <li className="flex flex-wrap items-center justify-between gap-2">
+                <span>{AXIS_LABEL.admission}</span>
+                <CaptureValue axis={ADMISSION_NOT_IMPLEMENTED} />
+              </li>
+            </>
+          )}
           <li className="flex flex-wrap items-center justify-between gap-2">
             <span>Live n8n · HubSpot</span>
             <span className="font-mono text-[10.5px] text-ink-3">not connected · no credentials</span>
@@ -425,8 +487,8 @@ function OverviewBody({ history, live, onReread }: { history: FlowAssertHistoryP
 
 function AxesExplainer() {
   const items: { key: keyof typeof AXIS_LABEL; body: string }[] = [
-    { key: "capture", body: "Whether the evidence was acquired by a capture run, and how that run ended. Not implemented: the evidence is a reviewed synthetic fixture." },
-    { key: "admission", body: "Whether an admission record bound the evidence to an evaluator input — or refused it. Not implemented: a Phase 3B draft only." },
+    { key: "capture", body: "Whether the evidence was acquired by a capture run, and how that run ended, as the Service reports it. A reviewed synthetic fixture has none: not implemented." },
+    { key: "admission", body: "Whether an admission record bound the evidence to an evaluator input — or refused it, as the Service reports it. Never a verdict; with no record: not implemented." },
     { key: "archive", body: "Whether an evaluation is stored in the local SQLite archive, with the Service’s integrity check. Storage, not a result." },
     { key: "verdict", body: "Verified, Mismatch, Pending or Unverified — from the pinned Python evaluator only, live or archived. Where no result was read, there is no verdict." },
   ];
@@ -489,6 +551,17 @@ export function WorkspaceVerifications({ history = getHistoryProvider("LOCAL_RES
   );
 }
 
+/** The case table's scroller: when the table is wider than its column it is a named, focusable region (as HistoryRows does). */
+function CaseTableScroller({ children }: { children: ReactNode }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const scrollable = useScrollsHorizontally(scroller);
+  return (
+    <div ref={scroller} className="hidden overflow-x-auto lg:block" {...(scrollable ? { tabIndex: 0, role: "region", "aria-label": "Known cases table", onKeyDown: scrollByKey } : {})}>
+      {children}
+    </div>
+  );
+}
+
 function VerificationsBody({ history, live, onReread }: { history: FlowAssertHistoryProvider; live: FlowAssertReadProvider; onReread: () => void }) {
   const w = useWorkspaceCases(history, live, 0);
   if (w.allUnreachable && w.archiveState.status === "failed") return <ArchiveReadState state={w.archiveState} onReread={onReread} />;
@@ -510,7 +583,7 @@ function VerificationsBody({ history, live, onReread }: { history: FlowAssertHis
             <ReadingLine w={w} />
           </div>
         )}
-        <div className="hidden overflow-x-auto lg:block">
+        <CaseTableScroller>
           <table className="w-full text-sm" data-case-table>
             <caption className="sr-only">{caption}</caption>
             <colgroup>
@@ -549,77 +622,97 @@ function VerificationsBody({ history, live, onReread }: { history: FlowAssertHis
               </tr>
             </thead>
             <tbody>
-              {w.cases.map((c) => (
-                <tr key={c.id} data-case={c.id} className="fa-row group relative border-b border-line-subtle align-top transition-colors duration-(--fa-dur-fast) last:border-0 hover:bg-hover">
-                  <td className="py-4 pr-4 pl-5">
-                    <a
-                      href={href(`/local/verifications/${c.id}`)}
-                      className="mono-id block text-[14px] font-semibold text-ink after:absolute after:inset-0 after:content-[''] focus-visible:shadow-none focus-visible:after:shadow-(--fa-ring-inset)"
-                      aria-label={`${c.id}. Live ${c.live.kind === "ready" ? c.live.run.state : "no verdict"}; newest archived ${c.comparison.archived ? c.comparison.archived.result.cohort : "none"}; comparison ${COMPARISON_COPY[c.comparison.state].label}.`}
-                    >
-                      {c.id}
-                    </a>
-                    <span className="mono-id mt-0.5 block text-[10.5px] text-ink-3">fixture {c.fixture}</span>
-                    {c.live.kind === "ready" && <SummaryCounts summary={liveSummary(c.live.run)} className="mt-2 block" />}
-                  </td>
-                  <td className="py-4 pr-4">
-                    <dl className="grid grid-cols-[max-content_max-content] items-center gap-x-2 gap-y-1.5">
-                      <dt className="font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">capture</dt>
-                      <dd>
-                        <CaptureValue axis={CAPTURE_NOT_IMPLEMENTED} />
-                      </dd>
-                      <dt className="font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">admission</dt>
-                      <dd>
-                        <CaptureValue axis={ADMISSION_NOT_IMPLEMENTED} />
-                      </dd>
-                    </dl>
-                  </td>
-                  <td className="py-4 pr-4">
-                    <LiveVerdict side={c.live} />
-                  </td>
-                  <td className="relative z-10 py-4 pr-4">
-                    <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} />
-                    {c.entries.length > 1 && <span className="mt-1 block font-mono text-[10.5px] text-ink-3">{plural(c.entries.length, "evaluation")} archived</span>}
-                  </td>
-                  <td className="py-4 pr-5">
-                    <ComparisonChip state={c.comparison.state} />
-                    <span className="mt-1.5 block max-w-[34ch] text-xs leading-[1.45] text-ink-3">{c.comparison.reason}</span>
-                    {c.comparison.sameSnapshot === false && (
-                      <span className="mt-1 block font-mono text-[10.5px] text-ink-3">snapshot: different Service publication</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {w.cases.map((c) => {
+                const axes = caseAxes(c);
+                const wfLabel = caseWorkflowLabel(c);
+                return (
+                  <tr key={c.id} data-case={c.id} className="fa-row group relative border-b border-line-subtle align-top transition-colors duration-(--fa-dur-fast) last:border-0 hover:bg-hover">
+                    <td className="py-4 pr-4 pl-5">
+                      <a
+                        href={href(`/local/verifications/${c.id}`)}
+                        className="mono-id block text-[14px] font-semibold text-ink after:absolute after:inset-0 after:content-[''] focus-visible:shadow-none focus-visible:after:shadow-(--fa-ring-inset)"
+                        aria-label={`${c.id}. Live ${c.live.kind === "ready" ? c.live.run.state : "no verdict"}; newest archived ${c.comparison.archived ? c.comparison.archived.result.cohort : "none"}; comparison ${COMPARISON_COPY[c.comparison.state].label}.`}
+                      >
+                        {c.id}
+                      </a>
+                      <span className="mono-id mt-0.5 block text-[10.5px] text-ink-3">fixture {c.fixture}</span>
+                      {wfLabel && (
+                        <span className="mt-1 block">
+                          <WorkflowLabelBadge label={wfLabel} />
+                        </span>
+                      )}
+                      {c.live.kind === "ready" && <SummaryCounts summary={liveSummary(c.live.run)} className="mt-2 block" />}
+                    </td>
+                    <td className="py-4 pr-4">
+                      <dl className="grid grid-cols-[max-content_max-content] items-center gap-x-2 gap-y-1.5">
+                        <dt className="font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">capture</dt>
+                        <dd>
+                          <CaptureValue axis={axes.capture} />
+                        </dd>
+                        <dt className="font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">admission</dt>
+                        <dd>
+                          <CaptureValue axis={axes.admission} />
+                        </dd>
+                      </dl>
+                    </td>
+                    <td className="py-4 pr-4">
+                      <LiveVerdict side={c.live} />
+                    </td>
+                    <td className="relative z-10 py-4 pr-4">
+                      <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} />
+                      {c.entries.length > 1 && <span className="mt-1 block font-mono text-[10.5px] text-ink-3">{plural(c.entries.length, "evaluation")} archived</span>}
+                    </td>
+                    <td className="py-4 pr-5">
+                      <ComparisonChip state={c.comparison.state} />
+                      <span className="mt-1.5 block max-w-[34ch] text-xs leading-[1.45] text-ink-3">{c.comparison.reason}</span>
+                      {c.comparison.sameSnapshot === false && (
+                        <span className="mt-1 block font-mono text-[10.5px] text-ink-3">snapshot: different Service publication</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </div>
+        </CaseTableScroller>
         <ul className="divide-y divide-line-subtle lg:hidden" aria-label={caption}>
-          {w.cases.map((c) => (
-            <li key={c.id} data-case={c.id} className="grid grid-cols-[minmax(0,1fr)] gap-3 px-4 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <a href={href(`/local/verifications/${c.id}`)} className="min-w-0">
-                  <span className="mono-id block font-semibold text-ink">{c.id}</span>
-                  <span className="mono-id block truncate text-[10.5px] text-ink-3">fixture {c.fixture}</span>
-                </a>
-                <ComparisonChip state={c.comparison.state} />
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <span className="kicker text-ink-3">Live</span>
-                <span className="kicker text-ink-3">Newest archived</span>
-                <LiveVerdict side={c.live} compact />
-                <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} compact />
-              </div>
-              <p className="text-xs leading-[1.45] text-ink-3">{c.comparison.reason}</p>
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5 font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">
-                <span className="inline-flex items-center gap-2">
-                  capture <CaptureValue axis={CAPTURE_NOT_IMPLEMENTED} />
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  admission <CaptureValue axis={ADMISSION_NOT_IMPLEMENTED} />
-                </span>
-              </p>
-            </li>
-          ))}
+          {w.cases.map((c) => {
+            const axes = caseAxes(c);
+            const wfLabel = caseWorkflowLabel(c);
+            return (
+              <li key={c.id} data-case={c.id} className="grid grid-cols-[minmax(0,1fr)] gap-3 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <a href={href(`/local/verifications/${c.id}`)} className="min-w-0">
+                      <span className="mono-id block font-semibold text-ink">{c.id}</span>
+                      <span className="mono-id block truncate text-[10.5px] text-ink-3">fixture {c.fixture}</span>
+                    </a>
+                    {wfLabel && (
+                      <span className="mt-1 block">
+                        <WorkflowLabelBadge label={wfLabel} />
+                      </span>
+                    )}
+                  </div>
+                  <ComparisonChip state={c.comparison.state} />
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <span className="kicker text-ink-3">Live</span>
+                  <span className="kicker text-ink-3">Newest archived</span>
+                  <LiveVerdict side={c.live} compact />
+                  <ArchivedVerdict entry={c.comparison.archived} state={archState(c)} compact />
+                </div>
+                <p className="text-xs leading-[1.45] text-ink-3">{c.comparison.reason}</p>
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5 font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">
+                  <span className="inline-flex items-center gap-2">
+                    capture <CaptureValue axis={axes.capture} />
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    admission <CaptureValue axis={axes.admission} />
+                  </span>
+                </p>
+              </li>
+            );
+          })}
         </ul>
       </Panel>
     </>
@@ -716,7 +809,7 @@ export function CaptureRuns() {
     document.title = "Capture runs — FlowAssert";
   }, []);
   const facts: [string, string][] = [
-    [AXIS_LABEL.capture, "Not implemented in this build"],
+    [AXIS_LABEL.capture, "Reported by the Service per evaluation · read-only here"],
     ["Evidence in use", "Five reviewed synthetic fixtures, shipped with the Service"],
     ["Live n8n · HubSpot", "Not connected · no credentials held"],
     ["Capture contract", "Phase 3B planning · DRAFT · not frozen"],
@@ -738,8 +831,8 @@ export function CaptureRuns() {
           Nothing here is operational.
         </h2>
         <p className="mt-2 max-w-[64ch] text-sm leading-[1.6] text-ink-2">
-          Capture status, evidence admission status, archive status and the evaluator verdict are separate questions. Only the last two exist in this build — see
-          the archive and the evaluator results on the Verifications page.
+          Capture status, evidence admission status, archive status and the evaluator verdict are separate questions. A capture or admission outcome is shown
+          only when the Service reports one — see the Verifications page and each archived entry.
         </p>
         <dl className="fa-ledger mt-4 max-w-[620px] text-[12.5px]">
           {facts.map(([k, v]) => (

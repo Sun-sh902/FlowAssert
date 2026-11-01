@@ -1,4 +1,4 @@
-"""Provision the accepted Phase 3A E2E harness runtime (ui/.phase3a-runtime/FlowAssert-Phase3A-Service) from THIS
+"""Provision the current product Service E2E harness runtime (ui/.phase3a-runtime/FlowAssert-Phase3A-Service) from THIS
 workspace's Service, for ui/scripts/phase3a/{seed_states.py,evaluator_oracle.py,history-service.sh} and e2e-history/.
 
     /usr/bin/python3 -I -B scripts/dev/prepare_harness_runtime.py
@@ -6,21 +6,21 @@ workspace's Service, for ui/scripts/phase3a/{seed_states.py,evaluator_oracle.py,
 Replaces ui/scripts/phase3a/prepare_runtime.py inside the product workspace only. That accepted script checks the
 Service against its PRE-remediation-03 manifest (docs/phase3a/SOURCE_MANIFEST.json) and therefore reports
 app/history_api.py and app/service.py as mismatches against the final accepted Service. It is kept unchanged as
-history. This script checks the FINAL accepted identities instead — no check is dropped:
-  * backend 39-file map = a5d68b75…4b45 (ACCEPTED_SOURCE_BASELINE.md), recomputed on the source AND on the copy;
+history. This script checks the current product identity separately from the historical accepted map:
+  * the reviewed current backend map is recomputed on the source AND on the copy;
   * evaluator, frozen v1, history and ID-addressability contracts, examples and migration digests (pinned below);
   * the whole copied tree (symlinks preserved, runtime state and caches excluded) equals the source tree;
   * the copied .venv's installed distributions equal service/requirements.lock exactly.
 Refuses to overwrite an existing runtime. No key, database or runtime state is copied.
 """
-import hashlib, json, os, shutil, stat, subprocess, sys
+import hashlib, json, os, runpy, shutil, stat, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "service"
 RUNTIME = ROOT / "ui/.phase3a-runtime"
 DST = RUNTIME / "FlowAssert-Phase3A-Service"
-BACKEND_MAP = "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45"
+identity = runpy.run_path(str(ROOT / "scripts/dev/backend_identity.py"))
 PINNED = {
     "vendor/model.py": "b61779e198dd0213b67f8319b77a2daf9feb502dc553784df6d6600e8e3a842d",
     "contracts/openapi-v1-proposed.yaml": "0688d55d3377b53f7dc5f48aad9d523df0e32bb285b4687fd06891f4a4c1d230",
@@ -34,12 +34,6 @@ SKIP = {".runtime", "__pycache__", ".pytest_cache", ".state"}
 
 def sha(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
-
-
-def backend_map(root):
-    files = json.loads((SRC / "docs/phase3a/id-addressability-remediation-03/evidence/source-identities.json").read_text())["files"]
-    m = {p: sha(root / p) for p in files}
-    return hashlib.sha256(json.dumps(m, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
 
 
 def tree(root):
@@ -64,14 +58,19 @@ def main():
         sys.exit(f"refusing to overwrite existing runtime {DST}")
     if not (SRC / ".venv/bin/python").exists():
         sys.exit("service/.venv is missing — run scripts/dev/bootstrap.sh first")
-    if backend_map(SRC) != BACKEND_MAP:
-        sys.exit("workspace service/ does not match the accepted backend map; nothing copied")
+    try:
+        source_identity = identity["inspect"](SRC)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        sys.exit(f"cannot verify current Service identity: {exc}")
+    if source_identity["problems"]:
+        sys.exit("workspace service/ does not match its current map; nothing copied: " + ", ".join(source_identity["problems"]))
     for rel, want in PINNED.items():
         if sha(SRC / rel) != want:
             sys.exit(f"workspace service/{rel} does not match its pinned digest; nothing copied")
     RUNTIME.mkdir(mode=0o700, exist_ok=True)
     shutil.copytree(SRC, DST, symlinks=True, ignore=lambda d, names: [n for n in names if n in SKIP])
-    if backend_map(DST) != BACKEND_MAP:
+    copy_identity = identity["inspect"](DST)
+    if copy_identity["problems"] or copy_identity["current_backend_map"] != source_identity["current_backend_map"]:
         problems.append("copied backend map differs")
     problems += [f"copied {rel} digest differs" for rel, want in PINNED.items() if sha(DST / rel) != want]
     a, b = tree(SRC), tree(DST)
@@ -80,7 +79,7 @@ def main():
     freeze = subprocess.run([str(DST / ".venv/bin/python"), "-m", "pip", "freeze"], capture_output=True, text=True)
     if freeze.returncode != 0 or normalized(freeze.stdout.splitlines()) != normalized((SRC / "requirements.lock").read_text().splitlines()):
         problems.append("copied .venv distributions differ from requirements.lock")
-    print(json.dumps({"runtime": str(DST), "backend_map": BACKEND_MAP, "tree_files": len(a), "problems": problems}, indent=1))
+    print(json.dumps({"runtime": str(DST), "backend_map": source_identity["current_backend_map"], "historical_backend_map": source_identity["historical_backend_map"], "tree_files": len(a), "problems": problems}, indent=1))
     sys.exit(1 if problems else 0)
 
 

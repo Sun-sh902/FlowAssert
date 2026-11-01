@@ -96,11 +96,11 @@ for (const id of CASES) {
     await net.settle();
 
     // F01: genuine HTTP — the Detail came through the gate from uvicorn, byte-identical to a direct read.
-    const detail = net.api().find((x) => x.pathAndQuery === `/api/v1/history/${hid}` && x.status === 200)!;
+    const detail = net.api().find((x) => x.pathAndQuery === `/api/v1/history/verifications/${hid}` && x.status === 200)!;
     expect(detail, "browser Detail response").toBeTruthy();
     expect(detail.server).toBe("uvicorn");
     expect(detail.gate).toBeNull();
-    const viaService = await direct(`/api/v1/history/${hid}`);
+    const viaService = await direct(`/api/v1/history/verifications/${hid}`);
     expect(viaService.status).toBe(200);
     expect(viaService.text).toBe(detail.body);
     const dto = JSON.parse(detail.body!);
@@ -174,7 +174,7 @@ test("F04 · SPEC-005: 12 Verified records, Unverified cohort, unknown populatio
   await expect(indexCells(page)).toHaveCount(12);
   // Data-origin probe (interception of a REAL body): a consistent rewrite of the archived cohort is drawn as
   // written — proof the cohort is copied, not computed from 12 Verified rows (P2-AUD-006 boundary).
-  await page.route(`**/api/v1/history/${hid}`, async (route) => {
+  await page.route(`**/api/v1/history/verifications/${hid}`, async (route) => {
     const real = await route.fetch();
     const body = JSON.parse(await real.text());
     body.run.result.cohort_state = "Verified";
@@ -183,9 +183,9 @@ test("F04 · SPEC-005: 12 Verified records, Unverified cohort, unknown populatio
   });
   await openApp(page, `#/local/history/${hid}`);
   await expect(seal(page)).toHaveAttribute("data-s", "Verified", { timeout: 20_000 });
-  await page.unroute(`**/api/v1/history/${hid}`);
+  await page.unroute(`**/api/v1/history/verifications/${hid}`);
   // An invented total (12) on an unknown population is refused, not drawn.
-  await page.route(`**/api/v1/history/${hid}`, async (route) => {
+  await page.route(`**/api/v1/history/verifications/${hid}`, async (route) => {
     const real = await route.fetch();
     const body = JSON.parse(await real.text());
     body.run.result.expected_total = 12;
@@ -195,7 +195,7 @@ test("F04 · SPEC-005: 12 Verified records, Unverified cohort, unknown populatio
   await openApp(page, `#/local/history/${hid}`);
   await expect(page.locator('[data-access="REQUEST_ERROR"]')).toContainText("population_conflict", { timeout: 20_000 });
   await expect(seal(page)).toHaveCount(0);
-  await page.unroute(`**/api/v1/history/${hid}`);
+  await page.unroute(`**/api/v1/history/verifications/${hid}`);
   // The list says "total unknown" for SPEC-005, never 0 or 12.
   await openApp(page, "#/local/history?case=SPEC-005");
   await expect(rows(page)).toHaveCount(2, { timeout: 20_000 });
@@ -224,7 +224,7 @@ test("F06 · list: both genuine batches, stable IDs, archive order, three pages 
   const cases = directAll.items.map((x: { original_verification_id: string }) => x.original_verification_id) as (keyof typeof EXPECTED)[];
   expect(await rows(page).evaluateAll((els) => els.map((e) => e.querySelector(".fa-seal")!.getAttribute("data-s")))).toEqual(cases.map((c) => EXPECTED[c].cohort));
   await net.settle();
-  const lists = net.api().filter((x) => x.pathAndQuery.startsWith("/api/v1/history?"));
+  const lists = net.api().filter((x) => x.pathAndQuery.startsWith("/api/v1/history/verifications?"));
   expect(lists).toHaveLength(3);
   const bodies = lists.map((x) => JSON.parse(x.body!));
   expect(new Set(bodies.map((b) => b.page.snapshot_id)).size).toBe(1);
@@ -365,7 +365,7 @@ test("F16 · invalid HTTP responses fail closed (corrupted copies of real Servic
     ["foreign-evaluator", (d: any) => (d.evaluator.model_sha256 = "0".repeat(64))],
     ["record-order-swapped", (d: any) => ([d.run.result.records[0], d.run.result.records[1]] = [d.run.result.records[1], d.run.result.records[0]])],
   ] as const) {
-    await page.route(`**/api/v1/history/${hid}`, async (route) => {
+    await page.route(`**/api/v1/history/verifications/${hid}`, async (route) => {
       const real = await route.fetch();
       const body = JSON.parse(await real.text());
       corrupt(body);
@@ -376,7 +376,7 @@ test("F16 · invalid HTTP responses fail closed (corrupted copies of real Servic
     await expect(notice).toBeVisible({ timeout: 20_000 });
     await expect(seal(page)).toHaveCount(0);
     outcomes[name] = await notice.locator("dd").nth(2).textContent();
-    await page.unroute(`**/api/v1/history/${hid}`);
+    await page.unroute(`**/api/v1/history/verifications/${hid}`);
   }
   expect(outcomes).toEqual({
     "missing-required-key": "schema_invalid",
@@ -386,7 +386,7 @@ test("F16 · invalid HTTP responses fail closed (corrupted copies of real Servic
     "record-order-swapped": "row_inventory_conflict",
   });
   // INTEGRITY_FAILED inside a 200 is an integrity failure, never a success.
-  await page.route(`**/api/v1/history/${hid}`, async (route) => {
+  await page.route(`**/api/v1/history/verifications/${hid}`, async (route) => {
     const real = await route.fetch();
     const body = JSON.parse(await real.text());
     body.integrity.status = "INTEGRITY_FAILED";
@@ -395,13 +395,13 @@ test("F16 · invalid HTTP responses fail closed (corrupted copies of real Servic
   await openApp(page, `#/local/history/${hid}`);
   await expect(page.locator('[data-integrity-notice="failed"]')).toContainText("integrity_status_conflict", { timeout: 20_000 });
   await expect(seal(page)).toHaveCount(0);
-  await page.unroute(`**/api/v1/history/${hid}`);
+  await page.unroute(`**/api/v1/history/verifications/${hid}`);
   // Not JSON at all.
-  await page.route("**/api/v1/history?**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{not json" }));
+  await page.route("**/api/v1/history/verifications?**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{not json" }));
   await openApp(page, "#/local/history");
   await expect(page.locator('[data-access="REQUEST_ERROR"]')).toContainText("malformed_response", { timeout: 20_000 });
   await expect(rows(page)).toHaveCount(0);
-  await page.unroute("**/api/v1/history?**");
+  await page.unroute("**/api/v1/history/verifications?**");
   writeEvidence(`${browserName}/F16-malformed`, { ...outcomes, "integrity-failed-in-200": "integrity_status_conflict", "list-not-json": "malformed_response" });
 });
 
@@ -416,7 +416,7 @@ test("F17 F18 · cancellation and late responses: nothing published after cancel
     await new Promise((r) => setTimeout(r, 1500));
     await route.fulfill({ response: real, body: JSON.stringify(body) }).catch(() => {});
   };
-  await page.route(`**/api/v1/history/${A}`, holdDetail);
+  await page.route(`**/api/v1/history/verifications/${A}`, holdDetail);
   await openApp(page, `#/local/history/${A}`);
   await page.getByRole("button", { name: "Cancel read" }).click();
   await expect(page.getByText(/Read cancelled/)).toBeVisible();
@@ -431,7 +431,7 @@ test("F17 F18 · cancellation and late responses: nothing published after cancel
   await expect(seal(page)).toHaveAttribute("data-s", "Mismatch");
   await expect(page.locator("[data-history-entry]")).toHaveAttribute("data-history-entry", B);
   await expect(page.getByText("LATE RESPONSE")).toHaveCount(0);
-  await page.unroute(`**/api/v1/history/${A}`);
+  await page.unroute(`**/api/v1/history/verifications/${A}`);
 
   // A's first evidence page (real, held) arrives after the view moved to B: it is never attached to B.
   const evPattern = new RegExp(`/api/v1/history/${A}/evidence`);
@@ -468,7 +468,7 @@ test("F19 · MOCK / LOCAL_RESEARCH separation: demo pages never call the Service
   await expect(nav.getByRole("link", { name: /History/ })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: "Verifications", exact: true })).not.toHaveAttribute("aria-current", "page");
   await net.settle();
-  expect(net.all.map((x) => x.pathAndQuery.split("?")[0])).toEqual(["/api/v1/history"]);
+  expect(net.all.map((x) => x.pathAndQuery.split("?")[0])).toEqual(["/api/v1/history/verifications"]);
   await openApp(page, "#/demo");
   await expect(page.getByRole("region", { name: "Demo register" })).toBeVisible();
   await expect(page.getByText(/hist_[a-f0-9]{8}/)).toHaveCount(0);
@@ -487,20 +487,20 @@ test("F20 · the accepted Phase 2 Detail/Evidence paths still work on the Phase 
     await expect(retrieval(page)).toHaveText("All evidence pages retrieved · 2 pages · all 4 references, in the Detail’s order", { timeout: 20_000 });
     await expect(integrityLine(page)).toHaveText("Payload digests reproduced in this browser · 4 of 4 — internal consistency only");
     await net.settle();
-    const detail = net.api().find((x) => x.pathAndQuery === `/api/v1/verifications/${id}`)!;
+    const detail = net.api().find((x) => x.pathAndQuery === `/api/v1/verifications/${id}?phase3b=true`)!;
     expect(detail.server).toBe("uvicorn");
     expect(JSON.parse(detail.body!).result).toEqual(evaluatorComputed(id));
     // Product round 01: besides its own verification reads, the Detail reads ONLY this case's archive list
     // (Archive status axis) — scoped by verification_id, never another case, never evidence of history.
     // Product round 02: and the archived Details of its exact-match candidates — each ID must be one this case's own
     // archive list returned (the Detail → Archive match), never any other history entry.
-    const ownArchive = new RegExp(`^/api/v1/history\\?limit=4&verification_id=${id}(&cursor=[^&]+)?$`);
+    const ownArchive = new RegExp(`^/api/v1/history/verifications\\?limit=4&verification_id=${id}(&cursor=[^&]+)?$`);
     await expect(page.locator("[data-archive-match]")).toHaveAttribute("data-archive-match", "many", { timeout: 20_000 });
     await expect(page.locator("[data-result-relation]")).toHaveCount(2, { timeout: 20_000 });
     await net.settle();
     const listed = new Set(net.all.filter((x) => ownArchive.test(x.pathAndQuery)).flatMap((x) => (JSON.parse(x.body!).items as { history_id: string }[]).map((e) => e.history_id)));
-    const candidates = net.all.map((x) => x.pathAndQuery).filter((q) => /^\/api\/v1\/history\/hist_[0-9a-f]{64}$/.test(q));
-    expect(candidates.every((q) => listed.has(q.slice("/api/v1/history/".length)))).toBe(true);
+    const candidates = net.all.map((x) => x.pathAndQuery).filter((q) => /^\/api\/v1\/history\/verifications\/hist_[0-9a-f]{64}$/.test(q));
+    expect(candidates.every((q) => listed.has(q.slice("/api/v1/history/verifications/".length)))).toBe(true);
     expect(candidates).toHaveLength(2);
     expect(net.all.filter((x) => !x.pathAndQuery.startsWith(`/api/v1/verifications/${id}`)).map((x) => x.pathAndQuery).filter((q) => !ownArchive.test(q) && !candidates.includes(q))).toEqual([]);
     expect(net.all.some((x) => ownArchive.test(x.pathAndQuery))).toBe(true);
@@ -524,7 +524,7 @@ test("F05 F21 · real Service restart: history IDs, bodies and history cursors s
   await openApp(eph, "#/local/verifications/SPEC-001");
   await expect(retrieval(eph)).toContainText("2 of 4", { timeout: 20_000 });
   await ephNet.settle();
-  const before = JSON.parse(ephNet.api().find((x) => x.pathAndQuery === "/api/v1/verifications/SPEC-001")!.body!).snapshot_id;
+  const before = JSON.parse(ephNet.api().find((x) => x.pathAndQuery === "/api/v1/verifications/SPEC-001?phase3b=true")!.body!).snapshot_id;
   const allIds = [...SEED["ui-main"].initial, ...SEED["ui-main"].reevaluated];
   const bodiesBefore = Object.fromEntries(await Promise.all(allIds.map(async (h) => [h, (await direct(`/api/v1/history/${h}`)).text] as const)));
 
@@ -535,7 +535,7 @@ test("F05 F21 · real Service restart: history IDs, bodies and history cursors s
   await page.getByRole("button", { name: "Load older entries" }).click();
   await expect(rows(page)).toHaveCount(8, { timeout: 20_000 });
   await listNet.settle();
-  const lists = listNet.api().filter((x) => x.pathAndQuery.startsWith("/api/v1/history?"));
+  const lists = listNet.api().filter((x) => x.pathAndQuery.startsWith("/api/v1/history/verifications?"));
   expect(lists.map((x) => x.status)).toEqual([200, 200]);
   expect(JSON.parse(lists[1]!.body!).page.snapshot_id).toBe(JSON.parse(lists[0]!.body!).page.snapshot_id);
   // F05: the archived evidence continuation issued before the restart completes, verified.

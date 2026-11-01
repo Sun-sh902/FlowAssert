@@ -26,7 +26,7 @@ describe("exact-ID lookup route", () => {
     // Detail by exact ID, then (existing behaviour) the first evidence page pinned to the Detail's snapshot.
     await waitFor(() => expect(svc.log).toHaveLength(2));
     expect(svc.log).toEqual([
-      "/api/v1/verification-lookup?verification_id=x%2Fevidence",
+      "/api/v1/verification-lookup?verification_id=x%2Fevidence&phase3b=true",
       "/api/v1/verification-evidence?verification_id=x%2Fevidence&snapshot_id=snapshot-fake-1&limit=2&include_payload=true",
     ]);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("All 12 visible records match — but the source total is unconfirmed.");
@@ -57,7 +57,7 @@ describe("exact-ID lookup route", () => {
       vi.stubGlobal("fetch", svc.fetch);
       renderApp(lookupHref(id));
       await waitFor(() => expect(seal()).toBeTruthy());
-      expect(svc.log[0]).toBe(`/api/v1/verification-lookup?verification_id=${new URLSearchParams({ v: id }).toString().slice(2)}`);
+      expect(svc.log[0]).toBe(`/api/v1/verification-lookup?verification_id=${new URLSearchParams({ v: id }).toString().slice(2)}&phase3b=true`);
       expect([...document.querySelectorAll<HTMLElement>("[data-row-id]")].every((b) => b.dataset.rowId!.startsWith(`${id}:`))).toBe(true);
     });
 
@@ -71,7 +71,7 @@ describe("exact-ID lookup route", () => {
     expect(svc.log).toEqual([]);
     await user.click(link);
     await waitFor(() => expect(seal()?.getAttribute("data-s")).toBe("Unverified"));
-    expect(svc.log[0]).toBe("/api/v1/verification-lookup?verification_id=x%2Fevidence");
+    expect(svc.log[0]).toBe("/api/v1/verification-lookup?verification_id=x%2Fevidence&phase3b=true");
     expect(svc.log.every((u) => !u.startsWith("/api/v1/verifications/"))).toBe(true);
   });
 
@@ -82,7 +82,7 @@ describe("exact-ID lookup route", () => {
       return new Response("{}", { status: 503, headers: { "content-type": "text/plain" } });
     });
     renderApp("#/local/verifications/SPEC-001");
-    await waitFor(() => expect(log).toEqual(["/api/v1/verifications/SPEC-001"]));
+    await waitFor(() => expect(log).toEqual(["/api/v1/verifications/SPEC-001?phase3b=true"]));
     expect(screen.queryByRole("link", { name: "Open with exact-ID lookup" })).toBeNull();
   });
 

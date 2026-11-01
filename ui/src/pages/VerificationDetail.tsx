@@ -13,7 +13,7 @@ import { localLookupProvider, localResearchProvider, type LocalAddressing } from
 import type { FlowAssertReadProvider } from "../data/provider";
 import { getRun } from "../data/store";
 import { cn } from "../lib/cn";
-import { formatDateTime, formatTime, plural, relativeTo, relativeToDemoNow, shortDigest } from "../lib/format";
+import { formatDateTime, formatTime, plural, relativeTo, relativeToDemoNow, shortDigest, workflowLabelText } from "../lib/format";
 import { href, LOOKUP_PATH, lookupHref, useReplaceParams, type Location } from "../lib/router";
 import { matchesSearch } from "../lib/search";
 import { useProviderRead } from "../lib/useProviderRead";
@@ -85,8 +85,28 @@ function Headline({ run }: { run: RunView }) {
 }
 
 function Verdict({ run }: { run: RunView }) {
+  const runAny = run as RunView & { workflow_label?: string | null };
+  const wfAny = run.workflow as RunView["workflow"] & { workflow_label?: string | null };
+  const rawWorkflowLabel =
+    "workflow_label" in runAny
+      ? runAny.workflow_label
+      : wfAny && "workflow_label" in wfAny
+        ? wfAny.workflow_label
+        : run.workflow?.n8nLabel ?? null;
+  const wfLabel = workflowLabelText(rawWorkflowLabel ?? null);
   const facts: [string, ReactNode][] = [
     ["Case", <CopyId key="id" id={run.id} />],
+    [
+      "Workflow label",
+      <span
+        key="wf-label"
+        data-workflow-label={wfLabel.fallback ? "fallback" : "present"}
+        className={cn("inline-block max-w-[200px] truncate align-bottom", wfLabel.fallback && "italic text-ink-3")}
+        title={wfLabel.text}
+      >
+        {wfLabel.text}
+      </span>,
+    ],
     ["Source", run.workflow.sourceNamespace],
     ["Destination", "HubSpot · contacts"],
     ["Rule version", tech(run, "Policy", "version")],
@@ -630,7 +650,8 @@ function LocalVerificationRead({ id, location, provider, basePath, baseParams }:
   const run = state.status === "settled" && state.result.kind === "ready" ? state.result.data : null;
 
   useEffect(() => {
-    document.title = run ? `${run.id} · ${run.workflow.name} — Local research — FlowAssert` : `${id} — Local research — FlowAssert`;
+    const titleName = (run?.workflow?.name && run.workflow.name.trim()) || (run ? workflowLabelText(run.workflow?.n8nLabel).text : "");
+    document.title = run ? `${run.id} · ${titleName} — Local research — FlowAssert` : `${id} — Local research — FlowAssert`;
   }, [run, id]);
 
   if (!run || !run.local) return <LocalReadState id={id} state={state} onRetry={read} onCancel={cancel} />;
@@ -672,7 +693,8 @@ function LocalVerificationRead({ id, location, provider, basePath, baseParams }:
 export function VerificationDetail({ id, location }: { id: string; location: Location }) {
   const run = getRun(id);
   useEffect(() => {
-    document.title = run ? `${run.id} · ${run.workflow.name} — FlowAssert` : "Not found — FlowAssert";
+    const titleName = (run?.workflow?.name && run.workflow.name.trim()) || (run ? workflowLabelText(run.workflow?.n8nLabel).text : "");
+    document.title = run ? `${run.id} · ${titleName} — FlowAssert` : "Not found — FlowAssert";
   }, [run]);
 
   if (!run) {
