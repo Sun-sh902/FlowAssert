@@ -25,3 +25,7 @@ ui/test-results-workspace/
 ui/.phase2-runtime/
 ui/docs/phase2/
 ui/test-results-local/
+
+# packaging output
+offline/build/
+offline/*.egg-info/

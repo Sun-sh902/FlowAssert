@@ -1,7 +1,7 @@
 {
   "description": "Current workspace Service identity after run-binding and relative-state remediation; this is not the historically accepted Phase 3A identity.",
   "historical_backend_map": "a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45",
-  "backend_map": "8518fc4510ce727da0dd14377d36fc6ead2c1cafe830ef6dacb1b87248ef0fd6",
+  "backend_map": "df69b8e803c01ae16ab5babe8638c5654855ff42fce85d4814c25df8a0552e0a",
   "files": {
     "app/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "app/adapter.py": "775cf55102b2b96eca4821d8715a28512ab44252a5814f4cc2fe3f7437f4a082",
@@ -34,7 +34,7 @@
     "fixtures/E-row-verified-cohort-unverified.json": "2b7a28188670ac4e5f39ecf826fa89a85543d3ba199a26f582800504cd5c86cf",
     "migrations/001.sql": "b6a09e4f7e79f76f169beac713c9793349ff8012a27b04ddd90705e1b7158f2a",
     "pyproject.toml": "3beb82e76664125dd80d50a87de267baac36eb4a393ff569845130797dbd12c9",
-    "requirements.lock": "34bfa670f3429409de89247c66144d236ad0ccba8a1df054b1509c3ec0e8702c",
+    "requirements.lock": "871e933b712b1bf456f684e2c6d58c8821975795a674e0f67f4573ca294a0865",
     "research-lock.json": "c6203c9ad137476733eb8878a9e46184fb9ef3ecb058056075b24a58ec3d0e2a",
     "run.py": "727448e762ce32dec25db9e74fca273657bd83b6a646d0c8e67a2a5caab4cb6a",
     "run_history.py": "b8834d4d04bb361d79349fb38879e84ef1177b66959743a2f70216aa0260a3e4",

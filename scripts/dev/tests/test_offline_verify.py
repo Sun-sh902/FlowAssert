@@ -7,8 +7,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'offline'))
-import evaluator_v2  # noqa: E402
-import verify  # noqa: E402
+from flowassert_offline import cli as verify, evaluator_v2  # noqa: E402
 
 KEY = {'key': ('key', 'key'), 'fields': [('phone', 'phone')]}
 ROW = {'key': 'K1', 'phone': '1'}
@@ -178,6 +177,12 @@ def test_verified_exit_and_claim(tmp_path, capsys):
                         '--destination', write(tmp_path / 'd.csv', 'k,p\n1,x\n'), '--key', 'k', '--field', 'p',
                         '--source-complete', '--destination-complete', '--json', str(out)])
     assert code == 0 and json.loads(out.read_text())['claim'] == verify.CLAIM
+
+
+def test_version(capsys):
+    with pytest.raises(SystemExit) as stopped:
+        verify.main(['--version'])
+    assert stopped.value.code == 0 and capsys.readouterr().out.strip() == verify.__version__
 
 
 def test_unverified_exit(tmp_path, capsys):

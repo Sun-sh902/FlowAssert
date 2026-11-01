@@ -13,7 +13,7 @@ SVC = ROOT / 'service'
 BASELINE = SVC / 'docs/phase3a/id-addressability-remediation-03/evidence/source-identities.json'
 CURRENT = ROOT / 'scripts/dev/backend-current-identity.json'
 ACCEPTED_MAP = 'a5d68b75d67624e22223fa8ee9328447d96e639001dfac8cea271e4331b34b45'
-CURRENT_MAP = '8518fc4510ce727da0dd14377d36fc6ead2c1cafe830ef6dacb1b87248ef0fd6'
+CURRENT_MAP = 'df69b8e803c01ae16ab5babe8638c5654855ff42fce85d4814c25df8a0552e0a'
 
 
 def digest_map(files):

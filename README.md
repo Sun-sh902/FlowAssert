@@ -7,7 +7,7 @@ English | [简体中文](README.zh-CN.md)
 FlowAssert compares what should exist with what a destination system holds, then reports each record as **Verified**, **Mismatch**, **Pending** or **Unverified**. Its central rule: without enough evidence, it refuses to say Verified.
 
 > [!IMPORTANT]
-> **Archived research prototype, closed on 2026-11-01.** It is not maintained and is not production software.
+> **Early-stage project with one maintainer.** It is not production software.
 > The Service and UI work on five reviewed synthetic cases only. They have no live n8n, HubSpot or Google Sheets connection, take no credentials, and capture no external data. Hashes and local receipts show internal consistency, not that any data is authentic.
 
 License: [Apache 2.0](LICENSE)
@@ -32,6 +32,7 @@ License: [Apache 2.0](LICENSE)
 - [Repository layout](#repository-layout)
 - [Project history](#project-history)
 - [Glossary](#glossary)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -120,8 +121,9 @@ This needs only Python 3.9 or later. It reads local files and makes no network r
 ```sh
 git clone https://github.com/Sun-sh902/FlowAssert.git
 cd FlowAssert
+python3 -m pip install ./offline
 
-python3 offline/verify.py \
+flowassert-verify \
   --source offline/examples/source.csv \
   --destination offline/examples/destination.csv \
   --key external_id \
@@ -145,6 +147,12 @@ Verified 1 · Mismatch 3 · Unverified 0
     ...
 ```
 
+Without installing, run `python3 offline/verify.py` with the same options. To install from GitHub:
+
+```sh
+python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirectory=offline"
+```
+
 `email:hs_email` means the column is `email` in the source and `hs_email` in the destination.
 
 | Option | Meaning |
@@ -155,6 +163,7 @@ Verified 1 · Mismatch 3 · Unverified 0
 | `--destination-complete` | You state that the export covers the whole object |
 | `--json PATH` | Write a full report with file digests. Refuses to overwrite a file |
 | `--redact-values` | Leave keys and compared values out of the output |
+| `--version` | Show the version |
 
 | Exit status | Meaning |
 | --- | --- |
@@ -322,7 +331,7 @@ FastAPI Service on 127.0.0.1:8765
           ▲ written only by local commands
 archive_cli.py, seed_run_bound.py ──> pinned Evaluator
 
-offline/verify.py + evaluator_v2.py   separate; local CSV files only
+flowassert-verify (offline/)   separate; local CSV files only
 ```
 
 There is no write route over HTTP. A static UI build has no gate, so its Service pages show *Service unavailable*.
@@ -543,11 +552,10 @@ Repository history was scanned for common key formats before publication, and no
 | Firefox | Not tested. A known harness defect is unfixed |
 | Accessibility | Automated checks only; no screen-reader testing |
 | Load | No load testing |
-| `certifi 2026.7.22` | Affected by advisory GHSA-6q48-6c7w-9gw2. It is pulled in through `httpx`; the Service makes no outbound HTTPS requests. The pinned lock was left unchanged |
 | `/docs` | FastAPI's docs page is enabled and loads assets from a CDN if opened |
 | Old harness scripts | Some scripts in `ui/scripts/phase2` and `ui/scripts/phase3a` contain paths from the original machine |
 
-`npm audit` reported no known vulnerabilities on 2026-11-01. An OSV lookup of the Python lock file reported only the `certifi` item.
+`npm audit` and an OSV lookup of the Python lock file reported no known vulnerabilities on 2026-11-01.
 
 ## Extending it
 
@@ -564,12 +572,12 @@ The Service was built to fail on anything unreviewed, so several limits are deli
 
 Changing `model.py` makes the Service return 503 until the pins are updated, which is intended.
 
-The planned route to real data is in [docs/product-dev/final-version/](docs/product-dev/final-version/): [product definition v0.2](docs/product-dev/final-version/PRODUCT_DEFINITION_v0.2.md) and the [validation plan](docs/product-dev/final-version/S1_VALIDATION_PLAN.md). It recommends testing with users and read-only sandbox accounts before writing connectors. `offline/evaluator_v2.py` is the first step toward configurable rules.
+The planned route to real data is in [docs/product-dev/final-version/](docs/product-dev/final-version/): [product definition v0.2](docs/product-dev/final-version/PRODUCT_DEFINITION_v0.2.md) and the [validation plan](docs/product-dev/final-version/S1_VALIDATION_PLAN.md). It recommends testing with users and read-only sandbox accounts before writing connectors. `offline/flowassert_offline/evaluator_v2.py` is the first step toward configurable rules.
 
 ## Repository layout
 
 ```text
-offline/                     CSV check and Evaluator v2
+offline/                     Installable CSV check and Evaluator v2
 service/
   app/                       FastAPI application
   vendor/model.py            Pinned Evaluator v1
@@ -616,7 +624,7 @@ Useful starting points:
 | Oct 24–27 | Trusted Runner preparation; installation stopped at administrator sign-in |
 | Oct 29 | Machine rebuilt; 452,602 files restored from an external drive |
 | Oct 31 | Experimental local receipts and record reconciliation |
-| Nov 1 | Final direction, offline CSV check, project closed |
+| Nov 1 | Offline CSV check, Chinese interface, public release; maintenance continues |
 
 Much of the development and review used AI coding assistants under one Owner. In these records, "independent review" means a separate role or session as far as the records show. It does not mean a third-party audit.
 
@@ -638,9 +646,18 @@ The Phase 3B work on this branch has no Owner acceptance and no independent revi
 | M1 | The Trusted Runner milestone, which remained blocked |
 | R1–R3 | Recovery stages after the machine rebuild |
 
+## Roadmap
+
+The aim is to find out whether this is useful to people who maintain automations. There are no dates.
+
+- Improve the offline CSV check using real feedback.
+- Test the planned checks with read-only sandbox accounts. See the [validation plan](docs/product-dev/final-version/S1_VALIDATION_PLAN.md).
+- Add explicit, reviewed comparison policies beyond exact match.
+- Connect the Service to real sources only after that testing supports it.
+
 ## Contributing
 
-This repository is archived, and issues and pull requests may go unanswered. You are welcome to fork it under the license.
+Bug reports, examples of real verification problems and focused pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md) and the [security policy](SECURITY.md).
 
 ## License
 

@@ -1,0 +1,35 @@
+name: Bug report
+description: Something gave a wrong result, crashed, or did not match the documentation
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The output of `flowassert-verify --version`, or a commit hash
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Offline CSV check
+        - Service
+        - UI
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      description: Use synthetic data. Do not post real customer data or credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected and what happened
+    validations:
+      required: true

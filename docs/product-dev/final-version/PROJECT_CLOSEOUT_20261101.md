@@ -2,6 +2,8 @@
 
 2026-11-01. **Status: closed as a local research prototype.** The Owner said "我想结束FlowAssert并发布至github", then chose private archiving ("准备私有归档"). This is a conversational record, not a signed acceptance.
 
+> **Update, 2026-11-01:** the Owner resumed maintenance ("恢复维护"). The project is no longer closed. This record stays as the account of that decision point. Current status is in the [README](../../../README.md).
+
 ## Why it stopped
 
 Reaching a first version was estimated at 15 to 22 weeks, and no target-user or real-account evidence existed to justify that work. S1 was prepared but not started. Stopping does not mean the product idea was disproved: it was never tested.

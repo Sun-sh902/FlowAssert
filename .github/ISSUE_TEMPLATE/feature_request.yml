@@ -1,0 +1,17 @@
+name: Feature request
+description: Describe a verification problem you have
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What do you need to check, and how do you check it today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+    validations:
+      required: false

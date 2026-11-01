@@ -7,7 +7,7 @@
 FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”，再把每条记录判定为 **Verified**、**Mismatch**、**Pending** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。
 
 > [!IMPORTANT]
-> **这是已归档的研究原型，已于 2026-11-01 结束。** 项目不再维护，也不是生产软件。
+> **这是由一位维护者维护的早期项目。** 它还不是生产软件。
 > Service 和 UI 只处理 5 个审核过的合成样例。它们没有连接真实的 n8n、HubSpot 或 Google Sheets，不接收凭据，也不采集外部数据。哈希和本地回执只能说明内部一致，不能证明任何数据是真实的。
 
 许可证：[Apache 2.0](LICENSE)
@@ -43,6 +43,7 @@ FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”
 - [仓库结构](#仓库结构)
 - [项目历史](#项目历史)
 - [术语表](#术语表)
+- [路线图](#路线图)
 - [参与贡献](#参与贡献)
 - [许可证](#许可证)
 
@@ -131,8 +132,9 @@ FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”
 ```sh
 git clone https://github.com/Sun-sh902/FlowAssert.git
 cd FlowAssert
+python3 -m pip install ./offline
 
-python3 offline/verify.py \
+flowassert-verify \
   --source offline/examples/source.csv \
   --destination offline/examples/destination.csv \
   --key external_id \
@@ -156,6 +158,12 @@ Verified 1 · Mismatch 3 · Unverified 0
     ...
 ```
 
+不安装也可以运行：把命令换成 `python3 offline/verify.py`，选项相同。也可以直接从 GitHub 安装：
+
+```sh
+python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirectory=offline"
+```
+
 `email:hs_email` 表示这一列在来源文件里叫 `email`，在目标文件里叫 `hs_email`。
 
 | 选项 | 含义 |
@@ -166,6 +174,7 @@ Verified 1 · Mismatch 3 · Unverified 0
 | `--destination-complete` | 你声明导出文件覆盖了整个对象 |
 | `--json PATH` | 写入含文件摘要的完整报告，不会覆盖已有文件 |
 | `--redact-values` | 输出中不显示键和比较值 |
+| `--version` | 显示版本 |
 
 | 退出码 | 含义 |
 | --- | --- |
@@ -333,7 +342,7 @@ FastAPI Service on 127.0.0.1:8765
           ▲ written only by local commands
 archive_cli.py, seed_run_bound.py ──> pinned Evaluator
 
-offline/verify.py + evaluator_v2.py   separate; local CSV files only
+flowassert-verify (offline/)   separate; local CSV files only
 ```
 
 HTTP 层没有写接口。UI 的静态构建没有门禁，所以其中的 Service 页面会显示 *Service unavailable*。
@@ -561,11 +570,10 @@ Service 是为本机单用户设计的。
 | Firefox | 未测试，有一个已知的测试框架缺陷没有修复 |
 | 无障碍 | 只有自动化检查，没有做读屏测试 |
 | 负载 | 没有做负载测试 |
-| `certifi 2026.7.22` | 受公告 GHSA-6q48-6c7w-9gw2 影响。它经由 `httpx` 引入，Service 不发外部 HTTPS 请求。固定的锁文件没有改动 |
 | `/docs` | FastAPI 文档页已启用，打开时会从 CDN 加载资源 |
 | 旧测试脚本 | `ui/scripts/phase2` 和 `ui/scripts/phase3a` 中的部分脚本含有原机器路径 |
 
-2026-11-01 的 `npm audit` 没有报告已知漏洞。Python 锁文件的 OSV 查询只报告了 `certifi` 这一项。
+2026-11-01 的 `npm audit` 和 Python 锁文件的 OSV 查询都没有报告已知漏洞。
 
 ## 如何扩展
 
@@ -582,12 +590,12 @@ Service 的设计是遇到未审核内容就失败，所以有几项限制是刻
 
 修改 `model.py` 后，Service 会一直返回 503，直到更新固定值，这是有意设计的。
 
-接入真实数据的规划在 [docs/product-dev/final-version/](docs/product-dev/final-version/):[产品定义 v0.2](docs/product-dev/final-version/PRODUCT_DEFINITION_v0.2.md)和[验证计划](docs/product-dev/final-version/S1_VALIDATION_PLAN.md)。规划建议先做用户验证，并用只读沙箱账号测试，再写连接器。`offline/evaluator_v2.py` 是走向可配置规则的第一步。
+接入真实数据的规划在 [docs/product-dev/final-version/](docs/product-dev/final-version/):[产品定义 v0.2](docs/product-dev/final-version/PRODUCT_DEFINITION_v0.2.md)和[验证计划](docs/product-dev/final-version/S1_VALIDATION_PLAN.md)。规划建议先做用户验证，并用只读沙箱账号测试，再写连接器。`offline/flowassert_offline/evaluator_v2.py` 是走向可配置规则的第一步。
 
 ## 仓库结构
 
 ```text
-offline/                     CSV 核对和 Evaluator v2
+offline/                     可安装的 CSV 核对工具和 Evaluator v2
 service/
   app/                       FastAPI 应用
   vendor/model.py            固定版 Evaluator v1
@@ -636,7 +644,7 @@ docs/product-dev/            报告、截图、原始测试证据
 | 10 月 24–27 日 | Trusted Runner 准备工作；安装停在管理员登录一步 |
 | 10 月 29 日 | 机器重装，从外置盘恢复 452,602 个文件 |
 | 10 月 31 日 | 实验性本地回执和记录对账 |
-| 11 月 1 日 | 确定最终方向，完成离线 CSV 核对，项目结束 |
+| 11 月 1 日 | 完成离线 CSV 核对和中文界面，公开发布，继续维护 |
 
 大量开发和审查工作由一位 Owner 主导，并使用了 AI 编程助手。从记录来看，文档里的“independent review”指独立的角色或会话，不代表第三方审计。
 
@@ -658,9 +666,18 @@ docs/product-dev/            报告、截图、原始测试证据
 | M1 | Trusted Runner 里程碑，一直受阻 |
 | R1–R3 | 机器重装后的恢复阶段 |
 
+## 路线图
+
+当前目标是弄清楚它对维护自动化的人是否有用。这里没有时间承诺。
+
+- 根据真实反馈改进离线 CSV 核对。
+- 用只读沙箱账号测试规划中的检查。详见[验证计划](docs/product-dev/final-version/S1_VALIDATION_PLAN.md)。
+- 增加明确且经过审核的比较策略，不只是精确匹配。
+- 上述测试有依据后，再把 Service 连接到真实来源。
+
 ## 参与贡献
 
-这个仓库已归档，Issue 和 Pull Request 可能得不到回复。欢迎按许可证 Fork。
+欢迎提交问题报告、真实的验证场景和聚焦的 Pull Request。详见 [CONTRIBUTING.md](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)和[安全策略](SECURITY.md)。这些文档是英文的。
 
 ## 许可证
 
