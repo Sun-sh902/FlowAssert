@@ -1,5 +1,7 @@
 # FlowAssert
 
+English | [简体中文](README.zh-CN.md)
+
 **The workflow succeeded. Did the expected business data actually arrive?**
 
 FlowAssert compares what should exist with what a destination system holds, then reports each record as **Verified**, **Mismatch**, **Pending** or **Unverified**. Its central rule: without enough evidence, it refuses to say Verified.
