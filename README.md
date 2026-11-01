@@ -1,5 +1,7 @@
 # FlowAssert — product development workspace
 
+**Closed on 2026-11-01 as a local research prototype.** See [PROJECT_CLOSEOUT_20261101.md](docs/product-dev/final-version/PROJECT_CLOSEOUT_20261101.md).
+
 Local product development on the Owner-accepted Phase 3A UI and Python Service. This repository is the current
 development entry point.
 **LOCAL / OFFLINE / SYNTHETIC RESEARCH ONLY.** No live n8n or HubSpot, no credentials, and no capture of external data.
