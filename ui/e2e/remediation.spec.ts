@@ -73,7 +73,7 @@ const FOCUS_CASES: FocusCase[] = [
   { name: "settings · Density checked option", hash: "#/settings", target: (p) => p.getByRole("radiogroup", { name: "Density" }).getByRole("radio", { checked: true }) },
   { name: "settings · Focus ring checked option", hash: "#/settings", target: (p) => p.getByRole("radiogroup", { name: "Focus ring" }).getByRole("radio", { checked: true }) },
   { name: "settings · selected theme specimen", hash: "#/settings", target: (p) => p.locator(".fa-specimen[aria-checked=true]") },
-  { name: "rail · active theme switch (control)", hash: "#/settings", target: (p) => p.locator("aside").getByRole("radio", { checked: true }) },
+  { name: "rail · active theme switch (control)", hash: "#/settings", target: (p) => p.locator("aside").getByRole("radiogroup", { name: "Theme" }).getByRole("radio", { checked: true }) },
   { name: "states · Outcome checked option", hash: "#/states", target: (p) => p.getByRole("radiogroup", { name: "Outcome of the next read" }).getByRole("radio", { checked: true }) },
   { name: "rules · Comparison checked option", hash: "#/rules", target: (p) => p.getByRole("radiogroup", { name: "Comparison" }).getByRole("radio", { checked: true }) },
 ];

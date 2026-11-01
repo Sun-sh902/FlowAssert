@@ -12,6 +12,7 @@
    "src/test/detail.test.tsx": 15,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/fix03.test.tsx": 21,
+   "src/test/i18n.test.tsx": 26,
    "src/test/fixture-identity.test.ts": 5,
    "src/test/fixtures.test.ts": 8,
    "src/test/frontend-audit.test.tsx": 4,
@@ -593,6 +594,12 @@
    }
   },
   "e2e-workspace": {
+   "chrome › workspace.spec.ts › archive: dev-main (2 archived evaluations per case) › Language: Chinese relabels the page; verdicts, identifiers and reads stay the Service's": {
+    "passed": 1
+   },
+   "webkit › workspace.spec.ts › archive: dev-main (2 archived evaluations per case) › Language: Chinese relabels the page; verdicts, identifiers and reads stay the Service's": {
+    "passed": 1
+   },
    "chrome › workspace.spec.ts › archive: dev-main (2 archived evaluations per case) › Overview: a live 404 from the Service is 'no current result', never a failed read (residual closeout R05)": {
     "passed": 1
    },

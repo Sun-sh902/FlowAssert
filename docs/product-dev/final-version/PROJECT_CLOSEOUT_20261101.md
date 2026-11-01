@@ -18,6 +18,8 @@ All of the above handles five reviewed synthetic cases only.
 
 The final addition is `offline/`: Evaluator v2 and a command that compares two local CSV files on selected fields under the current-state obligation. It uses stated premises, makes no network requests, has had no independent review, and is not connected to the Service or UI.
 
+The UI also has a Simplified Chinese presentation layer in `ui/src/i18n/`. English stays the source and the default. Evidence values, identifiers and evaluator reasons are not translated.
+
 ## What does not exist
 
 - Any connection to n8n, HubSpot, or Google Sheets, and any capture of external data.

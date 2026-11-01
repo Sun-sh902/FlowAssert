@@ -470,6 +470,12 @@ These are kept apart so that one kind of problem is never reported as another.
 
 So a stopped Service shows `NO_VERDICT`, not Unverified. A difference between live and archived results is a diagnostic, not a Mismatch.
 
+### Interface language
+
+The interface is English by default. The `EN` and `中文` switch at the bottom of the rail stores the choice in this browser and reloads the page.
+
+Simplified Chinese is a presentation layer in `ui/src/i18n/`. A catalogue keyed by the English source translates interface text and accessible names. It never touches providers, decoders or view models. Evaluator reasons, the Service's assurance statements, identifiers, digests, evidence values and technical validator diagnostics stay exactly as supplied.
+
 ### Integrity and read behavior
 
 - Evidence pages must concatenate to exactly the references the Detail lists. Duplicates, gaps, reordering and cursor cycles are refused.
@@ -485,7 +491,7 @@ A matching digest shows that two values from the same Service agree. It proves n
 | --- | --- | --- |
 | Backend | pytest | Over 300 tests on routes, archive, cursors, receipts, failure paths |
 | Scripts and offline check | pytest | Dev tooling, CSV check, agreement with Evaluator v1 |
-| Frontend | Vitest | About 1,800 tests, including contract drift and hostile responses |
+| Frontend | Vitest | Over 1,800 tests, including contract drift, hostile responses and the Chinese interface |
 | Browser | Playwright | Chrome and WebKit suites for workspace, history, lookup, gate security, accessibility |
 | Layout | Custom | 200-cell responsive matrix and layout-shift checks |
 | Identity | `check_identities.py` | Pinned Evaluator, contracts, and backend source map |
@@ -581,7 +587,7 @@ ui/
   scripts/                   Harness and evidence tools
   docs/                      Design and integration notes
 scripts/dev/                 Bootstrap, seed, run, regression
-docs/readme/                 Screenshots used by this README
+docs/readme/                 Screenshots used by the READMEs
 docs/product-dev/            Reports, screenshots, raw test evidence
 ```
 
