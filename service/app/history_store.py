@@ -112,7 +112,7 @@ def semantic_run(run):
     return r
 
 
-def evaluate_admission(candidate, current_execution_context=None, *, signing_secret=None):
+def evaluate_admission(candidate, current_execution_context=None, *, signing_secret=None, allow_legacy=False):
     """Verify run and artifact bindings; untrusted self-reports remain unadmitted.
 
     A signing secret from the archive state is required to authenticate the
@@ -129,6 +129,17 @@ def evaluate_admission(candidate, current_execution_context=None, *, signing_sec
         if current_execution_context is not None: return incomplete
         return result('CAPTURE_NOT_IMPLEMENTED', 'ADMISSION_NOT_IMPLEMENTED')
     if not has_context or not has_receipt: return incomplete
+    # Earlier locally signed receipts did not bind evaluator or run metadata.
+    # Preserve existing records read-only without asserting run-bound status.
+    # Never allow these weaker receipts to create a new archive.
+    if (allow_legacy and current_execution_context is None and signing_secret is not None
+            and isinstance(candidate['execution_context'], dict)
+            and isinstance(candidate['evidence_receipt'], dict)
+            and 'service_executed_at' not in candidate['execution_context']
+            and 'evaluator_sha256' not in candidate['evidence_receipt']
+            and 'candidate_content_sha256' not in candidate['evidence_receipt']
+            and verify_receipt(signing_secret, candidate['execution_context'], candidate['evidence_receipt'])):
+        return result('CAPTURE_NOT_IMPLEMENTED', 'ADMISSION_NOT_IMPLEMENTED')
     try:
         context = RunBoundExecutionContext.model_validate(candidate['execution_context'])
         receipt = RunBoundEvidenceReceipt.model_validate(candidate['evidence_receipt'])
@@ -155,17 +166,23 @@ def evaluate_admission(candidate, current_execution_context=None, *, signing_sec
         return incomplete
     if not authenticated: return incomplete
     if (receipt.input_sha256 != digest(candidate['bundle']['input']) or
-            receipt.result_sha256 != digest(candidate['bundle']['raw'])):
+            receipt.result_sha256 != digest(candidate['bundle']['raw']) or
+            receipt.evaluator_sha256 != MODEL_HASH or
+            context.service_executed_at is None or
+            context.service_executed_at != run['identity']['created_at'] or
+            context.service_executed_at != run['meta']['generated_at'] or
+            context.service_executed_at != run['evaluation_context']['service_executed_at'] or
+            receipt.candidate_content_sha256 != digest({k: v for k, v in candidate.items() if k not in ('execution_context', 'evidence_receipt')})):
         return result('CAPTURE_INCOMPLETE', 'REJECTED_BINDING_MISMATCH')
     return result('CAPTURED_COMPLETE', 'ADMITTED_RUN_BOUND')
 
 
-def validate_candidate(candidate, replay=False, current_execution_context=None, *, signing_secret=None):
+def validate_candidate(candidate, replay=False, current_execution_context=None, *, signing_secret=None, allow_legacy=False):
     try:
         required = {'bundle', 'snapshot_basis', 'provenance', 'original_contract_sha256', 'history_contract_sha256'}
         if not required <= set(candidate) or set(candidate) - required - {'execution_context', 'evidence_receipt'}:
             fail('archive_schema_invalid', 'INTEGRITY_FAILED')
-        admission = evaluate_admission(candidate, current_execution_context, signing_secret=signing_secret)
+        admission = evaluate_admission(candidate, current_execution_context, signing_secret=signing_secret, allow_legacy=allow_legacy)
         if admission['admission_status'] not in ('ADMISSION_NOT_IMPLEMENTED', 'ADMITTED_RUN_BOUND'):
             raise HistoryError(409, admission['admission_status'].lower())
         if candidate['original_contract_sha256'] != CONTRACT_HASH or candidate['history_contract_sha256'] != CONTRACT_SHA256:
@@ -238,7 +255,9 @@ def expected_schema():
 
 class ArchiveStore:
     def __init__(self, directory=None):
-        self.directory = Path(directory or os.environ.get('FLOWASSERT_HISTORY_STATE', str(DEFAULT_STATE)))
+        # Keep the path lexical: resolve relative arguments for SQLite's file
+        # URI without following symlinks before state_directory inspects them.
+        self.directory = Path(os.path.abspath(directory or os.environ.get('FLOWASSERT_HISTORY_STATE', str(DEFAULT_STATE))))
         self.path = self.directory / 'history.sqlite3'
 
     def initialize(self):
@@ -312,7 +331,7 @@ class ArchiveStore:
     def _cursors(self): return Cursors(signing_key(state_directory(self.directory)))
 
     def admission(self, candidate):
-        return evaluate_admission(candidate, signing_secret=signing_key(state_directory(self.directory)))
+        return evaluate_admission(candidate, signing_secret=signing_key(state_directory(self.directory)), allow_legacy=True)
 
     def publish(self, candidate, c=None, fault=None, *, current_execution_context=None):
         if c is None:
@@ -374,7 +393,7 @@ class ArchiveStore:
             if not isinstance(raw, bytes) or sha(raw) != r['candidate_sha256']: fail('archive_digest_mismatch', 'INTEGRITY_FAILED')
             candidate = json.loads(raw)
             if canonical(candidate) != raw: fail('archive_noncanonical', 'INTEGRITY_FAILED')
-            try: validate_candidate(candidate, signing_secret=signing_key(state_directory(self.directory)))
+            try: validate_candidate(candidate, signing_secret=signing_key(state_directory(self.directory)), allow_legacy=True)
             except HistoryError as e: fail(e.code, 'INTEGRITY_FAILED')
             ident = r['candidate_sha256']; b = candidate['bundle']; run = b['run']
             if hid != 'hist_' + ident or r['archive_id'] != 'archive_' + ident or r['snapshot_id'] != 'history-snapshot_' + ident:
@@ -401,6 +420,8 @@ class ArchiveStore:
 
     def _summary(self, candidate, row):
         run = candidate['bundle']['run']; result = run['result']
+        admission = self.admission(candidate)
+        context = candidate.get('execution_context') if admission['admission_status'] == 'ADMITTED_RUN_BOUND' else None
         return {'contract_version': CONTRACT_VERSION, 'history_id': row['history_id'], 'archive_id': row['archive_id'],
             'snapshot_id': row['snapshot_id'], 'original_snapshot_id': row['original_snapshot_id'],
             'original_verification_id': row['verification_id'], 'workspace_id': run['identity']['workspace_id'],
@@ -409,7 +430,7 @@ class ArchiveStore:
             'input_evidence_sha256': run['evaluation_context']['input_evidence_sha256'], 'provenance': candidate['provenance'],
             'result_summary': {k: result[k] for k in ('cohort_state', 'counts', 'expected_total', 'source_population_known')},
             'integrity': integrity('INTEGRITY_VERIFIED', row['candidate_sha256']),
-            **public_admission(self.admission(candidate), candidate.get('execution_context'))}
+            **public_admission(admission, context)}
 
     def detail(self, hid, snapshot=None):
         with self.connection() as c:

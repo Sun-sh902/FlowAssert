@@ -95,6 +95,23 @@ export async function exchange(fetchImpl: typeof fetch, url: string, timeoutMs: 
   }
 }
 
+/** Stops reading just past the limit, so the size refusal never needs the whole body in memory. */
+async function readBounded(res: Response): Promise<string> {
+  if (!res.body) return res.text();
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return text + decoder.decode();
+    text += decoder.decode(value, { stream: true });
+    if (text.length > LOCAL_LIMITS.maxBodyChars) {
+      void reader.cancel().catch(() => undefined);
+      return text;
+    }
+  }
+}
+
 async function exchangeOnce(fetchImpl: typeof fetch, url: string, timeoutMs: number, signal?: AbortSignal): Promise<Exchange> {
   const ctrl = new AbortController();
   let timedOut = false;
@@ -114,7 +131,7 @@ async function exchangeOnce(fetchImpl: typeof fetch, url: string, timeoutMs: num
       referrerPolicy: "no-referrer",
       signal: ctrl.signal,
     });
-    const text = await res.text();
+    const text = await readBounded(res);
     return { kind: "response", status: res.status, contentType: res.headers.get("content-type") ?? "", text };
   } catch (e) {
     if (signal?.aborted) throw abortError();

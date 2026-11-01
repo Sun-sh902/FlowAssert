@@ -210,13 +210,14 @@ export function Disclosure({
 
 /* ---------- Empty state ---------- */
 
-export function EmptyState({ title, body, action }: { title: string; body: ReactNode; action?: ReactNode }) {
+export function EmptyState({ title, body, action, headingLevel }: { title: string; body: ReactNode; action?: ReactNode; headingLevel?: 1 }) {
+  const Title = headingLevel === 1 ? "h1" : "p";
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <div className="mb-3 grid size-9 place-items-center rounded-full border border-dashed border-line-strong text-ink-4">
         <Search size={15} aria-hidden />
       </div>
-      <p className="text-sm font-medium text-ink">{title}</p>
+      <Title className="text-sm font-medium text-ink">{title}</Title>
       <p className="mt-1 max-w-sm text-sm text-ink-3">{body}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>

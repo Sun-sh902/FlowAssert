@@ -116,11 +116,14 @@ export function ServiceStatus() {
   const d = describeStatus(last, inFlight, now);
   return (
     <span className="flex min-w-0 items-center gap-2.5" data-service-status={d.kind}>
-      <span role="status" aria-live="polite" title={SERVICE_STATUS_SCOPE} className="flex min-w-0 items-center gap-1.5 font-mono text-[11px]">
-        <Mark kind={d.kind} />
-        <span className={cn("whitespace-nowrap", d.kind === "REACHABLE" ? "text-ink" : "text-ink-2")}>{d.label}</span>
+      {/* Only the state is announced. The age sits outside the live region: it changes every 15 s on an idle page. */}
+      <span title={SERVICE_STATUS_SCOPE} className="flex min-w-0 items-center gap-1.5 font-mono text-[11px]">
+        <span role="status" aria-live="polite" className="flex items-center gap-1.5">
+          <Mark kind={d.kind} />
+          <span className={cn("whitespace-nowrap", d.kind === "REACHABLE" ? "text-ink" : "text-ink-2")}>{d.label}</span>
+          <span className="sr-only">. {SERVICE_STATUS_SCOPE}</span>
+        </span>
         <span className="hidden truncate text-ink-3 md:inline">· {d.detail}</span>
-        <span className="sr-only">. {SERVICE_STATUS_SCOPE}</span>
       </span>
       <button
         type="button"

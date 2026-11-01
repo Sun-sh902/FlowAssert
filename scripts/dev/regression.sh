@@ -94,12 +94,17 @@ gate backend-pytest "$SVC" env LC_ALL=C PYTHONDONTWRITEBYTECODE=1 TMPDIR="$SVC/.
   .venv/bin/python -B -m pytest -p no:cacheprovider --basetemp="$SVC/.runtime/tmp/regression-$LABEL" -q \
   --deselect tests/test_service.py::test_protected_repository_integrity --junitxml="$OUT/backend-pytest.xml" tests
 gate backend-inventory "$ROOT" "$SYS_PY" -I -B scripts/dev/check_test_inventory.py pytest "$OUT/backend-pytest.xml"
-# Historical custody: the restored test, unchanged, against the accepted roots under FLOWASSERT_PROTECTED_PARENT
+# Custody: the restored test, unchanged, against the accepted roots under FLOWASSERT_PROTECTED_PARENT
 # (default: this checkout's parent). BLOCKED, never substituted, where they are absent.
 if [ "$MODE" = product ]; then
   not_run protected-custody "historical custody of the accepted protected roots — release profile, or scripts/dev/protected_custody.sh"
 else
-  gate protected-custody "$ROOT" scripts/dev/protected_custody.sh --basetemp="$SVC/.runtime/tmp/regression-$LABEL-custody"
+  # The Owner-approved reconciled baseline decides the gate. The historical result is recorded, never counted as a pass.
+  gate protected-custody "$ROOT" scripts/dev/protected_custody_reconciled.sh --basetemp="$SVC/.runtime/tmp/regression-$LABEL-custody"
+  ( cd "$ROOT" && env -u FA_CUSTODY_BASELINE_PINNED scripts/dev/protected_custody.sh --basetemp="$SVC/.runtime/tmp/regression-$LABEL-custody-historical" ) > "$OUT/protected-custody-historical.log" 2>&1
+  historical=$?
+  printf 'protected-custody-historical\t%s\tINFORMATIONAL\t%s\t%s\n' "$historical" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "accepted baseline, recorded only" >> "$OUT/summary.tsv"
+  printf '%-22s exit %-3s INFORMATIONAL\n' protected-historical "$historical"
 fi
 gate dev-scripts "$ROOT" "$SVC/.venv/bin/python" -B -m pytest -p no:cacheprovider -q --basetemp="$SVC/.runtime/tmp/regression-$LABEL-dev" scripts/dev/tests
 gate pinned-identities "$ROOT" "$SYS_PY" -I -B scripts/dev/check_identities.py

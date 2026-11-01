@@ -234,7 +234,7 @@ export function deriveWorkspaceStatusAxes(input?: DeriveWorkspaceStatusAxesInput
     verdict = noVerdict("The archive holds no evaluation of this case. Nothing was evaluated for this page.");
   }
 
-  const facts = verdict.kind === "VERDICT" && verdict.source.kind === "live" ? input?.live?.phase3b : (latestEntry?.phase3b ?? input?.live?.phase3b);
+  const facts = verdict.kind !== "VERDICT" ? null : verdict.source.kind === "live" ? input?.live?.phase3b : latestEntry?.phase3b;
   return { capture: deriveCaptureAxis(facts), admission: deriveAdmissionAxis(facts), archive, verdict };
 }
 

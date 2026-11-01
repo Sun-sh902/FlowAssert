@@ -14,6 +14,7 @@
    "src/test/fix03.test.tsx": 21,
    "src/test/fixture-identity.test.ts": 5,
    "src/test/fixtures.test.ts": 8,
+   "src/test/frontend-audit.test.tsx": 4,
    "src/test/history-contract-drift.test.ts": 19,
    "src/test/local-detail.test.tsx": 24,
    "src/test/local-provider.test.ts": 30,
@@ -55,7 +56,7 @@
  },
  "pytest": {
   "portable": {
-   "tests": 297,
+   "tests": 309,
    "deselected": [
     "tests/test_service.py::test_protected_repository_integrity"
    ]

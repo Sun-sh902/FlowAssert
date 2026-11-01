@@ -91,5 +91,5 @@ def create_history_app(directory=None):
     @app.get('/history-openapi.json', include_in_schema=False)
     def contract(): return history_spec()
 
-    add_verification_lookup(app, ALLOWED_ORIGINS)
+    add_verification_lookup(app)
     return app

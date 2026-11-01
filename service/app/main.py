@@ -45,7 +45,7 @@ def create_app():
         if evidence:
             try:
                 raw=q.get('limit','25')
-                if not raw.isdecimal(): raise ValueError()
+                if not (raw.isascii() and raw.isdecimal()): raise ValueError()
                 limit=int(raw)
                 if not 1<=limit<=100: raise ValueError()
             except ValueError: raise ServiceError(422,'invalid_parameter') from None

@@ -17,6 +17,7 @@ class RunBoundExecutionContext(BaseModel):
     verifier_work_completed: bool
     outer_exit_status: Union[int, None]
     subprocess_failures: Annotated[int, Field(ge=0)]
+    service_executed_at: Union[str, None] = None
 
 
 class RunBoundEvidenceReceipt(BaseModel):
@@ -26,6 +27,8 @@ class RunBoundEvidenceReceipt(BaseModel):
     input_sha256: Union[Sha256, None] = None
     result_sha256: Union[Sha256, None] = None
     token: Union[Sha256, None] = None
+    evaluator_sha256: Union[Sha256, None] = None
+    candidate_content_sha256: Union[Sha256, None] = None
 
 
 class AdmissionEvaluation(BaseModel):

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { AppShell } from "./components/shell/AppShell";
+import { RenderBoundary } from "./components/shell/RenderBoundary";
 import { EmptyState, Panel, buttonClass } from "./components/ui/primitives";
 import { getRun } from "./data/store";
 import { useLocation, type Route } from "./lib/router";
@@ -165,6 +166,7 @@ export function App() {
 
   return (
     <AppShell route={route} crumbs={<Crumbs route={route} />}>
+      <RenderBoundary key={location.path}>
       {route.name === "workspace" && <WorkspaceOverview />}
       {route.name === "capture" && <CaptureRuns />}
       {route.name === "demo-overview" && <Overview />}
@@ -185,9 +187,10 @@ export function App() {
       )}
       {route.name === "not-found" && (
         <Panel>
-          <EmptyState title="Page not found" body="This address does not exist." action={<a className={buttonClass()} href="#/">Back to overview</a>} />
+          <EmptyState headingLevel={1} title="Page not found" body="This address does not exist." action={<a className={buttonClass()} href="#/">Back to overview</a>} />
         </Panel>
       )}
+      </RenderBoundary>
     </AppShell>
   );
 }

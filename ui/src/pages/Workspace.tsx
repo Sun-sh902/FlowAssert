@@ -87,22 +87,9 @@ function caseAxes(c: WorkspaceCase) {
 
 const caseReportsOutcome = (c: WorkspaceCase) => (c.live.kind === "ready" && hasReportedOutcome(c.live.run.phase3b)) || c.entries.some((e) => hasReportedOutcome(e.phase3b));
 
+/** Only a live read carries a workflow; an archive summary does not, so no label is claimed for it. */
 function caseWorkflowLabel(c: WorkspaceCase): { text: string; fallback: boolean } | null {
-  const anyCase = c as WorkspaceCase & { workflow_label?: string | null; workflowLabel?: string | null };
-  if ("workflow_label" in anyCase) return workflowLabelText(anyCase.workflow_label ?? null);
-  if ("workflowLabel" in anyCase) return workflowLabelText(anyCase.workflowLabel ?? null);
-  if (c.live.kind === "ready") {
-    const runAny = c.live.run as typeof c.live.run & { workflow_label?: string | null };
-    if ("workflow_label" in runAny) return workflowLabelText(runAny.workflow_label ?? null);
-    const w = c.live.run.workflow as { n8nLabel?: string | null; workflow_label?: string | null } | undefined;
-    const raw = w && "workflow_label" in w ? w.workflow_label : w?.n8nLabel;
-    return workflowLabelText(raw ?? null);
-  }
-  const latestAny = (c.comparison.archived ?? c.entries[0] ?? null) as { workflow_label?: string | null; workflowLabel?: string | null } | null;
-  if (latestAny && ("workflow_label" in latestAny || "workflowLabel" in latestAny)) {
-    return workflowLabelText(latestAny.workflow_label ?? latestAny.workflowLabel ?? null);
-  }
-  return null;
+  return c.live.kind === "ready" ? workflowLabelText(c.live.run.workflow.n8nLabel) : null;
 }
 
 function WorkflowLabelBadge({ label }: { label: { text: string; fallback: boolean } | null }) {

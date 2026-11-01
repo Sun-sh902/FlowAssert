@@ -6,6 +6,7 @@ from urllib.parse import parse_qsl
 from fastapi import Request
 
 from .identity import ROOT, ServiceError, checked_bytes
+from .local_boundary import local_request_error
 from .lookup_contract import CONTRACT_SHA256
 from .models import EvidencePage, VerificationRun
 from .admission_serialization import public_live_run
@@ -62,7 +63,7 @@ def lookup_query(request, evidence=False):
     return identity, q
 
 
-def add_verification_lookup(app, allowed_origins):
+def add_verification_lookup(app):
     """Install only on the supported Phase3A composed app, leaving Phase1 intact."""
     async def error(request, status, code):
         response = await app.exception_handlers[ServiceError](
@@ -83,18 +84,10 @@ def add_verification_lookup(app, allowed_origins):
                 return await error(request, 414, 'request_target_too_long')
             if request.method != 'GET':
                 return await error(request, 405, 'method_not_allowed')
-            # The supported launcher binds only 127.0.0.1; require its actual
-            # authority, including the port. This is not authentication.
-            port = request.scope['server'][1]
-            hosts = request.headers.getlist('host')
-            allowed_hosts = {f'127.0.0.1:{port}'}
-            if port == 80:
-                allowed_hosts.add('127.0.0.1')
-            if len(hosts) != 1 or hosts[0] not in allowed_hosts:
-                return await error(request, 403, 'host_not_allowed')
-            origins = request.headers.getlist('origin')
-            if len(origins) > 1 or (origins and origins[0] not in allowed_origins):
-                return await error(request, 403, 'origin_not_allowed')
+            # The supported launcher binds only 127.0.0.1. This is not authentication.
+            boundary_error = local_request_error(request)
+            if boundary_error is not None:
+                return await error(request, 403, boundary_error)
             if (request.headers.get('content-length', '0') != '0'
                     or 'transfer-encoding' in request.headers):
                 return await error(request, 400, 'unexpected_request_body')

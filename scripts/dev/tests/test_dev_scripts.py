@@ -279,3 +279,19 @@ def test_matrix_inventory_fails_missing_results_and_unknown_gate(tmp_path):
     assert check_matrix(tmp_path, None)[0] == 1
     rc, out = check_matrix(tmp_path, matrix_rows(), gate="no-such-matrix")
     assert rc == 1 and "not in scripts/dev/test-inventory.json" in out
+
+
+@pytest.mark.parametrize('cases,expected', [
+    ('<testcase classname="tests.test_service" name="test_protected_repository_integrity"/>', 0),
+    ('<testcase classname="tests.test_service" name="test_protected_repository_integrity"><skipped/></testcase>', 1),
+    ('<testcase classname="tests.test_service" name="test_protected_repository_integrity"><failure/></testcase>', 1),
+    ('', 1),
+    ('<testcase classname="tests.test_service" name="other"/>', 1),
+    ('<testcase classname="tests.test_service" name="test_protected_repository_integrity"/><testcase classname="tests.test_service" name="other"/>', 1),
+])
+def test_custody_report_requires_one_passed_test(tmp_path, cases, expected):
+    report = tmp_path / 'custody.xml'
+    report.write_text('<testsuites><testsuite>' + cases + '</testsuite></testsuites>')
+    run = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'scripts/dev/check_custody_report.py'), str(report)],
+                         capture_output=True, text=True)
+    assert run.returncode == expected, (run.stdout, run.stderr)

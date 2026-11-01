@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { RenderBoundary } from "./components/shell/RenderBoundary";
 import { applyInitialPrefs } from "./lib/prefs";
 import { applyInitialTheme } from "./lib/theme";
 import { DEMO_RUNS } from "./mocks/fixtures";
@@ -24,7 +25,9 @@ if (problems.length) {
   if (import.meta.env.DEV) console.info(`Demo fixtures consistent: ${DEMO_RUNS.length} runs checked.`);
   root.render(
     <StrictMode>
-      <App />
+      <RenderBoundary>
+        <App />
+      </RenderBoundary>
     </StrictMode>,
   );
 }

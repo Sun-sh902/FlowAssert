@@ -74,7 +74,7 @@ Two checks need sources outside this repository:
 
 The current Service source identity is recorded separately in `scripts/dev/backend-current-identity.json`;
 its map differs from the historical Phase 3A acceptance after the backend remediation and the Phase 3B
-experimental fail-closed admission boundary ([service/docs/phase3b/EXPERIMENTAL_ADMISSION_BOUNDARY.md](service/docs/phase3b/EXPERIMENTAL_ADMISSION_BOUNDARY.md)).
+experimental local execution and admission boundary ([service/docs/phase3b/EXPERIMENTAL_ADMISSION_BOUNDARY.md](service/docs/phase3b/EXPERIMENTAL_ADMISSION_BOUNDARY.md)).
 The UI reads the capture and admission fields the Service reports (`phase3b=true` on the two live Detail reads, and
 `/api/v1/history/verifications*` for the archive), admits them in `ui/src/data/local/phase3b.ts`, and shows them on their
 own status axes. They are the Service's own statements about a local synthetic run: never a verdict, and no proof of

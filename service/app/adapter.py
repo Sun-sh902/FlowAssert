@@ -5,6 +5,9 @@ from .identity import ServiceError, canonical, digest, check_sources, load_evalu
 
 
 def validate_input(value):
+    if not isinstance(value, dict):
+        raise ServiceError(422, 'invalid_json')
+
     def walk(v):
         if type(v) is int and abs(v) > 2**53-1:
             raise ServiceError(422, 'unsafe_integer')
@@ -16,10 +19,15 @@ def validate_input(value):
             for x in v: walk(x)
         elif type(v) not in (str, int, float, bool, type(None)):
             raise ServiceError(422, 'invalid_json')
-    walk(value)
-    try: size = len(canonical(value))
-    except (ValueError, TypeError): raise ServiceError(422, 'invalid_json') from None
-    if size > 1048576 or len(value.get('source', {}).get('rows', [])) > 200:
+    try:
+        walk(value)
+        size = len(canonical(value))
+    except (ValueError, TypeError, RecursionError): raise ServiceError(422, 'invalid_json') from None
+    source = value.get('source', {})
+    rows = source.get('rows', []) if isinstance(source, dict) else None
+    if not isinstance(rows, list):
+        raise ServiceError(422, 'invalid_json')
+    if size > 1048576 or len(rows) > 200:
         raise ServiceError(422, 'offline_scope_limit')
 
 
