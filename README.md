@@ -157,10 +157,15 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 
 | Option | Meaning |
 | --- | --- |
-| `--key COL[:COL]` | Stable record key. Required |
-| `--field COL[:COL]` | Field to compare. Repeatable; at least one is required |
+| `--key COL[:COL]` | Stable record key. Required unless `--mapping` is used |
+| `--field COL[:COL]` | Field to compare. Repeatable; at least one is required unless `--mapping` is used |
+| `--mapping FILE` | UTF-8 JSON file with `key` and `fields` column pairs, including names containing `:` |
 | `--source-complete` | You state that the source file is the whole batch |
 | `--destination-complete` | You state that the export covers the whole object |
+| `--allow-identical-content` | Continue when two distinct files have identical content, and record that in `inputs` |
+| `--max-bytes N` | Refuse a file larger than `N` bytes before reading (default: `209715200`, 200 MiB) |
+| `--max-rows N` | Refuse a CSV with more than `N` rows while reading (default: `1000000`) |
+| `--max-details N` | Print at most `N` non-Verified records in the summary; `0` prints none (default: `50`) |
 | `--json PATH` | Write a full report with file digests. Refuses to overwrite a file |
 | `--redact-values` | Leave keys and compared values out of the output |
 | `--version` | Show the version |

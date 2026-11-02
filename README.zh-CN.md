@@ -168,10 +168,15 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 
 | 选项 | 含义 |
 | --- | --- |
-| `--key COL[:COL]` | 稳定的记录键，必填 |
-| `--field COL[:COL]` | 要比较的字段，可重复，至少一个 |
+| `--key COL[:COL]` | 稳定的记录键，未使用 `--mapping` 时必填 |
+| `--field COL[:COL]` | 要比较的字段，可重复，未使用 `--mapping` 时至少一个 |
+| `--mapping FILE` | 指定 `key` 和 `fields` 列名对的 UTF-8 JSON 文件，支持含 `:` 的列名 |
 | `--source-complete` | 你声明来源文件就是整个批次 |
 | `--destination-complete` | 你声明导出文件覆盖了整个对象 |
+| `--allow-identical-content` | 两份不同文件的内容完全相同时允许继续，并在报告 `inputs` 中记录 |
+| `--max-bytes N` | 读取前拒绝超过 `N` 字节的文件（默认 `209715200`，即 200 MiB） |
+| `--max-rows N` | 读取时拒绝超过 `N` 行的 CSV 文件（默认 `1000000`） |
+| `--max-details N` | 摘要中最多打印 `N` 条非 Verified 记录，`0` 表示不打印（默认 `50`） |
 | `--json PATH` | 写入含文件摘要的完整报告，不会覆盖已有文件 |
 | `--redact-values` | 输出中不显示键和比较值 |
 | `--version` | 显示版本 |
