@@ -404,3 +404,42 @@ def test_max_rows_at_limit_and_one_over_stops_while_reading(tmp_path, capsys):
     ])
     err = capsys.readouterr().err
     assert code == 2 and '--max-rows' in err and str(huge) in err
+
+
+def test_max_details_zero_small_and_default(tmp_path, capsys):
+    out_zero = tmp_path / 'zero.json'
+    assert verify.main(cli('--source-complete', '--destination-complete', '--max-details', '0', '--json', str(out_zero))) == 1
+    stdout_zero = capsys.readouterr().out
+    assert '  record ' not in stdout_zero
+    assert '... 3 more records not shown; use --json for all of them.' in stdout_zero
+    assert len(json.loads(out_zero.read_text())['records']) == 4
+
+    out_small = tmp_path / 'small.json'
+    assert verify.main(cli('--source-complete', '--destination-complete', '--max-details', '2', '--json', str(out_small))) == 1
+    stdout_small = capsys.readouterr().out
+    assert 'SYN-002' in stdout_small and 'SYN-003' in stdout_small and 'SYN-004' not in stdout_small
+    assert '... 1 more records not shown; use --json for all of them.' in stdout_small
+    assert len(json.loads(out_small.read_text())['records']) == 4
+
+    # Default limit is 50 non-Verified records; JSON report keeps every record.
+    src_rows = 'k,p\n' + ''.join(f'SYN-{i:03d},expected-{i}\n' for i in range(1, 61))
+    dst_rows = 'k,p\n' + ''.join(f'SYN-{i:03d},actual-{i}\n' for i in range(1, 61))
+    out_default = tmp_path / 'default.json'
+    assert verify.main([
+        '--source', write(tmp_path / 's60.csv', src_rows),
+        '--destination', write(tmp_path / 'd60.csv', dst_rows),
+        '--key', 'k', '--field', 'p',
+        '--source-complete', '--destination-complete',
+        '--json', str(out_default),
+    ]) == 1
+    stdout_default = capsys.readouterr().out
+    assert 'SYN-050' in stdout_default and 'SYN-051' not in stdout_default
+    assert '... 10 more records not shown; use --json for all of them.' in stdout_default
+    assert len(json.loads(out_default.read_text())['records']) == 60
+
+
+@pytest.mark.parametrize('bad_value', ['-1', 'abc', '1.5'])
+def test_invalid_max_details_is_refused(tmp_path, capsys, bad_value):
+    out = tmp_path / 'unused.json'
+    code = verify.main(cli('--max-details', bad_value, '--json', str(out)))
+    assert code == 2 and '--max-details' in capsys.readouterr().err and not out.exists()

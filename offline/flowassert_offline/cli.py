@@ -21,6 +21,7 @@ from .evaluator_v2 import evaluate
 EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
 MAX_BYTES = 209_715_200
 MAX_ROWS = 1_000_000
+MAX_DETAILS = 50
 CLAIM = "At this evaluation, the supplied destination rows satisfy the rules for the supplied source rows."
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
           "whether the source is true, whether a record existed by a past deadline.")
@@ -214,7 +215,7 @@ def run(args):
     return report
 
 
-def summary(report):
+def summary(report, max_details=MAX_DETAILS):
     c = report["counts"]
     total = report["expected_total"]
     yield f"{report['cohort_state']}: {report['source_rows_observed']} rows of {'unknown total' if total is None else total}"
@@ -225,14 +226,22 @@ def summary(report):
         yield "Source population unknown: the batch cannot be Verified."
     if not report["destination_coverage_sufficient"]:
         yield "Destination coverage not established: absence and uniqueness stay unknown."
+    shown = 0
+    omitted = 0
     for record in report["records"]:
         if record["state"] == "Verified":
             continue
+        if shown >= max_details:
+            omitted += 1
+            continue
+        shown += 1
         yield f"  record {record['source_row'] + 1} {record['key'] or '(no key)'}: {record['state']}"
         for name, rule in record["rules"].items():
             if rule["status"] != "pass":
                 values = f" ({rule['expected']!r} vs {rule['actual']!r})" if "expected" in rule else ""
                 yield f"    {name} {rule['status']}: {rule['reason']}{values}"
+    if omitted:
+        yield f"... {omitted} more records not shown; use --json for all of them."
     yield report["limitations"]
 
 
@@ -252,10 +261,13 @@ def main(argv=None):
                         help=f"maximum bytes per file before reading (default: {MAX_BYTES})")
     parser.add_argument("--max-rows", default=MAX_ROWS, metavar="N",
                         help=f"maximum rows per CSV file while reading (default: {MAX_ROWS})")
+    parser.add_argument("--max-details", default=MAX_DETAILS, metavar="N",
+                        help=f"maximum non-Verified records shown in summary; 0 shows none (default: {MAX_DETAILS})")
     parser.add_argument("--json", help="write the full report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
     args = parser.parse_args(argv)
     try:
+        max_details = _int_arg("--max-details", args.max_details, 0)
         report = run(args)
         if args.json:
             try:
@@ -263,7 +275,7 @@ def main(argv=None):
                     json.dump(report, f, indent=2, sort_keys=True)
             except OSError as e:
                 raise Refused(f"{args.json}: {e.strerror}")
-        print("\n".join(summary(report)))
+        print("\n".join(summary(report, max_details=max_details)))
         sys.stdout.flush()
     except Refused as e:
         print(f"refused: {e}", file=sys.stderr)
