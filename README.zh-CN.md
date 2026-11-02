@@ -670,6 +670,8 @@ docs/product-dev/            报告、截图、原始测试证据
 
 当前目标是弄清楚它对维护自动化的人是否有用。这里没有时间承诺。
 
+详细的版本计划见[路线图](docs/ROADMAP.zh-CN.md)。
+
 - 根据真实反馈改进离线 CSV 核对。
 - 用只读沙箱账号测试规划中的检查。详见[验证计划](docs/product-dev/final-version/S1_VALIDATION_PLAN.md)。
 - 增加明确且经过审核的比较策略，不只是精确匹配。
