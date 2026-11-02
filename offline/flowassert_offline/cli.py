@@ -19,6 +19,8 @@ from . import __version__
 from .evaluator_v2 import evaluate
 
 EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
+MAX_BYTES = 209_715_200
+MAX_ROWS = 1_000_000
 CLAIM = "At this evaluation, the supplied destination rows satisfy the rules for the supplied source rows."
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
           "whether the source is true, whether a record existed by a past deadline.")
@@ -26,6 +28,46 @@ LIMITS = ("Files and completeness statements are not authenticated. Not assessed
 
 class Refused(Exception):
     pass
+
+
+class _HashReader(io.BufferedIOBase):
+    def __init__(self, raw, digest):
+        self._raw = raw
+        self._digest = digest
+
+    def readable(self):
+        return True
+
+    def read(self, size=-1):
+        chunk = self._raw.read(size)
+        self._digest.update(chunk)
+        return chunk
+
+    def read1(self, size=-1):
+        chunk = self._raw.read1(size)
+        self._digest.update(chunk)
+        return chunk
+
+
+def _int_arg(name, value, minimum):
+    if isinstance(value, str) and value.isascii() and value.strip() == value:
+        try:
+            value = int(value, 10)
+        except ValueError:
+            pass
+    kind = "positive" if minimum == 1 else "non-negative"
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        raise Refused(f"{name} must be a {kind} integer")
+    return value
+
+
+def _check_size(path, max_bytes):
+    try:
+        size = os.stat(path).st_size
+    except OSError as e:
+        raise Refused(f"{path}: {e.strerror}")
+    if size > max_bytes:
+        raise Refused(f"{path}: file size {size} bytes exceeds --max-bytes limit of {max_bytes}")
 
 
 def pair(text):
@@ -52,8 +94,9 @@ def _no_duplicate_members(pairs):
     return obj
 
 
-def read_mapping(path):
+def read_mapping(path, max_bytes=MAX_BYTES):
     """Read and validate a UTF-8 JSON column mapping file."""
+    _check_size(path, max_bytes)
     try:
         with open(path, "rb") as f:
             raw = f.read()
@@ -83,39 +126,45 @@ def read_mapping(path):
     return key, fields, hashlib.sha256(raw).hexdigest()
 
 
-def read_rows(path, columns):
-    """Read one CSV strictly. A malformed file is refused rather than partly read."""
+def read_rows(path, columns, max_bytes=MAX_BYTES, max_rows=MAX_ROWS):
+    """Read one CSV strictly. A malformed or oversized file is refused rather than partly read."""
+    _check_size(path, max_bytes)
+    digest = hashlib.sha256()
     try:
-        with open(path, "rb") as f:
-            raw = f.read()
-        text = raw.decode("utf-8-sig")
+        with open(path, "rb") as raw_file:
+            with io.TextIOWrapper(_HashReader(raw_file, digest), encoding="utf-8-sig", newline="") as text_file:
+                reader = csv.DictReader(text_file, strict=True)
+                header = reader.fieldnames or []
+                if len(set(header)) != len(header):
+                    raise Refused(f"{path}: repeated column name")
+                missing = [c for c in columns if c not in header]
+                if missing:
+                    raise Refused(f"{path}: missing column {', '.join(missing)}")
+                rows = []
+                for row in reader:
+                    if None in row or None in row.values():
+                        raise Refused(f"{path}: line {reader.line_num} does not match the header")
+                    if len(rows) == max_rows:
+                        raise Refused(f"{path}: exceeds --max-rows limit of {max_rows}")
+                    rows.append(row)
+            for chunk in iter(lambda: raw_file.read(65536), b""):
+                digest.update(chunk)
     except OSError as e:
         raise Refused(f"{path}: {e.strerror}")
     except UnicodeDecodeError:
         raise Refused(f"{path}: not UTF-8")
-    try:
-        reader = csv.DictReader(io.StringIO(text, newline=""), strict=True)
-        header = reader.fieldnames or []
-        if len(set(header)) != len(header):
-            raise Refused(f"{path}: repeated column name")
-        missing = [c for c in columns if c not in header]
-        if missing:
-            raise Refused(f"{path}: missing column {', '.join(missing)}")
-        rows = []
-        for row in reader:
-            if None in row or None in row.values():
-                raise Refused(f"{path}: line {reader.line_num} does not match the header")
-            rows.append(row)
     except csv.Error as e:
         raise Refused(f"{path}: {e}")
-    return rows, hashlib.sha256(raw).hexdigest()
+    return rows, digest.hexdigest()
 
 
 def run(args):
+    max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
+    max_rows = _int_arg("--max-rows", args.max_rows, 1)
     if args.mapping is not None:
         if args.key is not None or args.field:
             raise Refused("--mapping cannot be combined with --key or --field")
-        key, fields, mapping_sha = read_mapping(args.mapping)
+        key, fields, mapping_sha = read_mapping(args.mapping, max_bytes=max_bytes)
     else:
         if args.key is None:
             raise Refused("--key or --mapping is required")
@@ -128,8 +177,12 @@ def run(args):
         raise Refused("a source field is repeated")
     if os.path.realpath(args.source) == os.path.realpath(args.destination):
         raise Refused("source and destination are the same file, so the check would not be independent")
-    source_rows, source_sha = read_rows(args.source, [key[0]] + [s for s, _ in fields])
-    destination_rows, destination_sha = read_rows(args.destination, [key[1]] + [d for _, d in fields])
+    source_rows, source_sha = read_rows(
+        args.source, [key[0]] + [s for s, _ in fields], max_bytes=max_bytes, max_rows=max_rows
+    )
+    destination_rows, destination_sha = read_rows(
+        args.destination, [key[1]] + [d for _, d in fields], max_bytes=max_bytes, max_rows=max_rows
+    )
     identical = source_sha == destination_sha
     if identical and not args.allow_identical_content:
         raise Refused(
@@ -195,6 +248,10 @@ def main(argv=None):
     parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
     parser.add_argument("--allow-identical-content", action="store_true",
                         help="continue when two distinct files have identical content")
+    parser.add_argument("--max-bytes", default=MAX_BYTES, metavar="N",
+                        help=f"maximum bytes per file before reading (default: {MAX_BYTES})")
+    parser.add_argument("--max-rows", default=MAX_ROWS, metavar="N",
+                        help=f"maximum rows per CSV file while reading (default: {MAX_ROWS})")
     parser.add_argument("--json", help="write the full report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
     args = parser.parse_args(argv)

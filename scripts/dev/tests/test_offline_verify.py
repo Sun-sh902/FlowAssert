@@ -314,3 +314,93 @@ def test_same_file_still_refused_even_with_allow_identical_content(tmp_path, cap
         '--key', 'k', '--field', 'p', '--allow-identical-content',
     ])
     assert code == 2 and 'same file' in capsys.readouterr().err
+
+
+def test_max_bytes_at_limit_and_one_over_before_reading(tmp_path, monkeypatch, capsys):
+    source = tmp_path / 's.csv'
+    dest = tmp_path / 'd.csv'
+    source.write_bytes(b'\xef\xbb\xbfk,p\n1,x\n')  # 11 bytes
+    dest.write_bytes(b'k,p\n1,x\n')  # 8 bytes
+    assert verify.main([
+        '--source', str(source), '--destination', str(dest),
+        '--key', 'k', '--field', 'p',
+        '--source-complete', '--destination-complete',
+        '--max-bytes', '11',
+    ]) == 0
+    capsys.readouterr()
+
+    opened = []
+    real_open = open
+
+    def tracking_open(file, *a, **kw):
+        opened.append(str(file))
+        return real_open(file, *a, **kw)
+
+    monkeypatch.setattr('builtins.open', tracking_open)
+    code = verify.main([
+        '--source', str(source), '--destination', str(dest),
+        '--key', 'k', '--field', 'p',
+        '--max-bytes', '10',
+    ])
+    err = capsys.readouterr().err
+    assert code == 2 and str(source) in err and '10' in err
+    assert opened == []
+
+
+def test_max_bytes_destination_one_over(tmp_path, capsys):
+    source = write(tmp_path / 's.csv', 'k,p\n1,x\n')  # 8 bytes
+    dest = write(tmp_path / 'd.csv', 'k,p,extra\n1,x,y\n')  # 16 bytes
+    code = verify.main([
+        '--source', source, '--destination', dest,
+        '--key', 'k', '--field', 'p',
+        '--max-bytes', '15',
+    ])
+    err = capsys.readouterr().err
+    assert code == 2 and dest in err and '15' in err
+
+
+@pytest.mark.parametrize('flag', ['--max-bytes', '--max-rows'])
+@pytest.mark.parametrize('bad_value', ['0', '-1', '-50', 'abc', '1.5'])
+def test_non_positive_or_invalid_limits_are_refused(tmp_path, capsys, flag, bad_value):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--key', 'k', '--field', 'p', flag, bad_value))
+    assert code == 2 and flag in err
+
+
+def test_max_rows_at_limit_and_one_over_stops_while_reading(tmp_path, capsys):
+    source = write(tmp_path / 's.csv', 'k,p\n1,a\n2,b\n3,c\n')
+    dest = write(tmp_path / 'd.csv', 'p,k\na,1\nb,2\nc,3\n')
+    assert verify.main([
+        '--source', source, '--destination', dest,
+        '--key', 'k', '--field', 'p',
+        '--source-complete', '--destination-complete',
+        '--max-rows', '3',
+    ]) == 0
+    capsys.readouterr()
+
+    code = verify.main([
+        '--source', source, '--destination', dest,
+        '--key', 'k', '--field', 'p',
+        '--max-rows', '2',
+    ])
+    err = capsys.readouterr().err
+    assert code == 2 and source in err and '2' in err
+
+    dest_over = write(tmp_path / 'd_over.csv', 'p,k\na,1\nb,2\nc,3\nd,4\n')
+    code = verify.main([
+        '--source', source, '--destination', dest_over,
+        '--key', 'k', '--field', 'p',
+        '--max-rows', '3',
+    ])
+    err = capsys.readouterr().err
+    assert code == 2 and dest_over in err and '3' in err
+
+    # Prove reading stops once --max-rows is passed rather than scanning to EOF.
+    huge = tmp_path / 'huge.csv'
+    huge.write_bytes(b'k,p\n' + (b'1,abcdefghij\n' * 5000) + b'\xff,broken\n')
+    code = verify.main([
+        '--source', str(huge), '--destination', dest,
+        '--key', 'k', '--field', 'p',
+        '--max-rows', '2',
+    ])
+    err = capsys.readouterr().err
+    assert code == 2 and '--max-rows' in err and str(huge) in err
