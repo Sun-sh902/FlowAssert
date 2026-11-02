@@ -1,0 +1,19 @@
+{
+  "name": "no-rows",
+  "description": "An empty source cohort is Unverified rather than Verified, with expected_total 0 when source_complete is true.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [],
+  "destination_rows": [],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": [],
+    "expected_total": 0
+  }
+}

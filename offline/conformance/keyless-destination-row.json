@@ -1,0 +1,24 @@
+{
+  "name": "keyless-destination-row",
+  "description": "A destination row with a missing or blank key prevents establishing destination coverage, leaving uniqueness unknown.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "", "phone": "+1 212 555 0101"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified"],
+    "expected_total": 1
+  }
+}

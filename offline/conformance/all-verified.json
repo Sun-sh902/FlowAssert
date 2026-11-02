@@ -1,0 +1,44 @@
+{
+  "name": "all-verified",
+  "description": "Every source record matches a unique destination record across mapped and colon-named columns, with both populations stated complete.",
+  "obligation": {
+    "key": ["external_id", "Record ID"],
+    "fields": [
+      ["Contact: Phone", "phone"],
+      ["email", "hs_email"]
+    ]
+  },
+  "source_rows": [
+    {
+      "external_id": "SYN-001",
+      "Contact: Phone": "+1 212 555 0101",
+      "email": "ada@example.test"
+    },
+    {
+      "external_id": "SYN-002",
+      "Contact: Phone": "+1 212 555 0102",
+      "email": "grace@example.test"
+    }
+  ],
+  "destination_rows": [
+    {
+      "Record ID": "SYN-001",
+      "phone": "+1 212 555 0101",
+      "hs_email": "ada@example.test"
+    },
+    {
+      "Record ID": "SYN-002",
+      "phone": "+1 212 555 0102",
+      "hs_email": "grace@example.test"
+    }
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified", "Verified"],
+    "expected_total": 2
+  }
+}

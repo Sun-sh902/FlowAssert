@@ -1,0 +1,31 @@
+{
+  "name": "v1-a-verified",
+  "description": "Shared semantic reference case A-verified (SPEC-001) from Evaluator v1: single synthetic record verified.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {
+      "key": "SYN-001",
+      "phone": "+1 212 555 0101"
+    }
+  ],
+  "destination_rows": [
+    {
+      "id": "SYN-HS-001",
+      "key": "SYN-001",
+      "namespace": "synthetic/intake",
+      "phone": "+1 212 555 0101"
+    }
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified"],
+    "expected_total": 1
+  }
+}

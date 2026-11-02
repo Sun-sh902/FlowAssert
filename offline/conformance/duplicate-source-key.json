@@ -1,0 +1,24 @@
+{
+  "name": "duplicate-source-key",
+  "description": "Repeated keys in the source invalidate identity for those rows and leave expected_total unknown.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-001", "phone": "+1 212 555 0101"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified", "Unverified"],
+    "expected_total": null
+  }
+}

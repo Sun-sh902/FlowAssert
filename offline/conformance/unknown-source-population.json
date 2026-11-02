@@ -1,0 +1,25 @@
+{
+  "name": "unknown-source-population",
+  "description": "Individual records can be Verified when destination is complete, while the cohort stays Unverified with expected_total null when source_complete is false.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "premises": {
+    "source_complete": false,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Verified", "Verified"],
+    "expected_total": null
+  }
+}

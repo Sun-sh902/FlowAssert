@@ -1,0 +1,23 @@
+{
+  "name": "field-differs-without-premises",
+  "description": "An observed destination row with a differing field disproves the rule even without source or destination completeness premises.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0199"}
+  ],
+  "premises": {
+    "source_complete": false,
+    "destination_complete": false
+  },
+  "expected": {
+    "cohort_state": "Mismatch",
+    "record_states": ["Mismatch"],
+    "expected_total": null
+  }
+}

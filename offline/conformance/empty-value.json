@@ -1,0 +1,25 @@
+{
+  "name": "empty-value",
+  "description": "An empty string in either the source or destination compared field is treated as unknown rather than Verified or Mismatch.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": ""}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": ""},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified", "Unverified"],
+    "expected_total": 2
+  }
+}

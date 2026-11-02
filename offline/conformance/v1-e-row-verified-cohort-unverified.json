@@ -1,0 +1,58 @@
+{
+  "name": "v1-e-row-verified-cohort-unverified",
+  "description": "Shared semantic reference case E-row-verified-cohort-unverified (SPEC-005) from Evaluator v1: 12 records Verified while cohort stays Unverified.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"},
+    {"key": "SYN-003", "phone": "+1 212 555 0103"},
+    {"key": "SYN-004", "phone": "+1 212 555 0104"},
+    {"key": "SYN-005", "phone": "+1 212 555 0105"},
+    {"key": "SYN-006", "phone": "+1 212 555 0106"},
+    {"key": "SYN-007", "phone": "+1 212 555 0107"},
+    {"key": "SYN-008", "phone": "+1 212 555 0108"},
+    {"key": "SYN-009", "phone": "+1 212 555 0109"},
+    {"key": "SYN-010", "phone": "+1 212 555 0110"},
+    {"key": "SYN-011", "phone": "+1 212 555 0111"},
+    {"key": "SYN-012", "phone": "+1 212 555 0112"}
+  ],
+  "destination_rows": [
+    {"id": "SYN-HS-001", "key": "SYN-001", "namespace": "synthetic/intake", "phone": "+1 212 555 0101"},
+    {"id": "SYN-HS-002", "key": "SYN-002", "namespace": "synthetic/intake", "phone": "+1 212 555 0102"},
+    {"id": "SYN-HS-003", "key": "SYN-003", "namespace": "synthetic/intake", "phone": "+1 212 555 0103"},
+    {"id": "SYN-HS-004", "key": "SYN-004", "namespace": "synthetic/intake", "phone": "+1 212 555 0104"},
+    {"id": "SYN-HS-005", "key": "SYN-005", "namespace": "synthetic/intake", "phone": "+1 212 555 0105"},
+    {"id": "SYN-HS-006", "key": "SYN-006", "namespace": "synthetic/intake", "phone": "+1 212 555 0106"},
+    {"id": "SYN-HS-007", "key": "SYN-007", "namespace": "synthetic/intake", "phone": "+1 212 555 0107"},
+    {"id": "SYN-HS-008", "key": "SYN-008", "namespace": "synthetic/intake", "phone": "+1 212 555 0108"},
+    {"id": "SYN-HS-009", "key": "SYN-009", "namespace": "synthetic/intake", "phone": "+1 212 555 0109"},
+    {"id": "SYN-HS-010", "key": "SYN-010", "namespace": "synthetic/intake", "phone": "+1 212 555 0110"},
+    {"id": "SYN-HS-011", "key": "SYN-011", "namespace": "synthetic/intake", "phone": "+1 212 555 0111"},
+    {"id": "SYN-HS-012", "key": "SYN-012", "namespace": "synthetic/intake", "phone": "+1 212 555 0112"}
+  ],
+  "premises": {
+    "source_complete": false,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": [
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified",
+      "Verified"
+    ],
+    "expected_total": null
+  }
+}

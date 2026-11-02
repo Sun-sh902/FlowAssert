@@ -1,0 +1,25 @@
+{
+  "name": "field-differs",
+  "description": "One record matches and another has a differing compared field value, making both that record and the cohort a Mismatch.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0199"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Mismatch",
+    "record_states": ["Verified", "Mismatch"],
+    "expected_total": 2
+  }
+}

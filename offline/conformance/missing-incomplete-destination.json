@@ -1,0 +1,21 @@
+{
+  "name": "missing-incomplete-destination",
+  "description": "A source key absent when destination completeness is not stated stays Unverified rather than Mismatch.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"}
+  ],
+  "destination_rows": [],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": false
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified"],
+    "expected_total": 1
+  }
+}

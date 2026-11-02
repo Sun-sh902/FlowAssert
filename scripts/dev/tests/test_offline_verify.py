@@ -443,3 +443,96 @@ def test_invalid_max_details_is_refused(tmp_path, capsys, bad_value):
     out = tmp_path / 'unused.json'
     code = verify.main(cli('--max-details', bad_value, '--json', str(out)))
     assert code == 2 and '--max-details' in capsys.readouterr().err and not out.exists()
+
+
+CONFORMANCE = ROOT / 'offline/conformance'
+CONFORMANCE_KEYS = {
+    'name', 'description', 'obligation', 'source_rows',
+    'destination_rows', 'premises', 'expected',
+}
+EXPECTED_KEYS = {'cohort_state', 'record_states', 'expected_total'}
+
+
+def load_conformance_cases(directory=CONFORMANCE):
+    paths = sorted(Path(directory).glob('*.json'))
+    if not paths:
+        raise ValueError(f'no conformance cases found in {directory}')
+    cases = []
+    seen = set()
+    for path in paths:
+        case = json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(case, dict) or set(case) != CONFORMANCE_KEYS:
+            raise ValueError(f'{path.name}: must contain exactly {sorted(CONFORMANCE_KEYS)}')
+        if not isinstance(case['expected'], dict) or set(case['expected']) != EXPECTED_KEYS:
+            raise ValueError(f'{path.name}: expected must contain {sorted(EXPECTED_KEYS)}')
+        if not isinstance(case['name'], str) or not case['name'].strip() or case['name'] in seen:
+            raise ValueError(f'{path.name}: missing or duplicate case name')
+        seen.add(case['name'])
+        cases.append(case)
+    return cases
+
+
+def _conformance_params(directory=CONFORMANCE):
+    try:
+        return [pytest.param(c, id=c['name']) for c in load_conformance_cases(directory)]
+    except ValueError as exc:
+        return [pytest.param(exc, id='empty-or-invalid-conformance')]
+
+
+@pytest.mark.parametrize('case', _conformance_params())
+def test_conformance_case(case):
+    if isinstance(case, Exception):
+        pytest.fail(str(case))
+    result = evaluator_v2.evaluate(
+        case['obligation'],
+        case['source_rows'],
+        case['destination_rows'],
+        **case['premises'],
+    )
+    actual = {
+        'cohort_state': result['cohort_state'],
+        'record_states': [r['state'] for r in result['records']],
+        'expected_total': result['expected_total'],
+    }
+    assert actual == case['expected']
+
+
+def test_conformance_loader_fails_on_empty_or_invalid_folder(tmp_path):
+    with pytest.raises(ValueError, match='no conformance cases'):
+        load_conformance_cases(tmp_path)
+    params = _conformance_params(tmp_path)
+    assert len(params) == 1 and isinstance(params[0].values[0], ValueError)
+
+    bad = tmp_path / 'bad.json'
+    bad.write_text('{"name": "only-name"}', encoding='utf-8')
+    with pytest.raises(ValueError, match='must contain exactly'):
+        load_conformance_cases(tmp_path)
+
+    valid = json.loads((CONFORMANCE / 'no-rows.json').read_text(encoding='utf-8'))
+    bad.write_text(json.dumps({**valid, 'expected': {'cohort_state': 'Unverified'}}), encoding='utf-8')
+    with pytest.raises(ValueError, match='expected must contain'):
+        load_conformance_cases(tmp_path)
+
+    bad.write_text(json.dumps(valid), encoding='utf-8')
+    (tmp_path / 'dup.json').write_text(json.dumps(valid), encoding='utf-8')
+    with pytest.raises(ValueError, match='duplicate case name'):
+        load_conformance_cases(tmp_path)
+
+
+@pytest.mark.parametrize('conformance_name,fixture_name', [
+    ('v1-a-verified', 'A-verified'),
+    ('v1-b-mismatch', 'B-mismatch'),
+    ('v1-e-row-verified-cohort-unverified', 'E-row-verified-cohort-unverified'),
+])
+def test_conformance_includes_shared_v1_cases(conformance_name, fixture_name):
+    conformance = json.loads((CONFORMANCE / f'{conformance_name}.json').read_text(encoding='utf-8'))
+    fixture = json.loads((ROOT / 'service/fixtures' / f'{fixture_name}.json').read_text(encoding='utf-8'))
+    evidence, frozen = fixture['input_evidence'], fixture['proposed_response']['result']
+    dest_rows = [r for page in evidence['destination']['pages'] for r in page['rows']]
+    assert conformance['source_rows'] == evidence['source']['rows']
+    assert conformance['destination_rows'] == dest_rows
+    assert conformance['expected'] == {
+        'cohort_state': frozen['cohort_state'],
+        'record_states': [r['state'] for r in frozen['records']],
+        'expected_total': frozen['expected_total'],
+    }

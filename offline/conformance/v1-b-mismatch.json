@@ -1,0 +1,31 @@
+{
+  "name": "v1-b-mismatch",
+  "description": "Shared semantic reference case B-mismatch (SPEC-002) from Evaluator v1: single synthetic record with differing phone.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {
+      "key": "SYN-001",
+      "phone": "+1 212 555 0101"
+    }
+  ],
+  "destination_rows": [
+    {
+      "id": "SYN-HS-001",
+      "key": "SYN-001",
+      "namespace": "synthetic/intake",
+      "phone": "different supplied phone"
+    }
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Mismatch",
+    "record_states": ["Mismatch"],
+    "expected_total": 1
+  }
+}
