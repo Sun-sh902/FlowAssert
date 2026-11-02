@@ -1,4 +1,5 @@
 """Evaluator v2 and the offline CSV check. v1 fixtures are the semantic reference."""
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -189,3 +190,82 @@ def test_unverified_exit(tmp_path, capsys):
     code = verify.main(['--source', write(tmp_path / 's.csv', 'k,p\n1,x\n'),
                         '--destination', write(tmp_path / 'd.csv', 'p,k\nx,1\n'), '--key', 'k', '--field', 'p'])
     assert code == 3
+
+
+def test_mapping_file_supports_colon_columns_and_records_digest(tmp_path, capsys):
+    mapping_bytes = json.dumps({
+        'key': ['crm:id', 'Record ID'],
+        'fields': [['Contact: Phone', 'phone'], ['email', 'email']],
+    }).encode('utf-8')
+    mapping_path = tmp_path / 'mapping.json'
+    mapping_path.write_bytes(mapping_bytes)
+    out = tmp_path / 'report.json'
+    code = verify.main([
+        '--source', write(tmp_path / 's.csv', 'crm:id,Contact: Phone,email\nSYN-1,+1 555 0100,a@example.test\n'),
+        '--destination', write(tmp_path / 'd.csv', 'Record ID,phone,email\nSYN-1,+1 555 0100,a@example.test\n'),
+        '--mapping', str(mapping_path),
+        '--source-complete', '--destination-complete',
+        '--json', str(out),
+    ])
+    assert code == 0
+    report = json.loads(out.read_text())
+    assert report['inputs']['mapping_file_sha256'] == hashlib.sha256(mapping_bytes).hexdigest()
+    assert report['obligation']['key'] == ['crm:id', 'Record ID']
+    assert report['obligation']['fields'] == [['Contact: Phone', 'phone'], ['email', 'email']]
+
+
+def test_mapping_digest_omitted_when_mapping_not_used(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--json', str(out))) == 1
+    assert 'mapping_file_sha256' not in json.loads(out.read_text())['inputs']
+
+
+@pytest.mark.parametrize('extra', [
+    ['--key', 'k'],
+    ['--field', 'p'],
+    ['--key', 'k', '--field', 'p'],
+])
+def test_mapping_cannot_be_combined_with_key_or_field(tmp_path, capsys, extra):
+    mapping = write(tmp_path / 'm.json', '{"key": ["k", "k"], "fields": [["p", "p"]]}')
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--mapping', mapping, *extra))
+    assert code == 2 and '--mapping' in err
+
+
+def test_key_or_mapping_is_required(tmp_path, capsys):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--field', 'p'))
+    assert code == 2 and 'required' in err
+
+
+@pytest.mark.parametrize('content,expected_err', [
+    (b'\xff', 'not UTF-8'),
+    (b'{not json', 'invalid JSON'),
+    (b'{"key": ["k", "k"], "key": ["a", "b"], "fields": [["p", "p"]]}', 'duplicate member'),
+    (b'[]', 'JSON object'),
+    (b'{"key": ["k", "k"], "fields": [["p", "p"]], "extra": true}', 'unknown member'),
+    (b'{"key": ["k", "k"]}', 'missing member'),
+    (b'{"fields": [["p", "p"]]}', 'missing member'),
+    (b'{"key": "k:k", "fields": [["p", "p"]]}', 'two-item list of strings'),
+    (b'{"key": ["k"], "fields": [["p", "p"]]}', 'two-item list of strings'),
+    (b'{"key": ["k", "k", "k"], "fields": [["p", "p"]]}', 'two-item list of strings'),
+    (b'{"key": [1, "k"], "fields": [["p", "p"]]}', 'two-item list of strings'),
+    (b'{"key": ["k", "k"], "fields": "p:p"}', 'non-empty list'),
+    (b'{"key": ["k", "k"], "fields": []}', 'non-empty list'),
+    (b'{"key": ["k", "k"], "fields": [["p"]]}', 'two-item list of strings'),
+    (b'{"key": ["k", "k"], "fields": [["p", "p", "p"]]}', 'two-item list of strings'),
+    (b'{"key": ["k", "k"], "fields": [["p", 2]]}', 'two-item list of strings'),
+    (b'{"key": ["", "k"], "fields": [["p", "p"]]}', 'empty column name'),
+    (b'{"key": ["k", "   "], "fields": [["p", "p"]]}', 'empty column name'),
+    (b'{"key": ["k", "k"], "fields": [["", "p"]]}', 'empty column name'),
+    (b'{"key": ["k", "k"], "fields": [["p", ""]]}', 'empty column name'),
+    (b'{"key": ["k", "k"], "fields": [["p", "p1"], ["p", "p2"]]}', 'source field is repeated'),
+])
+def test_malformed_mapping_file_is_refused(tmp_path, capsys, content, expected_err):
+    mapping = tmp_path / 'm.json'
+    mapping.write_bytes(content)
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--mapping', str(mapping)))
+    assert code == 2 and err.startswith('refused:') and expected_err in err
+
+
+def test_missing_mapping_file_is_refused(tmp_path, capsys):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--mapping', str(tmp_path / 'absent.json')))
+    assert code == 2 and err.startswith('refused:')

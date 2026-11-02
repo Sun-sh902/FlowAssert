@@ -35,6 +35,54 @@ def pair(text):
     return source, destination or source
 
 
+def _pair_list(item, path, label):
+    if not isinstance(item, list) or len(item) != 2 or not all(isinstance(c, str) for c in item):
+        raise Refused(f"{path}: {label} must be a two-item list of strings")
+    if not all(c.strip() for c in item):
+        raise Refused(f"{path}: empty column name in {label}")
+    return item[0], item[1]
+
+
+def _no_duplicate_members(pairs):
+    obj = {}
+    for name, value in pairs:
+        if name in obj:
+            raise Refused(f"duplicate member {name!r}")
+        obj[name] = value
+    return obj
+
+
+def read_mapping(path):
+    """Read and validate a UTF-8 JSON column mapping file."""
+    try:
+        with open(path, "rb") as f:
+            raw = f.read()
+        text = raw.decode("utf-8")
+    except OSError as e:
+        raise Refused(f"{path}: {e.strerror}")
+    except UnicodeDecodeError:
+        raise Refused(f"{path}: not UTF-8")
+    try:
+        data = json.loads(text, object_pairs_hook=_no_duplicate_members)
+    except Refused as e:
+        raise Refused(f"{path}: {e}")
+    except json.JSONDecodeError as e:
+        raise Refused(f"{path}: invalid JSON ({e.msg})")
+    if not isinstance(data, dict):
+        raise Refused(f"{path}: mapping must be a JSON object")
+    unknown = sorted(set(data) - {"key", "fields"})
+    if unknown:
+        raise Refused(f"{path}: unknown member {', '.join(unknown)}")
+    missing = [k for k in ("key", "fields") if k not in data]
+    if missing:
+        raise Refused(f"{path}: missing member {', '.join(missing)}")
+    key = _pair_list(data["key"], path, "key")
+    if not isinstance(data["fields"], list) or not data["fields"]:
+        raise Refused(f"{path}: fields must be a non-empty list")
+    fields = [_pair_list(f, path, "field") for f in data["fields"]]
+    return key, fields, hashlib.sha256(raw).hexdigest()
+
+
 def read_rows(path, columns):
     """Read one CSV strictly. A malformed file is refused rather than partly read."""
     try:
@@ -64,8 +112,18 @@ def read_rows(path, columns):
 
 
 def run(args):
-    key = pair(args.key)
-    fields = [pair(f) for f in args.field]
+    if args.mapping is not None:
+        if args.key is not None or args.field:
+            raise Refused("--mapping cannot be combined with --key or --field")
+        key, fields, mapping_sha = read_mapping(args.mapping)
+    else:
+        if args.key is None:
+            raise Refused("--key or --mapping is required")
+        if not args.field:
+            raise Refused("at least one --field is required")
+        key = pair(args.key)
+        fields = [pair(f) for f in args.field]
+        mapping_sha = None
     if len({s for s, _ in fields}) != len(fields):
         raise Refused("a source field is repeated")
     if os.path.realpath(args.source) == os.path.realpath(args.destination):
@@ -77,9 +135,12 @@ def run(args):
     report = evaluate({"key": key, "fields": fields}, source_rows, destination_rows,
                       source_complete=args.source_complete, destination_complete=args.destination_complete)
     report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    report["inputs"] = {"source_sha256": source_sha, "destination_sha256": destination_sha,
-                        "source_complete_stated": args.source_complete,
-                        "destination_complete_stated": args.destination_complete}
+    inputs = {"source_sha256": source_sha, "destination_sha256": destination_sha,
+              "source_complete_stated": args.source_complete,
+              "destination_complete_stated": args.destination_complete}
+    if mapping_sha is not None:
+        inputs["mapping_file_sha256"] = mapping_sha
+    report["inputs"] = inputs
     report["obligation"] = {"type": "current_state", "key": list(key), "fields": [list(f) for f in fields],
                             "comparison": "exact-string"}
     report["claim"] = CLAIM if report["cohort_state"] == "Verified" else None
@@ -118,16 +179,15 @@ def main(argv=None):
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--source", required=True)
     parser.add_argument("--destination", required=True)
-    parser.add_argument("--key", required=True, help="source column, or source:destination")
+    parser.add_argument("--key", help="source column, or source:destination")
     parser.add_argument("--field", action="append", default=[], help="source column, or source:destination; repeatable")
+    parser.add_argument("--mapping", metavar="FILE", help="UTF-8 JSON file with key and fields column pairs")
     parser.add_argument("--source-complete", action="store_true", help="state that the source is the whole cohort")
     parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
     parser.add_argument("--json", help="write the full report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
     args = parser.parse_args(argv)
     try:
-        if not args.field:
-            raise Refused("at least one --field is required")
         report = run(args)
         if args.json:
             try:
