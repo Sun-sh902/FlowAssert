@@ -130,14 +130,21 @@ def run(args):
         raise Refused("source and destination are the same file, so the check would not be independent")
     source_rows, source_sha = read_rows(args.source, [key[0]] + [s for s, _ in fields])
     destination_rows, destination_sha = read_rows(args.destination, [key[1]] + [d for _, d in fields])
-    if source_sha == destination_sha:
-        raise Refused("source and destination have identical content, so the check would not be independent")
+    identical = source_sha == destination_sha
+    if identical and not args.allow_identical_content:
+        raise Refused(
+            "source and destination have identical content, so the check would not be independent; "
+            "pass --allow-identical-content if they really come from different systems"
+        )
     report = evaluate({"key": key, "fields": fields}, source_rows, destination_rows,
                       source_complete=args.source_complete, destination_complete=args.destination_complete)
     report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     inputs = {"source_sha256": source_sha, "destination_sha256": destination_sha,
               "source_complete_stated": args.source_complete,
-              "destination_complete_stated": args.destination_complete}
+              "destination_complete_stated": args.destination_complete,
+              "identical_content": identical}
+    if identical:
+        inputs["identical_content_allowed"] = True
     if mapping_sha is not None:
         inputs["mapping_file_sha256"] = mapping_sha
     report["inputs"] = inputs
@@ -159,6 +166,8 @@ def summary(report):
     total = report["expected_total"]
     yield f"{report['cohort_state']}: {report['source_rows_observed']} rows of {'unknown total' if total is None else total}"
     yield f"Verified {c['Verified']} · Mismatch {c['Mismatch']} · Unverified {c['Unverified']}"
+    if report.get("inputs", {}).get("identical_content"):
+        yield "Source and destination files were identical (--allow-identical-content)."
     if not report["source_population_known"]:
         yield "Source population unknown: the batch cannot be Verified."
     if not report["destination_coverage_sufficient"]:
@@ -184,6 +193,8 @@ def main(argv=None):
     parser.add_argument("--mapping", metavar="FILE", help="UTF-8 JSON file with key and fields column pairs")
     parser.add_argument("--source-complete", action="store_true", help="state that the source is the whole cohort")
     parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
+    parser.add_argument("--allow-identical-content", action="store_true",
+                        help="continue when two distinct files have identical content")
     parser.add_argument("--json", help="write the full report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
     args = parser.parse_args(argv)

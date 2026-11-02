@@ -269,3 +269,48 @@ def test_malformed_mapping_file_is_refused(tmp_path, capsys, content, expected_e
 def test_missing_mapping_file_is_refused(tmp_path, capsys):
     code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--mapping', str(tmp_path / 'absent.json')))
     assert code == 2 and err.startswith('refused:')
+
+
+def test_identical_content_refusal_names_override_flag(tmp_path, capsys):
+    code, err = refused(tmp_path, capsys, 'k,p\n2,x\n')
+    assert code == 2 and 'identical content' in err and '--allow-identical-content' in err
+
+
+def test_identical_content_allowed_records_fields_and_prints_summary_line(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    code = verify.main([
+        '--source', write(tmp_path / 's.csv', 'k,p\n2,x\n'),
+        '--destination', write(tmp_path / 'd.csv', 'k,p\n2,x\n'),
+        '--key', 'k', '--field', 'p',
+        '--source-complete', '--destination-complete',
+        '--allow-identical-content',
+        '--json', str(out),
+    ])
+    assert code == 0
+    stdout = capsys.readouterr().out
+    assert 'identical' in stdout
+    inputs = json.loads(out.read_text())['inputs']
+    assert inputs['identical_content'] is True
+    assert inputs['identical_content_allowed'] is True
+
+
+def test_differing_content_records_identical_content_false(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--source-complete', '--destination-complete', '--json', str(out))) == 1
+    stdout = capsys.readouterr().out
+    assert 'identical' not in stdout.lower()
+    inputs = json.loads(out.read_text())['inputs']
+    assert inputs['identical_content'] is False
+    assert 'identical_content_allowed' not in inputs
+
+
+def test_same_file_still_refused_even_with_allow_identical_content(tmp_path, capsys):
+    source = tmp_path / 's.csv'
+    source.write_text('k,p\n1,x\n')
+    link = tmp_path / 'link.csv'
+    link.symlink_to(source)
+    code = verify.main([
+        '--source', str(source), '--destination', str(link),
+        '--key', 'k', '--field', 'p', '--allow-identical-content',
+    ])
+    assert code == 2 and 'same file' in capsys.readouterr().err
