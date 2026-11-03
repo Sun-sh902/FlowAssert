@@ -2,6 +2,7 @@
  * Minimal hash router. Hash routing keeps the demo working from any static host
  * without server rewrites. Routes:
  *   #/                         LOCAL_RESEARCH workspace Overview, read from the local Service's archive (product round 01)
+ *   #/check                    CSV check: two files compared in this browser (v0.3.0); nothing is sent
  *   #/verifications            LOCAL_RESEARCH Verifications: the five reviewed cases with their four status axes
  *                              (#/local/verifications is the same page, kept so earlier links keep working)
  *   #/capture                  Capture runs — not implemented in this build; states so and offers no action
@@ -34,6 +35,7 @@ import { useCallback, useEffect, useState } from "react";
 import { decodeStrictQuery } from "../data/local/ids";
 
 export type Route =
+  | { name: "check" }
   | { name: "workspace" }
   | { name: "capture" }
   | { name: "demo-overview" }
@@ -101,6 +103,7 @@ function parse(hash: string): Location {
   const parts = path.split("/").filter(Boolean);
   let route: Route = { name: "not-found" };
   if (parts.length === 0) route = { name: "workspace" };
+  else if (parts[0] === "check" && parts.length === 1) route = { name: "check" };
   else if (parts[0] === "verifications" && parts.length === 1) route = { name: "local-verifications" };
   else if (parts[0] === "capture" && parts.length === 1) route = { name: "capture" };
   else if (parts[0] === "demo" && parts.length === 1) route = { name: "demo-overview" };

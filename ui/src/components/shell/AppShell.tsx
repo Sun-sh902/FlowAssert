@@ -53,6 +53,8 @@ interface NavItem {
   match: (r: Route) => boolean;
 }
 
+/** The CSV check: files compared in this browser; nothing is sent. */
+const CHECK_NAV: NavItem[] = [{ n: "00", label: "CSV check", href: "#/check", match: (r: Route) => r.name === "check" }];
 /** The product: pages that read the local Python service (LOCAL_RESEARCH). */
 const NAV: NavItem[] = [
   { n: "01", label: "Overview", href: "#/", match: (r: Route) => r.name === "workspace" },
@@ -109,6 +111,14 @@ function NavItems({ items, route, onNavigate }: { items: NavItem[]; route: Route
 
 function NavList({ route, onNavigate }: { route: Route; onNavigate?: () => void }) {
   return (
+    <>
+    {/* The CSV check has its own landmark, so the Primary navigation keeps the pages it always listed. */}
+    <nav aria-label="Browser check" className="mb-5">
+      <p className="kicker mb-1 flex items-center justify-between text-ink-3">
+        Check <span className="rounded-[2px] bg-brand-soft px-1 text-[9px] tracking-[0.1em] text-brand-ink">browser</span>
+      </p>
+      <NavItems items={CHECK_NAV} route={route} onNavigate={onNavigate} />
+    </nav>
     <nav aria-label="Primary">
       <p id="nav-local" className="kicker mb-1 flex items-center justify-between text-ink-3">
         Workspace <span className="rounded-[2px] bg-brand-soft px-1 text-[9px] tracking-[0.1em] text-brand-ink">local</span>
@@ -129,6 +139,7 @@ function NavList({ route, onNavigate }: { route: Route; onNavigate?: () => void 
         <NavItems items={MOCK_NAV} route={route} onNavigate={onNavigate} />
       </div>
     </nav>
+    </>
   );
 }
 
@@ -202,11 +213,19 @@ function LocaleSwitch() {
   );
 }
 
-function RailFooter({ local }: { local: boolean }) {
+type Register = "local" | "demo" | "check";
+
+function RailFooter({ register }: { register: Register }) {
+  const local = register === "local";
   return (
     <div className="grid gap-3">
       <div className="rounded-sm border border-dashed border-line-strong px-3 py-2.5 text-xs leading-[1.45] text-ink-3">
-        {local ? (
+        {register === "check" ? (
+          <>
+            <p className="kicker mb-0.5 text-ink-2">Browser check register</p>
+            Your files are read in this browser and never sent. Nothing you choose is stored.
+          </>
+        ) : local ? (
           <>
             <p className="kicker mb-0.5 text-ink-2">Local research register</p>
             LOCAL_RESEARCH: read from the local Python service. Synthetic input. Configure and Demo pages stay MOCK.
@@ -229,16 +248,19 @@ function RailFooter({ local }: { local: boolean }) {
   );
 }
 
-function TopBar({ crumbs, local }: { crumbs: ReactNode; local: boolean }) {
+function TopBar({ crumbs, register }: { crumbs: ReactNode; register: Register }) {
   const [open, setOpen] = useState(false);
+  const local = register === "local";
   return (
     <div className="border-b border-line">
       <div className="flex min-h-[52px] items-center justify-between gap-4 py-2">
         <nav aria-label="Breadcrumb" className="flex min-w-0 items-baseline gap-2.5 text-[12.5px] text-ink-3">
           {crumbs}
         </nav>
-        <section aria-label={local ? "Local research register" : "Demo register"} className="flex shrink-0 items-center gap-4">
-          {local ? (
+        <section aria-label={register === "check" ? "Browser check register" : local ? "Local research register" : "Demo register"} className="flex shrink-0 items-center gap-4">
+          {register === "check" ? (
+            <span className="hidden font-mono text-[11px] text-ink-3 sm:inline">files stay on this computer</span>
+          ) : local ? (
             <ServiceStatus />
           ) : (
             <span className="hidden font-mono text-[11px] text-ink-3 sm:inline">
@@ -256,8 +278,28 @@ function TopBar({ crumbs, local }: { crumbs: ReactNode; local: boolean }) {
           </button>
         </section>
       </div>
-      <section id="demo-details" aria-label={local ? "What is real on the local research pages" : "What is real in this demo"} hidden={!open} className="fade-in border-t border-line py-4">
-        {local ? (
+      <section
+        id="demo-details"
+        aria-label={register === "check" ? "What is real in the CSV check" : local ? "What is real on the local research pages" : "What is real in this demo"}
+        hidden={!open}
+        className="fade-in border-t border-line py-4"
+      >
+        {register === "check" ? (
+          <dl className="grid gap-4 text-xs leading-[1.5] text-ink-2 sm:grid-cols-3">
+            <div>
+              <dt className="mb-1 font-semibold text-ink">Real on this page</dt>
+              <dd>Your own files, read in this browser by the rules of flowassert-verify. The JSON and HTML reports are the command line’s, byte for byte.</dd>
+            </div>
+            <div>
+              <dt className="mb-1 font-semibold text-ink">Stated by you</dt>
+              <dd>Completeness statements and counts. FlowAssert records them in the report and does not check them.</dd>
+            </div>
+            <div>
+              <dt className="mb-1 font-semibold text-ink">Not shown or proven</dt>
+              <dd>That a workflow ran, that the source is true, that a file came from where you say, or that a record existed by a past deadline.</dd>
+            </div>
+          </dl>
+        ) : local ? (
           <dl className="grid gap-4 text-xs leading-[1.5] text-ink-2 sm:grid-cols-3">
             <div>
               <dt className="mb-1 font-semibold text-ink">Real on these pages</dt>
@@ -302,6 +344,7 @@ const DESKTOP_QUERY = "(min-width: 64rem)";
 export function AppShell({ route, crumbs, children }: { route: Route; crumbs: ReactNode; children: ReactNode }) {
   const [drawer, setDrawer] = useState(false);
   const local = isLocalRoute(route);
+  const register: Register = route.name === "check" ? "check" : local ? "local" : "demo";
   const closeRef = useRef<HTMLButtonElement>(null);
   const openRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -361,7 +404,7 @@ export function AppShell({ route, crumbs, children }: { route: Route; crumbs: Re
         <div className="flex-1">
           <NavList route={route} />
         </div>
-        <RailFooter local={local} />
+        <RailFooter register={register} />
       </aside>
 
       <header inert={drawer} className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-line bg-canvas/92 px-3 backdrop-blur-md lg:hidden">
@@ -394,13 +437,13 @@ export function AppShell({ route, crumbs, children }: { route: Route; crumbs: Re
             <div className="flex-1">
               <NavList route={route} onNavigate={() => setDrawer(false)} />
             </div>
-            <RailFooter local={local} />
+            <RailFooter register={register} />
           </div>
         </div>
       )}
 
       <div inert={drawer} className="min-w-0 px-4 sm:px-8 xl:px-11">
-        <TopBar crumbs={crumbs} local={local} />
+        <TopBar crumbs={crumbs} register={register} />
         <main id="main" tabIndex={-1} className="mx-auto max-w-[1280px] pt-7 pb-16 outline-none focus-visible:shadow-none lg:pt-8">
           {children}
         </main>

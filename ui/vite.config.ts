@@ -1,6 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, searchForWorkspaceRoot } from "vite";
 import { localApiGate } from "./server/localApiGate.ts";
 
 /**
@@ -17,9 +17,18 @@ import { localApiGate } from "./server/localApiGate.ts";
  */
 export default defineConfig({
   plugins: [localApiGate(), react(), tailwindcss()],
+  // The CSV check runs in a module worker (src/offline/worker.ts), bundled as one file of the page's own origin.
+  worker: { format: "es" },
   // cors: false — the app is same-origin; no cross-origin client is served, and Vite's own CORS middleware would
   // otherwise answer OPTIONS on /api paths before the gate decides (it never forwarded them).
-  server: { host: "127.0.0.1", port: 5183, strictPort: true, cors: false },
+  // The CSV check page offers offline/examples/*.csv as sample files, so the dev server may read that folder.
+  server: {
+    host: "127.0.0.1",
+    port: 5183,
+    strictPort: true,
+    cors: false,
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), "../offline/examples"] },
+  },
   preview: { host: "127.0.0.1", cors: false },
   // The normal build uses index.html only. Art-direction sources stay available at /lab.html
   // through `npm run dev`, without shipping the laboratory and its fonts in the product output.

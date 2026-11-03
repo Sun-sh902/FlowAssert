@@ -57,6 +57,8 @@ export interface CheckArgs {
   now?: () => string;
   /** Called while files are read: which file, bytes read, rows read. */
   progress?: (side: "source" | "destination", bytes: number, rows: number) => void;
+  /** Called when both files are read and the records are being evaluated. */
+  evaluating?: () => void;
 }
 
 export interface CheckOutcome {
@@ -267,6 +269,7 @@ async function run(args: CheckArgs): Promise<Report> {
   const destinationSha = await read("destination", args.destination, destinationEncoding, [key[1], ...fields.map(([, d]) => d)], (v) =>
     evaluation.addDestination(v[0]!, v.slice(1)),
   );
+  args.evaluating?.();
   const result = evaluation.finish(details);
   const identical = sourceSha === destinationSha;
   if (identical && !args.allowIdenticalContent) {

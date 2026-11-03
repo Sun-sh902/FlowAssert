@@ -15,8 +15,11 @@ import { CaptureRuns, WorkspaceOverview, WorkspaceVerifications } from "./pages/
 
 // The interface-state specimens are a reference page few visits open; keep them out of the main bundle.
 const States = lazy(() => import("./pages/States").then((m) => ({ default: m.States })));
+// The CSV check carries the offline checker (evaluator, CSV reader, Unicode tables); only its own visits load it.
+const Check = lazy(() => import("./pages/Check").then((m) => ({ default: m.Check })));
 
 const TITLES: Record<string, string> = {
+  check: "CSV check — FlowAssert",
   workspace: "Overview — FlowAssert",
   capture: "Capture runs — FlowAssert",
   "demo-overview": "Demo overview — FlowAssert",
@@ -32,6 +35,13 @@ const TITLES: Record<string, string> = {
 
 function Crumbs({ route }: { route: Route }) {
   switch (route.name) {
+    case "check":
+      return (
+        <>
+          <b className="font-semibold text-ink">CSV check</b>
+          <span className="truncate">in this browser · your files stay on this computer</span>
+        </>
+      );
     case "workspace":
       return (
         <>
@@ -167,6 +177,11 @@ export function App() {
   return (
     <AppShell route={route} crumbs={<Crumbs route={route} />}>
       <RenderBoundary key={location.path}>
+      {route.name === "check" && (
+        <Suspense fallback={<p role="status" className="kicker">Opening the CSV check…</p>}>
+          <Check />
+        </Suspense>
+      )}
       {route.name === "workspace" && <WorkspaceOverview />}
       {route.name === "capture" && <CaptureRuns />}
       {route.name === "demo-overview" && <Overview />}

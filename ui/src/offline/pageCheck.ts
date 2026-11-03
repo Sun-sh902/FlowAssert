@@ -37,6 +37,7 @@ export interface PageCheckInput {
   sameFile: boolean;
   now?: () => string;
   progress?: (side: "source" | "destination", bytes: number, rows: number) => void;
+  evaluating?: () => void;
 }
 
 /** The configuration file of the page's choices: its canonical bytes, under the name refusals would use. */
@@ -61,5 +62,6 @@ export function pageCheck(input: PageCheckInput): Promise<CheckOutcome> {
     origin: ORIGINS.browser,
     now: input.now,
     progress: input.progress,
+    evaluating: input.evaluating,
   });
 }
