@@ -22,7 +22,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install pytest ./offline
-      - run: python -m pytest -q -p no:cacheprovider scripts/dev/tests/test_offline_verify.py
+      # The checker, and the GitHub Action's wrapper around it (action.yml runs it with this Python too).
+      - run: python -m pytest -q -p no:cacheprovider scripts/dev/tests/test_offline_verify.py scripts/dev/tests/test_action.py
       # The browser check is compared with these files byte for byte; here they are only checked, never written.
       - name: Golden outputs are current
         run: python offline/bench/golden.py --check
@@ -78,7 +79,19 @@ jobs:
       - run: npm ci
       - run: npx tsc -b
       - run: npx oxlint
+      # The packaged checker, dist-lib/flowassert-check.js, and the n8n example, which must hold exactly this build.
+      - run: npm run build:lib
+      - name: The n8n example holds this build
+        run: node scripts/n8n/build_workflow.mjs --check
+      # Includes the bundle test (src/test/offline/bundle.test.ts: this build, run in a node:vm context without crypto,
+      # against every golden case the page can run) and the n8n example's test (n8n-workflow.test.ts).
       - run: npx vitest run
+      # For the owner to attach to a release; never published from here.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flowassert-check.js
+          path: ui/dist-lib/flowassert-check.js
+          if-no-files-found: error
 
   parity:
     name: Browser check parity (Python 3.15)
