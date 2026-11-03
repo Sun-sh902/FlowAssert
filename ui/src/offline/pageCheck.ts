@@ -8,11 +8,12 @@
  * with every premise's origin "browser form". C is the configuration file the user loaded, unchanged, or the
  * canonical bytes of the configuration chosen in the page (canonicalConfig). The page always states both encodings
  * and a scope, so a report from the page always has inputs.source_encoding, obligation.rules and obligation.scope.
+ * The packaged checker (api.ts) runs this same check with an origin of its own.
  */
 import { canonicalConfig, check, type CheckOutcome, type InputFile } from "./check";
 import type { Encoding } from "./csv";
 import type { Scope } from "./evaluator";
-import { ORIGINS } from "./report";
+import { ORIGINS, type Origin } from "./report";
 
 export interface ChosenConfig {
   key: readonly [string, string];
@@ -35,6 +36,8 @@ export interface PageCheckInput {
   allowIdenticalContent: boolean;
   /** The browser could tell that both choices are the same file. */
   sameFile: boolean;
+  /** Where the premises were stated: "browser form" unless the packaged checker (api.ts) says otherwise. */
+  origin?: Origin;
   now?: () => string;
   progress?: (side: "source" | "destination", bytes: number, rows: number) => void;
   evaluating?: () => void;
@@ -59,7 +62,7 @@ export function pageCheck(input: PageCheckInput): Promise<CheckOutcome> {
     destinationCount: input.destinationCount ?? undefined,
     allowIdenticalContent: input.allowIdenticalContent,
     sameFile: input.sameFile,
-    origin: ORIGINS.browser,
+    origin: input.origin ?? ORIGINS.browser,
     now: input.now,
     progress: input.progress,
     evaluating: input.evaluating,

@@ -4,6 +4,8 @@
 
 From 0.3.0 the CSV check page of the web UI writes the same two reports, byte for byte, from the same inputs; it runs as `--config` with both encodings stated. The only difference is the `origin` of each premise, `browser form` (see [`premises`](#premises)).
 
+From 0.4.0 the packaged JavaScript checker (`checkCsv` in `flowassert-check.js`, used by the n8n example) runs the page's check and writes the same two reports. Its premises' `origin` is the one its caller chose: `JavaScript call` (the default) or `n8n Code node`.
+
 The report never claims more than its evidence. A member that FlowAssert could not establish is `null`, `false` or `"unknown"`, never a guess.
 
 ## Versioning
@@ -78,7 +80,7 @@ Each entry has:
 | Member | Meaning |
 | --- | --- |
 | `stated` | What was stated: `true` or `false` for a flag, the number or `null` for a count |
-| `origin` | Where the statement came from: `command-line option` from `flowassert-verify`, or `browser form` from the CSV check page of the web UI (0.3.0 and later). A configuration file cannot state premises |
+| `origin` | Where the statement came from: `command-line option` from `flowassert-verify`; `browser form` from the CSV check page of the web UI (0.3.0 and later); `JavaScript call` from a program calling the packaged checker, or `n8n Code node` from the n8n example's Code node (0.4.0 and later; the caller chooses one of these two). A configuration file cannot state premises |
 | `observed` | Counts only: the number of data rows read from that file. Blank lines are not rows; rows without a key are |
 | `matched` | Counts only: whether `stated` equals `observed`, or `null` when no count was stated |
 

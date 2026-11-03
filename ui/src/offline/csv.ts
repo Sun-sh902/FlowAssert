@@ -343,9 +343,21 @@ export class CsvReader {
   }
 }
 
+/**
+ * The digest to use where crypto.subtle is missing. Only the packaged checker (api.ts) sets one, the pure SHA-256 of
+ * sha256.ts; the page never does, so in the browser every digest still comes from crypto.subtle.
+ */
+let digestWithoutSubtle: ((bytes: Uint8Array) => Uint8Array) | null = null;
+
+export function useDigestWithoutSubtle(digest: ((bytes: Uint8Array) => Uint8Array) | null): void {
+  digestWithoutSubtle = digest;
+}
+
 /** Python's SHA-256 of the file's bytes, as hex. */
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>));
+  const digest = digestWithoutSubtle && !globalThis.crypto?.subtle
+    ? digestWithoutSubtle(bytes)
+    : new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>));
   return [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 

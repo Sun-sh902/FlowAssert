@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts", "playwright.local.config.ts", "playwright.history.config.ts", "playwright.lookup.config.ts", "playwright.workspace.config.ts", "e2e", "e2e-local", "e2e-history", "e2e-lookup", "e2e-workspace", "server"]
+  "include": ["vite.config.ts", "vite.lib.config.ts", "vitest.config.ts", "playwright.config.ts", "playwright.local.config.ts", "playwright.history.config.ts", "playwright.lookup.config.ts", "playwright.workspace.config.ts", "e2e", "e2e-local", "e2e-history", "e2e-lookup", "e2e-workspace", "server"]
 }

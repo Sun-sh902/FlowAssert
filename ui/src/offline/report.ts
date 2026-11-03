@@ -13,8 +13,11 @@ export const MAX_DETAILS = 50;
 export const CLAIM = "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.";
 export const LIMITS =
   "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.";
-/** Where a premise was stated: the command line, or the CSV check page in the browser. */
-export const ORIGINS = { cli: "command-line option", browser: "browser form" } as const;
+/**
+ * Where a premise was stated: the command line, the CSV check page in the browser, or a program calling the packaged
+ * checker (api.ts), which says whether it is any JavaScript or the n8n example's Code node.
+ */
+export const ORIGINS = { cli: "command-line option", browser: "browser form", javascript: "JavaScript call", n8n: "n8n Code node" } as const;
 export type Origin = (typeof ORIGINS)[keyof typeof ORIGINS];
 
 export interface Report extends Omit<EvaluationResult, "premises"> {
