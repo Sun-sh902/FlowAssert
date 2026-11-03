@@ -2,8 +2,10 @@ import { lazy, Suspense, useEffect, useRef } from "react";
 import { AppShell } from "./components/shell/AppShell";
 import { RenderBoundary } from "./components/shell/RenderBoundary";
 import { EmptyState, Panel, buttonClass } from "./components/ui/primitives";
+import { LocalOnly } from "./components/shell/LocalOnly";
 import { getRun } from "./data/store";
-import { useLocation, type Route } from "./lib/router";
+import { PAGES_BUILD } from "./lib/build";
+import { isLocalRoute, useLocation, type Route } from "./lib/router";
 import { Connections } from "./pages/Connections";
 import { HistoryEntry, HistoryList } from "./pages/History";
 import { Overview } from "./pages/Overview";
@@ -182,6 +184,11 @@ export function App() {
           <Check />
         </Suspense>
       )}
+      {/* The GitHub Pages demo has no local Service: its pages say so and never try to reach it. */}
+      {PAGES_BUILD && isLocalRoute(route) ? (
+        <LocalOnly />
+      ) : (
+        <>
       {route.name === "workspace" && <WorkspaceOverview />}
       {route.name === "capture" && <CaptureRuns />}
       {route.name === "demo-overview" && <Overview />}
@@ -195,6 +202,8 @@ export function App() {
       {route.name === "local-lookup" && <LocalVerificationDetail key={route.malformed ? `lookup-malformed:${route.id}` : `lookup:${route.id}`} id={route.id} malformed={route.malformed} location={location} addressing="query" />}
       {route.name === "local-history" && <HistoryList location={location} />}
       {route.name === "local-history-entry" && <HistoryEntry key={route.id} id={route.id} location={location} />}
+        </>
+      )}
       {route.name === "states" && (
         <Suspense fallback={<p role="status" className="kicker">Opening interface-state specimens…</p>}>
           <States />

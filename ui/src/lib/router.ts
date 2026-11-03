@@ -1,7 +1,8 @@
 /**
  * Minimal hash router. Hash routing keeps the demo working from any static host
  * without server rewrites. Routes:
- *   #/                         LOCAL_RESEARCH workspace Overview, read from the local Service's archive (product round 01)
+ *   #/                         LOCAL_RESEARCH workspace Overview, read from the local Service's archive (product round 01);
+ *                              in the GitHub Pages build, the CSV check (#/overview is the Overview in both builds)
  *   #/check                    CSV check: two files compared in this browser (v0.3.0); nothing is sent
  *   #/verifications            LOCAL_RESEARCH Verifications: the five reviewed cases with their four status axes
  *                              (#/local/verifications is the same page, kept so earlier links keep working)
@@ -33,6 +34,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { decodeStrictQuery } from "../data/local/ids";
+import { PAGES_BUILD } from "./build";
 
 export type Route =
   | { name: "check" }
@@ -102,7 +104,8 @@ function parse(hash: string): Location {
   const params = new URLSearchParams(query);
   const parts = path.split("/").filter(Boolean);
   let route: Route = { name: "not-found" };
-  if (parts.length === 0) route = { name: "workspace" };
+  if (parts.length === 0) route = PAGES_BUILD ? { name: "check" } : { name: "workspace" };
+  else if (parts[0] === "overview" && parts.length === 1) route = { name: "workspace" };
   else if (parts[0] === "check" && parts.length === 1) route = { name: "check" };
   else if (parts[0] === "verifications" && parts.length === 1) route = { name: "local-verifications" };
   else if (parts[0] === "capture" && parts.length === 1) route = { name: "capture" };

@@ -1,0 +1,49 @@
+name: Pages demo
+
+# Builds the GitHub Pages demo (ui, vite build --mode pages) and deploys it. Manual only: it runs when someone
+# starts it from the Actions tab, after Pages is enabled with "GitHub Actions" as the source.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the Pages demo
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: npm run build:pages
+      - name: The demo forbids every connection
+        run: grep -q "connect-src 'none'" dist-pages/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ui/dist-pages
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

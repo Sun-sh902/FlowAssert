@@ -2,6 +2,7 @@ import { Menu, Monitor, Moon, Sun, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { setLocale, useLocale, type Locale } from "../../i18n/locale";
 import { cn } from "../../lib/cn";
+import { PAGES_BUILD } from "../../lib/build";
 import { DEMO_NOW_MS, formatDateTime } from "../../lib/format";
 import { isHistoryRoute, isLocalRoute, type Route } from "../../lib/router";
 import { useTheme, type ThemePreference } from "../../lib/theme";
@@ -57,7 +58,7 @@ interface NavItem {
 const CHECK_NAV: NavItem[] = [{ n: "00", label: "CSV check", href: "#/check", match: (r: Route) => r.name === "check" }];
 /** The product: pages that read the local Python service (LOCAL_RESEARCH). */
 const NAV: NavItem[] = [
-  { n: "01", label: "Overview", href: "#/", match: (r: Route) => r.name === "workspace" },
+  { n: "01", label: "Overview", href: PAGES_BUILD ? "#/overview" : "#/", match: (r: Route) => r.name === "workspace" },
   {
     n: "02",
     label: "Verifications",
@@ -121,7 +122,7 @@ function NavList({ route, onNavigate }: { route: Route; onNavigate?: () => void 
     </nav>
     <nav aria-label="Primary">
       <p id="nav-local" className="kicker mb-1 flex items-center justify-between text-ink-3">
-        Workspace <span className="rounded-[2px] bg-brand-soft px-1 text-[9px] tracking-[0.1em] text-brand-ink">local</span>
+        Workspace <span className="rounded-[2px] bg-brand-soft px-1 text-[9px] tracking-[0.1em] text-brand-ink">{PAGES_BUILD ? "local only" : "local"}</span>
       </p>
       <div aria-labelledby="nav-local">
         <NavItems items={NAV} route={route} onNavigate={onNavigate} />
@@ -225,6 +226,11 @@ function RailFooter({ register }: { register: Register }) {
             <p className="kicker mb-0.5 text-ink-2">Browser check register</p>
             Your files are read in this browser and never sent. Nothing you choose is stored.
           </>
+        ) : PAGES_BUILD && local ? (
+          <>
+            <p className="kicker mb-0.5 text-ink-2">Local research register</p>
+            These pages read a local Service and work only locally. This online demo has none.
+          </>
         ) : local ? (
           <>
             <p className="kicker mb-0.5 text-ink-2">Local research register</p>
@@ -260,6 +266,8 @@ function TopBar({ crumbs, register }: { crumbs: ReactNode; register: Register })
         <section aria-label={register === "check" ? "Browser check register" : local ? "Local research register" : "Demo register"} className="flex shrink-0 items-center gap-4">
           {register === "check" ? (
             <span className="hidden font-mono text-[11px] text-ink-3 sm:inline">files stay on this computer</span>
+          ) : local && PAGES_BUILD ? (
+            <span className="font-mono text-[11px] text-ink-3">works only locally</span>
           ) : local ? (
             <ServiceStatus />
           ) : (
