@@ -85,7 +85,7 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   } catch (e) {
     cli = (e as { stdout: string; status: number }).stdout; // exit status 1: Mismatch
   }
-  const report = { rows: ROWS, seconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: [...new Set(probe.progress)].length };
+  const report = { rows: ROWS, seconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size };
   writeReport("check-large", report);
   testInfo.annotations.push({ type: "large-file", description: JSON.stringify(report) });
   console.info(`large-file check: ${JSON.stringify(report)}`);

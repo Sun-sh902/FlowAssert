@@ -6,14 +6,15 @@
  *   npx vitest run src/test/offline/random-parity.test.ts                      300 cases (the default, as in CI)
  *   FA_PARITY_COUNT=5000 npx vitest run src/test/offline/random-parity.test.ts
  *
- * FA_PYTHON names the interpreter (default python3; the cases follow Python 3.11+, see random-cases.ts) and
- * FA_PARITY_SEED the first seed (default 20260302). Python is required: without it the test fails, it is not skipped.
+ * FA_PYTHON names the interpreter (default python3) and FA_PARITY_SEED the first seed (default 20260302). The browser
+ * follows Python 3.15 where Python versions differ (see strptime.ts), so with an older interpreter both tests are
+ * skipped, saying so; with FA_PARITY_REQUIRED=1 (CI's parity job) they fail instead, as they do without Python.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { check, reportHtml, reportJson } from "../../offline/check";
 import { REPO_ROOT } from "../fixtures/sources";
 import { parseArgs } from "./cli-args";
@@ -23,6 +24,23 @@ import { generateCase, random } from "./random-cases";
 const COUNT = Number(process.env.FA_PARITY_COUNT ?? 300);
 const SEED = Number(process.env.FA_PARITY_SEED ?? 20260302);
 const PYTHON = process.env.FA_PYTHON ?? "python3";
+const REQUIRED = process.env.FA_PARITY_REQUIRED === "1";
+
+/** The interpreter's version, or null when it cannot run. */
+function pythonVersion(): [number, number] | null {
+  try {
+    const out = execFileSync(PYTHON, ["-c", "import sys; print(sys.version_info[0], sys.version_info[1])"], { encoding: "utf-8" });
+    const [major, minor] = out.trim().split(" ").map(Number);
+    return [major!, minor!];
+  } catch {
+    return null;
+  }
+}
+
+const version = pythonVersion();
+const usable = version !== null && (version[0] > 3 || (version[0] === 3 && version[1] >= 15));
+const skip = !usable && !REQUIRED;
+const why = `random parity needs Python 3.15 or later as ${PYTHON}; found ${version ? version.join(".") : "none"}`;
 const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
 const utf8 = { decode: (chunk: Uint8Array, final: boolean) => utf8Decoder.decode(chunk, { stream: !final }) };
 
@@ -35,7 +53,9 @@ interface PythonResult {
   html: string | null;
 }
 
+describe.skipIf(skip)(skip ? why : "with Python", () => {
 test(`random parity: ${COUNT} cases from seed ${SEED}`, { timeout: 1_800_000 }, async () => {
+  if (!usable) throw new Error(why);
   const root = mkdtempSync(join(tmpdir(), "fa-parity-"));
   try {
     const names: string[] = [];
@@ -95,6 +115,7 @@ json.dump(out, sys.stdout)
 `;
 
 test(`csv.reader parity: ${COUNT * 4} random texts of quotes, commas and line breaks`, { timeout: 600_000 }, () => {
+  if (!usable) throw new Error(why);
   const r = random(SEED);
   const texts = Array.from({ length: COUNT * 4 }, () => {
     let text = "";
@@ -120,4 +141,5 @@ test(`csv.reader parity: ${COUNT * 4} random texts of quotes, commas and line br
     if (JSON.stringify(ours) !== JSON.stringify(python[i])) differences.push(`${JSON.stringify(text)}: python ${JSON.stringify(python[i])}, browser ${JSON.stringify(ours)}`);
   });
   expect(differences.slice(0, 10)).toEqual([]);
+});
 });
