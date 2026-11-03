@@ -191,6 +191,8 @@ def run(environ, python=sys.executable):
         code = result.returncode
         stdout = result.stdout.decode("utf-8", "backslashreplace")
         stderr = result.stderr.decode("utf-8", "backslashreplace")
+        if os.name == "nt":  # the checker's text-mode output ends its lines with CR LF there; print would double the CR
+            stdout, stderr = stdout.replace("\r\n", "\n"), stderr.replace("\r\n", "\n")
         state = state_of(code, stdout)
     passed = passes(state, fail_on)
     concluded = state in EXIT_STATES.values()
