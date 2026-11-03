@@ -1023,3 +1023,97 @@ def test_evaluator_scope():
     assert 'destination_only' not in evaluator_v2.evaluate(KEY, [ROW], [ROW], **COMPLETE)
     with pytest.raises(ValueError):
         evaluator_v2.evaluate(dict(KEY, scope='both'), [ROW], [ROW])
+
+
+# --- v0.2.0: explicit comparison rules ---------------------------------------------------------
+
+def rule_result(rule, expected, actual):
+    obligation = {'key': ('key', 'key'), 'fields': [('phone', 'phone', rule)]}
+    result = evaluator_v2.evaluate(obligation, [{'key': 'K1', 'phone': expected}], [{'key': 'K1', 'phone': actual}],
+                                   **COMPLETE)
+    return result['records'][0]['rules']['field:phone'], result['cohort_state']
+
+
+COHORT_FOR = {'pass': 'Verified', 'fail': 'Mismatch', 'unknown': 'Unverified'}
+
+
+@pytest.mark.parametrize('rule,expected,actual,status,normalized', [
+    ('trim', ' a\t', 'a', 'pass', ('a', 'a')),
+    ('trim', 'a b', 'a  b', 'fail', ('a b', 'a  b')),
+    ('trim', 'a', 'b ', 'fail', ('a', 'b')),
+    ('trim', '  ', 'a', 'unknown', ('', 'a')),
+    ('casefold', 'Straße', 'STRASSE', 'pass', ('strasse', 'strasse')),
+    ('casefold', 'Ada@Example.test', 'ada@example.test', 'pass', ('ada@example.test', 'ada@example.test')),
+    ('casefold', 'a@x', 'b@x', 'fail', ('a@x', 'b@x')),
+    ('casefold', ' a', 'A', 'fail', (' a', 'a')),
+    ('digits', '+1 (212) 555-0101', '12125550101', 'pass', ('12125550101', '12125550101')),
+    ('digits', '555 0102', '5550199', 'fail', ('5550102', '5550199')),
+    ('digits', 'n/a', '12', 'unknown', ('', '12')),
+    ('digits', '12', 'none', 'unknown', ('12', '')),
+    ('digits', '٣', '3', 'unknown', ('', '3')),
+    ('date:%Y-%m-%d', '2026-01-02', '2026-01-02', 'pass', ('2026-01-02T00:00:00', '2026-01-02T00:00:00')),
+    ('date:%Y-%m-%d', '2026-01-02', '2026-1-2', 'pass', ('2026-01-02T00:00:00', '2026-01-02T00:00:00')),
+    ('date:%Y-%m-%d', '2026-01-02', '2026-01-03', 'fail', ('2026-01-02T00:00:00', '2026-01-03T00:00:00')),
+    ('date:%Y-%m-%d', '2026-01-02', '02/01/2026', 'unknown', ('2026-01-02T00:00:00', None)),
+    ('date:%Y-%m-%d', '2026-02-30', '2026-02-30', 'unknown', (None, None)),
+    ('date:%d/%m/%Y %H:%M', '02/01/2026 10:00', '2/1/2026 10:00', 'pass',
+     ('2026-01-02T10:00:00', '2026-01-02T10:00:00')),
+    ('date:%d/%m/%Y %H:%M', '02/01/2026 10:00', '02/01/2026 11:00', 'fail',
+     ('2026-01-02T10:00:00', '2026-01-02T11:00:00')),
+])
+def test_each_rule_passes_fails_or_stays_unknown(rule, expected, actual, status, normalized):
+    result, cohort = rule_result(rule, expected, actual)
+    assert result['status'] == status and cohort == COHORT_FOR[status]
+    assert result['rule'] == rule and (result['expected'], result['actual']) == (expected, actual)
+    assert (result['expected_normalized'], result['actual_normalized']) == normalized
+
+
+@pytest.mark.parametrize('rule', ['exact', 'trim', 'casefold', 'digits', 'date:%Y-%m-%d'])
+@pytest.mark.parametrize('expected,actual', [('', '1'), ('1', ''), ('', '')])
+def test_an_empty_value_stays_unknown_under_every_rule(rule, expected, actual):
+    result, cohort = rule_result(rule, expected, actual)
+    assert result['status'] == 'unknown' and cohort == 'Unverified'
+    assert result['reason'] == 'empty value; a missing value is not assumed to be a difference'
+
+
+def test_exact_rule_results_keep_the_v011_shape():
+    explicit, _ = rule_result('exact', '1', '2')
+    pairs = run([ROW], [{'key': 'K1', 'phone': '2'}], **COMPLETE)['records'][0]['rules']['field:phone']
+    assert explicit == pairs == {'status': 'fail', 'reason': 'exact string comparison', 'expected': '1', 'actual': '2'}
+
+
+def test_a_rule_is_recorded_on_a_field_that_could_not_be_compared():
+    obligation = {'key': ('key', 'key'), 'fields': [('phone', 'phone', 'digits')]}
+    result = evaluator_v2.evaluate(obligation, [ROW], [ROW, ROW], **COMPLETE)
+    assert result['records'][0]['rules']['field:phone'] == {
+        'status': 'unknown', 'reason': 'no arbitrary candidate selected', 'rule': 'digits'}
+
+
+@pytest.mark.parametrize('rule', ['exact', 'trim', 'casefold', 'digits', 'date:%Y-%m-%d', 'date:%d/%m/%Y %H:%M',
+                                  'date:%Y-%m-%dT%H:%M:%S%z', 'date:%Y%m%d', 'date:%d %b %Y', 'date:%Y-%m-%d %%'])
+def test_valid_rules_are_accepted(rule):
+    assert evaluator_v2.parse_rule(rule) == rule
+
+
+@pytest.mark.parametrize('rule,message', [
+    ('', 'unknown comparison rule'), ('EXACT', 'unknown comparison rule'), ('Trim', 'unknown comparison rule'),
+    ('digit', 'unknown comparison rule'), ('date', 'unknown comparison rule'), (None, 'unknown comparison rule'),
+    (1, 'unknown comparison rule'), ('date:', 'has no format'), ('date:abc', 'has no directive'),
+    ('date:%%', 'has no directive'), ('date:%q', 'malformed date format'), ('date:%Y-%', 'malformed date format'),
+    ('date:%G', 'malformed date format'),
+])
+def test_an_unknown_or_malformed_rule_is_refused(rule, message):
+    with pytest.raises(ValueError, match=message):
+        evaluator_v2.parse_rule(rule)
+    with pytest.raises(ValueError):
+        evaluator_v2.evaluate({'key': ('key', 'key'), 'fields': [('phone', 'phone', rule)]}, [ROW], [ROW])
+
+
+def test_redaction_removes_normalized_values_from_records():
+    obligation = {'key': ('key', 'key'), 'fields': [('phone', 'phone', 'digits')]}
+    result = evaluator_v2.evaluate(obligation, [{'key': 'K1', 'phone': '+1 555'}], [{'key': 'K1', 'phone': '1556'}],
+                                   **COMPLETE)
+    record = result['records'].redacted()[0]
+    assert record['key'] == '[redacted]'
+    assert record['rules']['field:phone'] == {'status': 'fail', 'reason': 'comparison of the digits 0-9 only',
+                                              'rule': 'digits'}

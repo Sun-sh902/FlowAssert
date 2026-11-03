@@ -14,8 +14,15 @@ Without a premise the matching conclusion stays unknown. Absence and uniqueness
 need destination_complete. A stated count that differs from the rows supplied
 withdraws the matching completeness premise; a count that agrees adds nothing.
 A field that differs is a Mismatch either way, because a row that exists can
-disprove a rule on its own. Comparison is exact: no trimming, case folding, or
-other normalization. There is no waiting window, so a result is never Pending.
+disprove a rule on its own. There is no waiting window, so a result is never Pending.
+
+Each field has one comparison rule, chosen by the caller and never inferred:
+  exact        the strings as they are (the default)
+  trim         after removing leading and trailing whitespace
+  casefold     after Unicode case folding
+  digits       only the digits 0-9; no digits is unknown, not a match
+  date:FORMAT  both parsed with datetime.strptime; a value that does not parse is unknown
+An empty value is unknown under every rule.
 
 The obligation's scope is "source" (each source record is checked) or "exact"
 (also, a destination key that is not in the source is a destination-only record,
@@ -27,12 +34,16 @@ destination row is kept. Records are built when they are read from the result.
 """
 from array import array
 from collections.abc import Sequence
+from datetime import datetime, timezone
 
 VERSION = "v2-current-state-1"
 STATES = ("Verified", "Mismatch", "Pending", "Unverified")
 SCOPES = ("source", "exact")
 DETAILS = ("problems", "all")
+RULES = ("exact", "trim", "casefold", "digits", "date:FORMAT")
 _STATE_CODE = {name: code for code, name in enumerate(STATES)}
+_EMPTY = "empty value; a missing value is not assumed to be a difference"
+_DATE_SAMPLE = datetime(2001, 2, 3, 4, 5, 6, 7000, tzinfo=timezone.utc)
 
 
 def _key(value):
@@ -50,18 +61,84 @@ def _state(rules):
     return "Verified" if values and all(v == "pass" for v in values) else "Unverified"
 
 
-def _compare(expected, actual):
+def parse_rule(rule):
+    """Return a comparison rule unchanged if it is valid, else raise ValueError."""
+    if rule in ("exact", "trim", "casefold", "digits"):
+        return rule
+    if isinstance(rule, str) and rule.startswith("date:"):
+        fmt = rule[5:]
+        if not fmt:
+            raise ValueError(f"date rule {rule!r} has no format")
+        if "%" not in fmt.replace("%%", ""):
+            raise ValueError(f"date format {fmt!r} has no directive")
+        try:
+            datetime.strptime(_DATE_SAMPLE.strftime(fmt), fmt)
+        except ValueError as e:
+            raise ValueError(f"malformed date format {fmt!r} ({e})")
+        return rule
+    raise ValueError(f"unknown comparison rule {rule!r}; use exact, trim, casefold, digits or date:FORMAT")
+
+
+def _normalize(rule, value):
+    """The value a rule compares, or None when there is nothing to compare."""
+    if not isinstance(value, str):
+        return None
+    if rule == "trim":
+        return value.strip()
+    if rule == "casefold":
+        return value.casefold()
+    if rule == "digits":
+        return "".join(c for c in value if "0" <= c <= "9")
+    try:
+        return datetime.strptime(value, rule[5:]).isoformat()
+    except ValueError:
+        return None
+
+
+def _compare(expected, actual, rule="exact"):
+    if rule == "exact":
+        if not expected or not actual:
+            return _rule("unknown", _EMPTY, expected=expected, actual=actual)
+        status = "pass" if expected == actual else "fail"
+        return _rule(status, "exact string comparison", expected=expected, actual=actual)
+    e, a = _normalize(rule, expected), _normalize(rule, actual)
+    detail = dict(rule=rule, expected=expected, actual=actual, expected_normalized=e, actual_normalized=a)
     if not expected or not actual:
-        return _rule("unknown", "empty value; a missing value is not assumed to be a difference",
-                     expected=expected, actual=actual)
-    status = "pass" if expected == actual else "fail"
-    return _rule(status, "exact string comparison", expected=expected, actual=actual)
+        return _rule("unknown", _EMPTY, **detail)
+    if rule == "trim":
+        if not e or not a:
+            return _rule("unknown", "empty after trimming whitespace; a missing value is not assumed to be a difference",
+                         **detail)
+        reason = "comparison after trimming leading and trailing whitespace"
+    elif rule == "casefold":
+        reason = "comparison after Unicode case folding"
+    elif rule == "digits":
+        if not e or not a:
+            return _rule("unknown", "no digits to compare", **detail)
+        reason = "comparison of the digits 0-9 only"
+    else:
+        if e is None or a is None:
+            return _rule("unknown", f"value does not match date format {rule[5:]!r}", **detail)
+        reason = f"date comparison with format {rule[5:]!r}"
+    return _rule("pass" if e == a else "fail", reason, **detail)
 
 
 def _count(name, value):
     if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value < 0):
         raise ValueError(f"{name} must be None or a non-negative integer")
     return value
+
+
+def _fields(obligation):
+    fields = []
+    for field in obligation["fields"]:
+        if len(field) == 2:
+            fields.append((field[0], field[1], "exact"))
+        elif len(field) == 3:
+            fields.append((field[0], field[1], parse_rule(field[2])))
+        else:
+            raise ValueError("a field is (source, destination) or (source, destination, rule)")
+    return fields
 
 
 class _Records(Sequence):
@@ -106,7 +183,7 @@ class _Records(Sequence):
         if self._redact:
             record["key"] = "[redacted]"
             for rule in record.get("rules", {}).values():
-                for name in ("expected", "actual"):
+                for name in ("expected", "actual", "expected_normalized", "actual_normalized"):
                     rule.pop(name, None)
         return record
 
@@ -114,7 +191,7 @@ class _Records(Sequence):
 class _Evaluation:
     def __init__(self, obligation, source_complete, destination_complete, source_count, destination_count):
         self.source_key, self.destination_key = obligation["key"]
-        self.fields = obligation["fields"]
+        self.fields = _fields(obligation)
         self.scope = obligation.get("scope", "source")
         if self.scope not in SCOPES:
             raise ValueError(f"scope must be one of {', '.join(SCOPES)}")
@@ -141,7 +218,7 @@ class _Evaluation:
         elif self.first.setdefault(key, position) != position:
             self.repeated.add(key)
         self.keys.append(key)
-        self.values.append(tuple(row.get(s) for s, _ in self.fields))
+        self.values.append(tuple(row.get(s) for s, _, _ in self.fields))
 
     def add_destination(self, row):
         if self.candidates is None:
@@ -162,7 +239,7 @@ class _Evaluation:
         if key in self.repeated:
             return
         if self.candidates[position] == 1:
-            actual = tuple(row.get(d) for _, d in self.fields)
+            actual = tuple(row.get(d) for _, d, _ in self.fields)
             if actual != self.values[position]:
                 self.actual[position] = actual
         else:
@@ -225,8 +302,11 @@ class _Evaluation:
 
     def record(self, position):
         key = self.keys[position]
-        names = ["existence", "uniqueness"] + ["field:" + s for s, _ in self.fields]
+        names = ["existence", "uniqueness"] + ["field:" + s for s, _, _ in self.fields]
         rules = {name: _rule("unknown", "insufficient evidence") for name in names}
+        for source_field, _, rule in self.fields:
+            if rule != "exact":
+                rules["field:" + source_field]["rule"] = rule
         candidates = self.candidates[self.first[key]] if key is not None else 0
         if key is None or key in self.repeated:
             for name in rules:
@@ -234,7 +314,7 @@ class _Evaluation:
         elif candidates > 1:
             rules["existence"] = _rule("pass", "candidates observed")
             rules["uniqueness"] = _rule("fail", "more than one destination row carries this key")
-            for source_field, _ in self.fields:
+            for source_field, _, _ in self.fields:
                 rules["field:" + source_field]["reason"] = "no arbitrary candidate selected"
         elif candidates:
             rules["existence"] = _rule("pass", "candidate observed")
@@ -242,8 +322,8 @@ class _Evaluation:
                 rules["uniqueness"] = _rule("pass", "one row in stated complete destination")
             expected = self.values[position]
             actual = self.actual.get(position, expected)
-            for (source_field, _), e, a in zip(self.fields, expected, actual):
-                rules["field:" + source_field] = _compare(e, a)
+            for (source_field, _, rule), e, a in zip(self.fields, expected, actual):
+                rules["field:" + source_field] = _compare(e, a, rule)
         elif self.coverage:
             rules["existence"] = _rule("fail", "key not found in stated complete destination")
         elif self.destination_complete and self.keyless == 0 and self.destination_count_matches is False:
@@ -256,7 +336,7 @@ class _Evaluation:
 
 def evaluate(obligation, source_rows, destination_rows, *, source_complete=False, destination_complete=False,
              source_count=None, destination_count=None, details="all"):
-    """`obligation` is {"key": (source, destination), "fields": [(source, destination), ...]},
+    """`obligation` is {"key": (source, destination), "fields": [(source, destination[, rule]), ...]},
     with an optional "scope". Rows are mappings, read once each, source rows first.
 
     `details` "all" builds every record in full; "problems" keeps only key, source_row and state
