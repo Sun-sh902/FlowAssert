@@ -21,6 +21,8 @@ License: [Apache 2.0](LICENSE)
 - [What is and is not here](#what-is-and-is-not-here)
 - [Quick start: compare two CSV files](#quick-start-compare-two-csv-files)
 - [Check in your browser](#check-in-your-browser)
+- [Use in GitHub Actions](#use-in-github-actions)
+- [Use in n8n](#use-in-n8n)
 - [Quick start: run the Service and UI](#quick-start-run-the-service-and-ui)
 - [How verification works](#how-verification-works)
 - [Architecture](#architecture)
@@ -104,6 +106,8 @@ The workspace pages are checked across a 200-cell responsive matrix, in both the
 | --- | --- |
 | Offline CSV check (`offline/`) | Works on your own local files |
 | CSV check in the browser (`ui/`, `#/check`) | Works on your own local files; nothing is uploaded |
+| GitHub Action (`action.yml`) | Runs the offline check on files in a workflow; installs and downloads nothing |
+| n8n example (`examples/n8n/`) | Runs the browser check in a Code node; tested on a self-hosted n8n only |
 | Pinned Evaluator with four result states | Works on the five synthetic cases |
 | Read-only HTTP Service | Works locally |
 | Append-only SQLite history archive | Works locally; only the reviewed cases can be archived |
@@ -222,6 +226,74 @@ Differences from the command line:
 The browser check is built from the same specification and is tested against the command line: every conformance case,
 88 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
 a difference would be a bug; please report one.
+
+## Use in GitHub Actions
+
+The repository is also a GitHub Action. It runs the offline check on two CSV files in your workflow, with the
+runner's Python 3.9 or later, from the Action's own copy of `offline/`: nothing is installed or downloaded while it
+runs. The step passes or fails on the result.
+
+```yaml
+name: Check the nightly export
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: Sun-sh902/FlowAssert@v0.4.0
+        id: flowassert
+        with:
+          source: exports/source.csv
+          destination: exports/destination.csv
+          key: external_id
+          fields: |
+            phone
+            email:hs_email
+```
+
+Each input is one `flowassert-verify` option, named the same without `--` (`fields` takes one `--field` per line);
+an empty input leaves the option out, so the checker's own defaults and refusals apply. The full list is in
+[action.yml](action.yml).
+
+**The premises are left out on purpose.** `source-complete`, `destination-complete`, `source-count`,
+`destination-count` and `allow-identical-content` are statements about your files that FlowAssert cannot check, so
+none is assumed: add `source-complete: "true"` and the others only when they are true for every run. Without
+`source-complete` the batch is never Verified. A boolean input accepts only `"true"` or `"false"`.
+
+| Input | Default | Meaning |
+| --- | --- | --- |
+| `fail-on` | `not-verified` | `not-verified`: the step passes only on Verified. `mismatch`: it passes on Verified and Unverified and fails on Mismatch. A refused input or an internal failure (exit status 2 or 4) always fails the step |
+| `show-records` | `"false"` | **Logs and job summaries are often public**, for example in a public repository. By default the step prints and summarizes the state, the counts, the premises and the limitations, and no key or field value. `"true"` also prints the checker's record lines, values included |
+| `json`, `html` | empty | Write the JSON or HTML report to this new file. Reports hold keys and compared values unless `redact-values` is `"true"`, and are written only where you ask |
+
+Outputs: `state` (`Verified`, `Mismatch`, `Unverified`, `refused` or `failed`), `exit-code`, and `json` and `html`
+(the report paths, when written). The step's summary and reports say exactly what `flowassert-verify` says for the
+same arguments. `.github/workflows/action-self-test.yml` runs the Action on Linux, macOS and Windows.
+
+## Use in n8n
+
+[examples/n8n/](examples/n8n/) is an n8n workflow that runs the check in a **Code node**, without the Execute Command
+node (disabled by default from n8n 2.0 and not offered on n8n Cloud). The Code node holds the browser check packaged
+as one script, so it gives the command line's result, summary and JSON report for the same files and premises; each
+premise's `origin` is `n8n Code node`. The files' content stays in the n8n instance: the node makes no request and runs
+no command. Every premise starts unstated in the node's configuration block. It was tested on a self-hosted n8n
+2.46.4 only, not on n8n Cloud; the [example's README](examples/n8n/README.md) has the setup and what was found out
+about the Code node.
+
+The packaged script is `flowassert-check.js`, built with `cd ui && npm run build:lib` (CI builds it on every run, to
+be attached to each release). It defines one global, `FlowAssert`, with `checkCsv` and `VERSION`, imports nothing and makes no request; other
+JavaScript hosts can call it the same way (see `ui/src/offline/api.ts`).
 
 ## Quick start: run the Service and UI
 
@@ -593,6 +665,7 @@ Repository history was scanned for common key formats before publication, and no
 | --- | --- |
 | Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness. The same holds for the two statements in the browser check |
 | Browser check | Supports fewer date directives than the command line, and follows Python 3.15 where Python versions differ. See [Check in your browser](#check-in-your-browser) |
+| n8n example | Tested on a self-hosted n8n 2.46.4 only, not on n8n Cloud. It reads files with the Read/Write Files node, which n8n restricts to `~/.n8n-files` by default |
 | Evaluator status | The pinned version is labelled `Round03.5 research — unapproved` |
 | P3A-AUD-001 | A legacy path such as `/api/v1/verifications/x%2Fevidence` can address the wrong resource. Use the query routes for unusual IDs |
 | Archive seals | Unkeyed hashes. Anyone who can write the database can forge a consistent row |
@@ -626,6 +699,8 @@ The planned route to real data is in [docs/product-dev/final-version/](docs/prod
 
 ```text
 offline/                     Installable CSV check and Evaluator v2
+action.yml, action/          GitHub Action around the offline check
+examples/n8n/                n8n workflow with the packaged browser check
 service/
   app/                       FastAPI application
   vendor/model.py            Pinned Evaluator v1

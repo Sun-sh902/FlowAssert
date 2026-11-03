@@ -32,6 +32,8 @@ FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”
 - [已有和没有的内容](#已有和没有的内容)
 - [快速开始：比较两个 CSV 文件](#快速开始比较两个-csv-文件)
 - [在浏览器中核对](#在浏览器中核对)
+- [在 GitHub Actions 中使用](#在-github-actions-中使用)
+- [在 n8n 中使用](#在-n8n-中使用)
 - [快速开始：运行 Service 和 UI](#快速开始运行-service-和-ui)
 - [验证如何工作](#验证如何工作)
 - [架构](#架构)
@@ -115,6 +117,8 @@ FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”
 | --- | --- |
 | 离线 CSV 核对(`offline/`) | 可用于你自己的本地文件 |
 | 浏览器中的 CSV 核对(`ui/`、`#/check`) | 可用于你自己的本地文件，不上传任何内容 |
+| GitHub Action(`action.yml`) | 在工作流中对文件运行离线核对，不安装也不下载任何东西 |
+| n8n 示例(`examples/n8n/`) | 在 Code 节点中运行浏览器核对，只在自托管的 n8n 上测试过 |
 | 带四种结果状态的固定版 Evaluator | 可用于 5 个合成样例 |
 | 只读 HTTP Service | 可在本地运行 |
 | 只增不改的 SQLite 历史归档 | 可在本地运行，只能归档审核过的样例 |
@@ -224,6 +228,70 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | 内存 | 读取时整个文件留在内存中 | 来源只保留用到的列，目标逐行读取 |
 
 浏览器核对按同一份规范实现，并与命令行对照测试：全部一致性样例、88 个逐字节比较的黄金样例，以及随机样例（10,000 个中 0 处差异）。它是第二个实现，出现差异就是缺陷，欢迎报告。
+
+## 在 GitHub Actions 中使用
+
+本仓库同时也是一个 GitHub Action。它在你的工作流里用 runner 上的 Python 3.9 或更高版本，从 Action 自带的
+`offline/` 运行离线核对：运行时不安装、也不下载任何东西。步骤根据结果成功或失败。
+
+```yaml
+name: Check the nightly export
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: Sun-sh902/FlowAssert@v0.4.0
+        id: flowassert
+        with:
+          source: exports/source.csv
+          destination: exports/destination.csv
+          key: external_id
+          fields: |
+            phone
+            email:hs_email
+```
+
+每个输入对应 `flowassert-verify` 的一个选项，名称相同，只是去掉 `--`（`fields` 每行一个 `--field`）。输入为空时
+不传这个选项，所以核对程序自己的默认值和拒绝规则照常生效。完整列表见 [action.yml](action.yml)。
+
+**示例特意没有写前提。** `source-complete`、`destination-complete`、`source-count`、`destination-count` 和
+`allow-identical-content` 是你对文件的声明，FlowAssert 无法核实，所以一项也不会默认。只有当它们对每次运行都成立时，
+才加上 `source-complete: "true"` 等。没有 `source-complete`，批次永远不会是 Verified。布尔输入只接受 `"true"` 或
+`"false"`。
+
+| 输入 | 默认值 | 含义 |
+| --- | --- | --- |
+| `fail-on` | `not-verified` | `not-verified`：只有 Verified 时步骤才成功。`mismatch`：Verified 和 Unverified 时成功，Mismatch 时失败。输入被拒绝或内部失败（退出码 2 或 4）时，步骤总是失败 |
+| `show-records` | `"false"` | **日志和 job summary 常常是公开的**，例如公开仓库。默认只打印和汇总状态、计数、前提和限制说明，不含任何键或字段值。`"true"` 时还会打印核对程序的记录行，其中有值 |
+| `json`、`html` | 空 | 把 JSON 或 HTML 报告写到这个新文件。除非 `redact-values` 为 `"true"`，报告中有键和比较的值；只在你指定的位置写入 |
+
+输出：`state`（`Verified`、`Mismatch`、`Unverified`、`refused` 或 `failed`）、`exit-code`，以及 `json` 和
+`html`（写入时为报告路径）。对同样的参数，步骤的摘要和报告与 `flowassert-verify` 完全相同。
+`.github/workflows/action-self-test.yml` 在 Linux、macOS 和 Windows 上运行这个 Action。
+
+## 在 n8n 中使用
+
+[examples/n8n/](examples/n8n/) 是一个 n8n 工作流，在 **Code 节点**中运行核对，不使用 Execute Command 节点（从
+n8n 2.0 起默认禁用，n8n Cloud 也不提供）。Code 节点中是打包成一个脚本的浏览器核对，所以对同样的文件和前提，它给出
+与命令行相同的结果、摘要和 JSON 报告；每项前提的 `origin` 是 `n8n Code node`。文件内容留在 n8n 实例中：节点不发出
+请求，也不运行命令。节点配置区中的每项前提默认都不声明。它只在自托管的 n8n 2.46.4 上测试过，没有在 n8n Cloud 上
+测试；设置方法和对 Code 节点的实测结果见[示例的说明](examples/n8n/README.zh-CN.md)。
+
+打包的脚本是 `flowassert-check.js`，用 `cd ui && npm run build:lib` 构建（CI 每次运行都会构建，准备附在每个版本的
+发布中）。它只定义一个全局变量 `FlowAssert`，包含 `checkCsv` 和 `VERSION`，不导入任何东西，也不发出请求；其他
+JavaScript 环境也可以这样调用（见 `ui/src/offline/api.ts`）。
 
 ## 快速开始：运行 Service 和 UI
 
@@ -602,6 +670,7 @@ Service 是为本机单用户设计的。
 | --- | --- |
 | 完整性声明 | 离线核对不会核实 `--source-complete` 和 `--destination-complete`，声明错了，结果也会错。`--source-count` 和 `--destination-count` 能发现一部分错误声明，但总数相符不能证明文件完整。浏览器核对中的两项声明同样如此 |
 | 浏览器核对 | 支持的日期指令比命令行少，Python 版本之间有差异的地方按 Python 3.15 处理。见[在浏览器中核对](#在浏览器中核对) |
+| n8n 示例 | 只在自托管的 n8n 2.46.4 上测试过，没有在 n8n Cloud 上测试。它用 Read/Write Files 节点读取文件，n8n 默认只允许读取 `~/.n8n-files` |
 | Evaluator 状态 | 固定版本的标签是 `Round03.5 research — unapproved` |
 | P3A-AUD-001 | `/api/v1/verifications/x%2Fevidence` 这样的旧路径可能指向错误资源。特殊 ID 请使用查询路由 |
 | 归档封存值 | 使用无密钥哈希，能写数据库的人可以伪造一致的记录 |
@@ -635,6 +704,8 @@ Service 的设计是遇到未审核内容就失败，所以有几项限制是刻
 
 ```text
 offline/                     可安装的 CSV 核对工具和 Evaluator v2
+action.yml, action/          包装离线核对的 GitHub Action
+examples/n8n/                带打包浏览器核对的 n8n 工作流
 service/
   app/                       FastAPI 应用
   vendor/model.py            固定版 Evaluator v1

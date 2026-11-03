@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.0 (unreleased)
+
+Workflow integration: the check runs where data already moves. The verdicts, summaries, reports and exit statuses of the command-line checker and of the browser check are unchanged; every golden case gives the same bytes as in 0.3.0. The Service, the frozen contracts, the pinned Evaluator v1 and the UI pages are unchanged.
+
+### Added
+
+- A **GitHub Action** (`action.yml`, `uses: Sun-sh902/FlowAssert@v0.4.0`): a composite action that runs the offline checker from its own folder with the runner's Python 3.9 or later, and installs or downloads nothing while it runs. Each input maps to one `flowassert-verify` option; the premises default to not stated, and a boolean input accepts only `true` or `false`. `fail-on` is `not-verified` (the default: the step passes only on Verified) or `mismatch` (it passes on Verified and Unverified); a refused or failed check always fails the step. By default the log and the job summary show the state, the counts, the premises and the limitations, and no key or value; `show-records: true` prints the record lines. Outputs `state`, `exit-code`, `json` and `html`. Inputs reach the check only through the environment and `action/run_action.py`, never inside a shell script. A self-test workflow (`.github/workflows/action-self-test.yml`) runs it on Linux, macOS and Windows.
+- A **packaged JavaScript checker**: `checkCsv` in `ui/src/offline/api.ts`, built by `npm run build:lib` into one script, `ui/dist-lib/flowassert-check.js`, that defines the global `FlowAssert` with `checkCsv` and `VERSION`, imports nothing and makes no request. It runs the check the CSV check page runs and returns the exit status, state, summary, message and both reports. It checks the host features it needs (`BigInt`, `TextEncoder`, `TextDecoder` with fatal decoding for each encoding used) on known bytes before every check and refuses with a message when one is missing or different. Where `crypto.subtle` is missing it uses its own SHA-256, which is tested against `crypto.subtle`.
+- An **n8n example** (`examples/n8n/`): a workflow whose Code node holds the packaged checker, with no Execute Command node. It reads two files, runs the check with every premise unstated by default, and branches on the state. It was tested on a self-hosted n8n 2.46.4, where all 49 golden cases it can express gave the command line's results; it was not tested on n8n Cloud. `ui/scripts/n8n/build_workflow.mjs` writes it, and a test fails when the committed workflow does not hold the current build.
+- The premise origins `JavaScript call` and `n8n Code node`, chosen by a caller of the packaged checker. See `docs/report-format.md`.
+- CI: `test_action.py` on every Python version, the packaged checker built and kept as an artifact, and a check that the n8n example holds that build.
+
+### Changed
+
+- `flowassert_offline.__version__` is `0.4.0`.
+
 ## 0.3.0 (2026-11-03)
 
 The offline check in the browser. The command-line checker gives the same verdicts, summaries, reports and exit statuses as 0.2.0, except for the two date-rule fixes below. The Service, the frozen contracts, the pinned Evaluator v1 and the LOCAL_RESEARCH and MOCK pages are unchanged.
