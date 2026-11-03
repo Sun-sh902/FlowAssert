@@ -29,6 +29,7 @@
    "src/test/offline/bundle.test.ts": 55,
    "src/test/offline/conformance.test.ts": 40,
    "src/test/offline/golden.test.ts": 140,
+   "src/test/offline/n8n-workflow.test.ts": 6,
    "src/test/offline/python-semantics.test.ts": 55,
    "src/test/offline/random-parity.test.ts": 2,
    "src/test/offline/sha256.test.ts": 5,
