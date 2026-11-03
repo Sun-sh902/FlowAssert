@@ -1117,3 +1117,149 @@ def test_redaction_removes_normalized_values_from_records():
     assert record['key'] == '[redacted]'
     assert record['rules']['field:phone'] == {'status': 'fail', 'reason': 'comparison of the digits 0-9 only',
                                               'rule': 'digits'}
+
+
+# --- v0.2.0: configuration file ----------------------------------------------------------------
+
+CONFIG_SOURCE = 'crm id,Contact: Phone,email\nA1,+1 (212) 555-0101,Ada@Example.test\nA2,+1 212 555 0102,g@x.test\n'
+CONFIG_DESTINATION = 'Record ID,phone,hs_email\nA1,12125550101,ada@example.test\nA2,12125550199,G@X.TEST\n'
+CONFIG = {'key': ['crm id', 'Record ID'], 'fields': [
+    {'source': 'Contact: Phone', 'destination': 'phone', 'rule': 'digits'},
+    {'source': 'email', 'destination': 'hs_email', 'rule': 'casefold'}]}
+
+
+def config_file(tmp_path, content):
+    path = tmp_path / 'config.json'
+    path.write_bytes(content if isinstance(content, bytes) else json.dumps(content).encode('utf-8'))
+    return str(path)
+
+
+def test_config_file_sets_key_fields_and_rules(tmp_path, capsys):
+    path = config_file(tmp_path, CONFIG)
+    code, out, _, report = check(tmp_path, capsys, CONFIG_SOURCE, CONFIG_DESTINATION, '--config', path,
+                                 '--source-complete', '--destination-complete', '--details', 'all')
+    assert code == 1 and [r['state'] for r in report['records']] == ['Verified', 'Mismatch']
+    assert report['obligation'] == {'type': 'current_state', 'key': ['crm id', 'Record ID'],
+                                    'fields': [['Contact: Phone', 'phone'], ['email', 'hs_email']],
+                                    'rules': ['digits', 'casefold'], 'comparison': 'per-field-rule'}
+    assert report['inputs']['config_file_sha256'] == hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    assert 'mapping_file_sha256' not in report['inputs']
+    assert report['records'][1]['rules']['field:email']['status'] == 'pass'
+    assert ("    field:Contact: Phone fail: comparison of the digits 0-9 only ('+1 212 555 0102' vs '12125550199'), "
+            "compared as ('12125550102' vs '12125550199')") in out.splitlines()
+
+
+def test_mapping_file_still_means_exact(tmp_path, capsys):
+    mapping = tmp_path / 'mapping.json'
+    mapping.write_text(json.dumps({'key': ['crm id', 'Record ID'],
+                                   'fields': [['Contact: Phone', 'phone'], ['email', 'hs_email']]}))
+    code, _, _, report = check(tmp_path, capsys, CONFIG_SOURCE, CONFIG_DESTINATION, '--mapping', str(mapping),
+                               '--source-complete', '--destination-complete')
+    assert code == 1 and [r['state'] for r in report['records']] == ['Mismatch', 'Mismatch']
+    assert report['obligation']['comparison'] == 'exact-string' and 'rules' not in report['obligation']
+
+
+def test_a_config_rule_defaults_to_exact_and_scope_can_be_set(tmp_path, capsys):
+    path = config_file(tmp_path, {'key': ['k', 'k'], 'fields': [{'source': 'p', 'destination': 'p'}],
+                                  'scope': 'exact'})
+    code, out, _, report = check(tmp_path, capsys, 'k,p\n1,a\n', 'p,k\na,1\nb,2\n', '--config', path,
+                                 '--source-complete', '--destination-complete')
+    assert code == 1 and report['obligation']['rules'] == ['exact']
+    assert report['obligation']['comparison'] == 'exact-string' and report['obligation']['scope'] == 'exact'
+    assert [r['key'] for r in report['destination_only']] == ['2']
+
+
+def test_config_file_may_start_with_a_byte_order_mark(tmp_path, capsys):
+    path = config_file(tmp_path, codecs.BOM_UTF8 + json.dumps(CONFIG).encode('utf-8'))
+    code, _, _, report = check(tmp_path, capsys, CONFIG_SOURCE, CONFIG_DESTINATION, '--config', path)
+    assert code == 1 and report['obligation']['rules'] == ['digits', 'casefold']
+
+
+FIELD = {'source': 'p', 'destination': 'p'}
+
+
+def config_with(**members):
+    return json.dumps({'key': ['k', 'k'], 'fields': [FIELD], **members}).encode('utf-8')
+
+
+def config_fields(*fields):
+    return json.dumps({'key': ['k', 'k'], 'fields': list(fields)}).encode('utf-8')
+
+
+@pytest.mark.parametrize('content,message', [
+    (b'\xff', 'not UTF-8'),
+    (b'{not json', 'invalid JSON'),
+    (b'{"key": ["k", "k"], "key": ["k", "k"], "fields": [{"source": "p", "destination": "p"}]}', 'duplicate member'),
+    (b'{"key": ["k", "k"], "fields": [{"source": "p", "source": "q", "destination": "p"}]}', 'duplicate member'),
+    (b'[]', 'must be a JSON object'),
+    (b'"key"', 'must be a JSON object'),
+    (config_with(source_complete=True), 'source_complete cannot be set in a configuration file'),
+    (config_with(destination_complete=True), 'destination_complete cannot be set in a configuration file'),
+    (config_with(source_count=3), 'source_count cannot be set in a configuration file'),
+    (config_with(destination_count=3), 'destination_count cannot be set in a configuration file'),
+    (config_with(allow_identical_content=True), 'allow_identical_content cannot be set in a configuration file'),
+    (config_with(**{'source-complete': True}), 'cannot be set in a configuration file'),
+    (config_with(Destination_Count=3), 'cannot be set in a configuration file'),
+    (config_with(extra=1), 'unknown member extra'),
+    (config_with(rules={'p': 'trim'}), 'unknown member rules'),
+    (config_with(details='all'), 'unknown member details'),
+    (b'{"fields": [{"source": "p", "destination": "p"}]}', 'missing member key'),
+    (b'{"key": ["k", "k"]}', 'missing member fields'),
+    (b'{"key": "k", "fields": [{"source": "p", "destination": "p"}]}', 'key must be a two-item list of strings'),
+    (b'{"key": ["k"], "fields": [{"source": "p", "destination": "p"}]}', 'key must be a two-item list of strings'),
+    (b'{"key": [1, "k"], "fields": [{"source": "p", "destination": "p"}]}', 'key must be a two-item list of strings'),
+    (b'{"key": ["", "k"], "fields": [{"source": "p", "destination": "p"}]}', 'empty column name in key'),
+    (b'{"key": ["k", " "], "fields": [{"source": "p", "destination": "p"}]}', 'empty column name in key'),
+    (b'{"key": ["k", "k"], "fields": "p"}', 'fields must be a non-empty list'),
+    (b'{"key": ["k", "k"], "fields": []}', 'fields must be a non-empty list'),
+    (config_fields(['p', 'p']), 'each field must be an object'),
+    (config_fields({'source': 'p'}), 'missing member destination in field'),
+    (config_fields({'destination': 'p'}), 'missing member source in field'),
+    (config_fields(dict(FIELD, extra=1)), 'unknown member extra in field'),
+    (config_fields({'source': 1, 'destination': 'p'}), 'field source must be a string'),
+    (config_fields({'source': 'p', 'destination': None}), 'field destination must be a string'),
+    (config_fields({'source': '', 'destination': 'p'}), 'empty column name in field'),
+    (config_fields({'source': 'p', 'destination': '  '}), 'empty column name in field'),
+    (config_fields(dict(FIELD, rule=1)), 'field rule must be a string'),
+    (config_fields(dict(FIELD, rule=None)), 'field rule must be a string'),
+    (config_fields(dict(FIELD, rule='fuzzy')), 'unknown comparison rule'),
+    (config_fields(dict(FIELD, rule='Digits')), 'unknown comparison rule'),
+    (config_fields(dict(FIELD, rule='date:')), 'has no format'),
+    (config_fields(dict(FIELD, rule='date:%q')), 'malformed date format'),
+    (config_fields(dict(FIELD, rule='date:abc')), 'has no directive'),
+    (config_fields(FIELD, {'source': 'p', 'destination': 'q'}), 'a source field is repeated'),
+    (config_with(scope='both'), 'scope must be one of: source, exact'),
+    (config_with(scope=None), 'scope must be one of: source, exact'),
+    (config_with(scope=['exact']), 'scope must be one of: source, exact'),
+])
+def test_malformed_config_file_is_refused(tmp_path, capsys, content, message):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--config', config_file(tmp_path, content)))
+    assert code == 2 and err.startswith('refused:') and message in err
+
+
+def test_missing_config_file_is_refused(tmp_path, capsys):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--config', str(tmp_path / 'absent.json')))
+    assert code == 2 and err.startswith('refused:') and 'absent.json' in err
+
+
+@pytest.mark.parametrize('extra,named', [
+    (['--mapping', 'm.json'], '--mapping'), (['--key', 'k'], '--key'), (['--field', 'p'], '--field'),
+    (['--scope', 'source'], '--scope'), (['--scope', 'exact'], '--scope'),
+    (['--key', 'k', '--field', 'p', '--scope', 'exact'], '--key, --field, --scope'),
+])
+def test_config_cannot_be_combined_with_another_selection(tmp_path, capsys, extra, named):
+    path = config_file(tmp_path, CONFIG)
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--config', path, *extra))
+    assert code == 2 and f'--config cannot be combined with {named}' in err
+
+
+def test_redaction_removes_normalized_values_from_the_report(tmp_path, capsys):
+    path = config_file(tmp_path, CONFIG)
+    code, out, _, report = check(tmp_path, capsys, CONFIG_SOURCE, CONFIG_DESTINATION, '--config', path,
+                                 '--source-complete', '--destination-complete', '--details', 'all', '--redact-values')
+    text = (tmp_path / 'report.json').read_text()
+    assert code == 1
+    for value in ('A1', 'A2', '2125550101', '12125550199', '12125550102', 'ada@example', 'g@x', 'G@X'):
+        assert value not in text and value not in out
+    assert report['records'][1]['rules']['field:Contact: Phone'] == {
+        'status': 'fail', 'reason': 'comparison of the digits 0-9 only', 'rule': 'digits'}

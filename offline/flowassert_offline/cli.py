@@ -16,7 +16,7 @@ import os
 import sys
 
 from . import __version__
-from .evaluator_v2 import DETAILS, SCOPES, evaluate
+from .evaluator_v2 import DETAILS, SCOPES, evaluate, parse_rule
 
 EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
 MAX_BYTES = 209_715_200
@@ -29,6 +29,10 @@ LIMITS = ("Files and completeness statements are not authenticated. Not assessed
 ORIGIN = "command-line option"
 # name: (Python codec, label). The utf-8 codec accepts an optional byte order mark.
 ENCODINGS = {"utf-8": ("utf-8-sig", "UTF-8"), "utf-16": ("utf-16", "UTF-16"), "gb18030": ("gb18030", "GB18030")}
+CONFIG_MEMBERS = ("key", "fields", "scope")
+# Premises are stated at each run, so a configuration file cannot carry them.
+COMMAND_LINE_ONLY = {"source_complete", "destination_complete", "source_count", "destination_count",
+                     "allow_identical_content"}
 
 
 class Refused(Exception):
@@ -107,8 +111,8 @@ def _no_duplicate_members(pairs):
     return obj
 
 
-def read_mapping(path, max_bytes=MAX_BYTES):
-    """Read and validate a UTF-8 JSON column mapping file."""
+def _read_json(path, max_bytes):
+    """Read a UTF-8 JSON file, with an optional byte order mark, refusing duplicate members."""
     _check_size(path, max_bytes)
     try:
         with open(path, "rb") as f:
@@ -124,6 +128,12 @@ def read_mapping(path, max_bytes=MAX_BYTES):
         raise Refused(f"{path}: {e}")
     except json.JSONDecodeError as e:
         raise Refused(f"{path}: invalid JSON ({e.msg})")
+    return data, hashlib.sha256(raw).hexdigest()
+
+
+def read_mapping(path, max_bytes=MAX_BYTES):
+    """Read and validate a UTF-8 JSON column mapping file."""
+    data, digest = _read_json(path, max_bytes)
     if not isinstance(data, dict):
         raise Refused(f"{path}: mapping must be a JSON object")
     unknown = sorted(set(data) - {"key", "fields"})
@@ -136,7 +146,58 @@ def read_mapping(path, max_bytes=MAX_BYTES):
     if not isinstance(data["fields"], list) or not data["fields"]:
         raise Refused(f"{path}: fields must be a non-empty list")
     fields = [_pair_list(f, path, "field") for f in data["fields"]]
-    return key, fields, hashlib.sha256(raw).hexdigest()
+    return key, fields, digest
+
+
+def _config_field(item, path):
+    if not isinstance(item, dict):
+        raise Refused(f"{path}: each field must be an object with source, destination and an optional rule")
+    unknown = sorted(set(item) - {"source", "destination", "rule"})
+    if unknown:
+        raise Refused(f"{path}: unknown member {', '.join(unknown)} in field")
+    missing = [k for k in ("source", "destination") if k not in item]
+    if missing:
+        raise Refused(f"{path}: missing member {', '.join(missing)} in field")
+    for name in ("source", "destination"):
+        if not isinstance(item[name], str):
+            raise Refused(f"{path}: field {name} must be a string")
+        if not item[name].strip():
+            raise Refused(f"{path}: empty column name in field")
+    rule = item.get("rule", "exact")
+    if not isinstance(rule, str):
+        raise Refused(f"{path}: field rule must be a string")
+    try:
+        parse_rule(rule)
+    except ValueError as e:
+        raise Refused(f"{path}: field {item['source']!r}: {e}")
+    return item["source"], item["destination"], rule
+
+
+def read_config(path, max_bytes=MAX_BYTES):
+    """Read and validate a UTF-8 JSON configuration file: key, fields with rules, and scope."""
+    data, digest = _read_json(path, max_bytes)
+    if not isinstance(data, dict):
+        raise Refused(f"{path}: configuration must be a JSON object")
+    premises = sorted(n for n in data if n.replace("-", "_").lower() in COMMAND_LINE_ONLY)
+    if premises:
+        raise Refused(f"{path}: {', '.join(premises)} cannot be set in a configuration file; completeness "
+                      "statements and counts are command-line options, chosen at each run")
+    unknown = sorted(set(data) - set(CONFIG_MEMBERS))
+    if unknown:
+        raise Refused(f"{path}: unknown member {', '.join(unknown)}")
+    missing = [k for k in ("key", "fields") if k not in data]
+    if missing:
+        raise Refused(f"{path}: missing member {', '.join(missing)}")
+    key = _pair_list(data["key"], path, "key")
+    if not isinstance(data["fields"], list) or not data["fields"]:
+        raise Refused(f"{path}: fields must be a non-empty list")
+    fields = [_config_field(f, path) for f in data["fields"]]
+    if len({s for s, _, _ in fields}) != len(fields):
+        raise Refused(f"{path}: a source field is repeated")
+    scope = data.get("scope")
+    if "scope" in data and scope not in SCOPES:
+        raise Refused(f"{path}: scope must be one of: {', '.join(SCOPES)}")
+    return key, fields, scope, digest
 
 
 class CsvFile:
@@ -192,6 +253,32 @@ class CsvFile:
         self.sha256 = digest.hexdigest()
 
 
+def _selection(args, max_bytes):
+    """Return key, fields as (source, destination, rule), scope, and which files chose them."""
+    sha = {}
+    if args.config is not None:
+        conflicts = [name for name, given in (("--mapping", args.mapping is not None), ("--key", args.key is not None),
+                                              ("--field", bool(args.field)), ("--scope", args.scope is not None))
+                     if given]
+        if conflicts:
+            raise Refused(f"--config cannot be combined with {', '.join(conflicts)}")
+        key, fields, scope, sha["config_file_sha256"] = read_config(args.config, max_bytes=max_bytes)
+        return key, fields, scope, sha
+    scope = None if args.scope is None else _choice("--scope", args.scope, SCOPES, None)
+    if args.mapping is not None:
+        if args.key is not None or args.field:
+            raise Refused("--mapping cannot be combined with --key or --field")
+        key, pairs, sha["mapping_file_sha256"] = read_mapping(args.mapping, max_bytes=max_bytes)
+    else:
+        if args.key is None:
+            raise Refused("--key or --mapping is required")
+        if not args.field:
+            raise Refused("at least one --field is required")
+        key = pair(args.key)
+        pairs = [pair(f) for f in args.field]
+    return key, [(s, d, "exact") for s, d in pairs], scope, sha
+
+
 def run(args):
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
@@ -201,27 +288,15 @@ def run(args):
     details = _choice("--details", args.details, DETAILS, "problems")
     source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
     destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
-    scope = _choice("--scope", args.scope, SCOPES, None)
-    if args.mapping is not None:
-        if args.key is not None or args.field:
-            raise Refused("--mapping cannot be combined with --key or --field")
-        key, fields, mapping_sha = read_mapping(args.mapping, max_bytes=max_bytes)
-    else:
-        if args.key is None:
-            raise Refused("--key or --mapping is required")
-        if not args.field:
-            raise Refused("at least one --field is required")
-        key = pair(args.key)
-        fields = [pair(f) for f in args.field]
-        mapping_sha = None
-    if len({s for s, _ in fields}) != len(fields):
+    key, fields, scope, selection_sha = _selection(args, max_bytes)
+    if len({s for s, _, _ in fields}) != len(fields):
         raise Refused("a source field is repeated")
     if os.path.realpath(args.source) == os.path.realpath(args.destination):
         raise Refused("source and destination are the same file, so the check would not be independent")
     _check_size(args.source, max_bytes)
     _check_size(args.destination, max_bytes)
-    source = CsvFile(args.source, [key[0]] + [s for s, _ in fields], encoding=source_encoding, max_rows=max_rows)
-    destination = CsvFile(args.destination, [key[1]] + [d for _, d in fields],
+    source = CsvFile(args.source, [key[0]] + [s for s, _, _ in fields], encoding=source_encoding, max_rows=max_rows)
+    destination = CsvFile(args.destination, [key[1]] + [d for _, d, _ in fields],
                           encoding=destination_encoding, max_rows=max_rows)
     obligation = {"key": key, "fields": fields, "scope": scope or "source"}
     report = evaluate(obligation, source, destination, source_complete=args.source_complete,
@@ -240,8 +315,7 @@ def run(args):
               "identical_content": identical}
     if identical:
         inputs["identical_content_allowed"] = True
-    if mapping_sha is not None:
-        inputs["mapping_file_sha256"] = mapping_sha
+    inputs.update(selection_sha)
     if args.source_encoding is not None or args.destination_encoding is not None:
         inputs["source_encoding"] = source_encoding
         inputs["destination_encoding"] = destination_encoding
@@ -251,8 +325,11 @@ def run(args):
         premises["allow_identical_content"] = {"stated": True}
     for premise in premises.values():
         premise["origin"] = ORIGIN
-    report["obligation"] = {"type": "current_state", "key": list(key), "fields": [list(f) for f in fields],
-                            "comparison": "exact-string"}
+    rules = [rule for _, _, rule in fields]
+    report["obligation"] = {"type": "current_state", "key": list(key), "fields": [[s, d] for s, d, _ in fields],
+                            "comparison": "exact-string" if set(rules) == {"exact"} else "per-field-rule"}
+    if args.config is not None:
+        report["obligation"]["rules"] = rules
     if scope is not None:
         report["obligation"]["scope"] = scope
     report["claim"] = CLAIM if report["cohort_state"] == "Verified" else None
@@ -300,6 +377,8 @@ def summary(report, max_details=MAX_DETAILS):
         for name, rule in record["rules"].items():
             if rule["status"] != "pass":
                 values = f" ({rule['expected']!r} vs {rule['actual']!r})" if "expected" in rule else ""
+                if "expected_normalized" in rule:
+                    values += f", compared as ({rule['expected_normalized']!r} vs {rule['actual_normalized']!r})"
                 yield f"    {name} {rule['status']}: {rule['reason']}{values}"
     if omitted:
         yield f"... {omitted} more records not shown; use --json for all of them."
@@ -360,6 +439,7 @@ def main(argv=None):
     parser.add_argument("--key", help="source column, or source:destination")
     parser.add_argument("--field", action="append", default=[], help="source column, or source:destination; repeatable")
     parser.add_argument("--mapping", metavar="FILE", help="UTF-8 JSON file with key and fields column pairs")
+    parser.add_argument("--config", metavar="FILE", help="UTF-8 JSON file with key, fields with rules, and scope")
     parser.add_argument("--scope", metavar="SCOPE", help="source (default) or exact: also check destination-only keys")
     parser.add_argument("--source-complete", action="store_true", help="state that the source is the whole cohort")
     parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
