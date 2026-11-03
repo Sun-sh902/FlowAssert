@@ -101,7 +101,7 @@ def read_mapping(path, max_bytes=MAX_BYTES):
     try:
         with open(path, "rb") as f:
             raw = f.read()
-        text = raw.decode("utf-8")
+        text = raw.decode("utf-8-sig")  # editors on Windows often add a BOM
     except OSError as e:
         raise Refused(f"{path}: {e.strerror}")
     except UnicodeDecodeError:

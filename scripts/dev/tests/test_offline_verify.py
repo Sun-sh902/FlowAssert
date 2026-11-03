@@ -536,3 +536,11 @@ def test_conformance_includes_shared_v1_cases(conformance_name, fixture_name):
         'record_states': [r['state'] for r in frozen['records']],
         'expected_total': frozen['expected_total'],
     }
+
+
+def test_mapping_file_may_start_with_a_byte_order_mark(tmp_path, capsys):
+    mapping = tmp_path / 'm.json'
+    mapping.write_bytes('\ufeff{"key": ["k", "k"], "fields": [["p", "p"]]}'.encode('utf-8'))
+    code = verify.main(['--source', write(tmp_path / 's.csv', 'k,p\n1,x\n'), '--destination', write(tmp_path / 'd.csv', 'p,k\nx,1\n'),
+                        '--mapping', str(mapping), '--source-complete', '--destination-complete'])
+    assert code == 0
