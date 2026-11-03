@@ -13,11 +13,18 @@ need destination_complete. A field that differs is a Mismatch either way, becaus
 a row that exists can disprove a rule on its own. Comparison is exact: no trimming,
 case folding, or other normalization. There is no waiting window, so a result is
 never Pending.
+
+Rows are consumed once, source first. The source rows are indexed, and each
+destination row is folded into the entry for its key as it is read, so no
+destination row is kept. Records are built when they are read from the result.
 """
-from collections import Counter
+from array import array
+from collections.abc import Sequence
 
 VERSION = "v2-current-state-1"
 STATES = ("Verified", "Mismatch", "Pending", "Unverified")
+DETAILS = ("problems", "all")
+_STATE_CODE = {name: code for code, name in enumerate(STATES)}
 
 
 def _key(value):
@@ -43,60 +50,165 @@ def _compare(expected, actual):
     return _rule(status, "exact string comparison", expected=expected, actual=actual)
 
 
-def evaluate(obligation, source_rows, destination_rows, *, source_complete=False, destination_complete=False):
-    """`obligation` is {"key": (source, destination), "fields": [(source, destination), ...]}."""
-    source_key, destination_key = obligation["key"]
-    fields = obligation["fields"]
-    keys = Counter(_key(r.get(source_key)) for r in source_rows)
-    index = {}
-    keyless = 0
-    for row in destination_rows:
-        key = _key(row.get(destination_key))
-        if key is None:
-            keyless += 1
-        else:
-            index.setdefault(key, []).append(row)
-    # A destination row that cannot be matched could be the record being looked for.
-    coverage = destination_complete is True and keyless == 0
+class _Records(Sequence):
+    """The records of one evaluation in source order, each built when it is read."""
 
-    records = []
-    for position, row in enumerate(source_rows):
-        key = _key(row.get(source_key))
-        names = ["existence", "uniqueness"] + ["field:" + s for s, _ in fields]
+    def __init__(self, evaluation, details, redact=False):
+        self._e = evaluation
+        self._details = details
+        self._redact = redact
+
+    def __len__(self):
+        return len(self._e.states)
+
+    def __getitem__(self, position):
+        if not isinstance(position, int):
+            raise TypeError("records are indexed by position")
+        if position < 0:
+            position += len(self)
+        if not 0 <= position < len(self):
+            raise IndexError("record position out of range")
+        return self._build(position)
+
+    def __iter__(self):
+        for position in range(len(self)):
+            yield self._build(position)
+
+    def problems(self):
+        """The records that are not Verified, in source order."""
+        verified = _STATE_CODE["Verified"]
+        for position, code in enumerate(self._e.states):
+            if code != verified:
+                yield self._build(position)
+
+    def redacted(self):
+        return _Records(self._e, self._details, redact=True)
+
+    def _build(self, position):
+        if self._details == "problems" and self._e.states[position] == _STATE_CODE["Verified"]:
+            record = {"key": self._e.keys[position], "source_row": position, "state": "Verified"}
+        else:
+            record = self._e.record(position)
+        if self._redact:
+            record["key"] = "[redacted]"
+            for rule in record.get("rules", {}).values():
+                for name in ("expected", "actual"):
+                    rule.pop(name, None)
+        return record
+
+
+class _Evaluation:
+    def __init__(self, obligation, source_complete, destination_complete):
+        self.source_key, self.destination_key = obligation["key"]
+        self.fields = obligation["fields"]
+        self.source_complete = source_complete is True
+        self.destination_complete = destination_complete is True
+        self.keys = []      # per source row: its key, or None
+        self.values = []    # per source row: its compared field values
+        self.first = {}     # key -> position of the first source row with it
+        self.repeated = set()
+        self.invalid_source_keys = 0
+        self.candidates = None   # per first position: destination rows carrying the key
+        self.actual = {}    # first position -> destination values, only where they differ from the source
+        self.destination_rows = 0
+        self.keyless = 0
+
+    def add_source(self, row):
+        position = len(self.keys)
+        key = _key(row.get(self.source_key))
+        if key is None:
+            self.invalid_source_keys += 1
+        elif self.first.setdefault(key, position) != position:
+            self.repeated.add(key)
+        self.keys.append(key)
+        self.values.append(tuple(row.get(s) for s, _ in self.fields))
+
+    def add_destination(self, row):
+        if self.candidates is None:
+            self.candidates = array("q", bytes(8 * len(self.keys)))
+        self.destination_rows += 1
+        key = _key(row.get(self.destination_key))
+        if key is None:
+            self.keyless += 1
+            return
+        position = self.first.get(key)
+        if position is None:
+            return
+        self.candidates[position] += 1
+        if key in self.repeated:
+            return
+        if self.candidates[position] == 1:
+            actual = tuple(row.get(d) for _, d in self.fields)
+            if actual != self.values[position]:
+                self.actual[position] = actual
+        else:
+            self.actual.pop(position, None)  # no arbitrary candidate is selected
+
+    def finish(self, details):
+        if self.candidates is None:
+            self.candidates = array("q", bytes(8 * len(self.keys)))
+        # A destination row that cannot be matched could be the record being looked for.
+        self.coverage = self.destination_complete and self.keyless == 0
+        self.states = bytearray(_STATE_CODE[self.record(p)["state"]] for p in range(len(self.keys)))
+        counts = {name: 0 for name in STATES}
+        for code in self.states:
+            counts[STATES[code]] += 1
+        population_known = self.source_complete and self.invalid_source_keys == 0 and not self.repeated
+        result = {"evaluator": VERSION, "counts": counts, "records": _Records(self, details),
+                  "expected_total": len(self.keys) if population_known else None,
+                  "source_rows_observed": len(self.keys), "source_population_known": population_known,
+                  "destination_coverage_sufficient": self.coverage, "destination_rows_without_key": self.keyless,
+                  "workflow_execution": "Not assessed", "business_truth": "Not assessed",
+                  "existed_by_deadline": "Not assessed", "acquisition_authenticity": "not_authenticated"}
+        if counts["Mismatch"]:
+            cohort = "Mismatch"
+        elif self.keys and population_known and counts["Verified"] == len(self.keys):
+            cohort = "Verified"
+        else:
+            cohort = "Unverified"
+        result["cohort_state"] = cohort
+        return result
+
+    def record(self, position):
+        key = self.keys[position]
+        names = ["existence", "uniqueness"] + ["field:" + s for s, _ in self.fields]
         rules = {name: _rule("unknown", "insufficient evidence") for name in names}
-        candidates = index.get(key, []) if key is not None else []
-        if key is None or keys[key] != 1:
+        candidates = self.candidates[self.first[key]] if key is not None else 0
+        if key is None or key in self.repeated:
             for name in rules:
-                rules[name] = _rule("unknown", "invalid or duplicate source key")
-        elif len(candidates) > 1:
+                rules[name]["reason"] = "invalid or duplicate source key"
+        elif candidates > 1:
             rules["existence"] = _rule("pass", "candidates observed")
             rules["uniqueness"] = _rule("fail", "more than one destination row carries this key")
-            for source_field, _ in fields:
-                rules["field:" + source_field] = _rule("unknown", "no arbitrary candidate selected")
+            for source_field, _ in self.fields:
+                rules["field:" + source_field]["reason"] = "no arbitrary candidate selected"
         elif candidates:
             rules["existence"] = _rule("pass", "candidate observed")
-            if coverage:
+            if self.coverage:
                 rules["uniqueness"] = _rule("pass", "one row in stated complete destination")
-            for source_field, destination_field in fields:
-                rules["field:" + source_field] = _compare(row.get(source_field), candidates[0].get(destination_field))
-        elif coverage:
+            expected = self.values[position]
+            actual = self.actual.get(position, expected)
+            for (source_field, _), e, a in zip(self.fields, expected, actual):
+                rules["field:" + source_field] = _compare(e, a)
+        elif self.coverage:
             rules["existence"] = _rule("fail", "key not found in stated complete destination")
         else:
             rules["existence"] = _rule("unknown", "destination not stated complete; absence not established")
-        records.append({"key": key, "source_row": position, "state": _state(rules),
-                        "candidates": len(candidates), "rules": rules})
+        return {"key": key, "source_row": position, "state": _state(rules), "candidates": candidates, "rules": rules}
 
-    counts = {name: sum(r["state"] == name for r in records) for name in STATES}
-    population_known = source_complete is True and all(k is not None and n == 1 for k, n in keys.items())
-    if counts["Mismatch"]:
-        cohort = "Mismatch"
-    elif records and population_known and counts["Verified"] == len(records):
-        cohort = "Verified"
-    else:
-        cohort = "Unverified"
-    return {"evaluator": VERSION, "cohort_state": cohort, "counts": counts, "records": records,
-            "expected_total": len(records) if population_known else None,
-            "source_rows_observed": len(records), "source_population_known": population_known,
-            "destination_coverage_sufficient": coverage, "destination_rows_without_key": keyless,
-            "workflow_execution": "Not assessed", "business_truth": "Not assessed",
-            "existed_by_deadline": "Not assessed", "acquisition_authenticity": "not_authenticated"}
+
+def evaluate(obligation, source_rows, destination_rows, *, source_complete=False, destination_complete=False,
+             details="all"):
+    """`obligation` is {"key": (source, destination), "fields": [(source, destination), ...]}.
+    Rows are mappings, read once each, source rows first.
+
+    `details` "all" builds every record in full; "problems" keeps only key, source_row and state
+    for a Verified record. The returned "records" is a read-only sequence."""
+    if details not in DETAILS:
+        raise ValueError(f"details must be one of {', '.join(DETAILS)}")
+    evaluation = _Evaluation(obligation, source_complete, destination_complete)
+    for row in source_rows:
+        evaluation.add_source(row)
+    for row in destination_rows:
+        evaluation.add_destination(row)
+    return evaluation.finish(details)

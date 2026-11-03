@@ -1,8 +1,15 @@
 """Evaluator v2 and the offline CSV check. v1 fixtures are the semantic reference."""
+import codecs
+import gc
 import hashlib
+import html
 import json
+import os
 from pathlib import Path
+import re
+import subprocess
 import sys
+import weakref
 
 import pytest
 
@@ -544,3 +551,156 @@ def test_mapping_file_may_start_with_a_byte_order_mark(tmp_path, capsys):
     code = verify.main(['--source', write(tmp_path / 's.csv', 'k,p\n1,x\n'), '--destination', write(tmp_path / 'd.csv', 'p,k\nx,1\n'),
                         '--mapping', str(mapping), '--source-complete', '--destination-complete'])
     assert code == 0
+
+
+# --- v0.2.0: reading once, memory and --details -------------------------------------------------
+
+FIXTURES = Path(__file__).resolve().parent / 'fixtures'
+# Members a v0.2.0 report adds to the v0.1.1 shape without any option.
+NEW_REPORT_MEMBERS = ('evaluated_at', 'schema_version', 'details', 'premises')
+V010_EXAMPLE = ['--source', 'offline/examples/source.csv', '--destination', 'offline/examples/destination.csv',
+                '--key', 'external_id', '--field', 'phone', '--field', 'email:hs_email',
+                '--source-complete', '--destination-complete']
+V010_SUMMARY = """\
+Mismatch: 4 rows of 4
+Verified 1 · Mismatch 3 · Unverified 0
+  record 2 SYN-002: Mismatch
+    field:phone fail: exact string comparison ('+1 212 555 0102' vs '+1 212 555 0199')
+  record 3 SYN-003: Mismatch
+    existence fail: key not found in stated complete destination
+    uniqueness unknown: insufficient evidence
+    field:phone unknown: insufficient evidence
+    field:email unknown: insufficient evidence
+  record 4 SYN-004: Mismatch
+    uniqueness fail: more than one destination row carries this key
+    field:phone unknown: no arbitrary candidate selected
+    field:email unknown: no arbitrary candidate selected
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, \
+whether the source is true, whether a record existed by a past deadline.
+"""
+
+
+def check(tmp_path, capsys, source, destination, *args):
+    """Run the check on two CSV texts. Return the exit status, stdout, stderr and the JSON report."""
+    out = tmp_path / 'report.json'
+    if out.exists():
+        out.unlink()
+    (tmp_path / 's.csv').write_bytes(source.encode('utf-8'))
+    (tmp_path / 'd.csv').write_bytes(destination.encode('utf-8'))
+    code = verify.main(['--source', str(tmp_path / 's.csv'), '--destination', str(tmp_path / 'd.csv'),
+                        *args, '--json', str(out)])
+    printed = capsys.readouterr()
+    return code, printed.out, printed.err, json.loads(out.read_text()) if out.exists() else None
+
+
+def test_v010_example_command_prints_the_same_summary_and_exits_1():
+    result = subprocess.run([sys.executable, 'offline/verify.py', *V010_EXAMPLE], cwd=str(ROOT),
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
+    assert result.returncode == 1
+    assert result.stdout.decode('utf-8') == V010_SUMMARY and result.stderr == b''
+
+
+def test_details_all_report_is_the_v011_report(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--source-complete', '--destination-complete', '--details', 'all', '--json', str(out))) == 1
+    report = json.loads(out.read_text())
+    expected = json.loads((FIXTURES / 'offline-v0.1.1-example-report.json').read_text())
+    for name in NEW_REPORT_MEMBERS:
+        report.pop(name, None)
+        expected.pop(name, None)
+    assert report == expected
+
+
+def test_details_problems_shortens_only_verified_records(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--source-complete', '--destination-complete', '--json', str(out))) == 1
+    report = json.loads(out.read_text())
+    full = json.loads((FIXTURES / 'offline-v0.1.1-example-report.json').read_text())
+    assert report['details'] == 'problems'
+    assert report['records'][0] == {'key': 'SYN-001', 'source_row': 0, 'state': 'Verified'}
+    assert report['records'][1:] == full['records'][1:]
+    assert report['counts'] == full['counts'] and report['cohort_state'] == full['cohort_state']
+
+
+def test_details_do_not_change_the_verdict_or_the_summary(tmp_path, capsys):
+    printed = []
+    for details in ('problems', 'all'):
+        printed.append((verify.main(cli('--source-complete', '--destination-complete', '--details', details)),
+                        capsys.readouterr().out))
+    assert printed[0] == printed[1] == (1, V010_SUMMARY)
+
+
+@pytest.mark.parametrize('value', ['', 'none', 'ALL', 'problem', 'full'])
+def test_unknown_details_value_is_refused(tmp_path, capsys, value):
+    out = tmp_path / 'unused.json'
+    assert verify.main(cli('--details', value, '--json', str(out))) == 2
+    assert '--details must be one of: problems, all' in capsys.readouterr().err and not out.exists()
+
+
+@pytest.mark.parametrize('source', ['k,p\n', 'k,p\n1,x\n2,y\n'])
+def test_json_report_text_is_what_json_dump_would_write(tmp_path, capsys, source):
+    code, _, _, report = check(tmp_path, capsys, source, 'p,k\nx,1\n', '--key', 'k', '--field', 'p',
+                               '--source-complete', '--destination-complete', '--details', 'all')
+    ordered = {'schema_version': report['schema_version']} if 'schema_version' in report else {}
+    ordered.update(json.loads(json.dumps({k: v for k, v in report.items() if k != 'schema_version'}, sort_keys=True)))
+    assert (tmp_path / 'report.json').read_text() == json.dumps(ordered, indent=2)
+
+
+class Row(dict):
+    """A row that can be watched with a weak reference."""
+
+
+def test_evaluator_reads_each_row_once_and_keeps_none_of_them():
+    watched = []
+
+    def rows(items):
+        for item in items:
+            row = Row(item)
+            watched.append(weakref.ref(row))
+            yield row
+
+    result = evaluator_v2.evaluate(KEY, rows([ROW, {'key': 'K2', 'phone': '2'}]),
+                                   rows([ROW, {'key': 'K2', 'phone': '3'}, {'key': 'K3', 'phone': '4'}]), **COMPLETE)
+    gc.collect()
+    assert len(watched) == 5 and all(ref() is None for ref in watched)
+    assert states(result) == ('Mismatch', ['Verified', 'Mismatch'])
+    assert result['records'][1]['rules']['field:phone'] == {
+        'status': 'fail', 'reason': 'exact string comparison', 'expected': '2', 'actual': '3'}
+
+
+def test_csv_rows_keep_only_the_columns_the_check_uses(tmp_path):
+    path = tmp_path / 'f.csv'
+    path.write_bytes(b'a,k,b,p\n1,K1,2,x\n\n3,K2,4,y\n')
+    rows = verify.CsvFile(str(path), ['k', 'p', 'k'])
+    assert list(rows) == [{'k': 'K1', 'p': 'x'}, {'k': 'K2', 'p': 'y'}]
+    assert rows.rows == 2 and rows.sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_records_are_a_read_only_sequence_built_on_demand():
+    result = run([ROW, {'key': 'K2', 'phone': '2'}], [ROW], **COMPLETE)
+    records = result['records']
+    assert len(records) == 2 and records[-1]['key'] == 'K2' and records[0]['state'] == 'Verified'
+    with pytest.raises(IndexError):
+        records[2]
+    records[1]['key'] = 'changed'
+    assert records[1]['key'] == 'K2'
+    assert [r['key'] for r in records.problems()] == ['K2']
+
+
+def test_evaluator_details_problems_and_refusal():
+    result = evaluator_v2.evaluate(KEY, [ROW], [ROW], details='problems', **COMPLETE)
+    assert list(result['records']) == [{'key': 'K1', 'source_row': 0, 'state': 'Verified'}]
+    with pytest.raises(ValueError):
+        evaluator_v2.evaluate(KEY, [ROW], [ROW], details='some')
+
+
+def test_large_files_are_checked_in_one_pass(tmp_path, capsys):
+    n = 20000
+    source = 'k,p,q\n' + ''.join(f'K{i},{i},q{i}\n' for i in range(n))
+    destination = 'q,k,p\n' + ''.join(f'q{i},K{i},{i if i % 5000 else "x"}\n' for i in range(n))
+    code, out, _, report = check(tmp_path, capsys, source, destination, '--key', 'k', '--field', 'p', '--field', 'q',
+                                 '--source-complete', '--destination-complete')
+    assert code == 1 and report['counts'] == {'Verified': n - 4, 'Mismatch': 4, 'Pending': 0, 'Unverified': 0}
+    assert [r['source_row'] for r in report['records'] if r['state'] != 'Verified'] == [0, 5000, 10000, 15000]
+    assert out.startswith(f'Mismatch: {n} rows of {n}\n')

@@ -31,6 +31,16 @@ jobs:
             --key external_id --field phone --source-complete --destination-complete
           test "$?" -eq 1
 
+  offline-memory:
+    name: Offline memory check (Python 3.14)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: python offline/bench/memory_check.py
+
   backend:
     name: Backend
     runs-on: macos-latest

@@ -16,7 +16,7 @@ import os
 import sys
 
 from . import __version__
-from .evaluator_v2 import evaluate
+from .evaluator_v2 import DETAILS, evaluate
 
 EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
 MAX_BYTES = 209_715_200
@@ -59,6 +59,14 @@ def _int_arg(name, value, minimum):
     kind = "positive" if minimum == 1 else "non-negative"
     if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
         raise Refused(f"{name} must be a {kind} integer")
+    return value
+
+
+def _choice(name, value, allowed, default):
+    if value is None:
+        return default
+    if value not in allowed:
+        raise Refused(f"{name} must be one of: {', '.join(allowed)}")
     return value
 
 
@@ -127,41 +135,59 @@ def read_mapping(path, max_bytes=MAX_BYTES):
     return key, fields, hashlib.sha256(raw).hexdigest()
 
 
-def read_rows(path, columns, max_bytes=MAX_BYTES, max_rows=MAX_ROWS):
-    """Read one CSV strictly. A malformed or oversized file is refused rather than partly read."""
-    _check_size(path, max_bytes)
-    digest = hashlib.sha256()
-    try:
-        with open(path, "rb") as raw_file:
-            with io.TextIOWrapper(_HashReader(raw_file, digest), encoding="utf-8-sig", newline="") as text_file:
-                reader = csv.DictReader(text_file, strict=True)
-                header = reader.fieldnames or []
-                if len(set(header)) != len(header):
-                    raise Refused(f"{path}: repeated column name")
-                missing = [c for c in columns if c not in header]
-                if missing:
-                    raise Refused(f"{path}: missing column {', '.join(missing)}")
-                rows = []
-                for row in reader:
-                    if None in row or None in row.values():
-                        raise Refused(f"{path}: line {reader.line_num} does not match the header")
-                    if len(rows) == max_rows:
-                        raise Refused(f"{path}: exceeds --max-rows limit of {max_rows}")
-                    rows.append(row)
-            for chunk in iter(lambda: raw_file.read(65536), b""):
-                digest.update(chunk)
-    except OSError as e:
-        raise Refused(f"{path}: {e.strerror}")
-    except UnicodeDecodeError:
-        raise Refused(f"{path}: not UTF-8")
-    except csv.Error as e:
-        raise Refused(f"{path}: {e}")
-    return rows, digest.hexdigest()
+class CsvFile:
+    """One CSV file, read strictly and once. Iterating yields each data row as a dict of the
+    selected columns only. A malformed or oversized file is refused rather than partly read;
+    after a complete read, `sha256` and `rows` describe the whole file."""
+
+    def __init__(self, path, columns, max_rows=MAX_ROWS):
+        self.path = path
+        self.columns = list(dict.fromkeys(columns))
+        self.max_rows = max_rows
+        self.sha256 = None
+        self.rows = None
+
+    def __iter__(self):
+        path = self.path
+        digest = hashlib.sha256()
+        count = 0
+        try:
+            with open(path, "rb") as raw_file:
+                with io.TextIOWrapper(_HashReader(raw_file, digest), encoding="utf-8-sig", newline="") as text_file:
+                    reader = csv.reader(text_file, strict=True)
+                    header = next(reader, [])
+                    if len(set(header)) != len(header):
+                        raise Refused(f"{path}: repeated column name")
+                    missing = [c for c in self.columns if c not in header]
+                    if missing:
+                        raise Refused(f"{path}: missing column {', '.join(missing)}")
+                    index = [(c, header.index(c)) for c in self.columns]
+                    width = len(header)
+                    for row in reader:
+                        if not row:
+                            continue  # a blank line is not a record
+                        if len(row) != width:
+                            raise Refused(f"{path}: line {reader.line_num} does not match the header")
+                        if count == self.max_rows:
+                            raise Refused(f"{path}: exceeds --max-rows limit of {self.max_rows}")
+                        count += 1
+                        yield {c: row[i] for c, i in index}
+                for chunk in iter(lambda: raw_file.read(65536), b""):
+                    digest.update(chunk)
+        except OSError as e:
+            raise Refused(f"{path}: {e.strerror}")
+        except UnicodeDecodeError:
+            raise Refused(f"{path}: not UTF-8")
+        except csv.Error as e:
+            raise Refused(f"{path}: {e}")
+        self.rows = count
+        self.sha256 = digest.hexdigest()
 
 
 def run(args):
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
+    details = _choice("--details", args.details, DETAILS, "problems")
     if args.mapping is not None:
         if args.key is not None or args.field:
             raise Refused("--mapping cannot be combined with --key or --field")
@@ -178,22 +204,21 @@ def run(args):
         raise Refused("a source field is repeated")
     if os.path.realpath(args.source) == os.path.realpath(args.destination):
         raise Refused("source and destination are the same file, so the check would not be independent")
-    source_rows, source_sha = read_rows(
-        args.source, [key[0]] + [s for s, _ in fields], max_bytes=max_bytes, max_rows=max_rows
-    )
-    destination_rows, destination_sha = read_rows(
-        args.destination, [key[1]] + [d for _, d in fields], max_bytes=max_bytes, max_rows=max_rows
-    )
-    identical = source_sha == destination_sha
+    _check_size(args.source, max_bytes)
+    _check_size(args.destination, max_bytes)
+    source = CsvFile(args.source, [key[0]] + [s for s, _ in fields], max_rows=max_rows)
+    destination = CsvFile(args.destination, [key[1]] + [d for _, d in fields], max_rows=max_rows)
+    report = evaluate({"key": key, "fields": fields}, source, destination, source_complete=args.source_complete,
+                      destination_complete=args.destination_complete, details=details)
+    identical = source.sha256 == destination.sha256
     if identical and not args.allow_identical_content:
         raise Refused(
             "source and destination have identical content, so the check would not be independent; "
             "pass --allow-identical-content if they really come from different systems"
         )
-    report = evaluate({"key": key, "fields": fields}, source_rows, destination_rows,
-                      source_complete=args.source_complete, destination_complete=args.destination_complete)
+    report["details"] = details
     report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    inputs = {"source_sha256": source_sha, "destination_sha256": destination_sha,
+    inputs = {"source_sha256": source.sha256, "destination_sha256": destination.sha256,
               "source_complete_stated": args.source_complete,
               "destination_complete_stated": args.destination_complete,
               "identical_content": identical}
@@ -207,11 +232,7 @@ def run(args):
     report["claim"] = CLAIM if report["cohort_state"] == "Verified" else None
     report["limitations"] = LIMITS
     if args.redact_values:
-        for record in report["records"]:
-            record["key"] = "[redacted]"
-            for rule in record["rules"].values():
-                rule.pop("expected", None)
-                rule.pop("actual", None)
+        report["records"] = report["records"].redacted()
     return report
 
 
@@ -228,9 +249,7 @@ def summary(report, max_details=MAX_DETAILS):
         yield "Destination coverage not established: absence and uniqueness stay unknown."
     shown = 0
     omitted = 0
-    for record in report["records"]:
-        if record["state"] == "Verified":
-            continue
+    for record in report["records"].problems():
         if shown >= max_details:
             omitted += 1
             continue
@@ -243,6 +262,52 @@ def summary(report, max_details=MAX_DETAILS):
     if omitted:
         yield f"... {omitted} more records not shown; use --json for all of them."
     yield report["limitations"]
+
+
+def _indented(value, prefix):
+    # A JSON text has no raw line breaks inside strings, so this only indents structure.
+    return json.dumps(value, indent=2, sort_keys=True).replace("\n", "\n" + prefix)
+
+
+def write_json(report, f):
+    """Write the report as json.dump(indent=2, sort_keys=True) would, one record at a time
+    so the whole text is never held in memory."""
+    for number, name in enumerate(sorted(report)):
+        f.write(("{\n  " if number == 0 else ",\n  ") + json.dumps(name) + ": ")
+        if name != "records":
+            f.write(_indented(report[name], "  "))
+            continue
+        separator = "[\n    "
+        for record in report[name]:
+            f.write(separator + _indented(record, "    "))
+            separator = ",\n    "
+        f.write("[]" if separator == "[\n    " else "\n  ]")
+    f.write("\n}")
+
+
+def _write_reports(report, targets):
+    """Write each (path, writer) to a new file. If any cannot be written, remove the ones created."""
+    opened = []
+    try:
+        for path, writer in targets:
+            try:
+                opened.append((path, open(path, "x", encoding="utf-8"), writer))
+            except OSError as e:
+                raise Refused(f"{path}: {e.strerror}")
+        for path, f, writer in opened:
+            try:
+                with f:
+                    writer(report, f)
+            except OSError as e:
+                raise Refused(f"{path}: {e.strerror}")
+    except BaseException:
+        for path, f, _ in opened:
+            f.close()
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        raise
 
 
 def main(argv=None):
@@ -263,18 +328,16 @@ def main(argv=None):
                         help=f"maximum rows per CSV file while reading (default: {MAX_ROWS})")
     parser.add_argument("--max-details", default=MAX_DETAILS, metavar="N",
                         help=f"maximum non-Verified records shown in summary; 0 shows none (default: {MAX_DETAILS})")
+    parser.add_argument("--details", metavar="LEVEL",
+                        help="problems (default): Verified records in --json keep only key, source_row and state; "
+                             "all: every record in full")
     parser.add_argument("--json", help="write the full report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
     args = parser.parse_args(argv)
     try:
         max_details = _int_arg("--max-details", args.max_details, 0)
         report = run(args)
-        if args.json:
-            try:
-                with open(args.json, "x", encoding="utf-8") as f:
-                    json.dump(report, f, indent=2, sort_keys=True)
-            except OSError as e:
-                raise Refused(f"{args.json}: {e.strerror}")
+        _write_reports(report, [(args.json, write_json)] if args.json else [])
         print("\n".join(summary(report, max_details=max_details)))
         sys.stdout.flush()
     except Refused as e:
