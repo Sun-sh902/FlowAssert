@@ -61,9 +61,10 @@ def main():
     print(f"Checker exit status {child.returncode}; report {report_mb:.1f} MB")
     print(f"Elapsed: {elapsed:.1f} s")
     print(f"Peak memory: {peak:.0f} MB (limit: under {LIMIT_MB} MB)")
-    first_line = child.stdout.splitlines()[:2]
-    expected = [f"Mismatch: {ROWS} rows of {ROWS}", f"Verified {ROWS - len(DIFFERENT)} · Mismatch {len(DIFFERENT)} · Unverified 0"]
-    if child.returncode != 1 or first_line != expected:
+    first_lines = child.stdout.splitlines()[:2]
+    expected = [f"Mismatch: {ROWS} rows of {ROWS}",
+                f"Verified {ROWS - len(DIFFERENT)} · Mismatch {len(DIFFERENT)} · Unverified 0"]
+    if child.returncode != 1 or first_lines != expected:
         print("FAIL: unexpected checker result", file=sys.stderr)
         print(child.stdout[:2000] + child.stderr[:2000], file=sys.stderr)
         return 1

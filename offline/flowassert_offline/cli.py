@@ -508,7 +508,8 @@ def write_html(report, f):
         only = report["destination_only"]
         f.write(f"<h2>Destination-only records ({len(only)})</h2>\n")
         if only:
-            f.write("<table>\n<tr><th>Destination row</th><th>Key</th><th>Rows</th><th>State</th><th>Reason</th></tr>\n")
+            f.write("<table>\n<tr><th>Destination row</th><th>Key</th><th>Rows</th><th>State</th>"
+                    "<th>Reason</th></tr>\n")
             for record in only:
                 f.write(f"<tr><td>{_h(record['destination_row'] + 1)}</td><td>{_v(record['key'])}</td>"
                         f"<td>{_h(record['rows'])}</td><td class=\"{_state_class(record['state'])}\">"

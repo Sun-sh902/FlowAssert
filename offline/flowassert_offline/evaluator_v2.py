@@ -14,7 +14,8 @@ Without a premise the matching conclusion stays unknown. Absence and uniqueness
 need destination_complete. A stated count that differs from the rows supplied
 withdraws the matching completeness premise; a count that agrees adds nothing.
 A field that differs is a Mismatch either way, because a row that exists can
-disprove a rule on its own. There is no waiting window, so a result is never Pending.
+disprove a rule on its own. There is no waiting window, so a result is never
+Pending.
 
 Each field has one comparison rule, chosen by the caller and never inferred:
   exact        the strings as they are (the default)
@@ -40,7 +41,6 @@ VERSION = "v2-current-state-1"
 STATES = ("Verified", "Mismatch", "Pending", "Unverified")
 SCOPES = ("source", "exact")
 DETAILS = ("problems", "all")
-RULES = ("exact", "trim", "casefold", "digits", "date:FORMAT")
 _STATE_CODE = {name: code for code, name in enumerate(STATES)}
 _EMPTY = "empty value; a missing value is not assumed to be a difference"
 _DATE_SAMPLE = datetime(2001, 2, 3, 4, 5, 6, 7000, tzinfo=timezone.utc)
@@ -107,8 +107,8 @@ def _compare(expected, actual, rule="exact"):
         return _rule("unknown", _EMPTY, **detail)
     if rule == "trim":
         if not e or not a:
-            return _rule("unknown", "empty after trimming whitespace; a missing value is not assumed to be a difference",
-                         **detail)
+            return _rule("unknown", "empty after trimming whitespace; a missing value is not assumed to be "
+                                    "a difference", **detail)
         reason = "comparison after trimming leading and trailing whitespace"
     elif rule == "casefold":
         reason = "comparison after Unicode case folding"
@@ -296,7 +296,8 @@ class _Evaluation:
         if self.coverage:
             state, reason = "Mismatch", "key not in the source, and destination coverage is sufficient"
         else:
-            state, reason = "Unverified", "key not in the source; destination coverage not established, so no conclusion"
+            state = "Unverified"
+            reason = "key not in the source; destination coverage not established, so no conclusion"
         return [{"key": key, "destination_row": number, "rows": rows, "state": state, "reason": reason}
                 for key, (number, rows) in self.destination_only.items()]
 
