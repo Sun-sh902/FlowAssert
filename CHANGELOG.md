@@ -2,7 +2,7 @@
 
 ## 0.4.0 (unreleased)
 
-Workflow integration: the check runs where data already moves. The verdicts, summaries, reports and exit statuses of the command-line checker and of the browser check are unchanged; every golden case gives the same bytes as in 0.3.0. The Service, the frozen contracts, the pinned Evaluator v1 and the UI pages are unchanged.
+Workflow integration: the check runs where data already moves. The verdicts, summaries, reports and exit statuses of the command-line checker and of the browser check are unchanged; every golden case gives the same bytes as in 0.3.0. Two fixes concern Windows only. The Service, the frozen contracts, the pinned Evaluator v1 and the UI pages are unchanged.
 
 ### Added
 
@@ -15,6 +15,12 @@ Workflow integration: the check runs where data already moves. The verdicts, sum
 ### Changed
 
 - `flowassert_offline.__version__` is `0.4.0`.
+- `.gitattributes` keeps the golden files, examples, conformance cases and the n8n workflow byte for byte on a Windows checkout.
+
+### Fixed
+
+- On Windows, the JSON and HTML reports were written with CR LF line breaks, so they differed from the reports written on Linux, macOS and in the browser. They now have the same bytes on every platform.
+- A summary with a character the terminal's encoding cannot show (on Windows, a non-ASCII value printed to a pipe) stopped the check with exit status 4 after the reports were written. That character is now printed as an escape such as `\xe9`, and the exit status is the result's.
 
 ## 0.3.0 (2026-11-03)
 

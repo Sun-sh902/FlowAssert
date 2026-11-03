@@ -1,0 +1,5 @@
+# Files that tests compare byte for byte or hash: never convert their line endings on checkout.
+offline/golden/** -text
+offline/examples/** -text
+offline/conformance/** -text
+examples/n8n/*.json -text

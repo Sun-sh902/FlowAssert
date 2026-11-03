@@ -530,7 +530,8 @@ def _write_reports(report, targets):
     try:
         for path, writer in targets:
             try:
-                opened.append((path, open(path, "x", encoding="utf-8"), writer))
+                # newline="": the same bytes on every platform, never CR LF on Windows.
+                opened.append((path, open(path, "x", encoding="utf-8", newline=""), writer))
             except OSError as e:
                 raise Refused(f"{path}: {e.strerror}")
         for path, f, writer in opened:
@@ -586,6 +587,9 @@ def main(argv=None):
         report = run(args)
         _write_reports(report, [(path, writer) for path, writer in ((args.json, write_json), (args.html, write_html))
                                 if path])
+        # The reports are written by now: a value the terminal cannot encode is escaped, not a failure.
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(errors="backslashreplace")
         print("\n".join(summary(report, max_details=max_details)))
         sys.stdout.flush()
     except Refused as e:

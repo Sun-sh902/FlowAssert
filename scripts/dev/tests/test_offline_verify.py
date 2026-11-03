@@ -114,6 +114,33 @@ def test_redaction_removes_values(tmp_path):
     assert '0199' not in text and 'SYN-002' not in text
 
 
+def test_reports_are_written_without_newline_translation(tmp_path, monkeypatch, capsys):
+    # On Windows, text mode would write CR LF; the reports must have the same bytes on every platform.
+    created = []
+    real_open = open
+
+    def spy(path, mode='r', *args, **kwargs):
+        if mode == 'x':
+            created.append(kwargs.get('newline', 'not given'))
+        return real_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(verify, 'open', spy, raising=False)
+    verify.main(cli('--json', str(tmp_path / 'r.json'), '--html', str(tmp_path / 'r.html')))
+    assert created == ['', '']
+
+
+def test_a_summary_the_terminal_cannot_encode_is_escaped_not_a_failure(tmp_path, monkeypatch):
+    import io
+    out = io.TextIOWrapper(io.BytesIO(), encoding='ascii')
+    monkeypatch.setattr(sys, 'stdout', out)
+    code = verify.main(['--source', write(tmp_path / 's.csv', 'k,p\n\u00e9,1\n'),
+                        '--destination', write(tmp_path / 'd.csv', 'k,p\n\u00e9,2\n'), '--key', 'k', '--field', 'p',
+                        '--json', str(tmp_path / 'r.json')])
+    out.flush()
+    assert code == 1 and (tmp_path / 'r.json').exists()
+    assert '\\xe9' in out.buffer.getvalue().decode('ascii')
+
+
 def test_existing_report_is_not_overwritten(tmp_path, capsys):
     out = tmp_path / 'report.json'
     out.write_text('keep')
