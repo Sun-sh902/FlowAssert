@@ -1263,3 +1263,136 @@ def test_redaction_removes_normalized_values_from_the_report(tmp_path, capsys):
         assert value not in text and value not in out
     assert report['records'][1]['rules']['field:Contact: Phone'] == {
         'status': 'fail', 'reason': 'comparison of the digits 0-9 only', 'rule': 'digits'}
+
+
+# --- v0.2.0: report format and HTML report -----------------------------------------------------
+
+def test_json_report_starts_with_its_schema_version(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--json', str(out))) == 1
+    assert out.read_text().startswith('{\n  "schema_version": 1,\n')
+
+
+HOSTILE_SOURCE = 'k,p\n<script>alert(1)</script>,"<img src=x onerror=alert(2)>"\nK2,b\n'
+HOSTILE_DESTINATION = 'p,k\n"<b>bold</b>",<script>alert(1)</script>\nb,K2\nq,"<i>only</i>"\n'
+
+
+def html_report(tmp_path, capsys, *args):
+    (tmp_path / 's.csv').write_bytes(HOSTILE_SOURCE.encode('utf-8'))
+    (tmp_path / 'd.csv').write_bytes(HOSTILE_DESTINATION.encode('utf-8'))
+    out = tmp_path / 'report.html'
+    code = verify.main(['--source', str(tmp_path / 's.csv'), '--destination', str(tmp_path / 'd.csv'),
+                        '--key', 'k', '--field', 'p', *args, '--html', str(out)])
+    capsys.readouterr()
+    return code, out.read_text(encoding='utf-8')
+
+
+def test_html_report_escapes_every_csv_value(tmp_path, capsys):
+    code, text = html_report(tmp_path, capsys, '--source-complete', '--destination-complete', '--scope', 'exact')
+    assert code == 1
+    assert '<script' not in text.lower() and '<img' not in text and '<b>' not in text and '<i>only' not in text
+    for value in ('<script>alert(1)</script>', '<img src=x onerror=alert(2)>', '<b>bold</b>', '<i>only</i>'):
+        assert html.escape(value) in text
+
+
+def test_html_report_is_self_contained_and_has_no_script(tmp_path, capsys):
+    code, text = html_report(tmp_path, capsys, '--source-complete', '--destination-complete', '--scope', 'exact')
+    tags = re.findall(r'<([a-zA-Z][a-zA-Z0-9]*)([^>]*)>', text)
+    assert {name.lower() for name, _ in tags} <= {
+        'html', 'head', 'meta', 'title', 'style', 'body', 'h1', 'h2', 'p', 'span', 'section', 'table', 'tr', 'th',
+        'td', 'code', 'i'}
+    for _, attributes in tags:
+        assert not re.search(r'\b(src|href|on[a-z]+)\s*=', attributes, re.I)
+    style = text[text.index('<style>'):text.index('</style>')]
+    assert 'url(' not in style and '@import' not in style and '@font-face' not in style
+    assert 'http://' not in text and 'https://' not in text
+    assert text.startswith('<!DOCTYPE html>') and '<meta charset="utf-8">' in text
+
+
+def test_html_report_shows_result_counts_premises_limitations_and_problem_records(tmp_path, capsys):
+    code, text = html_report(tmp_path, capsys, '--source-complete', '--destination-complete', '--scope', 'exact',
+                             '--source-count', '3')
+    assert code == 1
+    assert '<span class="state Mismatch">Mismatch</span>' in text
+    for section in ('Stated premises', 'Counts', 'Limitations', 'Records that are not Verified (1)',
+                    'Destination-only records (1)'):
+        assert f'>{section}</h2>' in text
+    for premise in ('source_complete', 'destination_complete', 'source_count', 'destination_count'):
+        assert f'<td>{premise}</td>' in text
+    assert '<tr><td>source_count</td><td>3</td><td>command-line option</td><td>2</td><td>no</td></tr>' in text
+    assert html.escape(verify.LIMITS) in text
+    assert '<th>Verified records</th><td>1</td>' in text and '<th>Mismatch records</th><td>1</td>' in text
+    assert html.escape("'K2'") not in text  # a Verified record is not listed
+
+
+def test_html_report_names_the_claim_only_when_verified(tmp_path, capsys):
+    (tmp_path / 's.csv').write_text('k,p\n1,x\n')
+    (tmp_path / 'd.csv').write_text('p,k\nx,1\n')
+    out = tmp_path / 'report.html'
+    code = verify.main(['--source', str(tmp_path / 's.csv'), '--destination', str(tmp_path / 'd.csv'),
+                        '--key', 'k', '--field', 'p', '--source-complete', '--destination-complete',
+                        '--html', str(out)])
+    assert code == 0 and html.escape(verify.CLAIM) in out.read_text(encoding='utf-8')
+    assert 'Records that are not Verified (0)' in out.read_text(encoding='utf-8')
+
+
+def test_html_report_follows_redaction(tmp_path, capsys):
+    code, text = html_report(tmp_path, capsys, '--source-complete', '--destination-complete', '--scope', 'exact',
+                             '--redact-values')
+    assert code == 1 and 'alert(' not in text and 'bold' not in text and html.escape('<i>only') not in text
+    assert html.escape("'[redacted]'") in text
+
+
+def test_html_report_never_overwrites_and_leaves_no_partial_output(tmp_path, capsys):
+    page = tmp_path / 'report.html'
+    page.write_text('keep')
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--json', str(out), '--html', str(page))) == 2
+    assert page.read_text() == 'keep' and not out.exists()
+    assert 'refused:' in capsys.readouterr().err
+
+
+def test_json_and_html_cannot_share_a_path(tmp_path, capsys):
+    out = tmp_path / 'report'
+    assert verify.main(cli('--json', str(out), '--html', str(out))) == 2
+    assert not out.exists()
+
+
+def test_a_failed_html_write_removes_both_reports(tmp_path, capsys, monkeypatch):
+    def full_disk(report, f):
+        raise OSError(28, 'No space left on device')
+
+    monkeypatch.setattr(verify, 'write_html', full_disk)
+    out, page = tmp_path / 'report.json', tmp_path / 'report.html'
+    assert verify.main(cli('--json', str(out), '--html', str(page))) == 2
+    assert not out.exists() and not page.exists()
+    assert 'No space left on device' in capsys.readouterr().err
+
+
+def report_members(report):
+    """Every member name in a report, including those inside its nested objects."""
+    names = set(report)
+    for name in ('inputs', 'obligation', 'counts', 'premises', 'destination_only_counts'):
+        names |= set(report.get(name, {}))
+    for premise in report['premises'].values():
+        names |= set(premise)
+    for record in report['records'] + report.get('destination_only', []):
+        names |= set(record)
+        for rule in record.get('rules', {}).values():
+            names |= set(rule)
+    return names
+
+
+def test_report_format_documents_every_member(tmp_path, capsys):
+    doc = (ROOT / 'docs/report-format.md').read_text(encoding='utf-8')
+    path = config_file(tmp_path, dict(CONFIG, scope='exact'))
+    code, _, _, report = check(tmp_path, capsys, CONFIG_SOURCE, CONFIG_DESTINATION + 'A9,1,z\n', '--config', path,
+                               '--source-complete', '--destination-complete', '--details', 'all',
+                               '--source-count', '2', '--destination-count', '3', '--source-encoding', 'utf-8')
+    names = report_members(report)
+    _, _, _, identical = check(tmp_path, capsys, 'k,p\n1,x\n', 'k,p\n1,x\n', '--mapping',
+                               config_file(tmp_path, {'key': ['k', 'k'], 'fields': [['p', 'p']]}),
+                               '--allow-identical-content')
+    names |= report_members(identical)
+    undocumented = sorted(n for n in names if f'`{n}`' not in doc)
+    assert undocumented == []

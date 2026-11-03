@@ -10,18 +10,20 @@ import argparse
 import csv
 from datetime import datetime, timezone
 import hashlib
+import html
 import io
 import json
 import os
 import sys
 
 from . import __version__
-from .evaluator_v2 import DETAILS, SCOPES, evaluate, parse_rule
+from .evaluator_v2 import DETAILS, SCOPES, STATES, evaluate, parse_rule
 
 EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
 MAX_BYTES = 209_715_200
 MAX_ROWS = 1_000_000
 MAX_DETAILS = 50
+SCHEMA_VERSION = 1
 CLAIM = ("At this evaluation, under the stated premises, the supplied destination rows satisfy the rules "
          "for the supplied source rows.")
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
@@ -307,6 +309,7 @@ def run(args):
             "source and destination have identical content, so the check would not be independent; "
             "pass --allow-identical-content if they really come from different systems"
         )
+    report["schema_version"] = SCHEMA_VERSION
     report["details"] = details
     report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     inputs = {"source_sha256": source.sha256, "destination_sha256": destination.sha256,
@@ -391,10 +394,13 @@ def _indented(value, prefix):
 
 
 def write_json(report, f):
-    """Write the report as json.dump(indent=2, sort_keys=True) would, one record at a time
-    so the whole text is never held in memory."""
-    for number, name in enumerate(sorted(report)):
-        f.write(("{\n  " if number == 0 else ",\n  ") + json.dumps(name) + ": ")
+    """Write the report as json.dump(indent=2, sort_keys=True) would, with schema_version first,
+    one record at a time so the whole text is never held in memory."""
+    f.write('{\n  "schema_version": ' + json.dumps(report["schema_version"]))
+    for name in sorted(report):
+        if name == "schema_version":
+            continue
+        f.write(",\n  " + json.dumps(name) + ": ")
         if name != "records":
             f.write(_indented(report[name], "  "))
             continue
@@ -404,6 +410,117 @@ def write_json(report, f):
             separator = ",\n    "
         f.write("[]" if separator == "[\n    " else "\n  ]")
     f.write("\n}")
+
+
+_HTML_STYLE = """
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;max-width:72rem;padding:1rem;
+color:#1b1f24;background:#fff}
+h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #d0d7de}
+table{border-collapse:collapse;width:100%;margin:.5rem 0}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;
+text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f6f8fa}
+.state{display:inline-block;font-size:1.6rem;font-weight:700;padding:.2rem .8rem;border-radius:.3rem}
+.Verified{background:#dafbe1;color:#116329}.Mismatch{background:#ffebe9;color:#a40e26}
+.Unverified,.Pending{background:#fff8c5;color:#7d4e00}.premises{border:2px solid #7d4e00;padding:.5rem 1rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+"""
+
+
+def _h(value):
+    if value is None:
+        return "<i>none</i>"
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    return html.escape(str(value))
+
+
+def _v(value):
+    return "<i>none</i>" if value is None else "<code>" + html.escape(repr(value)) + "</code>"
+
+
+def _state_class(state):
+    return state if state in STATES else ""
+
+
+def write_html(report, f):
+    """Write one self-contained HTML page: no scripts, and no external styles, fonts or images."""
+    state = report["cohort_state"]
+    f.write('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+            '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'">\n'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            f"<title>FlowAssert report: {_h(state)}</title>\n<style>{_HTML_STYLE}</style>\n</head>\n<body>\n"
+            "<h1>FlowAssert report</h1>\n"
+            f'<p><span class="state {_state_class(state)}">{_h(state)}</span></p>\n')
+    claim = report.get("claim")
+    f.write(f"<p>{_h(claim)}</p>\n" if claim else "<p>No claim is made: the result is not Verified.</p>\n")
+    f.write(f"<p>Evaluated at {_h(report.get('evaluated_at'))} by evaluator {_h(report.get('evaluator'))}.</p>\n")
+
+    f.write('<section class="premises">\n<h2>Stated premises</h2>\n'
+            "<p>FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>\n"
+            "<table>\n<tr><th>Premise</th><th>Stated</th><th>Origin</th><th>Rows in file</th><th>Matched</th></tr>\n")
+    for name, premise in report.get("premises", {}).items():
+        observed = _h(premise["observed"]) if "observed" in premise else ""
+        matched = _h(premise["matched"]) if "matched" in premise else ""
+        f.write(f"<tr><td>{_h(name)}</td><td>{_h(premise.get('stated'))}</td><td>{_h(premise.get('origin'))}</td>"
+                f"<td>{observed}</td><td>{matched}</td></tr>\n")
+    f.write("</table>\n</section>\n")
+
+    c = report["counts"]
+    total = report["expected_total"]
+    f.write("<h2>Counts</h2>\n<table>\n")
+    rows = [("Source rows observed", report["source_rows_observed"]),
+            ("Expected total", "unknown" if total is None else total)]
+    rows += [(f"{name} records", c[name]) for name in STATES]
+    rows += [("Source population known", report["source_population_known"]),
+             ("Destination coverage sufficient", report["destination_coverage_sufficient"]),
+             ("Destination rows without key", report["destination_rows_without_key"])]
+    if "destination_only_counts" in report:
+        rows += [(f"Destination-only {name}", report["destination_only_counts"][name]) for name in STATES]
+    for label, value in rows:
+        f.write(f"<tr><th>{_h(label)}</th><td>{_h(value)}</td></tr>\n")
+    f.write("</table>\n")
+
+    f.write(f"<h2>Limitations</h2>\n<p>{_h(report.get('limitations'))}</p>\n<table>\n")
+    for name in ("workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"):
+        f.write(f"<tr><th>{_h(name)}</th><td>{_h(report.get(name))}</td></tr>\n")
+    f.write("</table>\n")
+
+    problems = len(report["records"]) - c["Verified"]
+    f.write(f"<h2>Records that are not Verified ({problems})</h2>\n")
+    if problems:
+        f.write("<table>\n<tr><th>Record</th><th>Key</th><th>State</th><th>Rule</th><th>Status</th><th>Reason</th>"
+                "<th>Expected</th><th>Actual</th><th>Compared as</th></tr>\n")
+        for record in report["records"].problems():
+            rules = list(record["rules"].items())
+            span = f' rowspan="{len(rules)}"'
+            lead = (f'<td{span}>{_h(record["source_row"] + 1)}</td><td{span}>{_v(record["key"])}</td>'
+                    f'<td{span} class="{_state_class(record["state"])}">{_h(record["state"])}</td>')
+            for name, rule in rules:
+                compared = ""
+                if "expected_normalized" in rule:
+                    compared = f"{_v(rule['expected_normalized'])} vs {_v(rule['actual_normalized'])}"
+                f.write(f"<tr>{lead}<td>{_h(name)}</td><td>{_h(rule['status'])}</td><td>{_h(rule['reason'])}</td>"
+                        f"<td>{_v(rule['expected']) if 'expected' in rule else ''}</td>"
+                        f"<td>{_v(rule['actual']) if 'actual' in rule else ''}</td><td>{compared}</td></tr>\n")
+                lead = ""
+        f.write("</table>\n")
+
+    if "destination_only" in report:
+        only = report["destination_only"]
+        f.write(f"<h2>Destination-only records ({len(only)})</h2>\n")
+        if only:
+            f.write("<table>\n<tr><th>Destination row</th><th>Key</th><th>Rows</th><th>State</th><th>Reason</th></tr>\n")
+            for record in only:
+                f.write(f"<tr><td>{_h(record['destination_row'] + 1)}</td><td>{_v(record['key'])}</td>"
+                        f"<td>{_h(record['rows'])}</td><td class=\"{_state_class(record['state'])}\">"
+                        f"{_h(record['state'])}</td><td>{_h(record['reason'])}</td></tr>\n")
+            f.write("</table>\n")
+
+    f.write("<h2>Inputs</h2>\n<table>\n")
+    for name, value in report.get("inputs", {}).items():
+        f.write(f"<tr><th>{_h(name)}</th><td>{_h(value)}</td></tr>\n")
+    for name, value in report.get("obligation", {}).items():
+        f.write(f"<tr><th>obligation {_h(name)}</th><td><code>{_h(json.dumps(value))}</code></td></tr>\n")
+    f.write("</table>\n</body>\n</html>\n")
 
 
 def _write_reports(report, targets):
@@ -460,12 +577,14 @@ def main(argv=None):
                         help="problems (default): Verified records in --json keep only key, source_row and state; "
                              "all: every record in full")
     parser.add_argument("--json", help="write the full report to this new file")
+    parser.add_argument("--html", metavar="PATH", help="write a self-contained HTML report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
     args = parser.parse_args(argv)
     try:
         max_details = _int_arg("--max-details", args.max_details, 0)
         report = run(args)
-        _write_reports(report, [(args.json, write_json)] if args.json else [])
+        _write_reports(report, [(path, writer) for path, writer in ((args.json, write_json), (args.html, write_html))
+                                if path])
         print("\n".join(summary(report, max_details=max_details)))
         sys.stdout.flush()
     except Refused as e:
