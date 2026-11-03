@@ -108,6 +108,8 @@ describe("CSV check page", () => {
       ...inner,
       run: async (input, progress) => {
         const result = inner.run(input, progress);
+        // Cancelled rejects it while it is held back; the page reads that rejection once it is returned.
+        result.catch(() => undefined);
         await gate;
         return result;
       },
