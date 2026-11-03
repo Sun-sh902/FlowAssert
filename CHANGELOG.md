@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.4.0 (2026-11-04)
 
 Workflow integration: the check runs where data already moves. The verdicts, summaries, reports and exit statuses of the command-line checker and of the browser check are unchanged; every golden case gives the same bytes as in 0.3.0. Two fixes concern Windows only. The Service, the frozen contracts, the pinned Evaluator v1 and the UI pages are unchanged.
 
