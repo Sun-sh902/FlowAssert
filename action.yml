@@ -1,0 +1,180 @@
+# FlowAssert CSV check as a composite GitHub Action:
+#
+#   - uses: actions/setup-python@v5
+#     with:
+#       python-version: "3.13"
+#   - uses: Sun-sh902/FlowAssert@v0.4.0
+#     with:
+#       source: exports/source.csv
+#       destination: exports/destination.csv
+#       key: external_id
+#       fields: |
+#         phone
+#         email:hs_email
+#
+# It runs the offline checker in this Action's own folder (offline/) with the runner's Python 3.9 or later. Nothing is
+# installed or downloaded while it runs. Each input maps to one flowassert-verify option; an empty input means the
+# option is not given, so the checker's own default and its own refusals apply. Inputs reach the check only through
+# environment variables and action/run_action.py, never inside a shell script.
+name: FlowAssert CSV check
+description: Check that expected CSV records reached a destination export, and never call a result Verified without enough evidence.
+author: Sun-sh902
+branding:
+  icon: check-square
+  color: green
+
+inputs:
+  source:
+    description: Source CSV file (--source). Required.
+    required: true
+  destination:
+    description: Destination CSV export (--destination). Required.
+    required: true
+  config:
+    description: UTF-8 JSON file with key, fields with a comparison rule each, and scope (--config). Cannot be combined with key, fields, mapping or scope.
+    required: false
+    default: ""
+  key:
+    description: Stable record key, COLUMN or SOURCE:DESTINATION (--key). Required unless config or mapping is given.
+    required: false
+    default: ""
+  fields:
+    description: Fields to compare exactly, one per line, each COLUMN or SOURCE:DESTINATION (one --field each). Blank lines are skipped; nothing else on a line is changed, so a trailing space is part of the column name.
+    required: false
+    default: ""
+  mapping:
+    description: UTF-8 JSON file with key and fields column pairs (--mapping).
+    required: false
+    default: ""
+  scope:
+    description: source (the checker's default) or exact (--scope).
+    required: false
+    default: ""
+  # The premises. FlowAssert cannot check any of them: they are what you state about the files, and a wrong statement
+  # gives a wrong result. Each is left out unless you set it; the report records every one with its origin.
+  source-complete:
+    description: 'Premise, not checked by FlowAssert: "true" states that the source file is the whole batch (--source-complete). Without it the batch cannot be Verified. Only "true" or "false".'
+    required: false
+    default: "false"
+  destination-complete:
+    description: 'Premise, not checked by FlowAssert: "true" states that the export covers the whole destination object (--destination-complete). Without it missing records and duplicates stay unknown. Only "true" or "false".'
+    required: false
+    default: "false"
+  source-count:
+    description: 'Premise, not checked by FlowAssert: the source total you saw in the original system (--source-count). A different row count in the file blocks Verified; a matching one proves nothing on its own.'
+    required: false
+    default: ""
+  destination-count:
+    description: 'Premise, not checked by FlowAssert: the destination total you saw in the original system (--destination-count). A different row count leaves absence and duplicates unknown.'
+    required: false
+    default: ""
+  allow-identical-content:
+    description: 'Premise, not checked by FlowAssert: "true" states that two files with identical content really come from different systems (--allow-identical-content). Only "true" or "false".'
+    required: false
+    default: "false"
+  source-encoding:
+    description: utf-8 (the checker's default), utf-16 or gb18030 (--source-encoding).
+    required: false
+    default: ""
+  destination-encoding:
+    description: utf-8 (the checker's default), utf-16 or gb18030 (--destination-encoding).
+    required: false
+    default: ""
+  max-bytes:
+    description: Refuse a file larger than this many bytes before reading (--max-bytes; the checker's default is 209715200).
+    required: false
+    default: ""
+  max-rows:
+    description: Refuse a CSV with more rows than this (--max-rows; the checker's default is 1000000).
+    required: false
+    default: ""
+  details:
+    description: problems (the checker's default) or all, for the JSON report (--details).
+    required: false
+    default: ""
+  json:
+    description: Write the JSON report to this new file (--json). It holds keys and compared values unless redact-values is "true". Written only when given.
+    required: false
+    default: ""
+  html:
+    description: Write the HTML report to this new file (--html). It holds keys and compared values unless redact-values is "true". Written only when given.
+    required: false
+    default: ""
+  redact-values:
+    description: '"true" leaves keys and compared values out of the reports and the printed records (--redact-values). Only "true" or "false".'
+    required: false
+    default: "false"
+  fail-on:
+    description: 'not-verified (default): the step passes only on Verified. mismatch: the step passes on Verified and Unverified and fails on Mismatch. A refused or failed check always fails the step.'
+    required: false
+    default: not-verified
+  show-records:
+    description: 'Logs and job summaries are often public. "false" (default): print and summarize the state, the counts, the premises and the limitations only, with no key or field value. "true": also print the record lines the checker prints, keys and values included. Only "true" or "false".'
+    required: false
+    default: "false"
+
+outputs:
+  state:
+    description: Verified, Mismatch, Unverified, refused (the checker or the Action refused an input) or failed (the check stopped, or its result was not recognised).
+    value: ${{ steps.check.outputs.state }}
+  exit-code:
+    description: The checker's exit status, 0 Verified, 1 Mismatch, 3 Unverified, 2 refused, 4 failed; 2 also when the Action refused an input itself, and empty when no Python 3.9 or later was found.
+    value: ${{ steps.check.outputs.exit-code }}
+  json:
+    description: The JSON report's path, as given, when the check concluded and json was given; otherwise empty.
+    value: ${{ steps.check.outputs.json }}
+  html:
+    description: The HTML report's path, as given, when the check concluded and html was given; otherwise empty.
+    value: ${{ steps.check.outputs.html }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        FA_SOURCE: ${{ inputs.source }}
+        FA_DESTINATION: ${{ inputs.destination }}
+        FA_CONFIG: ${{ inputs.config }}
+        FA_KEY: ${{ inputs.key }}
+        FA_FIELDS: ${{ inputs.fields }}
+        FA_MAPPING: ${{ inputs.mapping }}
+        FA_SCOPE: ${{ inputs.scope }}
+        FA_SOURCE_COMPLETE: ${{ inputs.source-complete }}
+        FA_DESTINATION_COMPLETE: ${{ inputs.destination-complete }}
+        FA_SOURCE_COUNT: ${{ inputs.source-count }}
+        FA_DESTINATION_COUNT: ${{ inputs.destination-count }}
+        FA_ALLOW_IDENTICAL_CONTENT: ${{ inputs.allow-identical-content }}
+        FA_SOURCE_ENCODING: ${{ inputs.source-encoding }}
+        FA_DESTINATION_ENCODING: ${{ inputs.destination-encoding }}
+        FA_MAX_BYTES: ${{ inputs.max-bytes }}
+        FA_MAX_ROWS: ${{ inputs.max-rows }}
+        FA_DETAILS: ${{ inputs.details }}
+        FA_JSON: ${{ inputs.json }}
+        FA_HTML: ${{ inputs.html }}
+        FA_REDACT_VALUES: ${{ inputs.redact-values }}
+        FA_FAIL_ON: ${{ inputs.fail-on }}
+        FA_SHOW_RECORDS: ${{ inputs.show-records }}
+      # No input appears in this script: they are all in the environment above.
+      run: |
+        # The checker needs Python 3.9 or later. python3 first, then python (Windows runners name it python).
+        py=""
+        for candidate in python3 python; do
+          if "$candidate" -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" >/dev/null 2>&1; then
+            py="$candidate"
+            break
+          fi
+        done
+        if [ -z "$py" ]; then
+          found=""
+          for candidate in python3 python; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              found="$("$candidate" --version 2>&1 | head -n 1)"
+              break
+            fi
+          done
+          echo "::error title=FlowAssert::FlowAssert needs Python 3.9 or later on the runner (found: ${found:-none}). Add actions/setup-python before this step."
+          printf 'state=failed\nexit-code=\n' >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+        "$py" -I "$GITHUB_ACTION_PATH/action/run_action.py"

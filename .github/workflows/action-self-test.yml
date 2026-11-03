@@ -1,0 +1,168 @@
+name: Action self-test
+
+# Runs the Action of this repository (uses: ./) on Linux, macOS and Windows, against offline/examples/ and a few
+# golden cases: one Verified, one Mismatch, one Unverified, and two refusals (one by the checker, one by the Action).
+# It checks the state and exit-code outputs, that a step fails exactly when its fail-on says so (with
+# continue-on-error, then the step's outcome), and that the reports are the golden reports apart from evaluated_at.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    name: Action on ${{ matrix.os }}, Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.13"]
+        include:
+          # The oldest Python the checker supports.
+          - os: ubuntu-latest
+            python: "3.9"
+    steps:
+      # The golden files are compared byte for byte, so Windows must not turn their line endings into CR LF.
+      - name: Keep line endings as committed
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Verified (golden rules-pass)
+        id: verified
+        uses: ./
+        with:
+          source: offline/golden/rules-pass/source.csv
+          destination: offline/golden/rules-pass/destination.csv
+          config: offline/golden/rules-pass/config.json
+          source-encoding: utf-8
+          destination-encoding: utf-8
+          source-complete: "true"
+          destination-complete: "true"
+          json: verified.json
+          html: verified.html
+      - name: Check the Verified step
+        shell: bash
+        env:
+          STATE: ${{ steps.verified.outputs.state }}
+          CODE: ${{ steps.verified.outputs.exit-code }}
+          JSON: ${{ steps.verified.outputs.json }}
+          HTML: ${{ steps.verified.outputs.html }}
+        run: |
+          test "$STATE" = Verified
+          test "$CODE" = 0
+          test "$JSON" = verified.json
+          test "$HTML" = verified.html
+          python scripts/dev/check_action_report.py offline/golden/rules-pass "$JSON" "$HTML"
+
+      - name: Mismatch (offline/examples, golden example), fails even with fail-on mismatch
+        id: mismatch
+        continue-on-error: true
+        uses: ./
+        with:
+          source: offline/examples/source.csv
+          destination: offline/examples/destination.csv
+          key: external_id
+          fields: |
+            phone
+            email:hs_email
+          source-complete: "true"
+          destination-complete: "true"
+          fail-on: mismatch
+          json: mismatch.json
+          html: mismatch.html
+      - name: Check the Mismatch step
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.mismatch.outcome }}
+          STATE: ${{ steps.mismatch.outputs.state }}
+          CODE: ${{ steps.mismatch.outputs.exit-code }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$STATE" = Mismatch
+          test "$CODE" = 1
+          python scripts/dev/check_action_report.py offline/golden/example mismatch.json mismatch.html
+
+      - name: Unverified (golden duplicate-source-key), fails with the default fail-on
+        id: unverified
+        continue-on-error: true
+        uses: ./
+        with:
+          source: offline/golden/duplicate-source-key/source.csv
+          destination: offline/golden/duplicate-source-key/destination.csv
+          config: offline/golden/duplicate-source-key/config.json
+          source-encoding: utf-8
+          destination-encoding: utf-8
+          source-complete: "true"
+          destination-complete: "true"
+          show-records: "true"
+      - name: Unverified again, passes with fail-on mismatch
+        id: unverified-allowed
+        continue-on-error: true
+        uses: ./
+        with:
+          source: offline/golden/duplicate-source-key/source.csv
+          destination: offline/golden/duplicate-source-key/destination.csv
+          config: offline/golden/duplicate-source-key/config.json
+          source-complete: "true"
+          destination-complete: "true"
+          fail-on: mismatch
+      - name: Check the Unverified steps
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.unverified.outcome }}
+          STATE: ${{ steps.unverified.outputs.state }}
+          CODE: ${{ steps.unverified.outputs.exit-code }}
+          ALLOWED_OUTCOME: ${{ steps.unverified-allowed.outcome }}
+          ALLOWED_STATE: ${{ steps.unverified-allowed.outputs.state }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$STATE" = Unverified
+          test "$CODE" = 3
+          test "$ALLOWED_OUTCOME" = success
+          test "$ALLOWED_STATE" = Unverified
+
+      - name: Refused by the checker (golden refused-missing-columns), even with fail-on mismatch
+        id: refused
+        continue-on-error: true
+        uses: ./
+        with:
+          source: offline/golden/refused-missing-columns/source.csv
+          destination: offline/golden/refused-missing-columns/destination.csv
+          config: offline/golden/refused-missing-columns/config.json
+          fail-on: mismatch
+          json: refused.json
+      - name: Refused by the Action (a premise that is not exactly true or false)
+        id: refused-input
+        continue-on-error: true
+        uses: ./
+        with:
+          source: offline/examples/source.csv
+          destination: offline/examples/destination.csv
+          key: external_id
+          fields: phone
+          source-complete: "yes"
+      - name: Check the refused steps
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.refused.outcome }}
+          STATE: ${{ steps.refused.outputs.state }}
+          CODE: ${{ steps.refused.outputs.exit-code }}
+          JSON: ${{ steps.refused.outputs.json }}
+          INPUT_OUTCOME: ${{ steps.refused-input.outcome }}
+          INPUT_STATE: ${{ steps.refused-input.outputs.state }}
+          INPUT_CODE: ${{ steps.refused-input.outputs.exit-code }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$STATE" = refused
+          test "$CODE" = 2
+          test -z "$JSON"
+          test ! -e refused.json
+          test "$INPUT_OUTCOME" = failure
+          test "$INPUT_STATE" = refused
+          test "$INPUT_CODE" = 2
