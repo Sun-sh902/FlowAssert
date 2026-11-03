@@ -1,6 +1,6 @@
 {
   "name": "scope-exact-covered",
-  "description": "With scope exact and sufficient destination coverage, a destination key that is not in the source is a destination-only Mismatch, so the cohort is a Mismatch while every source record is Verified.",
+  "description": "With scope exact and a known source population, a destination key that is not in the source is a destination-only Mismatch, so the cohort is a Mismatch while every source record is Verified.",
   "obligation": {
     "key": ["key", "key"],
     "fields": [["phone", "phone"]],

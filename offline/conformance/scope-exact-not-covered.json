@@ -1,6 +1,6 @@
 {
   "name": "scope-exact-not-covered",
-  "description": "With scope exact but without destination_complete, a destination-only key is listed without a conclusion and does not change the cohort state.",
+  "description": "With scope exact, a destination-only row needs no destination premise: without destination_complete the source records stay Unverified, but the source population is known, so the extra key makes the cohort a Mismatch.",
   "obligation": {
     "key": ["key", "key"],
     "fields": [["phone", "phone"]],
@@ -20,7 +20,7 @@
     "destination_complete": false
   },
   "expected": {
-    "cohort_state": "Unverified",
+    "cohort_state": "Mismatch",
     "record_states": ["Unverified", "Unverified"],
     "expected_total": 2
   }

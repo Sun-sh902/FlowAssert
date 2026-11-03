@@ -22,12 +22,15 @@ Each field has one comparison rule, chosen by the caller and never inferred:
   trim         after removing leading and trailing whitespace
   casefold     after Unicode case folding
   digits       only the digits 0-9; no digits is unknown, not a match
-  date:FORMAT  both parsed with datetime.strptime; a value that does not parse is unknown
+  date:FORMAT  both parsed with datetime.strptime; a value that does not parse is unknown.
+               A value with a UTC offset is compared as an instant, in UTC
 An empty value is unknown under every rule.
 
 The obligation's scope is "source" (each source record is checked) or "exact"
-(also, a destination key that is not in the source is a destination-only record,
-a Mismatch only when destination coverage is sufficient).
+(also, a destination key that is not in the source is a destination-only record).
+A destination-only row exists, so it needs no destination premise; it is a Mismatch
+only when the source population is known, because otherwise the key could belong
+to a source row that was not supplied.
 
 Rows are consumed once, source first. The source rows are indexed, and each
 destination row is folded into the entry for its key as it is read, so no
@@ -90,9 +93,12 @@ def _normalize(rule, value):
     if rule == "digits":
         return "".join(c for c in value if "0" <= c <= "9")
     try:
-        return datetime.strptime(value, rule[5:]).isoformat()
+        parsed = datetime.strptime(value, rule[5:])
     except ValueError:
         return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc)
+    return parsed.isoformat()
 
 
 def _compare(expected, actual, rule="exact"):
@@ -269,7 +275,7 @@ class _Evaluation:
                   "premises": self._premises()}
         extra_mismatch = False
         if self.scope == "exact":
-            only = self._destination_only()
+            only = self._destination_only(population_known)
             result["destination_only"] = only
             result["destination_only_counts"] = {name: sum(r["state"] == name for r in only) for name in STATES}
             extra_mismatch = result["destination_only_counts"]["Mismatch"] > 0
@@ -292,12 +298,12 @@ class _Evaluation:
                                   "matched": self.destination_count_matches},
         }
 
-    def _destination_only(self):
-        if self.coverage:
-            state, reason = "Mismatch", "key not in the source, and destination coverage is sufficient"
+    def _destination_only(self, population_known):
+        if population_known:
+            state, reason = "Mismatch", "key not in the source, and the source population is known"
         else:
             state = "Unverified"
-            reason = "key not in the source; destination coverage not established, so no conclusion"
+            reason = "key not in the source; source population unknown, so no conclusion"
         return [{"key": key, "destination_row": number, "rows": rows, "state": state, "reason": reason}
                 for key, (number, rows) in self.destination_only.items()]
 

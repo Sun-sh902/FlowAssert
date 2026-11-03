@@ -939,28 +939,45 @@ def test_evaluator_counts_rows_and_refuses_a_bad_count():
 # --- v0.2.0: --scope exact ---------------------------------------------------------------------
 
 SCOPED = ('k,p\n1,a\n2,b\n', 'p,k\na,1\nb,2\nz,9\nz,9\ny,8\n')
-ONLY_REASON_COVERED = 'key not in the source, and destination coverage is sufficient'
-ONLY_REASON_OPEN = 'key not in the source; destination coverage not established, so no conclusion'
+ONLY_REASON_KNOWN = 'key not in the source, and the source population is known'
+ONLY_REASON_OPEN = 'key not in the source; source population unknown, so no conclusion'
 
 
-def test_exact_scope_with_coverage_makes_destination_only_records_a_mismatch(tmp_path, capsys):
+def test_exact_scope_with_a_known_source_makes_destination_only_records_a_mismatch(tmp_path, capsys):
     code, out, _, report = check(tmp_path, capsys, *SCOPED, *COUNTED_ARGS, '--scope', 'exact')
     assert code == 1 and report['cohort_state'] == 'Mismatch'
     assert [r['state'] for r in report['records']] == ['Verified', 'Verified']
     assert report['counts']['Mismatch'] == 0 and report['obligation']['scope'] == 'exact'
     assert report['destination_only'] == [
-        {'key': '9', 'destination_row': 2, 'rows': 2, 'state': 'Mismatch', 'reason': ONLY_REASON_COVERED},
-        {'key': '8', 'destination_row': 4, 'rows': 1, 'state': 'Mismatch', 'reason': ONLY_REASON_COVERED}]
+        {'key': '9', 'destination_row': 2, 'rows': 2, 'state': 'Mismatch', 'reason': ONLY_REASON_KNOWN},
+        {'key': '8', 'destination_row': 4, 'rows': 1, 'state': 'Mismatch', 'reason': ONLY_REASON_KNOWN}]
     assert report['destination_only_counts'] == {'Verified': 0, 'Mismatch': 2, 'Pending': 0, 'Unverified': 0}
     assert 'Destination-only: 2 records not in the source, each a Mismatch.' in out.splitlines()
 
 
-def test_exact_scope_without_coverage_lists_destination_only_records_without_a_conclusion(tmp_path, capsys):
-    code_source, _, _, source_scope = check(tmp_path, capsys, *SCOPED, '--key', 'k', '--field', 'p', '--source-complete')
+def test_exact_scope_needs_no_destination_premise_for_a_destination_only_mismatch(tmp_path, capsys):
+    # The destination row exists; only the source must be known to lack its key.
     code, out, _, report = check(tmp_path, capsys, *SCOPED, '--key', 'k', '--field', 'p', '--source-complete',
                                  '--scope', 'exact')
+    assert code == 1 and report['cohort_state'] == 'Mismatch'
+    assert report['destination_coverage_sufficient'] is False
+    assert [r['state'] for r in report['records']] == ['Unverified', 'Unverified']
+    assert {(r['state'], r['reason']) for r in report['destination_only']} == {('Mismatch', ONLY_REASON_KNOWN)}
+    assert 'Destination-only: 2 records not in the source, each a Mismatch.' in out.splitlines()
+
+
+@pytest.mark.parametrize('premises', [
+    ('--destination-complete',),
+    ('--source-complete', '--destination-complete', '--source-count', '3'),
+])
+def test_exact_scope_without_a_known_source_lists_destination_only_records_without_a_conclusion(
+        tmp_path, capsys, premises):
+    # A key missing from a partial source could belong to a source row that was not supplied.
+    args = ('--key', 'k', '--field', 'p') + premises
+    code_source, _, _, source_scope = check(tmp_path, capsys, *SCOPED, *args)
+    code, out, _, report = check(tmp_path, capsys, *SCOPED, *args, '--scope', 'exact')
     assert code == code_source == 3 and report['cohort_state'] == source_scope['cohort_state'] == 'Unverified'
-    assert report['counts'] == source_scope['counts']
+    assert report['counts'] == source_scope['counts'] and report['source_population_known'] is False
     assert [(r['key'], r['state'], r['reason']) for r in report['destination_only']] == [
         ('9', 'Unverified', ONLY_REASON_OPEN), ('8', 'Unverified', ONLY_REASON_OPEN)]
     assert report['destination_only_counts']['Unverified'] == 2
@@ -975,7 +992,7 @@ def test_exact_scope_never_counts_rows_without_a_key(tmp_path, capsys):
     assert 'Destination-only: 0 records not in the source.' in out.splitlines()
     code, out, _, report = check(tmp_path, capsys, 'k,p\n1,a\n', 'p,k\na,1\nz,\ny,8\n', *COUNTED_ARGS,
                                  '--scope', 'exact')
-    assert code == 3 and [(r['key'], r['state']) for r in report['destination_only']] == [('8', 'Unverified')]
+    assert code == 1 and [(r['key'], r['state']) for r in report['destination_only']] == [('8', 'Mismatch')]
 
 
 def test_exact_scope_with_no_destination_only_record_can_verify(tmp_path, capsys):
@@ -984,10 +1001,11 @@ def test_exact_scope_with_no_destination_only_record_can_verify(tmp_path, capsys
     assert 'Destination-only: 0 records not in the source.' in out.splitlines()
 
 
-def test_exact_scope_with_a_destination_count_mismatch_draws_no_conclusion(tmp_path, capsys):
+def test_exact_scope_with_a_destination_count_mismatch_still_reports_destination_only_mismatches(tmp_path, capsys):
     code, _, _, report = check(tmp_path, capsys, *SCOPED, *COUNTED_ARGS, '--scope', 'exact',
                                '--destination-count', '4')
-    assert code == 3 and {r['state'] for r in report['destination_only']} == {'Unverified'}
+    assert code == 1 and report['destination_coverage_sufficient'] is False
+    assert {r['state'] for r in report['destination_only']} == {'Mismatch'}
 
 
 def test_a_key_repeated_in_the_source_is_not_destination_only(tmp_path, capsys):
@@ -1060,6 +1078,13 @@ COHORT_FOR = {'pass': 'Verified', 'fail': 'Mismatch', 'unknown': 'Unverified'}
      ('2026-01-02T10:00:00', '2026-01-02T10:00:00')),
     ('date:%d/%m/%Y %H:%M', '02/01/2026 10:00', '02/01/2026 11:00', 'fail',
      ('2026-01-02T10:00:00', '2026-01-02T11:00:00')),
+    # A value with a UTC offset is compared as an instant.
+    ('date:%Y-%m-%d %H:%M %z', '2026-01-02 01:00 +0100', '2026-01-02 00:00 +0000', 'pass',
+     ('2026-01-02T00:00:00+00:00', '2026-01-02T00:00:00+00:00')),
+    ('date:%Y-%m-%d %H:%M %z', '2026-01-02 00:00 +0100', '2026-01-02 00:00 +0000', 'fail',
+     ('2026-01-01T23:00:00+00:00', '2026-01-02T00:00:00+00:00')),
+    ('date:%Y-%m-%dT%H:%M:%S%z', '2026-01-02T08:00:00+08:00', '2026-01-02T00:00:00Z', 'pass',
+     ('2026-01-02T00:00:00+00:00', '2026-01-02T00:00:00+00:00')),
 ])
 def test_each_rule_passes_fails_or_stays_unknown(rule, expected, actual, status, normalized):
     result, cohort = rule_result(rule, expected, actual)
@@ -1405,7 +1430,8 @@ def test_conformance_covers_every_v020_behavior():
     for rule in ('trim', 'casefold', 'digits', 'date'):
         assert {f'rule-{rule}-pass', f'rule-{rule}-fail', f'rule-{rule}-unknown'} <= names
     assert {'source-count-mismatch', 'destination-count-mismatch', 'counts-match',
-            'scope-exact-covered', 'scope-exact-not-covered', 'scope-exact-keyless-destination-row'} <= names
+            'scope-exact-covered', 'scope-exact-not-covered', 'scope-exact-keyless-destination-row',
+            'scope-exact-source-not-complete', 'rule-date-offset-pass'} <= names
 
 
 def test_conformance_cases_use_only_documented_inputs():

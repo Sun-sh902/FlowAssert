@@ -365,7 +365,7 @@ def summary(report, max_details=MAX_DETAILS):
         n = len(report["destination_only"])
         if not n:
             yield "Destination-only: 0 records not in the source."
-        elif report["destination_coverage_sufficient"]:
+        elif report["source_population_known"]:
             yield f"Destination-only: {n} records not in the source, each a Mismatch."
         else:
             yield f"Destination-only: {n} records not in the source, listed without a conclusion."

@@ -87,7 +87,7 @@ Comparison is exact by default: spaces, case and phone formats count as differen
 | `trim` | After removing leading and trailing whitespace |
 | `casefold` | After Unicode case folding |
 | `digits` | Only the digits 0–9. A value without any is Unverified, not a match |
-| `date:FORMAT` | Both values parsed with Python's `datetime.strptime` and `FORMAT`, then compared. A value that does not parse is Unverified, not a Mismatch |
+| `date:FORMAT` | Both values parsed with Python's `datetime.strptime` and `FORMAT`, then compared. A value with a UTC offset (`%z`) is compared as an instant in UTC. Parsing is lenient about leading zeros, so `2026-1-2` matches `2026-01-02` under `%Y-%m-%d`. A value that does not parse is Unverified, not a Mismatch |
 
 Rules are never inferred. An empty value is Unverified under every rule. For a rule other than `exact`, the report records the rule, both raw values and both normalized values. The configuration file cannot state completeness or counts, so they are chosen at each run. It is refused if it has any other member, a duplicate member, an unknown rule, a malformed date format or a repeated source field. Its SHA-256 is recorded in `inputs`.
 
@@ -102,7 +102,7 @@ Rules are never inferred. An empty value is Unverified under every rule. For a r
 | Empty value, value without digits for `digits`, value that does not parse for `date:` | Unverified |
 | Duplicate or empty source key | Unverified |
 
-With `--scope exact`, each destination key that is not in the source is a destination-only record, reported in its own list with its own counts. When destination coverage is sufficient (`--destination-complete`, no rows without a key, and a matching `--destination-count` if stated), each one is a Mismatch and so is the batch. Otherwise they are listed without a conclusion and do not change the result. A destination row without a key is never destination-only.
+With `--scope exact`, each destination key that is not in the source is a destination-only record, reported in its own list with its own counts. When the source population is known (`--source-complete`, every source key present and unique, and a matching `--source-count` if stated), each one is a Mismatch and so is the batch: the row exists, so no destination statement is needed. Otherwise the key could belong to a source row that was not supplied, so they are listed without a conclusion and do not change the result. A destination row without a key is never destination-only.
 
 A result is never Pending, because this tool has no waiting window.
 

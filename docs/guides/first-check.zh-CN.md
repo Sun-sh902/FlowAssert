@@ -200,7 +200,7 @@ Source count stated 120, file has 118 rows: the batch cannot be Verified.
 | `trim` | 去掉首尾空白后比较 |
 | `casefold` | 忽略大小写 |
 | `digits` | 只比较数字 0–9，所以 `+1 (212) 555-0101` 等于 `12125550101`。没有数字的值判为 `Unverified` |
-| `date:FORMAT` | 用 Python `strptime` 格式把两边都读成日期再比较。不符合格式的值判为 `Unverified` |
+| `date:FORMAT` | 用 Python `strptime` 格式把两边都读成日期再比较。格式里有 `%z` 时，换算成 UTC 时刻再比较。`%Y-%m-%d` 下 `2026-1-2` 与 `2026-01-02` 相同。不符合格式的值判为 `Unverified` |
 
 只有确定差异无关紧要时才选择规则：`digits` 会把 `555-0101` 和 `5550101` 当作同一个电话，`casefold` 会把 `Ada` 和 `ADA` 当作同一个名字。报告会记录每条规则，以及原值和比较时用的值。配置文件里不能写 `--source-complete`、`--destination-complete` 或总数，这些要在每次运行时声明。配置文件不能与 `--mapping`、`--key`、`--field` 或 `--scope` 同时使用。
 
@@ -208,8 +208,8 @@ Source count stated 120, file has 118 rows: the batch cannot be Verified.
 
 默认只检查来源中的记录。如果要求目标中不能有其他键，请加 `--scope exact`（或在配置文件里写 `"scope": "exact"`）。目标中有、来源中没有的键称为“只在目标中”的记录：
 
-- 加了 `--destination-complete`、目标中没有缺少键的行、并且填写的 `--destination-count`（如果填了）一致时，每条“只在目标中”的记录都是 `Mismatch`，整个批次也是。
-- 否则只列出这些记录，不下结论，也不改变结果。
+- 加了 `--source-complete`、来源的键都存在且不重复、并且填写的 `--source-count`（如果填了）一致时，每条“只在目标中”的记录都是 `Mismatch`，整个批次也是。这一行确实在目标中，所以这里不需要 `--destination-complete`。
+- 否则这个键可能属于你没有导出的来源记录，所以只列出这些记录，不下结论，也不改变结果。
 
 摘要会打印它们的数量，例如 `Destination-only: 2 records not in the source, each a Mismatch.`，报告会把它们和来源记录分开列出。
 

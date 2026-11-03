@@ -133,18 +133,18 @@ With `--details problems`, the default, a Verified record has only `key`, `sourc
 | `expected_normalized` | The source value as the rule compared it, or `null` when there was nothing to compare, such as a date that does not parse |
 | `actual_normalized` | The same for the destination value |
 
-A record is a Mismatch if any result fails, Verified if every result passes, and Unverified otherwise. An empty value is `unknown` under every rule. For `digits`, a value without the digits 0–9 is `unknown`; for `date:FORMAT`, a value that does not parse is `unknown`. A date is normalized as ISO 8601, such as `2026-01-02T00:00:00`.
+A record is a Mismatch if any result fails, Verified if every result passes, and Unverified otherwise. An empty value is `unknown` under every rule. For `digits`, a value without the digits 0–9 is `unknown`; for `date:FORMAT`, a value that does not parse is `unknown`, and a value with a UTC offset is normalized to UTC. A date is normalized as ISO 8601, such as `2026-01-02T00:00:00`.
 
 ## Destination-only records
 
-With scope `exact`, each destination key that is not in the source becomes one entry of `destination_only`, in the order of its first destination row. Destination rows without a key are never destination-only; they already make coverage insufficient. These entries are never in `records`.
+With scope `exact`, each destination key that is not in the source becomes one entry of `destination_only`, in the order of its first destination row. Destination rows without a key are never destination-only. These entries are never in `records`.
 
 | Member | Meaning |
 | --- | --- |
 | `key` | The destination key |
 | `destination_row` | Position of the first destination data row with this key, starting at 0 |
 | `rows` | Number of destination rows with this key |
-| `state` | `Mismatch` when destination coverage is sufficient. Otherwise `Unverified`: listed, with no conclusion |
+| `state` | `Mismatch` when `source_population_known` is true. Otherwise `Unverified`: listed, with no conclusion, because the key could belong to a source row that was not supplied. Destination coverage plays no part: the row exists |
 | `reason` | Why, in words |
 
 A destination-only Mismatch makes `cohort_state` a Mismatch. An Unverified destination-only record does not change `cohort_state`.

@@ -1,0 +1,23 @@
+{
+  "name": "rule-date-offset-pass",
+  "description": "Rule date:%Y-%m-%d %H:%M %z: values with different UTC offsets that name the same instant are compared in UTC and match.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["signed_at", "signed_at", "date:%Y-%m-%d %H:%M %z"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "signed_at": "2026-01-02 09:00 +0800"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "signed_at": "2026-01-02 01:00 +0000"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified"],
+    "expected_total": 1
+  }
+}
