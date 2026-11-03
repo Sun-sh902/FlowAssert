@@ -786,3 +786,43 @@ def test_a_decoding_error_is_refused_naming_file_and_encoding(tmp_path, capsys, 
 def test_an_unsupported_encoding_is_refused(tmp_path, capsys, option, name):
     code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--key', 'k', '--field', 'p', option, name))
     assert code == 2 and f'{option} must be one of: utf-8, utf-16, gb18030' in err
+
+
+# --- v0.2.0: stated premises in the report ------------------------------------------------------
+
+def test_report_lists_each_stated_premise_with_its_origin(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--source-complete', '--json', str(out))) == 1
+    premises = json.loads(out.read_text())['premises']
+    assert premises['source_complete'] == {'stated': True, 'origin': 'command-line option'}
+    assert premises['destination_complete'] == {'stated': False, 'origin': 'command-line option'}
+    assert 'allow_identical_content' not in premises
+
+
+def test_allowing_identical_content_is_a_stated_premise(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, 'k,p\n1,x\n', 'k,p\n1,x\n', '--key', 'k', '--field', 'p',
+                               '--source-complete', '--destination-complete', '--allow-identical-content')
+    assert code == 0
+    assert report['premises']['allow_identical_content'] == {'stated': True, 'origin': 'command-line option'}
+
+
+def test_verified_claim_names_the_stated_premises(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, 'k,p\n1,x\n', 'p,k\nx,1\n', '--key', 'k', '--field', 'p',
+                               '--source-complete', '--destination-complete')
+    assert code == 0 and report['claim'] == (
+        'At this evaluation, under the stated premises, the supplied destination rows satisfy the rules '
+        'for the supplied source rows.')
+
+
+def test_report_keeps_every_v011_inputs_member(tmp_path, capsys):
+    out = tmp_path / 'report.json'
+    assert verify.main(cli('--source-complete', '--destination-complete', '--json', str(out))) == 1
+    expected = json.loads((FIXTURES / 'offline-v0.1.1-example-report.json').read_text())['inputs']
+    inputs = json.loads(out.read_text())['inputs']
+    assert {k: inputs[k] for k in expected} == expected
+
+
+def test_evaluator_reports_its_premises():
+    result = evaluator_v2.evaluate(KEY, [ROW], [ROW], source_complete='yes', destination_complete=True)
+    assert result['premises']['source_complete'] == {'stated': False}
+    assert result['premises']['destination_complete'] == {'stated': True}

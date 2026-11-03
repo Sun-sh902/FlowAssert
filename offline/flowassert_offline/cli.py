@@ -22,9 +22,11 @@ EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
 MAX_BYTES = 209_715_200
 MAX_ROWS = 1_000_000
 MAX_DETAILS = 50
-CLAIM = "At this evaluation, the supplied destination rows satisfy the rules for the supplied source rows."
+CLAIM = ("At this evaluation, under the stated premises, the supplied destination rows satisfy the rules "
+         "for the supplied source rows.")
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
           "whether the source is true, whether a record existed by a past deadline.")
+ORIGIN = "command-line option"
 # name: (Python codec, label). The utf-8 codec accepts an optional byte order mark.
 ENCODINGS = {"utf-8": ("utf-8-sig", "UTF-8"), "utf-16": ("utf-16", "UTF-16"), "gb18030": ("gb18030", "GB18030")}
 
@@ -239,6 +241,11 @@ def run(args):
         inputs["source_encoding"] = source_encoding
         inputs["destination_encoding"] = destination_encoding
     report["inputs"] = inputs
+    premises = report["premises"]
+    if args.allow_identical_content:
+        premises["allow_identical_content"] = {"stated": True}
+    for premise in premises.values():
+        premise["origin"] = ORIGIN
     report["obligation"] = {"type": "current_state", "key": list(key), "fields": [list(f) for f in fields],
                             "comparison": "exact-string"}
     report["claim"] = CLAIM if report["cohort_state"] == "Verified" else None

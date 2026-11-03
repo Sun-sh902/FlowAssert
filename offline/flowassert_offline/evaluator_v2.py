@@ -159,7 +159,8 @@ class _Evaluation:
                   "source_rows_observed": len(self.keys), "source_population_known": population_known,
                   "destination_coverage_sufficient": self.coverage, "destination_rows_without_key": self.keyless,
                   "workflow_execution": "Not assessed", "business_truth": "Not assessed",
-                  "existed_by_deadline": "Not assessed", "acquisition_authenticity": "not_authenticated"}
+                  "existed_by_deadline": "Not assessed", "acquisition_authenticity": "not_authenticated",
+                  "premises": self._premises()}
         if counts["Mismatch"]:
             cohort = "Mismatch"
         elif self.keys and population_known and counts["Verified"] == len(self.keys):
@@ -168,6 +169,12 @@ class _Evaluation:
             cohort = "Unverified"
         result["cohort_state"] = cohort
         return result
+
+    def _premises(self):
+        return {
+            "source_complete": {"stated": self.source_complete},
+            "destination_complete": {"stated": self.destination_complete},
+        }
 
     def record(self, position):
         key = self.keys[position]
