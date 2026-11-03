@@ -407,7 +407,8 @@ export function AppShell({ route, crumbs, children }: { route: Route; crumbs: Re
         Skip to content
       </a>
 
-      <aside inert={drawer} className="sticky top-0 hidden h-dvh flex-col gap-7 border-r border-line bg-[linear-gradient(180deg,var(--fa-canvas),var(--fa-surface-sunken))] px-[18px] pt-5 pb-4 lg:flex">
+      {/* The rail scrolls when the window is shorter than its contents, so its footer controls stay reachable. */}
+      <aside inert={drawer} className="sticky top-0 hidden h-dvh flex-col gap-7 overflow-y-auto border-r border-line bg-[linear-gradient(180deg,var(--fa-canvas),var(--fa-surface-sunken))] px-[18px] pt-5 pb-4 lg:flex">
         <Wordmark />
         <div className="flex-1">
           <NavList route={route} />

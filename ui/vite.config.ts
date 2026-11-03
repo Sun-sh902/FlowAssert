@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, searchForWorkspaceRoot, type Plugin } from "vite";
@@ -7,13 +8,16 @@ import { localApiGate } from "./server/localApiGate.ts";
 /**
  * GitHub Pages build (`vite build --mode pages`): a Content Security Policy in index.html that allows no connection
  * (connect-src 'none') and nothing from another origin — scripts, styles, fonts, images and the worker come from the
- * page's own folder; the one inline script (the theme, before first paint) is allowed by its hash.
+ * page's own folder; the one inline script (the theme, before first paint) is allowed by its hash. The tab icon is
+ * written into the page, because Chrome requests a linked icon again at every navigation.
  */
 function pagesContentSecurityPolicy(): Plugin {
   return {
     name: "flowassert-pages-csp",
     enforce: "post",
     transformIndexHtml(html) {
+      const icon = "data:image/svg+xml," + encodeURIComponent(readFileSync(new URL("./public/favicon.svg", import.meta.url), "utf-8").trim());
+      html = html.replace(/<link rel="icon" type="image\/svg\+xml" href="[^"]*" \/>/, `<link rel="icon" type="image/svg+xml" href="${icon}" />`);
       const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => `'sha256-${createHash("sha256").update(m[1]!).digest("base64")}'`);
       const policy = [
         "default-src 'none'",

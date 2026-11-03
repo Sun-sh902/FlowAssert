@@ -523,8 +523,11 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
         </>
       )}
 
-      <h3 className="serif mt-8 text-xl text-ink">Summary, as the command line prints it</h3>
-      <pre data-testid="summary" className="surface mt-2 max-h-96 overflow-auto rounded-md px-4 py-3 font-mono text-[12px] leading-[1.5] whitespace-pre-wrap text-ink">
+      <h3 id="summary-h" className="serif mt-8 text-xl text-ink">
+        Summary, as the command line prints it
+      </h3>
+      {/* Focusable, so a keyboard can scroll it where it is taller or wider than the screen. */}
+      <pre data-testid="summary" tabIndex={0} role="region" aria-labelledby="summary-h" className="surface mt-2 max-h-96 overflow-auto rounded-md px-4 py-3 font-mono text-[12px] leading-[1.5] whitespace-pre-wrap text-ink">
         {result.summary}
       </pre>
     </section>

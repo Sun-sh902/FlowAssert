@@ -4,6 +4,7 @@
   "files": {
    "src/test/access-states.test.tsx": 23,
    "src/test/archive-match.test.tsx": 4,
+   "src/test/check-page.test.tsx": 8,
    "src/test/comparison.test.ts": 12,
    "src/test/connections.test.tsx": 5,
    "src/test/contract-drift-mutations.test.ts": 79,
@@ -12,11 +13,11 @@
    "src/test/detail.test.tsx": 15,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/fix03.test.tsx": 21,
-   "src/test/i18n.test.tsx": 26,
    "src/test/fixture-identity.test.ts": 5,
    "src/test/fixtures.test.ts": 8,
    "src/test/frontend-audit.test.tsx": 4,
    "src/test/history-contract-drift.test.ts": 19,
+   "src/test/i18n.test.tsx": 26,
    "src/test/local-detail.test.tsx": 24,
    "src/test/local-provider.test.ts": 30,
    "src/test/local-validation.test.ts": 29,
@@ -24,8 +25,13 @@
    "src/test/lookup-contract-drift.test.ts": 19,
    "src/test/lookup-detail.test.tsx": 10,
    "src/test/lookup-gate.test.ts": 102,
+   "src/test/offline/conformance.test.ts": 39,
+   "src/test/offline/golden.test.ts": 139,
+   "src/test/offline/python-semantics.test.ts": 55,
+   "src/test/offline/random-parity.test.ts": 2,
    "src/test/overview.test.tsx": 10,
    "src/test/p3a-aud-002-validator.test.ts": 224,
+   "src/test/pages-build.test.tsx": 10,
    "src/test/phase3a-canonical.test.ts": 12,
    "src/test/phase3a-gate.test.ts": 130,
    "src/test/phase3a-history-decode.test.ts": 55,
@@ -123,6 +129,82 @@
     "passed": 1
    },
    "chrome › capture-lifecycle.spec.ts › settle waits for a read still in flight and captures it completely": {
+    "passed": 1
+   },
+   "chrome › check-large.spec.ts › two files of 1,000,000 rows are checked in the page, which stays responsive": {
+    "skipped": 1,
+    "reason": "set FA_LARGE=1 to check two files of 1,000,000 rows"
+   },
+   "chrome › check-pages.spec.ts › #/capture says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › #/local/history says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › #/local/verification-lookup?verification_id=SPEC-001 says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › #/local/verifications/SPEC-001 says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › #/overview says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › #/verifications says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › a Service page opened directly still requests nothing from a Service": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › the MOCK demo pages stay available": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › the Pages build has a Content Security Policy that allows no connection and nothing from elsewhere": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › the home page is the CSV check, and it runs under the policy without a request": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · dark · desktop · CSV check with a result": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · dark · phone · CSV check with a result": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · light · desktop · CSV check with a result": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · light · phone · CSV check with a result": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › cancelling a check shows no result": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › full check of the example files · en · desktop": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › full check of the example files · en · phone": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › full check of the example files · zh-CN · desktop": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › full check of the example files · zh-CN · phone": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › refusals › a configuration that states completeness is refused": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › refusals › a file in another encoding is refused, naming the file and the encoding": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › refusals › a malformed CSV is refused and no result is shown": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › reports for unsafe values are the golden files, byte for byte": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › the sample files download as offline/examples has them, from this page": {
     "passed": 1
    },
    "chrome › interactions.spec.ts › a simulated read announces loading, then the result, in a live region": {
@@ -381,6 +463,82 @@
     "passed": 1
    },
    "webkit › capture-lifecycle.spec.ts › settle waits for a read still in flight and captures it completely": {
+    "passed": 1
+   },
+   "webkit › check-large.spec.ts › two files of 1,000,000 rows are checked in the page, which stays responsive": {
+    "skipped": 1,
+    "reason": "set FA_LARGE=1 to check two files of 1,000,000 rows"
+   },
+   "webkit › check-pages.spec.ts › #/capture says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › #/local/history says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › #/local/verification-lookup?verification_id=SPEC-001 says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › #/local/verifications/SPEC-001 says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › #/overview says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › #/verifications says it works only locally and makes no request": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › a Service page opened directly still requests nothing from a Service": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › the MOCK demo pages stay available": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › the Pages build has a Content Security Policy that allows no connection and nothing from elsewhere": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › the home page is the CSV check, and it runs under the policy without a request": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · dark · desktop · CSV check with a result": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · dark · phone · CSV check with a result": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · light · desktop · CSV check with a result": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · light · phone · CSV check with a result": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › cancelling a check shows no result": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › full check of the example files · en · desktop": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › full check of the example files · en · phone": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › full check of the example files · zh-CN · desktop": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › full check of the example files · zh-CN · phone": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › refusals › a configuration that states completeness is refused": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › refusals › a file in another encoding is refused, naming the file and the encoding": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › refusals › a malformed CSV is refused and no result is shown": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › reports for unsafe values are the golden files, byte for byte": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › the sample files download as offline/examples has them, from this page": {
     "passed": 1
    },
    "webkit › interactions.spec.ts › a simulated read announces loading, then the result, in a live region": {

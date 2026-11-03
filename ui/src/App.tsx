@@ -40,7 +40,7 @@ function Crumbs({ route }: { route: Route }) {
     case "check":
       return (
         <>
-          <b className="font-semibold text-ink">CSV check</b>
+          <b className="font-semibold whitespace-nowrap text-ink">CSV check</b>
           <span className="truncate">in this browser · your files stay on this computer</span>
         </>
       );
