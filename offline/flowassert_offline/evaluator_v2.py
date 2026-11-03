@@ -17,6 +17,10 @@ A field that differs is a Mismatch either way, because a row that exists can
 disprove a rule on its own. Comparison is exact: no trimming, case folding, or
 other normalization. There is no waiting window, so a result is never Pending.
 
+The obligation's scope is "source" (each source record is checked) or "exact"
+(also, a destination key that is not in the source is a destination-only record,
+a Mismatch only when destination coverage is sufficient).
+
 Rows are consumed once, source first. The source rows are indexed, and each
 destination row is folded into the entry for its key as it is read, so no
 destination row is kept. Records are built when they are read from the result.
@@ -26,6 +30,7 @@ from collections.abc import Sequence
 
 VERSION = "v2-current-state-1"
 STATES = ("Verified", "Mismatch", "Pending", "Unverified")
+SCOPES = ("source", "exact")
 DETAILS = ("problems", "all")
 _STATE_CODE = {name: code for code, name in enumerate(STATES)}
 
@@ -110,6 +115,9 @@ class _Evaluation:
     def __init__(self, obligation, source_complete, destination_complete, source_count, destination_count):
         self.source_key, self.destination_key = obligation["key"]
         self.fields = obligation["fields"]
+        self.scope = obligation.get("scope", "source")
+        if self.scope not in SCOPES:
+            raise ValueError(f"scope must be one of {', '.join(SCOPES)}")
         self.source_complete = source_complete is True
         self.destination_complete = destination_complete is True
         self.source_count = _count("source_count", source_count)
@@ -121,6 +129,7 @@ class _Evaluation:
         self.invalid_source_keys = 0
         self.candidates = None   # per first position: destination rows carrying the key
         self.actual = {}    # first position -> destination values, only where they differ from the source
+        self.destination_only = {}   # key -> [first destination row, rows], only for scope "exact"
         self.destination_rows = 0
         self.keyless = 0
 
@@ -137,6 +146,7 @@ class _Evaluation:
     def add_destination(self, row):
         if self.candidates is None:
             self.candidates = array("q", bytes(8 * len(self.keys)))
+        number = self.destination_rows
         self.destination_rows += 1
         key = _key(row.get(self.destination_key))
         if key is None:
@@ -144,6 +154,9 @@ class _Evaluation:
             return
         position = self.first.get(key)
         if position is None:
+            if self.scope == "exact":
+                entry = self.destination_only.setdefault(key, [number, 0])
+                entry[1] += 1
             return
         self.candidates[position] += 1
         if key in self.repeated:
@@ -177,7 +190,13 @@ class _Evaluation:
                   "workflow_execution": "Not assessed", "business_truth": "Not assessed",
                   "existed_by_deadline": "Not assessed", "acquisition_authenticity": "not_authenticated",
                   "premises": self._premises()}
-        if counts["Mismatch"]:
+        extra_mismatch = False
+        if self.scope == "exact":
+            only = self._destination_only()
+            result["destination_only"] = only
+            result["destination_only_counts"] = {name: sum(r["state"] == name for r in only) for name in STATES}
+            extra_mismatch = result["destination_only_counts"]["Mismatch"] > 0
+        if counts["Mismatch"] or extra_mismatch:
             cohort = "Mismatch"
         elif self.keys and population_known and counts["Verified"] == len(self.keys):
             cohort = "Verified"
@@ -195,6 +214,14 @@ class _Evaluation:
             "destination_count": {"stated": self.destination_count, "observed": self.destination_rows,
                                   "matched": self.destination_count_matches},
         }
+
+    def _destination_only(self):
+        if self.coverage:
+            state, reason = "Mismatch", "key not in the source, and destination coverage is sufficient"
+        else:
+            state, reason = "Unverified", "key not in the source; destination coverage not established, so no conclusion"
+        return [{"key": key, "destination_row": number, "rows": rows, "state": state, "reason": reason}
+                for key, (number, rows) in self.destination_only.items()]
 
     def record(self, position):
         key = self.keys[position]
@@ -229,8 +256,8 @@ class _Evaluation:
 
 def evaluate(obligation, source_rows, destination_rows, *, source_complete=False, destination_complete=False,
              source_count=None, destination_count=None, details="all"):
-    """`obligation` is {"key": (source, destination), "fields": [(source, destination), ...]}.
-    Rows are mappings, read once each, source rows first.
+    """`obligation` is {"key": (source, destination), "fields": [(source, destination), ...]},
+    with an optional "scope". Rows are mappings, read once each, source rows first.
 
     `details` "all" builds every record in full; "problems" keeps only key, source_row and state
     for a Verified record. The returned "records" is a read-only sequence."""

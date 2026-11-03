@@ -934,3 +934,92 @@ def test_evaluator_counts_rows_and_refuses_a_bad_count():
     for bad in (-1, True, 1.0, '1'):
         with pytest.raises(ValueError):
             evaluator_v2.evaluate(KEY, [ROW], [ROW], source_count=bad)
+
+
+# --- v0.2.0: --scope exact ---------------------------------------------------------------------
+
+SCOPED = ('k,p\n1,a\n2,b\n', 'p,k\na,1\nb,2\nz,9\nz,9\ny,8\n')
+ONLY_REASON_COVERED = 'key not in the source, and destination coverage is sufficient'
+ONLY_REASON_OPEN = 'key not in the source; destination coverage not established, so no conclusion'
+
+
+def test_exact_scope_with_coverage_makes_destination_only_records_a_mismatch(tmp_path, capsys):
+    code, out, _, report = check(tmp_path, capsys, *SCOPED, *COUNTED_ARGS, '--scope', 'exact')
+    assert code == 1 and report['cohort_state'] == 'Mismatch'
+    assert [r['state'] for r in report['records']] == ['Verified', 'Verified']
+    assert report['counts']['Mismatch'] == 0 and report['obligation']['scope'] == 'exact'
+    assert report['destination_only'] == [
+        {'key': '9', 'destination_row': 2, 'rows': 2, 'state': 'Mismatch', 'reason': ONLY_REASON_COVERED},
+        {'key': '8', 'destination_row': 4, 'rows': 1, 'state': 'Mismatch', 'reason': ONLY_REASON_COVERED}]
+    assert report['destination_only_counts'] == {'Verified': 0, 'Mismatch': 2, 'Pending': 0, 'Unverified': 0}
+    assert 'Destination-only: 2 records not in the source, each a Mismatch.' in out.splitlines()
+
+
+def test_exact_scope_without_coverage_lists_destination_only_records_without_a_conclusion(tmp_path, capsys):
+    code_source, _, _, source_scope = check(tmp_path, capsys, *SCOPED, '--key', 'k', '--field', 'p', '--source-complete')
+    code, out, _, report = check(tmp_path, capsys, *SCOPED, '--key', 'k', '--field', 'p', '--source-complete',
+                                 '--scope', 'exact')
+    assert code == code_source == 3 and report['cohort_state'] == source_scope['cohort_state'] == 'Unverified'
+    assert report['counts'] == source_scope['counts']
+    assert [(r['key'], r['state'], r['reason']) for r in report['destination_only']] == [
+        ('9', 'Unverified', ONLY_REASON_OPEN), ('8', 'Unverified', ONLY_REASON_OPEN)]
+    assert report['destination_only_counts']['Unverified'] == 2
+    assert 'Destination-only: 2 records not in the source, listed without a conclusion.' in out.splitlines()
+
+
+def test_exact_scope_never_counts_rows_without_a_key(tmp_path, capsys):
+    code, out, _, report = check(tmp_path, capsys, 'k,p\n1,a\n', 'p,k\na,1\nz,\nw, \n', *COUNTED_ARGS,
+                                 '--scope', 'exact')
+    assert code == 3 and report['destination_only'] == [] and report['destination_rows_without_key'] == 2
+    assert report['destination_coverage_sufficient'] is False
+    assert 'Destination-only: 0 records not in the source.' in out.splitlines()
+    code, out, _, report = check(tmp_path, capsys, 'k,p\n1,a\n', 'p,k\na,1\nz,\ny,8\n', *COUNTED_ARGS,
+                                 '--scope', 'exact')
+    assert code == 3 and [(r['key'], r['state']) for r in report['destination_only']] == [('8', 'Unverified')]
+
+
+def test_exact_scope_with_no_destination_only_record_can_verify(tmp_path, capsys):
+    code, out, _, report = check(tmp_path, capsys, *COUNTED, *COUNTED_ARGS, '--scope', 'exact')
+    assert code == 0 and report['cohort_state'] == 'Verified' and report['destination_only'] == []
+    assert 'Destination-only: 0 records not in the source.' in out.splitlines()
+
+
+def test_exact_scope_with_a_destination_count_mismatch_draws_no_conclusion(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, *SCOPED, *COUNTED_ARGS, '--scope', 'exact',
+                               '--destination-count', '4')
+    assert code == 3 and {r['state'] for r in report['destination_only']} == {'Unverified'}
+
+
+def test_a_key_repeated_in_the_source_is_not_destination_only(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, 'k,p\n1,a\n1,a\n', 'p,k\na,1\n', *COUNTED_ARGS, '--scope', 'exact')
+    assert code == 3 and report['destination_only'] == []
+
+
+def test_source_scope_is_the_default_and_reports_no_destination_only_records(tmp_path, capsys):
+    code_default, out_default, _, default = check(tmp_path, capsys, *SCOPED, *COUNTED_ARGS)
+    code, out, _, report = check(tmp_path, capsys, *SCOPED, *COUNTED_ARGS, '--scope', 'source')
+    assert code == code_default == 0 and out == out_default and 'Destination-only' not in out
+    assert 'destination_only' not in report and 'destination_only_counts' not in report
+    assert report['obligation']['scope'] == 'source' and 'scope' not in default['obligation']
+
+
+@pytest.mark.parametrize('value', ['both', 'EXACT', 'Source', ''])
+def test_an_unknown_scope_is_refused(tmp_path, capsys, value):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--key', 'k', '--field', 'p', '--scope', value))
+    assert code == 2 and '--scope must be one of: source, exact' in err
+
+
+def test_redaction_hides_destination_only_keys(tmp_path, capsys):
+    code, out, _, report = check(tmp_path, capsys, *SCOPED, *COUNTED_ARGS, '--scope', 'exact', '--redact-values')
+    assert code == 1 and [r['key'] for r in report['destination_only']] == ['[redacted]', '[redacted]']
+    assert '"9"' not in (tmp_path / 'report.json').read_text()
+
+
+def test_evaluator_scope():
+    exact = dict(KEY, scope='exact')
+    result = evaluator_v2.evaluate(exact, [ROW], [ROW, {'key': 'K2', 'phone': '1'}], **COMPLETE)
+    assert states(result) == ('Mismatch', ['Verified']) and len(result['records']) == 1
+    assert [r['key'] for r in result['destination_only']] == ['K2']
+    assert 'destination_only' not in evaluator_v2.evaluate(KEY, [ROW], [ROW], **COMPLETE)
+    with pytest.raises(ValueError):
+        evaluator_v2.evaluate(dict(KEY, scope='both'), [ROW], [ROW])

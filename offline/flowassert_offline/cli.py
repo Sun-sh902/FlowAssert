@@ -16,7 +16,7 @@ import os
 import sys
 
 from . import __version__
-from .evaluator_v2 import DETAILS, evaluate
+from .evaluator_v2 import DETAILS, SCOPES, evaluate
 
 EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
 MAX_BYTES = 209_715_200
@@ -201,6 +201,7 @@ def run(args):
     details = _choice("--details", args.details, DETAILS, "problems")
     source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
     destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
+    scope = _choice("--scope", args.scope, SCOPES, None)
     if args.mapping is not None:
         if args.key is not None or args.field:
             raise Refused("--mapping cannot be combined with --key or --field")
@@ -222,7 +223,8 @@ def run(args):
     source = CsvFile(args.source, [key[0]] + [s for s, _ in fields], encoding=source_encoding, max_rows=max_rows)
     destination = CsvFile(args.destination, [key[1]] + [d for _, d in fields],
                           encoding=destination_encoding, max_rows=max_rows)
-    report = evaluate({"key": key, "fields": fields}, source, destination, source_complete=args.source_complete,
+    obligation = {"key": key, "fields": fields, "scope": scope or "source"}
+    report = evaluate(obligation, source, destination, source_complete=args.source_complete,
                       destination_complete=args.destination_complete, details=details, **counts)
     identical = source.sha256 == destination.sha256
     if identical and not args.allow_identical_content:
@@ -251,10 +253,14 @@ def run(args):
         premise["origin"] = ORIGIN
     report["obligation"] = {"type": "current_state", "key": list(key), "fields": [list(f) for f in fields],
                             "comparison": "exact-string"}
+    if scope is not None:
+        report["obligation"]["scope"] = scope
     report["claim"] = CLAIM if report["cohort_state"] == "Verified" else None
     report["limitations"] = LIMITS
     if args.redact_values:
         report["records"] = report["records"].redacted()
+        for record in report.get("destination_only", []):
+            record["key"] = "[redacted]"
     return report
 
 
@@ -275,6 +281,14 @@ def summary(report, max_details=MAX_DETAILS):
         yield "Source population unknown: the batch cannot be Verified."
     if not report["destination_coverage_sufficient"]:
         yield "Destination coverage not established: absence and uniqueness stay unknown."
+    if "destination_only" in report:
+        n = len(report["destination_only"])
+        if not n:
+            yield "Destination-only: 0 records not in the source."
+        elif report["destination_coverage_sufficient"]:
+            yield f"Destination-only: {n} records not in the source, each a Mismatch."
+        else:
+            yield f"Destination-only: {n} records not in the source, listed without a conclusion."
     shown = 0
     omitted = 0
     for record in report["records"].problems():
@@ -346,6 +360,7 @@ def main(argv=None):
     parser.add_argument("--key", help="source column, or source:destination")
     parser.add_argument("--field", action="append", default=[], help="source column, or source:destination; repeatable")
     parser.add_argument("--mapping", metavar="FILE", help="UTF-8 JSON file with key and fields column pairs")
+    parser.add_argument("--scope", metavar="SCOPE", help="source (default) or exact: also check destination-only keys")
     parser.add_argument("--source-complete", action="store_true", help="state that the source is the whole cohort")
     parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
     parser.add_argument("--source-count", metavar="N", help="state the source total seen in the original system")
