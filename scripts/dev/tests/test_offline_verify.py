@@ -704,3 +704,85 @@ def test_large_files_are_checked_in_one_pass(tmp_path, capsys):
     assert code == 1 and report['counts'] == {'Verified': n - 4, 'Mismatch': 4, 'Pending': 0, 'Unverified': 0}
     assert [r['source_row'] for r in report['records'] if r['state'] != 'Verified'] == [0, 5000, 10000, 15000]
     assert out.startswith(f'Mismatch: {n} rows of {n}\n')
+
+
+# --- v0.2.0: file encodings --------------------------------------------------------------------
+
+ENCODED_SOURCE = 'k,p\nK1,名字 Zoë\n'
+ENCODED_DESTINATION = 'p,k\n名字 Zoë,K1\n'
+
+
+def check_bytes(tmp_path, capsys, source, destination, *args):
+    (tmp_path / 's.csv').write_bytes(source)
+    (tmp_path / 'd.csv').write_bytes(destination)
+    out = tmp_path / 'report.json'
+    code = verify.main(['--source', str(tmp_path / 's.csv'), '--destination', str(tmp_path / 'd.csv'),
+                        '--key', 'k', '--field', 'p', '--source-complete', '--destination-complete',
+                        *args, '--json', str(out)])
+    printed = capsys.readouterr()
+    return code, printed.err, json.loads(out.read_text()) if out.exists() else None
+
+
+ENCODERS = {
+    'utf-8': lambda text: text.encode('utf-8'),
+    'utf-8 with BOM': lambda text: codecs.BOM_UTF8 + text.encode('utf-8'),
+    'utf-16': lambda text: text.encode('utf-16'),
+    'utf-16 little-endian': lambda text: codecs.BOM_UTF16_LE + text.encode('utf-16-le'),
+    'utf-16 big-endian': lambda text: codecs.BOM_UTF16_BE + text.encode('utf-16-be'),
+    'gb18030': lambda text: text.encode('gb18030'),
+}
+
+
+@pytest.mark.parametrize('form', sorted(ENCODERS))
+@pytest.mark.parametrize('side', ['source', 'destination'])
+def test_each_encoding_is_read_and_recorded(tmp_path, capsys, form, side):
+    encoding = form.split()[0]
+    if side == 'source':
+        data = ENCODERS[form](ENCODED_SOURCE)
+        files = (data, ENCODED_DESTINATION.encode('utf-8'))
+    else:
+        data = ENCODERS[form](ENCODED_DESTINATION)
+        files = (ENCODED_SOURCE.encode('utf-8'), data)
+    code, err, report = check_bytes(tmp_path, capsys, *files, f'--{side}-encoding', encoding)
+    assert (code, err) == (0, '')
+    expected = {'source_encoding': 'utf-8', 'destination_encoding': 'utf-8', f'{side}_encoding': encoding}
+    assert {k: report['inputs'][k] for k in expected} == expected
+    assert report['inputs'][f'{side}_sha256'] == hashlib.sha256(data).hexdigest()
+
+
+def test_both_files_may_use_different_encodings(tmp_path, capsys):
+    code, _, report = check_bytes(tmp_path, capsys, ENCODED_SOURCE.encode('gb18030'),
+                                  ENCODED_DESTINATION.encode('utf-16'),
+                                  '--source-encoding', 'gb18030', '--destination-encoding', 'utf-16')
+    assert code == 0
+    assert (report['inputs']['source_encoding'], report['inputs']['destination_encoding']) == ('gb18030', 'utf-16')
+
+
+def test_encodings_are_not_recorded_without_the_options(tmp_path, capsys):
+    code, _, report = check_bytes(tmp_path, capsys, ENCODED_SOURCE.encode('utf-8'), ENCODED_DESTINATION.encode('utf-8'))
+    assert code == 0 and 'source_encoding' not in report['inputs'] and 'destination_encoding' not in report['inputs']
+
+
+@pytest.mark.parametrize('encoding,data,label', [
+    ('utf-8', b'k,p\nK1,\xff\n', 'not UTF-8'),
+    ('utf-8', ENCODED_SOURCE.encode('gb18030'), 'not UTF-8'),
+    ('utf-16', 'k,p\nK1,x\n'.encode('utf-16-le'), 'not UTF-16 (no byte order mark)'),
+    ('utf-16', 'k,p\nK1,x\n'.encode('utf-16') + b'\x00', 'not UTF-16'),
+    ('utf-16', codecs.BOM_UTF16_LE + b'k\x00,\x00p\x00\n\x00K\x001\x00,\x00\x00\xd8\n\x00', 'not UTF-16'),
+    ('gb18030', b'k,p\nK1,\xff\n', 'not GB18030'),
+])
+@pytest.mark.parametrize('side', ['source', 'destination'])
+def test_a_decoding_error_is_refused_naming_file_and_encoding(tmp_path, capsys, encoding, data, label, side):
+    other = (ENCODED_DESTINATION if side == 'source' else ENCODED_SOURCE).encode('utf-8')
+    files = (data, other) if side == 'source' else (other, data)
+    code, err, report = check_bytes(tmp_path, capsys, *files, f'--{side}-encoding', encoding)
+    assert code == 2 and report is None
+    assert err.startswith('refused:') and str(tmp_path / ('s.csv' if side == 'source' else 'd.csv')) in err
+    assert label in err
+
+
+@pytest.mark.parametrize('option', ['--source-encoding', '--destination-encoding'])
+@pytest.mark.parametrize('name', ['latin-1', 'UTF-8', 'utf8', 'utf-8-sig', 'utf-16-le', 'gbk', 'GB18030', ''])
+def test_an_unsupported_encoding_is_refused(tmp_path, capsys, option, name):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--key', 'k', '--field', 'p', option, name))
+    assert code == 2 and f'{option} must be one of: utf-8, utf-16, gb18030' in err

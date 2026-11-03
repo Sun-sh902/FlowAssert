@@ -25,6 +25,8 @@ MAX_DETAILS = 50
 CLAIM = "At this evaluation, the supplied destination rows satisfy the rules for the supplied source rows."
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
           "whether the source is true, whether a record existed by a past deadline.")
+# name: (Python codec, label). The utf-8 codec accepts an optional byte order mark.
+ENCODINGS = {"utf-8": ("utf-8-sig", "UTF-8"), "utf-16": ("utf-16", "UTF-16"), "gb18030": ("gb18030", "GB18030")}
 
 
 class Refused(Exception):
@@ -140,20 +142,22 @@ class CsvFile:
     selected columns only. A malformed or oversized file is refused rather than partly read;
     after a complete read, `sha256` and `rows` describe the whole file."""
 
-    def __init__(self, path, columns, max_rows=MAX_ROWS):
+    def __init__(self, path, columns, encoding="utf-8", max_rows=MAX_ROWS):
         self.path = path
         self.columns = list(dict.fromkeys(columns))
+        self.encoding = encoding
         self.max_rows = max_rows
         self.sha256 = None
         self.rows = None
 
     def __iter__(self):
         path = self.path
+        codec, label = ENCODINGS[self.encoding]
         digest = hashlib.sha256()
         count = 0
         try:
             with open(path, "rb") as raw_file:
-                with io.TextIOWrapper(_HashReader(raw_file, digest), encoding="utf-8-sig", newline="") as text_file:
+                with io.TextIOWrapper(_HashReader(raw_file, digest), encoding=codec, newline="") as text_file:
                     reader = csv.reader(text_file, strict=True)
                     header = next(reader, [])
                     if len(set(header)) != len(header):
@@ -176,8 +180,10 @@ class CsvFile:
                     digest.update(chunk)
         except OSError as e:
             raise Refused(f"{path}: {e.strerror}")
-        except UnicodeDecodeError:
-            raise Refused(f"{path}: not UTF-8")
+        except UnicodeError as e:
+            # Python 3.9 raises a plain UnicodeError here, later versions a UnicodeDecodeError.
+            hint = " (no byte order mark)" if "BOM" in str(e) else ""
+            raise Refused(f"{path}: not {label}{hint}")
         except csv.Error as e:
             raise Refused(f"{path}: {e}")
         self.rows = count
@@ -188,6 +194,8 @@ def run(args):
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
     details = _choice("--details", args.details, DETAILS, "problems")
+    source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
+    destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
     if args.mapping is not None:
         if args.key is not None or args.field:
             raise Refused("--mapping cannot be combined with --key or --field")
@@ -206,8 +214,9 @@ def run(args):
         raise Refused("source and destination are the same file, so the check would not be independent")
     _check_size(args.source, max_bytes)
     _check_size(args.destination, max_bytes)
-    source = CsvFile(args.source, [key[0]] + [s for s, _ in fields], max_rows=max_rows)
-    destination = CsvFile(args.destination, [key[1]] + [d for _, d in fields], max_rows=max_rows)
+    source = CsvFile(args.source, [key[0]] + [s for s, _ in fields], encoding=source_encoding, max_rows=max_rows)
+    destination = CsvFile(args.destination, [key[1]] + [d for _, d in fields],
+                          encoding=destination_encoding, max_rows=max_rows)
     report = evaluate({"key": key, "fields": fields}, source, destination, source_complete=args.source_complete,
                       destination_complete=args.destination_complete, details=details)
     identical = source.sha256 == destination.sha256
@@ -226,6 +235,9 @@ def run(args):
         inputs["identical_content_allowed"] = True
     if mapping_sha is not None:
         inputs["mapping_file_sha256"] = mapping_sha
+    if args.source_encoding is not None or args.destination_encoding is not None:
+        inputs["source_encoding"] = source_encoding
+        inputs["destination_encoding"] = destination_encoding
     report["inputs"] = inputs
     report["obligation"] = {"type": "current_state", "key": list(key), "fields": [list(f) for f in fields],
                             "comparison": "exact-string"}
@@ -322,6 +334,8 @@ def main(argv=None):
     parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
     parser.add_argument("--allow-identical-content", action="store_true",
                         help="continue when two distinct files have identical content")
+    parser.add_argument("--source-encoding", metavar="NAME", help="utf-8 (default), utf-16 or gb18030")
+    parser.add_argument("--destination-encoding", metavar="NAME", help="utf-8 (default), utf-16 or gb18030")
     parser.add_argument("--max-bytes", default=MAX_BYTES, metavar="N",
                         help=f"maximum bytes per file before reading (default: {MAX_BYTES})")
     parser.add_argument("--max-rows", default=MAX_ROWS, metavar="N",
