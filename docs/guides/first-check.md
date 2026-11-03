@@ -27,7 +27,7 @@ If you prefer not to install a package, run `python3 offline/verify.py` from the
 
 ## 2. Export two CSV files and choose a stable key
 
-Prepare two UTF-8 CSV files with header rows:
+Prepare two CSV files with header rows. UTF-8 is the default; section 5 shows how to read UTF-16 and GB18030 files:
 
 1. **Source CSV** — the records that should have arrived in the destination (for example, an export from your upstream table, form store, or order list).
 2. **Destination CSV** — a separate export of the records currently held in the destination system.
@@ -35,7 +35,7 @@ Prepare two UTF-8 CSV files with header rows:
 Keep the two files independent:
 
 - Do not compare a file against itself, or against a copy made from the same export. FlowAssert refuses paths that resolve to the same file, and refuses identical file contents unless you explicitly pass `--allow-identical-content` for two genuinely separate exports.
-- Check that each file is valid UTF-8 and that every row matches the header. FlowAssert refuses a malformed or oversized file as a whole rather than producing a partial verdict.
+- Check that each file decodes in its encoding and that every row matches the header. FlowAssert refuses a malformed or oversized file as a whole rather than producing a partial verdict.
 
 ### Choose a stable key
 
@@ -151,9 +151,78 @@ Check `$?` immediately after running `flowassert-verify`:
 
 Only exit status `0` means `Verified`. A scheduled check should distinguish `1` (data discrepancy), `3` (insufficient evidence), and `2` or `4` (check did not complete).
 
-## 5. What the result does not prove
+## 5. More options for real exports
 
-Even a `Verified` result (`0`) makes only a narrow statement: at the moment of evaluation, the supplied destination CSV satisfied exact string comparison on the selected columns for the supplied source CSV, under the completeness statements you passed.
+### Files that are not UTF-8
+
+Some exports, such as Excel's "Unicode Text" or files from Chinese systems, are UTF-16 or GB18030. Name the encoding of each file:
+
+```sh
+flowassert-verify ... --source-encoding utf-16 --destination-encoding gb18030
+```
+
+The accepted names are `utf-8` (the default, with or without a byte order mark), `utf-16` (with a byte order mark) and `gb18030`. FlowAssert never guesses: a file that does not decode in its stated encoding is refused, and the report records both encodings.
+
+### Cross-check the totals
+
+If the source or destination system shows how many records it holds, state those totals:
+
+```sh
+flowassert-verify ... --source-complete --destination-complete --source-count 120 --destination-count 118
+```
+
+FlowAssert compares each number with the data rows in the file. When one differs, that side cannot support a conclusion, and the summary says so:
+
+```text
+Source count stated 120, file has 118 rows: the batch cannot be Verified.
+```
+
+A destination total that differs leaves absence and uniqueness unknown, as if `--destination-complete` had not been passed. A total that matches is **not** proof of completeness: keep the completeness flags only when you know how each export was made. FlowAssert does not verify the totals either.
+
+### Comparison rules in a configuration file
+
+Comparison is exact unless you choose otherwise. When a destination reformats values, write a configuration file, for example `flowassert.json`, and pass `--config flowassert.json` instead of `--key` and `--field`:
+
+```json
+{
+  "key": ["external_id", "Record ID"],
+  "fields": [
+    {"source": "phone", "destination": "phone", "rule": "digits"},
+    {"source": "email", "destination": "hs_email", "rule": "casefold"},
+    {"source": "signed", "destination": "signed_on", "rule": "date:%Y-%m-%d"}
+  ]
+}
+```
+
+| Rule | Compares |
+| --- | --- |
+| `exact` | The values as they are. The default when a field has no `rule` |
+| `trim` | After removing leading and trailing whitespace |
+| `casefold` | Ignoring letter case |
+| `digits` | Only the digits 0–9, so `+1 (212) 555-0101` equals `12125550101`. A value without digits is `Unverified` |
+| `date:FORMAT` | Both values read as dates with a Python `strptime` format. A value that does not match the format is `Unverified` |
+
+Choose a rule only when you know the difference does not matter: `digits` treats `555-0101` and `5550101` as the same phone, and `casefold` treats `Ada` and `ADA` as the same name. The report records each rule with the raw and the compared values. A configuration file cannot contain `--source-complete`, `--destination-complete` or the counts; you state those at each run. It cannot be combined with `--mapping`, `--key`, `--field` or `--scope`.
+
+### Check for extra records in the destination
+
+By default FlowAssert checks only the records in the source. To require that the destination has no other keys, pass `--scope exact` (or set `"scope": "exact"` in the configuration file). A destination key that is not in the source is a destination-only record:
+
+- With `--destination-complete`, no destination row without a key, and a matching `--destination-count` if you gave one, each destination-only record is a `Mismatch`, and so is the batch.
+- Otherwise they are listed without a conclusion and do not change the result.
+
+The summary prints their number, for example `Destination-only: 2 records not in the source, each a Mismatch.`, and the reports list them separately from the source records.
+
+### Reports
+
+- `--json report.json` keeps every record. By default (`--details problems`) a `Verified` record keeps only its key, row and state, which keeps large reports small; `--details all` keeps every rule for every record. The format is described in [report-format.md](../report-format.md).
+- `--html report.html` writes one page for people who do not read JSON: the result, every premise you stated, the counts, the limitations, and every record that is not `Verified`. It has no scripts and loads nothing from the network.
+
+Neither option overwrites an existing file.
+
+## 6. What the result does not prove
+
+Even a `Verified` result (`0`) makes only a narrow statement: at the moment of evaluation, under the premises you stated, the supplied destination CSV satisfied the comparison rules (exact string comparison unless you chose others) on the selected columns for the supplied source CSV.
 
 It does **not** prove:
 

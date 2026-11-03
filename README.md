@@ -157,16 +157,24 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 
 | Option | Meaning |
 | --- | --- |
-| `--key COL[:COL]` | Stable record key. Required unless `--mapping` is used |
-| `--field COL[:COL]` | Field to compare. Repeatable; at least one is required unless `--mapping` is used |
-| `--mapping FILE` | UTF-8 JSON file with `key` and `fields` column pairs, including names containing `:` |
+| `--key COL[:COL]` | Stable record key. Required unless `--mapping` or `--config` is used |
+| `--field COL[:COL]` | Field to compare exactly. Repeatable; at least one is required unless `--mapping` or `--config` is used |
+| `--mapping FILE` | UTF-8 JSON file with `key` and `fields` column pairs, including names containing `:`. Always compares exactly |
+| `--config FILE` | UTF-8 JSON file with `key`, `fields` with a comparison rule each, and `scope`. Replaces `--mapping`, `--key`, `--field` and `--scope` |
+| `--scope source\|exact` | `source` (default): check each source record. `exact`: also report destination keys that are not in the source |
 | `--source-complete` | You state that the source file is the whole batch |
 | `--destination-complete` | You state that the export covers the whole object |
+| `--source-count N` | You state the source total seen in the original system; a different row count blocks Verified |
+| `--destination-count N` | You state the destination total seen in the original system; a different row count leaves absence and duplicates unknown |
 | `--allow-identical-content` | Continue when two distinct files have identical content, and record that in `inputs` |
+| `--source-encoding NAME` | `utf-8` (default), `utf-16` or `gb18030` |
+| `--destination-encoding NAME` | `utf-8` (default), `utf-16` or `gb18030` |
 | `--max-bytes N` | Refuse a file larger than `N` bytes before reading (default: `209715200`, 200 MiB) |
 | `--max-rows N` | Refuse a CSV with more than `N` rows while reading (default: `1000000`) |
 | `--max-details N` | Print at most `N` non-Verified records in the summary; `0` prints none (default: `50`) |
-| `--json PATH` | Write a full report with file digests. Refuses to overwrite a file |
+| `--json PATH` | Write a full report with file digests. Refuses to overwrite a file. [Format](docs/report-format.md) |
+| `--details problems\|all` | `problems` (default): Verified records in `--json` keep only key, row and state. `all`: every record in full |
+| `--html PATH` | Write a self-contained HTML report. Refuses to overwrite a file |
 | `--redact-values` | Leave keys and compared values out of the output |
 | `--version` | Show the version |
 
@@ -178,9 +186,9 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | 2 | Input refused, such as a malformed file or a missing column |
 | 4 | Internal failure; nothing was concluded |
 
-The two completeness flags matter. Without `--source-complete`, a batch cannot be Verified. Without `--destination-complete`, missing records and duplicates stay unknown. FlowAssert does not check these statements, so a wrong statement gives a wrong result.
+The two completeness flags matter. Without `--source-complete`, a batch cannot be Verified. Without `--destination-complete`, missing records and duplicates stay unknown. FlowAssert does not check these statements, so a wrong statement gives a wrong result. If you know the totals in the original systems, pass `--source-count` and `--destination-count` too: a total that differs from the file withdraws the matching statement. A matching total does not prove completeness.
 
-Comparison is exact: spaces, case and phone formatting count as differences. Empty cells are Unverified, because a CSV cannot show why a value is empty. Full details are in [offline/README.md](offline/README.md).
+Comparison is exact by default: spaces, case and phone formatting count as differences. A `--config` file can choose `trim`, `casefold`, `digits` or `date:FORMAT` for each field; rules are never inferred. Empty cells are Unverified, because a CSV cannot show why a value is empty. Full details are in [offline/README.md](offline/README.md).
 
 ## Quick start: run the Service and UI
 
@@ -550,6 +558,7 @@ Repository history was scanned for common key formats before publication, and no
 
 | Issue | Detail |
 | --- | --- |
+| Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness |
 | Evaluator status | The pinned version is labelled `Round03.5 research — unapproved` |
 | P3A-AUD-001 | A legacy path such as `/api/v1/verifications/x%2Fevidence` can address the wrong resource. Use the query routes for unusual IDs |
 | Archive seals | Unkeyed hashes. Anyone who can write the database can forge a consistent row |

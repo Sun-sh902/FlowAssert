@@ -168,16 +168,24 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 
 | 选项 | 含义 |
 | --- | --- |
-| `--key COL[:COL]` | 稳定的记录键，未使用 `--mapping` 时必填 |
-| `--field COL[:COL]` | 要比较的字段，可重复，未使用 `--mapping` 时至少一个 |
-| `--mapping FILE` | 指定 `key` 和 `fields` 列名对的 UTF-8 JSON 文件，支持含 `:` 的列名 |
+| `--key COL[:COL]` | 稳定的记录键，未使用 `--mapping` 或 `--config` 时必填 |
+| `--field COL[:COL]` | 要精确比较的字段，可重复，未使用 `--mapping` 或 `--config` 时至少一个 |
+| `--mapping FILE` | 指定 `key` 和 `fields` 列名对的 UTF-8 JSON 文件，支持含 `:` 的列名，始终精确比较 |
+| `--config FILE` | 指定 `key`、带比较规则的 `fields` 和 `scope` 的 UTF-8 JSON 配置文件，不能与 `--mapping`、`--key`、`--field`、`--scope` 同时使用 |
+| `--scope source\|exact` | `source`（默认）：逐条检查来源记录。`exact`：同时列出目标中有、来源中没有的键 |
 | `--source-complete` | 你声明来源文件就是整个批次 |
 | `--destination-complete` | 你声明导出文件覆盖了整个对象 |
+| `--source-count N` | 你声明在原系统里看到的来源总数；与文件行数不符时不能得到 Verified |
+| `--destination-count N` | 你声明在原系统里看到的目标总数；与文件行数不符时缺失和重复都只能是未知 |
 | `--allow-identical-content` | 两份不同文件的内容完全相同时允许继续，并在报告 `inputs` 中记录 |
+| `--source-encoding NAME` | `utf-8`（默认）、`utf-16` 或 `gb18030` |
+| `--destination-encoding NAME` | `utf-8`（默认）、`utf-16` 或 `gb18030` |
 | `--max-bytes N` | 读取前拒绝超过 `N` 字节的文件（默认 `209715200`，即 200 MiB） |
 | `--max-rows N` | 读取时拒绝超过 `N` 行的 CSV 文件（默认 `1000000`） |
 | `--max-details N` | 摘要中最多打印 `N` 条非 Verified 记录，`0` 表示不打印（默认 `50`） |
-| `--json PATH` | 写入含文件摘要的完整报告，不会覆盖已有文件 |
+| `--json PATH` | 写入含文件摘要的完整报告，不会覆盖已有文件。[格式说明（英文）](docs/report-format.md) |
+| `--details problems\|all` | `problems`（默认）：`--json` 中 Verified 记录只保留键、行号和状态。`all`：保留每条记录的全部明细 |
+| `--html PATH` | 写入一个独立的 HTML 报告，不会覆盖已有文件 |
 | `--redact-values` | 输出中不显示键和比较值 |
 | `--version` | 显示版本 |
 
@@ -189,9 +197,9 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | 2 | 输入被拒绝，例如文件格式错误或缺少列 |
 | 4 | 内部故障，没有得出任何结论 |
 
-这两个完整性选项很重要。不加 `--source-complete`，批次不可能是 Verified。不加 `--destination-complete`，缺失和重复都只能是未知。FlowAssert 不会核实这些声明，所以声明错了，结果也会错。
+这两个完整性选项很重要。不加 `--source-complete`，批次不可能是 Verified。不加 `--destination-complete`，缺失和重复都只能是未知。FlowAssert 不会核实这些声明，所以声明错了，结果也会错。如果知道原系统里的总数，再加上 `--source-count` 和 `--destination-count`：总数与文件不符时，对应的完整性声明不再成立。总数相符也不能证明文件完整。
 
-比较是精确的：空格、大小写和电话格式的差异都算不同。空单元格判为 Unverified，因为 CSV 无法说明它为什么是空的。详情见 [offline/README.md](offline/README.md)。
+默认是精确比较：空格、大小写和电话格式的差异都算不同。`--config` 配置文件可以为每个字段选择 `trim`、`casefold`、`digits` 或 `date:FORMAT`，规则不会自动推断。空单元格判为 Unverified，因为 CSV 无法说明它为什么是空的。详情见 [offline/README.md](offline/README.md)。
 
 ## 快速开始：运行 Service 和 UI
 
@@ -568,6 +576,7 @@ Service 是为本机单用户设计的。
 
 | 问题 | 详情 |
 | --- | --- |
+| 完整性声明 | 离线核对不会核实 `--source-complete` 和 `--destination-complete`，声明错了，结果也会错。`--source-count` 和 `--destination-count` 能发现一部分错误声明，但总数相符不能证明文件完整 |
 | Evaluator 状态 | 固定版本的标签是 `Round03.5 research — unapproved` |
 | P3A-AUD-001 | `/api/v1/verifications/x%2Fevidence` 这样的旧路径可能指向错误资源。特殊 ID 请使用查询路由 |
 | 归档封存值 | 使用无密钥哈希，能写数据库的人可以伪造一致的记录 |

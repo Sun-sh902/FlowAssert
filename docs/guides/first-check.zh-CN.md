@@ -27,7 +27,7 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 
 ## 2. 导出两个 CSV 文件并选择稳定的键
 
-准备两份带表头的 UTF-8 CSV 文件：
+准备两份带表头的 CSV 文件。默认按 UTF-8 读取；UTF-16 和 GB18030 文件的读法见第 5 节：
 
 1. **来源 CSV（`--source`）**：应该到达目标系统的记录（例如上游数据表、表单记录或订单列表的导出）。
 2. **目标 CSV（`--destination`）**：从目标系统独立导出的当前记录。
@@ -35,7 +35,7 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 保持两份文件彼此独立：
 
 - 不要拿同一份文件或同一次导出的副本自己核对自己。路径解析到同一文件时，FlowAssert 始终拒绝；两份文件内容完全相同时默认也会拒绝，只有当你确认它们确实来自两个独立系统时，才应传入 `--allow-identical-content`。
-- 确保文件是合法的 UTF-8 CSV，并且每一行都与表头列数一致。遇到格式错误或超出大小/行数上限的文件，FlowAssert 会整体拒绝，绝不给出残缺结论。
+- 确保文件能按它的编码正确解码，并且每一行都与表头列数一致。遇到格式错误或超出大小/行数上限的文件，FlowAssert 会整体拒绝，绝不给出残缺结论。
 
 ### 选择稳定的记录键（Key）
 
@@ -151,9 +151,78 @@ Files and completeness statements are not authenticated. Not assessed: whether a
 
 只有退出码 `0` 才代表 `Verified`。自动化任务应把 `1`（数据不一致）、`3`（证据不足）以及 `2`、`4`（核对未完成）明确区分开。
 
-## 5. 结果**不能**证明什么
+## 5. 处理真实导出文件的更多选项
 
-即使得到 `Verified`（退出码 `0`），它表达的结论也刻意收窄为：在本次评估时点，在你声明的完整性前提下，所提供的目标 CSV 在选定字段上满足针对所提供来源 CSV 的精确字符串比较规则。
+### 不是 UTF-8 的文件
+
+有些导出文件是 UTF-16 或 GB18030，例如 Excel 的“Unicode 文本”或一些国内系统的导出。请为每个文件指明编码：
+
+```sh
+flowassert-verify ... --source-encoding utf-16 --destination-encoding gb18030
+```
+
+可用的名称是 `utf-8`（默认，带不带 BOM 都可以）、`utf-16`（必须带 BOM）和 `gb18030`。FlowAssert 不会猜编码：文件无法按声明的编码解码时会被拒绝，报告会记录两份文件的编码。
+
+### 交叉核对总数
+
+如果来源系统或目标系统能显示记录总数，请把总数一起填上：
+
+```sh
+flowassert-verify ... --source-complete --destination-complete --source-count 120 --destination-count 118
+```
+
+FlowAssert 会把每个数字和文件里的数据行数比较。不一致时，这一侧不能支持结论，摘要会写明：
+
+```text
+Source count stated 120, file has 118 rows: the batch cannot be Verified.
+```
+
+目标总数不一致时，缺失和唯一性都只能是未知，效果和没加 `--destination-complete` 一样。总数一致**不能**证明文件完整：只有清楚每份文件是怎么导出的，才加完整性选项。FlowAssert 也不会核实你填的总数。
+
+### 在配置文件中选择比较规则
+
+除非你另行选择，比较都是精确的。如果目标系统会改写数值格式，可以写一个配置文件，例如 `flowassert.json`，然后用 `--config flowassert.json` 代替 `--key` 和 `--field`：
+
+```json
+{
+  "key": ["external_id", "Record ID"],
+  "fields": [
+    {"source": "phone", "destination": "phone", "rule": "digits"},
+    {"source": "email", "destination": "hs_email", "rule": "casefold"},
+    {"source": "signed", "destination": "signed_on", "rule": "date:%Y-%m-%d"}
+  ]
+}
+```
+
+| 规则 | 比较方式 |
+| --- | --- |
+| `exact` | 原样比较。字段没有写 `rule` 时的默认值 |
+| `trim` | 去掉首尾空白后比较 |
+| `casefold` | 忽略大小写 |
+| `digits` | 只比较数字 0–9，所以 `+1 (212) 555-0101` 等于 `12125550101`。没有数字的值判为 `Unverified` |
+| `date:FORMAT` | 用 Python `strptime` 格式把两边都读成日期再比较。不符合格式的值判为 `Unverified` |
+
+只有确定差异无关紧要时才选择规则：`digits` 会把 `555-0101` 和 `5550101` 当作同一个电话，`casefold` 会把 `Ada` 和 `ADA` 当作同一个名字。报告会记录每条规则，以及原值和比较时用的值。配置文件里不能写 `--source-complete`、`--destination-complete` 或总数，这些要在每次运行时声明。配置文件不能与 `--mapping`、`--key`、`--field` 或 `--scope` 同时使用。
+
+### 检查目标中多出的记录
+
+默认只检查来源中的记录。如果要求目标中不能有其他键，请加 `--scope exact`（或在配置文件里写 `"scope": "exact"`）。目标中有、来源中没有的键称为“只在目标中”的记录：
+
+- 加了 `--destination-complete`、目标中没有缺少键的行、并且填写的 `--destination-count`（如果填了）一致时，每条“只在目标中”的记录都是 `Mismatch`，整个批次也是。
+- 否则只列出这些记录，不下结论，也不改变结果。
+
+摘要会打印它们的数量，例如 `Destination-only: 2 records not in the source, each a Mismatch.`，报告会把它们和来源记录分开列出。
+
+### 报告
+
+- `--json report.json` 保留每一条记录。默认（`--details problems`）时，`Verified` 记录只保留键、行号和状态，大文件的报告因此更小；`--details all` 保留每条记录的全部规则明细。格式说明见 [report-format.md](../report-format.md)（英文）。
+- `--html report.html` 写一个给不看 JSON 的人看的页面：结果、你声明的每项前提、计数、局限，以及每条不是 `Verified` 的记录。页面没有脚本，不从网络加载任何内容。
+
+这两个选项都不会覆盖已有文件。
+
+## 6. 结果**不能**证明什么
+
+即使得到 `Verified`（退出码 `0`），它表达的结论也刻意收窄为：在本次评估时点，在你声明的前提下，所提供的目标 CSV 在选定字段上满足针对所提供来源 CSV 的比较规则（除非你另行选择，否则是精确字符串比较）。
 
 它**不能**证明：
 
