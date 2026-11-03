@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-11-03)
 
 The offline check in the browser. The command-line checker gives the same verdicts, summaries, reports and exit statuses as 0.2.0, except for the two date-rule fixes below. The Service, the frozen contracts, the pinned Evaluator v1 and the LOCAL_RESEARCH and MOCK pages are unchanged.
 
