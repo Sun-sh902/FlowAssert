@@ -6,6 +6,8 @@ This guide walks through installing `flowassert-verify`, preparing a source CSV 
 
 FlowAssert follows one rule throughout: **without enough evidence, never say Verified.**
 
+No terminal? The same check runs in your browser, and your files stay on your computer: see [section 7](#7-check-in-your-browser).
+
 ## 1. Install the command
 
 Python 3.11+ is supported; Python 3.9 and 3.10 are best-effort because macOS ships Python 3.9. Only the Python standard library is used, and the command makes no network requests.
@@ -231,3 +233,17 @@ It does **not** prove:
 - **File authenticity** — that either CSV genuinely came from the named system without alteration or export filtering.
 - **Absence of semantic duplicates** — that the destination has no duplicate person or order stored under a different key or an empty key outside the export.
 - **Historical timing or future state** — that a record arrived before a past deadline, or that the destination remained accurate after the export was taken.
+
+## 7. Check in your browser
+
+The **CSV check** page of the FlowAssert UI runs the same check without a terminal. The files are read in the browser and never uploaded: from choosing them to downloading the reports, the page makes no network request, and nothing you choose or state is stored.
+
+1. Open the page: the online demo at <https://sun-sh902.github.io/FlowAssert/> once it is published, or locally with `cd ui && npm ci && npm run dev` and <http://127.0.0.1:5183/#/check>. To try it first, press **Use the sample files**; they are the files in `offline/examples/`.
+2. **Files.** Choose the source file and the destination export, and the encoding of each (UTF-8 by default; see section 5). The page reads each header and shows how many columns it found, or why the file is refused.
+3. **Columns and rules.** Choose the key column in each file, then each compared field: its column in each file and its rule (section 5). Nothing is chosen for you; **Suggest: pair columns that have the same name** fills in pairs only when you press it. Choose the scope: `source`, or `exact` to also report destination keys that are not in the source. **Download configuration** saves these choices in the `--config` format; **Load configuration** reads one back, with the same checks as the command line.
+4. **What you state.** Tick *The source file is the whole batch* and *The destination export covers the whole object* only when they are true, exactly as for the two flags in section 3. Both start unticked. The two totals are optional and work like `--source-count` and `--destination-count`.
+5. Press **Check.** A progress bar shows the files being read; **Cancel** stops the check and shows no result.
+
+The result shows the batch state, the counts, every premise you stated with its origin `browser form`, the limitations, every record that is not Verified with its rule results, and the summary exactly as the command line prints it. **Download JSON report** and **Download HTML report** save the same reports as `--json` and `--html`. A refused check shows the refusal and no result.
+
+The page accepts only the date directives `%Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%`, uses the command line's default limits, and has no `--details all` or `--redact-values`. Section 6 applies to its results unchanged.

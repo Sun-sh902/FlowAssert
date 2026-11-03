@@ -20,6 +20,7 @@ License: [Apache 2.0](LICENSE)
 - [Screenshots](#screenshots)
 - [What is and is not here](#what-is-and-is-not-here)
 - [Quick start: compare two CSV files](#quick-start-compare-two-csv-files)
+- [Check in your browser](#check-in-your-browser)
 - [Quick start: run the Service and UI](#quick-start-run-the-service-and-ui)
 - [How verification works](#how-verification-works)
 - [Architecture](#architecture)
@@ -102,6 +103,7 @@ The workspace pages are checked across a 200-cell responsive matrix, in both the
 | Area | State |
 | --- | --- |
 | Offline CSV check (`offline/`) | Works on your own local files |
+| CSV check in the browser (`ui/`, `#/check`) | Works on your own local files; nothing is uploaded |
 | Pinned Evaluator with four result states | Works on the five synthetic cases |
 | Read-only HTTP Service | Works locally |
 | Append-only SQLite history archive | Works locally; only the reviewed cases can be archived |
@@ -189,6 +191,38 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 The two completeness flags matter. Without `--source-complete`, a batch cannot be Verified. Without `--destination-complete`, missing records and duplicates stay unknown. FlowAssert does not check these statements, so a wrong statement gives a wrong result. If you know the totals in the original systems, pass `--source-count` and `--destination-count` too: a total that differs from the file withdraws the matching statement. A matching total does not prove completeness.
 
 Comparison is exact by default: spaces, case and phone formatting count as differences. A `--config` file can choose `trim`, `casefold`, `digits` or `date:FORMAT` for each field; rules are never inferred. Empty cells are Unverified, because a CSV cannot show why a value is empty. Full details are in [offline/README.md](offline/README.md).
+
+## Check in your browser
+
+The same check runs in the web UI, for people who do not use a terminal: open the **CSV check** page, choose the two
+files, the key column, the fields and a rule for each, state what you know, and press Check. The result, the printed
+summary and the JSON and HTML reports are the command line's, byte for byte, except that each premise's origin is
+`browser form`.
+
+**Your files stay on your computer.** They are read in the browser, in a Web Worker, and nothing is uploaded: from
+choosing the files to downloading the reports, the page makes no network request. Nothing you choose or state is
+stored; you choose the files and state the premises again at every check. Only the column and rule choices can be
+saved, as a configuration file you download yourself.
+
+- **Online demo:** <https://sun-sh902.github.io/FlowAssert/>, once it is published. Its Content Security Policy
+  forbids every connection, and the pages that need the local Service say that they work only locally.
+- **Locally:** `cd ui && npm ci && npm run dev`, then open <http://127.0.0.1:5183/#/check>. Sample files are on the page.
+
+Differences from the command line:
+
+| | Browser | Command line |
+| --- | --- | --- |
+| Date formats | `%Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%` only; any other directive is refused as not supported in the browser | Every `strptime` directive |
+| Python version differences | Follows Python 3.15: `%d` needs a year directive, `%z` may be absent from a value | Depends on the Python running it |
+| A date format that repeats a directive | Refused | Exit status 4 (Python cannot compile it) |
+| Selection | Always a configuration: the report records `config_file_sha256`, `obligation.rules`, `obligation.scope` and both encodings | `--key`/`--field`, `--mapping` or `--config` |
+| Options | Default limits (200 MiB, 1,000,000 rows), `--details problems`, no redaction | Every option |
+| The same file twice | Refused when both choices have the same name, size, modification time and bytes; the browser does not reveal paths | Refused when the paths resolve to the same file |
+| Memory | Each file is held in memory while it is read | The source is kept for the used columns; the destination is streamed |
+
+The browser check is built from the same specification and is tested against the command line: every conformance case,
+87 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
+a difference would be a bug; please report one.
 
 ## Quick start: run the Service and UI
 
@@ -558,7 +592,8 @@ Repository history was scanned for common key formats before publication, and no
 
 | Issue | Detail |
 | --- | --- |
-| Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness |
+| Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness. The same holds for the two statements in the browser check |
+| Browser check | Supports fewer date directives than the command line, and follows Python 3.15 where Python versions differ. See [Check in your browser](#check-in-your-browser) |
 | Evaluator status | The pinned version is labelled `Round03.5 research — unapproved` |
 | P3A-AUD-001 | A legacy path such as `/api/v1/verifications/x%2Fevidence` can address the wrong resource. Use the query routes for unusual IDs |
 | Archive seals | Unkeyed hashes. Anyone who can write the database can forge a consistent row |

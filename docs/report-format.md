@@ -1,6 +1,8 @@
 # Report format
 
-`flowassert-verify --json PATH` writes one JSON object to a new file. This page describes `schema_version` 1, written by FlowAssert 0.2.0. `--html PATH` writes the same report as a single HTML page for people; it is described at the end.
+`flowassert-verify --json PATH` writes one JSON object to a new file. This page describes `schema_version` 1, written by FlowAssert 0.2.0 and later. `--html PATH` writes the same report as a single HTML page for people; it is described at the end.
+
+From 0.3.0 the CSV check page of the web UI writes the same two reports, byte for byte, from the same inputs; it runs as `--config` with both encodings stated. The only difference is the `origin` of each premise, `browser form` (see [`premises`](#premises)).
 
 The report never claims more than its evidence. A member that FlowAssert could not establish is `null`, `false` or `"unknown"`, never a guess.
 
@@ -76,7 +78,7 @@ Each entry has:
 | Member | Meaning |
 | --- | --- |
 | `stated` | What was stated: `true` or `false` for a flag, the number or `null` for a count |
-| `origin` | Where the statement came from. Always `command-line option` in this version; a configuration file cannot state premises |
+| `origin` | Where the statement came from: `command-line option` from `flowassert-verify`, or `browser form` from the CSV check page of the web UI (0.3.0 and later). A configuration file cannot state premises |
 | `observed` | Counts only: the number of data rows read from that file. Blank lines are not rows; rows without a key are |
 | `matched` | Counts only: whether `stated` equals `observed`, or `null` when no count was stated |
 

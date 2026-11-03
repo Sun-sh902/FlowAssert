@@ -40,6 +40,7 @@ build does not run this check — `src/test/fixtures.test.ts` does).
 
 | Page | Address | Data |
 | --- | --- | --- |
+| CSV check | `#/check` | The user's own two CSV files, read in this browser by a Web Worker; nothing is sent or stored |
 | Overview | `#/` | LOCAL_RESEARCH — live results and the archive |
 | Verifications | `#/verifications` (also `#/local/verifications`) | LOCAL_RESEARCH |
 | Verification Detail + evidence | `#/local/verifications/SPEC-00N` | LOCAL_RESEARCH, live read |
@@ -49,6 +50,15 @@ build does not run this check — `src/test/fixtures.test.ts` does).
 | Demo overview / runs | `#/demo`, `#/demo/verifications` | MOCK |
 | Connections, Rules, Settings | `#/connections`, `#/rules`, `#/settings` | MOCK configuration demo |
 | Interface states | `#/states` | simulated access states, never verdicts |
+
+The **CSV check** runs the offline checker of `../offline/` in the browser (`src/offline/`, a TypeScript port tested
+against the Python checker: conformance cases, `../offline/golden/` byte for byte, and random cases). Its JSON and HTML
+reports are the command line's, with each premise's origin `browser form`. See the [README](../README.md#check-in-your-browser).
+
+**GitHub Pages build:** `npm run build:pages` writes `dist-pages/`, which works from any folder (relative asset paths,
+hash routing). There `#/` is the CSV check, the MOCK demo pages stay, every LOCAL_RESEARCH page shows "Works only
+locally" instead of reading the Service, and a Content Security Policy forbids every connection.
+`../.github/workflows/pages.yml` deploys it on manual dispatch.
 
 ## Checks
 
@@ -87,6 +97,7 @@ scripts/dev/regression.sh LABEL              # release: every product gate plus 
 | --- | --- |
 | Design system (tokens, type, status glyphs, components) | Implemented |
 | App shell (sidebar, mobile drawer, Service status, light/dark/system theme) | Implemented |
+| CSV check (two local files, same result and reports as the command line; English and Chinese) | Implemented, in the browser |
 | Overview and Verifications (five known cases; live beside archived; four status axes) | Implemented, LOCAL_RESEARCH |
 | Verification Detail, evidence, exact-ID lookup | Implemented, LOCAL_RESEARCH |
 | History (archive list, archived Detail, archived evidence; retrieval and integrity reported separately) | Implemented, LOCAL_RESEARCH |
@@ -104,6 +115,7 @@ src/
   domain/     View-model types: runs, history, evidence integrity, the four status axes
   data/       contract/ (wire mirrors of the frozen v1, history and lookup contracts), local/ and history/ (LOCAL_RESEARCH
               providers and decoders), workspace/ (archive index, live-vs-archive comparison), MOCK store and demo configuration
+  offline/    the CSV check: Evaluator v2, CSV reader and report writers in TypeScript, and its Web Worker (no React)
   lib/        hash router, read lifecycles (useProviderRead, useHistoryList, useLiveCases), theme and preferences
   components/ ui · shell · states · integrity · detail · history · local · workspace · charts · runs
   pages/      Workspace (Overview, Verifications, Capture), VerificationDetail, History, Settings, Rules, Connections, States, demo pages
