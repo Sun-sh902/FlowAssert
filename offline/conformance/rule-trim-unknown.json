@@ -1,0 +1,23 @@
+{
+  "name": "rule-trim-unknown",
+  "description": "Rule trim: a value that is only whitespace is empty after trimming, which is unknown rather than a difference.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["name", "name", "trim"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "name": "   "}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "name": "Ada Lovelace"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified"],
+    "expected_total": 1
+  }
+}

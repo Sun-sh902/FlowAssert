@@ -1,0 +1,23 @@
+{
+  "name": "rule-casefold-unknown",
+  "description": "Rule casefold: an empty value is unknown under every rule.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["email", "email", "casefold"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "email": ""}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "email": "ada@example.test"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified"],
+    "expected_total": 1
+  }
+}

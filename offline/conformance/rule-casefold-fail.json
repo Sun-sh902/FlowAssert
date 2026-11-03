@@ -1,0 +1,23 @@
+{
+  "name": "rule-casefold-fail",
+  "description": "Rule casefold: values that differ after case folding are a Mismatch.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["email", "email", "casefold"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "email": "ada@example.test"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "email": "grace@example.test"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Mismatch",
+    "record_states": ["Mismatch"],
+    "expected_total": 1
+  }
+}

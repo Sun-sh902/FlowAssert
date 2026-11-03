@@ -1,0 +1,23 @@
+{
+  "name": "rule-digits-unknown",
+  "description": "Rule digits: a value without any digit 0-9 is unknown, not a match or a difference.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone", "digits"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "n/a"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified"],
+    "expected_total": 1
+  }
+}

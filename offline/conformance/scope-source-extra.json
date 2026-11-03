@@ -1,0 +1,27 @@
+{
+  "name": "scope-source-extra",
+  "description": "With scope source, a destination key that is not in the source is not checked, so the cohort is Verified.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]],
+    "scope": "source"
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"},
+    {"key": "SYN-099", "phone": "+1 212 555 0199"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified", "Verified"],
+    "expected_total": 2
+  }
+}

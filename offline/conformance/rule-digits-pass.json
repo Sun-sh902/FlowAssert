@@ -1,0 +1,23 @@
+{
+  "name": "rule-digits-pass",
+  "description": "Rule digits: only the digits 0-9 are compared, and they are equal.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone", "digits"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 (212) 555-0101"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "12125550101"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified"],
+    "expected_total": 1
+  }
+}

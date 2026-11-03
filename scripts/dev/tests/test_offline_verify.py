@@ -1396,3 +1396,27 @@ def test_report_format_documents_every_member(tmp_path, capsys):
     names |= report_members(identical)
     undocumented = sorted(n for n in names if f'`{n}`' not in doc)
     assert undocumented == []
+
+
+# --- v0.2.0: conformance cases for the new behavior --------------------------------------------
+
+def test_conformance_covers_every_v020_behavior():
+    names = {case['name'] for case in load_conformance_cases()}
+    for rule in ('trim', 'casefold', 'digits', 'date'):
+        assert {f'rule-{rule}-pass', f'rule-{rule}-fail', f'rule-{rule}-unknown'} <= names
+    assert {'source-count-mismatch', 'destination-count-mismatch', 'counts-match',
+            'scope-exact-covered', 'scope-exact-not-covered', 'scope-exact-keyless-destination-row'} <= names
+
+
+def test_conformance_cases_use_only_documented_inputs():
+    for case in load_conformance_cases():
+        assert set(case['obligation']) <= {'key', 'fields', 'scope'}, case['name']
+        assert set(case['premises']) <= {'source_complete', 'destination_complete', 'source_count',
+                                         'destination_count'}, case['name']
+        for field in case['obligation']['fields']:
+            assert len(field) in (2, 3) and (len(field) == 2 or evaluator_v2.parse_rule(field[2]) == field[2])
+
+
+def test_conformance_case_names_match_file_names():
+    for path in sorted(CONFORMANCE.glob('*.json')):
+        assert json.loads(path.read_text(encoding='utf-8'))['name'] == path.stem

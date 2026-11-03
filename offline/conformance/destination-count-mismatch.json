@@ -1,0 +1,27 @@
+{
+  "name": "destination-count-mismatch",
+  "description": "A stated destination count of 1 that differs from the 2 destination rows makes destination coverage insufficient even with destination_complete, so uniqueness stays unknown and every record is Unverified.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true,
+    "source_count": 2,
+    "destination_count": 1
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified", "Unverified"],
+    "expected_total": 2
+  }
+}

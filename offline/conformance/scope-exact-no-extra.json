@@ -1,0 +1,26 @@
+{
+  "name": "scope-exact-no-extra",
+  "description": "With scope exact, sufficient coverage and no destination-only key, the cohort can be Verified as with scope source.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]],
+    "scope": "exact"
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified", "Verified"],
+    "expected_total": 2
+  }
+}

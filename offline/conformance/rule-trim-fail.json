@@ -1,0 +1,23 @@
+{
+  "name": "rule-trim-fail",
+  "description": "Rule trim: whitespace inside the value still counts, so the values differ.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["name", "name", "trim"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "name": "Ada Lovelace"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "name": "Ada  Lovelace"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Mismatch",
+    "record_states": ["Mismatch"],
+    "expected_total": 1
+  }
+}

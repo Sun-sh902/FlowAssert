@@ -1,0 +1,27 @@
+{
+  "name": "scope-exact-not-covered",
+  "description": "With scope exact but without destination_complete, a destination-only key is listed without a conclusion and does not change the cohort state.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]],
+    "scope": "exact"
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"},
+    {"key": "SYN-099", "phone": "+1 212 555 0199"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": false
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Unverified", "Unverified"],
+    "expected_total": 2
+  }
+}

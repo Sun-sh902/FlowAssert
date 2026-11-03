@@ -1,0 +1,23 @@
+{
+  "name": "rule-date-pass",
+  "description": "Rule date:%Y-%m-%d: both values parse with the format and are the same date.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["signed_on", "signed_on", "date:%Y-%m-%d"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "signed_on": "2026-01-02"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "signed_on": "2026-1-2"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified"],
+    "expected_total": 1
+  }
+}

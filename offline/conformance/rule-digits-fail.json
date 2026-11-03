@@ -1,0 +1,23 @@
+{
+  "name": "rule-digits-fail",
+  "description": "Rule digits: the digits differ.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone", "digits"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0199"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Mismatch",
+    "record_states": ["Mismatch"],
+    "expected_total": 1
+  }
+}

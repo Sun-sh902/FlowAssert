@@ -1,0 +1,23 @@
+{
+  "name": "rule-trim-pass",
+  "description": "Rule trim: leading and trailing whitespace is removed before an exact comparison, so the values match.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["name", "name", "trim"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "name": " Ada Lovelace\t"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "name": "Ada Lovelace"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified"],
+    "expected_total": 1
+  }
+}

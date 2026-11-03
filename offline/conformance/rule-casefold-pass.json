@@ -1,0 +1,23 @@
+{
+  "name": "rule-casefold-pass",
+  "description": "Rule casefold: Unicode case folding makes the values equal.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["email", "email", "casefold"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "email": "Ada@Example.TEST"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "email": "ada@example.test"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Verified",
+    "record_states": ["Verified"],
+    "expected_total": 1
+  }
+}

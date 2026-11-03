@@ -1,0 +1,27 @@
+{
+  "name": "source-count-mismatch",
+  "description": "A stated source count of 3 that differs from the 2 source rows makes the source population unknown even with source_complete, so every record is Verified and the cohort stays Unverified with expected_total null.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["phone", "phone"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "phone": "+1 212 555 0101"},
+    {"key": "SYN-002", "phone": "+1 212 555 0102"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true,
+    "source_count": 3,
+    "destination_count": 2
+  },
+  "expected": {
+    "cohort_state": "Unverified",
+    "record_states": ["Verified", "Verified"],
+    "expected_total": null
+  }
+}

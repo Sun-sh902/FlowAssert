@@ -1,0 +1,23 @@
+{
+  "name": "rule-date-fail",
+  "description": "Rule date:%Y-%m-%d: both values parse with the format and are different dates.",
+  "obligation": {
+    "key": ["key", "key"],
+    "fields": [["signed_on", "signed_on", "date:%Y-%m-%d"]]
+  },
+  "source_rows": [
+    {"key": "SYN-001", "signed_on": "2026-01-02"}
+  ],
+  "destination_rows": [
+    {"key": "SYN-001", "signed_on": "2026-01-03"}
+  ],
+  "premises": {
+    "source_complete": true,
+    "destination_complete": true
+  },
+  "expected": {
+    "cohort_state": "Mismatch",
+    "record_states": ["Mismatch"],
+    "expected_total": 1
+  }
+}
