@@ -8,7 +8,7 @@
  * for its key as it is read, and no destination row is kept. Records are built when they are read from the result.
  */
 import { pyCasefold, pyRepr, pyStrip } from "./pystr";
-import { PyValueError, UnsupportedFormat, checkDateFormat, normalizeDate } from "./strptime";
+import { PyValueError, RepeatedDirective, UnsupportedFormat, checkDateFormat, normalizeDate } from "./strptime";
 
 export const VERSION = "v2-current-state-1";
 export const STATES = ["Verified", "Mismatch", "Pending", "Unverified"] as const;
@@ -93,7 +93,7 @@ export function parseRule(value: unknown): string {
     try {
       checkDateFormat(fmt);
     } catch (e) {
-      if (e instanceof UnsupportedFormat) throw new EvaluatorError(e.message);
+      if (e instanceof UnsupportedFormat || e instanceof RepeatedDirective) throw new EvaluatorError(e.message);
       if (e instanceof PyValueError) throw new EvaluatorError(`malformed date format ${pyRepr(fmt)} (${e.message})`);
       throw e;
     }

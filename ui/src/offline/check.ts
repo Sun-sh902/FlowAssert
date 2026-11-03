@@ -11,7 +11,6 @@ import { DETAILS, Evaluation, EvaluatorError, SCOPES, parseRule, type Details, t
 import { DuplicateMember, JsonError, pyLoads, type PyValue } from "./pyjson";
 import { compareCodePoints, pyRepr, pyStrip } from "./pystr";
 import { CLAIM, LIMITS, MAX_DETAILS, ORIGINS, SCHEMA_VERSION, summaryText, writeHtml, writeJson, type Origin, type Report } from "./report";
-import { PyInternalError } from "./strptime";
 
 export { Refused };
 
@@ -331,8 +330,7 @@ export async function check(args: CheckArgs): Promise<CheckOutcome> {
   } catch (e) {
     if (e instanceof Refused) return { exit: 2, stdout: "", stderr: `refused: ${e.message}\n` };
     // Python's default exit status 1 would read as a Mismatch.
-    const type = e instanceof PyInternalError ? e.pyType : e instanceof Error ? e.name : "Error";
-    return { exit: 4, stdout: "", stderr: `failed: ${type}\n` };
+    return { exit: 4, stdout: "", stderr: `failed: ${e instanceof Error ? e.name : "Error"}\n` };
   }
 }
 

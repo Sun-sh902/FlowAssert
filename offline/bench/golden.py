@@ -132,8 +132,8 @@ CASES = {
                       page(RULES, source_complete=True, destination_complete=True)),
     "rules-redacted": ({"source.csv": RULES_SOURCE, "destination.csv": RULES_FAIL, "config.json": canonical_config(RULES)},
                        ["--config", "config.json", "--redact-values", "--details", "all"]),
-    # A UTC conversion outside the years 1-9999: Python raises OverflowError, an internal failure (exit 4).
-    "date-overflow-internal-failure": (
+    # A UTC conversion outside the years 1-9999: no value to compare, so the field is unknown.
+    "date-overflow-unknown": (
         {"source.csv": utf8("k,t\n1,0001-01-01 00:00 +0100\n"), "destination.csv": utf8("k,t\n1,0001-01-01 00:00 +0100\n"),
          "config.json": canonical_config({"key": ["k", "k"], "fields": [
              {"source": "t", "destination": "t", "rule": "date:%Y-%m-%d %H:%M %z"}], "scope": "source"})},
@@ -281,6 +281,9 @@ CASES = {
         ["--config", "config.json"]),
     "refused-config-no-directive": ({"config.json": canonical_config(
         {"key": ["k", "k"], "fields": [{"source": "p", "destination": "p", "rule": "date:%%Y"}]})},
+        ["--config", "config.json"]),
+    "refused-config-repeated-directive": ({"config.json": canonical_config(
+        {"key": ["k", "k"], "fields": [{"source": "p", "destination": "p", "rule": "date:%Y-%m-%d %Y"}]})},
         ["--config", "config.json"]),
     "refused-config-repeated-field": ({"config.json": canonical_config(
         {"key": ["k", "k"], "fields": [{"source": "p", "destination": "p"}, {"source": "p", "destination": "q"}]})},

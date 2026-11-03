@@ -2,14 +2,14 @@
 
 ## 0.3.0 (unreleased)
 
-The offline check in the browser. The command-line checker is unchanged apart from its version number: the same verdicts, summaries, reports and exit statuses as 0.2.0. The Service, the frozen contracts, the pinned Evaluator v1 and the LOCAL_RESEARCH and MOCK pages are unchanged.
+The offline check in the browser. The command-line checker gives the same verdicts, summaries, reports and exit statuses as 0.2.0, except for the two date-rule fixes below. The Service, the frozen contracts, the pinned Evaluator v1 and the LOCAL_RESEARCH and MOCK pages are unchanged.
 
 ### Added
 
 - A **CSV check** page in the web UI (`#/check`, Chinese: CSV 核对): choose a source file and a destination export with an encoding each, the key column, the compared fields with a rule each, the scope and the premises, and get the command line's result, summary, and JSON and HTML reports. Nothing is preselected or inferred; both completeness statements start unchecked. The files are read in a Web Worker and never leave the computer: the page makes no network request from choosing the files to downloading the reports. Nothing the user chooses or states is stored; the column and rule choices can be downloaded and loaded as a `--config` file.
 - A TypeScript port of Evaluator v2, the CSV reader, the encodings and the report writers (`ui/src/offline/`), following Python where its behaviour depends on Unicode (casefold, whitespace, `repr`, case-insensitive matching) through tables generated from CPython 3.15 (`ui/scripts/offline/unicode_tables.py`).
 - The premise origin `browser form`, recorded for every premise of a report made in the page. See `docs/report-format.md`.
-- `offline/bench/golden.py` and `offline/golden/`: the CLI's outputs for 87 cases, which the browser check must reproduce byte for byte. A Python test fails when they are not current. `offline/bench/parity.py` runs random cases for the random parity test.
+- `offline/bench/golden.py` and `offline/golden/`: the CLI's outputs for 88 cases, which the browser check must reproduce byte for byte. A Python test fails when they are not current. `offline/bench/parity.py` runs random cases for the random parity test.
 - A GitHub Pages build (`npm run build:pages`) with the CSV check as its home page, a Content Security Policy that allows no connection, and a "works only locally" notice in place of every page that needs the local Service; `.github/workflows/pages.yml` deploys it on manual dispatch only.
 - CI: the golden check on every Python version, a parity job on Python 3.15, and the CSV check's browser tests in Chrome.
 
@@ -17,15 +17,19 @@ The offline check in the browser. The command-line checker is unchanged apart fr
 
 - Date formats may use only `%Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%`; any other directive is refused as not supported in the browser.
 - Where Python versions differ, the browser follows Python 3.15: `%d` needs a year directive, and `%z` may be absent from a value.
-- A date format that repeats a directive is refused; the command line stops with exit status 4 because Python cannot compile it.
 - The page always runs as `--config` with both encodings stated, so its reports record `config_file_sha256`, `obligation.rules`, `obligation.scope` and both encodings; it offers no `--mapping`, `--details all`, `--redact-values` or other limits.
 - The browser does not reveal paths: two choices are refused as the same file when their name, size, modification time and bytes are all equal.
 
 ### Changed
 
-- `flowassert_offline.__version__` is `0.3.0`. Nothing else in `offline/flowassert_offline/` changed.
+- `flowassert_offline.__version__` is `0.3.0`.
 - A production build of the UI uses relative asset paths, so it works from a sub-path.
 - The UI's navigation rail scrolls when the window is too short for it.
+
+### Fixed
+
+- A date format that repeats a directive, such as `date:%Y %Y`, is refused (exit status 2, `date format '%Y %Y' repeats a directive`). It stopped the check with exit status 4 before, because Python cannot compile such a format.
+- A date with a UTC offset whose instant falls outside the years 1–9999 in UTC, such as `0001-01-01 00:00 +0100`, leaves its field unknown, as any value that cannot be read as a date does. It stopped the whole check with exit status 4 before.
 
 ## 0.2.0 (2026-11-02)
 

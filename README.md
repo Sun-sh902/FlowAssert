@@ -214,14 +214,13 @@ Differences from the command line:
 | --- | --- | --- |
 | Date formats | `%Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%` only; any other directive is refused as not supported in the browser | Every `strptime` directive |
 | Python version differences | Follows Python 3.15: `%d` needs a year directive, `%z` may be absent from a value | Depends on the Python running it |
-| A date format that repeats a directive | Refused | Exit status 4 (Python cannot compile it) |
 | Selection | Always a configuration: the report records `config_file_sha256`, `obligation.rules`, `obligation.scope` and both encodings | `--key`/`--field`, `--mapping` or `--config` |
 | Options | Default limits (200 MiB, 1,000,000 rows), `--details problems`, no redaction | Every option |
 | The same file twice | Refused when both choices have the same name, size, modification time and bytes; the browser does not reveal paths | Refused when the paths resolve to the same file |
 | Memory | Each file is held in memory while it is read | The source is kept for the used columns; the destination is streamed |
 
 The browser check is built from the same specification and is tested against the command line: every conformance case,
-87 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
+88 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
 a difference would be a bug; please report one.
 
 ## Quick start: run the Service and UI

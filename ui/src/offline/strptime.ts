@@ -8,8 +8,8 @@
  * literal matching spelled out as character classes, then reads the groups in format order as _strptime does.
  *
  * Known differences between Python versions, followed here as 3.15 behaves: %d needs a year directive (3.15 refuses the
- * format); %z may be absent from the value (3.14+); ' also matches U+02BC. A format that repeats a directive makes
- * Python's re.compile raise an error that the command-line checker reports as an internal failure; here it is refused.
+ * format); %z may be absent from the value (3.14+); ' also matches U+02BC. A format that repeats a directive cannot
+ * compile in Python, and parse_rule refuses it; so does this module, with the same message.
  */
 import { caseGroup, decimalValue, pyRepr, pyStrip } from "./pystr";
 import { DECIMAL_ZEROS, WHITESPACE } from "./unicodeTables";
@@ -20,14 +20,8 @@ export class PyValueError extends Error {}
 /** A format this browser check refuses although Python would accept it. The message says why. */
 export class UnsupportedFormat extends Error {}
 
-/** CPython raised something other than ValueError, which the command-line checker reports as an internal failure. */
-export class PyInternalError extends Error {
-  readonly pyType: string;
-  constructor(pyType: string, message: string) {
-    super(message);
-    this.pyType = pyType;
-  }
-}
+/** The format repeats a directive, which Python's re.compile refuses; the message is parse_rule's. */
+export class RepeatedDirective extends Error {}
 
 export const SUPPORTED_DIRECTIVES = ["Y", "m", "d", "H", "M", "S", "f", "z", "b", "B", "y", "p", "I", "j", "%"] as const;
 type Directive = (typeof SUPPORTED_DIRECTIVES)[number];
@@ -137,7 +131,7 @@ export function compileFormat(format: string): DateFormat {
   body += literals(text.slice(last));
   if (order.includes("d") && !order.includes("Y") && !order.includes("y")) throw new PyValueError(NO_YEAR);
   const repeated = order.find((d, i) => order.indexOf(d) !== i);
-  if (repeated) throw new UnsupportedFormat(`date format ${pyRepr(format)} repeats %${repeated}, which Python cannot compile`);
+  if (repeated) throw new RepeatedDirective(`date format ${pyRepr(format)} repeats a directive`);
   const compiled = { format, regex: new RegExp("^(?:" + body + ")", "u"), order };
   if (cache.size > 64) cache.clear();
   cache.set(format, compiled);
@@ -214,8 +208,8 @@ const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
 /**
  * datetime.strptime(value, format), then astimezone(timezone.utc) when it has an offset, then isoformat(): the value
- * the date rule compares. Throws PyValueError when Python raises ValueError, and PyInternalError("OverflowError")
- * when the conversion to UTC leaves the years 1–9999, as Python does.
+ * the date rule compares. Throws PyValueError when Python raises ValueError, and also when the conversion to UTC
+ * leaves the years 1–9999, where Python raises OverflowError and _normalize gives no value either way.
  */
 export function normalizeDate(value: string, format: DateFormat | string): string {
   const f = typeof format === "string" ? compileFormat(format) : format;
@@ -337,11 +331,11 @@ export function normalizeDate(value: string, format: DateFormat | string): strin
   if (offset >= oneDay || offset <= -oneDay) {
     throw new PyValueError("offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24)");
   }
-  // astimezone(timezone.utc) is self - offset, in microseconds; outside the years 1-9999 Python raises OverflowError.
+  // astimezone(timezone.utc) is self - offset, in microseconds; outside the years 1-9999 there is no value to compare.
   const local = BigInt(toOrdinal(year, month, day) * 86400 + hour * 3600 + minute * 60 + second) * 1_000_000n + BigInt(fraction);
   const utc = local - offset;
   const ordinal = Number(utc / oneDay);
-  if (utc < oneDay || ordinal > MAX_ORDINAL) throw new PyInternalError("OverflowError", "date value out of range");
+  if (utc < oneDay || ordinal > MAX_ORDINAL) throw new PyValueError("date value out of range");
   const inDay = Number((utc % oneDay) / 1_000_000n);
   const [uy, um, ud] = fromOrdinal(ordinal);
   return iso(uy, um, ud, Math.floor(inDay / 3600), Math.floor((inDay % 3600) / 60), inDay % 60, Number(utc % 1_000_000n)) + "+00:00";

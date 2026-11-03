@@ -1085,6 +1085,10 @@ COHORT_FOR = {'pass': 'Verified', 'fail': 'Mismatch', 'unknown': 'Unverified'}
      ('2026-01-01T23:00:00+00:00', '2026-01-02T00:00:00+00:00')),
     ('date:%Y-%m-%dT%H:%M:%S%z', '2026-01-02T08:00:00+08:00', '2026-01-02T00:00:00Z', 'pass',
      ('2026-01-02T00:00:00+00:00', '2026-01-02T00:00:00+00:00')),
+    # An instant outside the years 1-9999 in UTC has no value to compare.
+    ('date:%Y-%m-%d %H:%M %z', '0001-01-01 00:00 +0100', '0001-01-01 00:00 +0100', 'unknown', (None, None)),
+    ('date:%Y-%m-%d %H:%M %z', '9999-12-31 23:59 -0100', '9999-12-31 23:59 +0000', 'unknown',
+     (None, '9999-12-31T23:59:00+00:00')),
 ])
 def test_each_rule_passes_fails_or_stays_unknown(rule, expected, actual, status, normalized):
     result, cohort = rule_result(rule, expected, actual)
@@ -1125,7 +1129,8 @@ def test_valid_rules_are_accepted(rule):
     ('digit', 'unknown comparison rule'), ('date', 'unknown comparison rule'), (None, 'unknown comparison rule'),
     (1, 'unknown comparison rule'), ('date:', 'has no format'), ('date:abc', 'has no directive'),
     ('date:%%', 'has no directive'), ('date:%q', 'malformed date format'), ('date:%Y-%', 'malformed date format'),
-    ('date:%G', 'malformed date format'),
+    ('date:%G', 'malformed date format'), ('date:%Y %Y', "date format '%Y %Y' repeats a directive"),
+    ('date:%H:%M %H %Y', 'repeats a directive'),
 ])
 def test_an_unknown_or_malformed_rule_is_refused(rule, message):
     with pytest.raises(ValueError, match=message):
@@ -1252,6 +1257,7 @@ def config_fields(*fields):
     (config_fields(dict(FIELD, rule='date:')), 'has no format'),
     (config_fields(dict(FIELD, rule='date:%q')), 'malformed date format'),
     (config_fields(dict(FIELD, rule='date:abc')), 'has no directive'),
+    (config_fields(dict(FIELD, rule='date:%Y %Y')), "field 'p': date format '%Y %Y' repeats a directive"),
     (config_fields(FIELD, {'source': 'p', 'destination': 'q'}), 'a source field is repeated'),
     (config_with(scope='both'), 'scope must be one of: source, exact'),
     (config_with(scope=None), 'scope must be one of: source, exact'),
@@ -1431,7 +1437,7 @@ def test_conformance_covers_every_v020_behavior():
         assert {f'rule-{rule}-pass', f'rule-{rule}-fail', f'rule-{rule}-unknown'} <= names
     assert {'source-count-mismatch', 'destination-count-mismatch', 'counts-match',
             'scope-exact-covered', 'scope-exact-not-covered', 'scope-exact-keyless-destination-row',
-            'scope-exact-source-not-complete', 'rule-date-offset-pass'} <= names
+            'scope-exact-source-not-complete', 'rule-date-offset-pass', 'rule-date-utc-out-of-range-unknown'} <= names
 
 
 def test_conformance_cases_use_only_documented_inputs():

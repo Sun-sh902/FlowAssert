@@ -23,7 +23,8 @@ Each field has one comparison rule, chosen by the caller and never inferred:
   casefold     after Unicode case folding
   digits       only the digits 0-9; no digits is unknown, not a match
   date:FORMAT  both parsed with datetime.strptime; a value that does not parse is unknown.
-               A value with a UTC offset is compared as an instant, in UTC
+               A value with a UTC offset is compared as an instant, in UTC; an instant
+               outside the years 1-9999 in UTC is unknown too
 An empty value is unknown under every rule.
 
 The obligation's scope is "source" (each source record is checked) or "exact"
@@ -36,6 +37,7 @@ Rows are consumed once, source first. The source rows are indexed, and each
 destination row is folded into the entry for its key as it is read, so no
 destination row is kept. Records are built when they are read from the result.
 """
+import re
 from array import array
 from collections.abc import Sequence
 from datetime import datetime, timezone
@@ -78,6 +80,9 @@ def parse_rule(rule):
             datetime.strptime(_DATE_SAMPLE.strftime(fmt), fmt)
         except ValueError as e:
             raise ValueError(f"malformed date format {fmt!r} ({e})")
+        except re.error:
+            # strptime names each directive's group, so a repeated directive cannot compile.
+            raise ValueError(f"date format {fmt!r} repeats a directive")
         return rule
     raise ValueError(f"unknown comparison rule {rule!r}; use exact, trim, casefold, digits or date:FORMAT")
 
@@ -97,7 +102,10 @@ def _normalize(rule, value):
     except ValueError:
         return None
     if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(timezone.utc)
+        try:
+            parsed = parsed.astimezone(timezone.utc)
+        except OverflowError:
+            return None  # the instant is outside the years 1-9999 in UTC
     return parsed.isoformat()
 
 

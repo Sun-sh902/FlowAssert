@@ -9,7 +9,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Check } from "../pages/Check";
-import { inThreadRunner } from "../offline/runner";
+import { inThreadRunner, type CheckRunner } from "../offline/runner";
 import { REPO_ROOT } from "./fixtures/sources";
 import { renderApp } from "./render";
 
@@ -97,6 +97,50 @@ describe("CSV check page", () => {
     expect(sessionStorage.length).toBe(0);
     expect(document.cookie).toBe("");
     expect(window.location.href).toBe(before);
+  });
+
+  it("stops a check when a choice changes while it runs, so its result never appears beside other choices", async () => {
+    const inner = inThreadRunner();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    // The check starts at once and its result is held back until the choice has changed.
+    const runner: CheckRunner = {
+      ...inner,
+      run: async (input, progress) => {
+        const result = inner.run(input, progress);
+        await gate;
+        return result;
+      },
+    };
+    const user = userEvent.setup();
+    render(<Check runner={runner} />);
+    await user.upload(screen.getByTestId("source-file"), example("source.csv"));
+    await user.upload(screen.getByTestId("destination-file"), example("destination.csv"));
+    await waitFor(() => expect(screen.getAllByText("3 columns")).toHaveLength(2));
+    await chooseColumns(user);
+    await user.click(screen.getByTestId("source-complete"));
+    await user.click(screen.getByTestId("run-check"));
+    await user.click(screen.getByTestId("source-complete"));
+    release();
+    await waitFor(() => expect(screen.getByTestId("run-status").textContent).toBe("The choices changed during the check, so it was stopped. No result is shown."));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(screen.queryByRole("region", { name: "Result" })).toBeNull();
+  });
+
+  it("clears what was stated about a file when another file is chosen in its place", async () => {
+    const user = await chooseExample();
+    await user.click(screen.getByTestId("source-complete"));
+    await user.click(screen.getByTestId("destination-complete"));
+    await user.type(screen.getByTestId("source-count"), "4");
+    await user.type(screen.getByTestId("destination-count"), "4");
+    await user.click(screen.getByTestId("allow-identical"));
+    await user.upload(screen.getByTestId("source-file"), example("destination.csv"));
+    expect((screen.getByTestId("source-complete") as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByTestId("source-count") as HTMLInputElement).value).toBe("");
+    expect((screen.getByTestId("allow-identical") as HTMLInputElement).checked).toBe(false);
+    // The other file's statements were made about a file that is still chosen.
+    expect((screen.getByTestId("destination-complete") as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByTestId("destination-count") as HTMLInputElement).value).toBe("4");
   });
 
   it("shows a refusal, and no result, for a malformed file", async () => {

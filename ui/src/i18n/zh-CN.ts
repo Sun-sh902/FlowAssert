@@ -1409,6 +1409,7 @@ export const EXACT: Record<string, string> = {
   "Writing the reports": "正在生成报告",
   "# rows read": "已读取 # 行",
   "Cancelled. No result is shown.": "已取消，不显示结果。",
+  "The choices changed during the check, so it was stopped. No result is shown.": "核对期间选择有变动，核对已停止，不显示结果。",
   "The check failed and no result is shown:": "核对失败，不显示结果：",
   "The check failed and no result is shown.": "核对失败，不显示结果。",
   "Refused: nothing was checked.": "已拒绝：没有核对任何内容。",

@@ -48,7 +48,7 @@ type RunState =
   | { kind: "running"; progress: Progress | null }
   | { kind: "done"; result: RunResult }
   | { kind: "failed"; message: string }
-  | { kind: "cancelled" };
+  | { kind: "cancelled"; changed?: boolean };
 
 const ENCODING_LABEL: Record<Encoding, string> = {
   "utf-8": "UTF-8 (byte order mark optional)",
@@ -573,10 +573,30 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const configInput = useRef<HTMLInputElement>(null);
 
   // Any change makes an earlier result stale: it is removed rather than shown beside choices it was not made with.
-  const changed = () => setRun((r) => (r.kind === "running" ? r : { kind: "idle" }));
+  // A change while a check runs stops that check, so its result never appears beside the new choices.
+  /** The number of the check that is running, or 0. */
+  const running = useRef(0);
+  const runs = useRef(0);
+  const changed = () => {
+    if (!running.current) return setRun({ kind: "idle" });
+    running.current = 0;
+    runner.cancel();
+    setRun({ kind: "cancelled", changed: true });
+  };
 
   const readColumns = (side: Side, file: File | null, encoding: Encoding) => {
     const read = ++headerReads.current[side];
+    // A statement was made about the file it was made for: another file needs it stated again.
+    if (file !== choices[side].file) {
+      if (side === "source") {
+        setSourceComplete(false);
+        setSourceCount("");
+      } else {
+        setDestinationComplete(false);
+        setDestinationCount("");
+      }
+      setAllowIdentical(false);
+    }
     setChoices((c) => ({ ...c, [side]: { file, encoding, header: file ? { kind: "reading" } : noHeader } }));
     changed();
     if (!file) return;
@@ -665,16 +685,22 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       allowIdenticalContent: allowIdentical,
     };
     setRun({ kind: "running", progress: null });
+    const id = ++runs.current;
+    running.current = id;
+    // A check that was stopped or replaced delivers nothing, whatever the runner still returns.
     try {
       const result = await runner.run(input, (progress) => setRun((r) => (r.kind === "running" ? { kind: "running", progress } : r)));
-      setRun({ kind: "done", result });
+      if (running.current === id) setRun({ kind: "done", result });
     } catch (e) {
-      if (e instanceof Cancelled) return;
+      if (e instanceof Cancelled || running.current !== id) return;
       setRun({ kind: "failed", message: e instanceof Error ? e.message : String(e) });
+    } finally {
+      if (running.current === id) running.current = 0;
     }
   };
 
   const cancel = () => {
+    running.current = 0;
     runner.cancel();
     setRun({ kind: "cancelled" });
   };
@@ -935,7 +961,9 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
           </div>
         )}
         <p ref={statusRef} tabIndex={-1} role="status" className="mt-3 text-sm outline-none" data-testid="run-status">
-          {run.kind === "cancelled" && <span className="text-ink-2">Cancelled. No result is shown.</span>}
+          {run.kind === "cancelled" && (
+            <span className="text-ink-2">{run.changed ? "The choices changed during the check, so it was stopped. No result is shown." : "Cancelled. No result is shown."}</span>
+          )}
           {run.kind === "failed" && (
             <span className="text-mismatch-ink">
               <span>The check failed and no result is shown: </span>

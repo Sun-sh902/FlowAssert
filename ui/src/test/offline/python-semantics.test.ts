@@ -7,7 +7,7 @@ import { describe, expect, test } from "vitest";
 import { EvaluatorError, compare, parseRule } from "../../offline/evaluator";
 import { pyDumps } from "../../offline/pyjson";
 import { compareCodePoints, htmlEscape, pyCasefold, pyRepr, pyStrip } from "../../offline/pystr";
-import { PyInternalError, normalizeDate } from "../../offline/strptime";
+import { PyValueError, normalizeDate } from "../../offline/strptime";
 
 describe("str.casefold", () => {
   // Full case folding, not toLowerCase: ß and ẞ fold to ss, the long s to s, ligatures expand, final sigma folds to σ,
@@ -84,9 +84,14 @@ describe("date rule", () => {
     expect(compare(value, value, "date:" + format).expected_normalized).toBe(normalized);
   });
 
-  test("a UTC conversion outside the years 1–9999 is Python's OverflowError, an internal failure", () => {
-    expect(() => normalizeDate("0001-01-01 00:00 +0100", "%Y-%m-%d %H:%M %z")).toThrow(PyInternalError);
-    expect(() => normalizeDate("9999-12-31 23:59 -0100", "%Y-%m-%d %H:%M %z")).toThrow(PyInternalError);
+  test("a UTC conversion outside the years 1–9999 gives no value, so the field is unknown", () => {
+    expect(() => normalizeDate("0001-01-01 00:00 +0100", "%Y-%m-%d %H:%M %z")).toThrow(PyValueError);
+    expect(() => normalizeDate("9999-12-31 23:59 -0100", "%Y-%m-%d %H:%M %z")).toThrow(PyValueError);
+    expect(compare("0001-01-01 00:00 +0100", "0001-01-01 00:00 +0100", "date:%Y-%m-%d %H:%M %z")).toMatchObject({
+      status: "unknown",
+      reason: "value does not match date format '%Y-%m-%d %H:%M %z'",
+      expected_normalized: null,
+    });
   });
 
   test("formats Python refuses get Python's message", () => {
@@ -108,7 +113,8 @@ describe("date rule", () => {
     for (const rule of ["date:%Y %a", "date:%Y %e", "date:%Y %:z", "date:%c"]) expect(() => parseRule(rule)).toThrow(/does not support/);
   });
 
-  test("a repeated directive, which makes Python's re.compile fail, is refused", () => {
-    expect(() => parseRule("date:%Y %Y")).toThrow("repeats %Y");
+  test("a repeated directive, which Python's re.compile cannot compile, is refused with parse_rule's message", () => {
+    expect(() => parseRule("date:%Y %Y")).toThrow(new EvaluatorError("date format '%Y %Y' repeats a directive"));
+    expect(() => parseRule("date:%H %H %Y")).toThrow(new EvaluatorError("date format '%H %H %Y' repeats a directive"));
   });
 });
