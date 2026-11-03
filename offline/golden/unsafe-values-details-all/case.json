@@ -1,0 +1,20 @@
+{
+  "name": "unsafe-values-details-all",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "id",
+    "--field",
+    "名前",
+    "--field",
+    "note",
+    "--details",
+    "all",
+    "--source-complete",
+    "--destination-complete",
+    "--redact-values"
+  ]
+}

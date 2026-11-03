@@ -1,0 +1,7 @@
+Mismatch: 1 rows of 1
+Verified 0 · Mismatch 1 · Unverified 0
+Destination coverage not established: absence and uniqueness stay unknown.
+  record 1 K1: Mismatch
+    uniqueness unknown: insufficient evidence
+    field:p fail: exact string comparison ('名字 Zoë 😀' vs 'K2')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

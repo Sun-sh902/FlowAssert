@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.",
+  "cohort_state": "Verified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 1,
+  "inputs": {
+    "config_file_sha256": "c35671dee2f111f66e0d47f04675bdb25ea8b3f28331557ad2be02c55f15370e",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "498cb97f0ebb7061680b9abc0220d60020b6c6864b34a91cb7f40c507f8e473d",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "796d0b54731e0544a02d9f259e290ee41d61be67e7a154e7733227abe02e2d34"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "p",
+        "p"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "1",
+      "source_row": 0,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 1,
+  "workflow_execution": "Not assessed"
+}

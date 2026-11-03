@@ -1,0 +1,18 @@
+{
+  "name": "scope-source-cli",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--scope",
+    "source",
+    "--source-complete"
+  ]
+}

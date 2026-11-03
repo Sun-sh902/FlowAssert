@@ -1,0 +1,15 @@
+{
+  "name": "encoding-cli-options",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "k",
+    "--field",
+    "p",
+    "--source-encoding",
+    "gb18030"
+  ]
+}

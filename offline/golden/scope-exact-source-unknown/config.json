@@ -1,0 +1,14 @@
+{
+  "key": [
+    "id",
+    "id"
+  ],
+  "fields": [
+    {
+      "source": "note",
+      "destination": "note",
+      "rule": "casefold"
+    }
+  ],
+  "scope": "exact"
+}

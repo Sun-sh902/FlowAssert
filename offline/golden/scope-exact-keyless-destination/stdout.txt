@@ -1,0 +1,11 @@
+Mismatch: 2 rows of 2
+Verified 0 · Mismatch 0 · Unverified 2
+Destination coverage not established: absence and uniqueness stay unknown.
+Destination-only: 1 records not in the source, each a Mismatch.
+  record 1 A: Unverified
+    uniqueness unknown: insufficient evidence
+  record 2 B: Unverified
+    existence unknown: destination not stated complete; absence not established
+    uniqueness unknown: insufficient evidence
+    field:p unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

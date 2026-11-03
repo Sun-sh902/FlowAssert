@@ -1,0 +1,1 @@
+refused: config.json: scope must be one of: source, exact

@@ -1,0 +1,12 @@
+Unverified: 3 rows of unknown total
+Verified 1 · Mismatch 0 · Unverified 2
+Source population unknown: the batch cannot be Verified.
+  record 1 A: Unverified
+    existence unknown: invalid or duplicate source key
+    uniqueness unknown: invalid or duplicate source key
+    field:p unknown: invalid or duplicate source key
+  record 2 A: Unverified
+    existence unknown: invalid or duplicate source key
+    uniqueness unknown: invalid or duplicate source key
+    field:p unknown: invalid or duplicate source key
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

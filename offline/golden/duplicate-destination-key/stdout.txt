@@ -1,0 +1,6 @@
+Mismatch: 2 rows of 2
+Verified 1 · Mismatch 1 · Unverified 0
+  record 1 A: Mismatch
+    uniqueness fail: more than one destination row carries this key
+    field:p unknown: no arbitrary candidate selected
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

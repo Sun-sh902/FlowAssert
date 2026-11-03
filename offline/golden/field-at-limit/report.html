@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowAssert report: Verified</title>
+<style>
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;max-width:72rem;padding:1rem;
+color:#1b1f24;background:#fff}
+h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #d0d7de}
+table{border-collapse:collapse;width:100%;margin:.5rem 0}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;
+text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f6f8fa}
+.state{display:inline-block;font-size:1.6rem;font-weight:700;padding:.2rem .8rem;border-radius:.3rem}
+.Verified{background:#dafbe1;color:#116329}.Mismatch{background:#ffebe9;color:#a40e26}
+.Unverified,.Pending{background:#fff8c5;color:#7d4e00}.premises{border:2px solid #7d4e00;padding:.5rem 1rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>FlowAssert report</h1>
+<p><span class="state Verified">Verified</span></p>
+<p>At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.</p>
+<p>Evaluated at 2000-01-01T00:00:00Z by evaluator v2-current-state-1.</p>
+<section class="premises">
+<h2>Stated premises</h2>
+<p>FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>
+<table>
+<tr><th>Premise</th><th>Stated</th><th>Origin</th><th>Rows in file</th><th>Matched</th></tr>
+<tr><td>source_complete</td><td>yes</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>destination_complete</td><td>yes</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>source_count</td><td><i>none</i></td><td>command-line option</td><td>1</td><td><i>none</i></td></tr>
+<tr><td>destination_count</td><td><i>none</i></td><td>command-line option</td><td>1</td><td><i>none</i></td></tr>
+</table>
+</section>
+<h2>Counts</h2>
+<table>
+<tr><th>Source rows observed</th><td>1</td></tr>
+<tr><th>Expected total</th><td>1</td></tr>
+<tr><th>Verified records</th><td>1</td></tr>
+<tr><th>Mismatch records</th><td>0</td></tr>
+<tr><th>Pending records</th><td>0</td></tr>
+<tr><th>Unverified records</th><td>0</td></tr>
+<tr><th>Source population known</th><td>yes</td></tr>
+<tr><th>Destination coverage sufficient</th><td>yes</td></tr>
+<tr><th>Destination rows without key</th><td>0</td></tr>
+</table>
+<h2>Limitations</h2>
+<p>Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.</p>
+<table>
+<tr><th>workflow_execution</th><td>Not assessed</td></tr>
+<tr><th>business_truth</th><td>Not assessed</td></tr>
+<tr><th>existed_by_deadline</th><td>Not assessed</td></tr>
+<tr><th>acquisition_authenticity</th><td>not_authenticated</td></tr>
+</table>
+<h2>Records that are not Verified (0)</h2>
+<h2>Inputs</h2>
+<table>
+<tr><th>source_sha256</th><td>796d0b54731e0544a02d9f259e290ee41d61be67e7a154e7733227abe02e2d34</td></tr>
+<tr><th>destination_sha256</th><td>498cb97f0ebb7061680b9abc0220d60020b6c6864b34a91cb7f40c507f8e473d</td></tr>
+<tr><th>source_complete_stated</th><td>yes</td></tr>
+<tr><th>destination_complete_stated</th><td>yes</td></tr>
+<tr><th>identical_content</th><td>no</td></tr>
+<tr><th>config_file_sha256</th><td>c35671dee2f111f66e0d47f04675bdb25ea8b3f28331557ad2be02c55f15370e</td></tr>
+<tr><th>source_encoding</th><td>utf-8</td></tr>
+<tr><th>destination_encoding</th><td>utf-8</td></tr>
+<tr><th>obligation type</th><td><code>&quot;current_state&quot;</code></td></tr>
+<tr><th>obligation key</th><td><code>[&quot;k&quot;, &quot;k&quot;]</code></td></tr>
+<tr><th>obligation fields</th><td><code>[[&quot;p&quot;, &quot;p&quot;]]</code></td></tr>
+<tr><th>obligation comparison</th><td><code>&quot;exact-string&quot;</code></td></tr>
+<tr><th>obligation rules</th><td><code>[&quot;exact&quot;]</code></td></tr>
+<tr><th>obligation scope</th><td><code>&quot;source&quot;</code></td></tr>
+</table>
+</body>
+</html>

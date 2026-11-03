@@ -1,0 +1,23 @@
+Mismatch: 3 rows of 3
+Verified 0 · Mismatch 3 · Unverified 0
+  record 1 P1: Mismatch
+    field:name fail: comparison after trimming leading and trailing whitespace (' Ada ' vs 'Ada Lovelace'), compared as ('Ada' vs 'Ada Lovelace')
+    field:email fail: comparison after Unicode case folding ('Ada@Example.test' vs 'ada@example.org'), compared as ('ada@example.test' vs 'ada@example.org')
+    field:phone fail: comparison of the digits 0-9 only ('+1 (212) 555-0101' vs '12125550199'), compared as ('12125550101' vs '12125550199')
+    field:signed fail: date comparison with format '%Y-%m-%d' ('2026-01-02' vs '2026-01-03'), compared as ('2026-01-02T00:00:00' vs '2026-01-03T00:00:00')
+    field:at fail: date comparison with format '%d/%m/%Y %H:%M:%S.%f %z' ('02/01/2026 09:00:00.5 +0800' vs '02/01/2026 01:00:00.4 +0000'), compared as ('2026-01-02T01:00:00.500000+00:00' vs '2026-01-02T01:00:00.400000+00:00')
+    field:code fail: exact string comparison ('A1' vs 'a1')
+  record 2 P2: Mismatch
+    field:name fail: comparison after trimming leading and trailing whitespace ('Grace' vs 'Grace H'), compared as ('Grace' vs 'Grace H')
+    field:email fail: comparison after Unicode case folding ('Straße@x.test' vs 'strasse@y.test'), compared as ('strasse@x.test' vs 'strasse@y.test')
+    field:phone fail: comparison of the digits 0-9 only ('555 0102' vs '555 0103'), compared as ('5550102' vs '5550103')
+    field:signed fail: date comparison with format '%Y-%m-%d' ('2026-1-2' vs '2025-01-02'), compared as ('2026-01-02T00:00:00' vs '2025-01-02T00:00:00')
+    field:at unknown: value does not match date format '%d/%m/%Y %H:%M:%S.%f %z' ('1/1/2026 23:59:59.999999 -0130' vs '02/01/2026 01:30:00 +0000'), compared as ('2026-01-02T01:29:59.999999+00:00' vs None)
+    field:code fail: exact string comparison ('B2' vs 'B2 ')
+  record 3 P3: Mismatch
+    field:email fail: comparison after Unicode case folding ('ΣΊΣΥΦΟΣ@x.test' vs 'sisyphos@x.test'), compared as ('σίσυφοσ@x.test' vs 'sisyphos@x.test')
+    field:phone fail: comparison of the digits 0-9 only ('٣ 12' vs '99'), compared as ('12' vs '99')
+    field:signed fail: date comparison with format '%Y-%m-%d' ('2026-02-03' vs '2026-03-02'), compared as ('2026-02-03T00:00:00' vs '2026-03-02T00:00:00')
+    field:at unknown: value does not match date format '%d/%m/%Y %H:%M:%S.%f %z' ('03/02/2026 10:00:00.0 +0000' vs '03/02/2026 10:00:00 +0100'), compared as ('2026-02-03T10:00:00+00:00' vs None)
+    field:code fail: exact string comparison ('C3' vs 'C 3')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

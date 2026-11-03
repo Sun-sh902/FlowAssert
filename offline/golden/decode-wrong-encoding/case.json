@@ -1,0 +1,25 @@
+{
+  "name": "decode-wrong-encoding",
+  "page": {
+    "source_encoding": "utf-8",
+    "destination_encoding": "utf-8",
+    "config": "canonical",
+    "source_complete": false,
+    "destination_complete": false,
+    "allow_identical_content": false,
+    "source_count": null,
+    "destination_count": null
+  },
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--source-encoding",
+    "utf-8",
+    "--destination-encoding",
+    "utf-8"
+  ]
+}

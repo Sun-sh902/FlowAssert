@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_only": [
+    {
+      "destination_row": 2,
+      "key": "C",
+      "reason": "key not in the source, and the source population is known",
+      "rows": 2,
+      "state": "Mismatch"
+    }
+  ],
+  "destination_only_counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_rows_without_key": 1,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 2,
+  "inputs": {
+    "config_file_sha256": "95f9676f331c3093017dd70ef788557820b0575bfb31dc716e9418b9245dfcae",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "31b5a55205f2aaa776977654b0427e405e2ebf34b8158fc1149b76efda180079",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "e386d216c8e8815d010cfb6ce044d5362062e5cb965c28848f59c5f929bb80b3"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "p",
+        "p"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "exact",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 2,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "A",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:p": {
+          "actual": "1",
+          "expected": "1",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 0,
+      "key": "B",
+      "rules": {
+        "existence": {
+          "reason": "destination not stated complete; absence not established",
+          "status": "unknown"
+        },
+        "field:p": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 2,
+  "workflow_execution": "Not assessed"
+}

@@ -1,0 +1,9 @@
+Unverified: 3 rows of 3
+Verified 0 · Mismatch 0 · Unverified 3
+  record 1 A: Unverified
+    field:p unknown: empty value; a missing value is not assumed to be a difference ('' vs '1')
+  record 2 B: Unverified
+    field:p unknown: empty value; a missing value is not assumed to be a difference ('2' vs '')
+  record 3 C: Unverified
+    field:p unknown: empty value; a missing value is not assumed to be a difference ('' vs '')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 3,
+  "inputs": {
+    "config_file_sha256": "b8dc7d67be032a83094c5a7e73a264326c2e340e3ae3999cc8f383513596a5e5",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "fe14ce0a49e2aa55492083d889be0dea752d4883a558cfc186165c169205f69a",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "471188ca5b781899e6b4f7c2b18f7bdc9822d0d5084f297086e8b80aa66a297a"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "name",
+        "name"
+      ],
+      [
+        "email",
+        "mail"
+      ],
+      [
+        "phone",
+        "tel"
+      ],
+      [
+        "signed",
+        "signed_on"
+      ],
+      [
+        "at",
+        "at"
+      ],
+      [
+        "code",
+        "code"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "rules": [
+      "trim",
+      "casefold",
+      "digits",
+      "date:%Y-%m-%d",
+      "date:%d/%m/%Y %H:%M:%S.%f %z",
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "P1",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:at": {
+          "actual": "2026-01-02 09:00",
+          "actual_normalized": null,
+          "expected": "02/01/2026 09:00:00.5 +0800",
+          "expected_normalized": "2026-01-02T01:00:00.500000+00:00",
+          "reason": "value does not match date format '%d/%m/%Y %H:%M:%S.%f %z'",
+          "rule": "date:%d/%m/%Y %H:%M:%S.%f %z",
+          "status": "unknown"
+        },
+        "field:code": {
+          "actual": "",
+          "expected": "A1",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "field:email": {
+          "actual": "",
+          "actual_normalized": "",
+          "expected": "Ada@Example.test",
+          "expected_normalized": "ada@example.test",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "rule": "casefold",
+          "status": "unknown"
+        },
+        "field:name": {
+          "actual": "   ",
+          "actual_normalized": "",
+          "expected": " Ada ",
+          "expected_normalized": "Ada",
+          "reason": "empty after trimming whitespace; a missing value is not assumed to be a difference",
+          "rule": "trim",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "actual": "n/a",
+          "actual_normalized": "",
+          "expected": "+1 (212) 555-0101",
+          "expected_normalized": "12125550101",
+          "reason": "no digits to compare",
+          "rule": "digits",
+          "status": "unknown"
+        },
+        "field:signed": {
+          "actual": "02/01/2026",
+          "actual_normalized": null,
+          "expected": "2026-01-02",
+          "expected_normalized": "2026-01-02T00:00:00",
+          "reason": "value does not match date format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "P2",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:at": {
+          "actual": "32/01/2026 00:00:00.0 +0000",
+          "actual_normalized": null,
+          "expected": "1/1/2026 23:59:59.999999 -0130",
+          "expected_normalized": "2026-01-02T01:29:59.999999+00:00",
+          "reason": "value does not match date format '%d/%m/%Y %H:%M:%S.%f %z'",
+          "rule": "date:%d/%m/%Y %H:%M:%S.%f %z",
+          "status": "unknown"
+        },
+        "field:code": {
+          "actual": "",
+          "expected": "B2",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "field:email": {
+          "actual": "x",
+          "actual_normalized": "x",
+          "expected": "Stra\u00dfe@x.test",
+          "expected_normalized": "strasse@x.test",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "field:name": {
+          "actual": "",
+          "actual_normalized": "",
+          "expected": "Grace",
+          "expected_normalized": "Grace",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "rule": "trim",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "actual": "none",
+          "actual_normalized": "",
+          "expected": "555 0102",
+          "expected_normalized": "5550102",
+          "reason": "no digits to compare",
+          "rule": "digits",
+          "status": "unknown"
+        },
+        "field:signed": {
+          "actual": "2026-02-30",
+          "actual_normalized": null,
+          "expected": "2026-1-2",
+          "expected_normalized": "2026-01-02T00:00:00",
+          "reason": "value does not match date format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 1,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 1,
+      "key": "P3",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:at": {
+          "actual": "03/02/2026 10:00:00.0 +2400",
+          "actual_normalized": null,
+          "expected": "03/02/2026 10:00:00.0 +0000",
+          "expected_normalized": "2026-02-03T10:00:00+00:00",
+          "reason": "value does not match date format '%d/%m/%Y %H:%M:%S.%f %z'",
+          "rule": "date:%d/%m/%Y %H:%M:%S.%f %z",
+          "status": "unknown"
+        },
+        "field:code": {
+          "actual": "",
+          "expected": "C3",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "field:email": {
+          "actual": "",
+          "actual_normalized": "",
+          "expected": "\u03a3\u038a\u03a3\u03a5\u03a6\u039f\u03a3@x.test",
+          "expected_normalized": "\u03c3\u03af\u03c3\u03c5\u03c6\u03bf\u03c3@x.test",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "rule": "casefold",
+          "status": "unknown"
+        },
+        "field:name": {
+          "actual": "Alan",
+          "actual_normalized": "Alan",
+          "expected": "Alan",
+          "expected_normalized": "Alan",
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "\u2014",
+          "actual_normalized": "",
+          "expected": "\u0663 12",
+          "expected_normalized": "12",
+          "reason": "no digits to compare",
+          "rule": "digits",
+          "status": "unknown"
+        },
+        "field:signed": {
+          "actual": "2026-13-01",
+          "actual_normalized": null,
+          "expected": "2026-02-03",
+          "expected_normalized": "2026-02-03T00:00:00",
+          "reason": "value does not match date format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

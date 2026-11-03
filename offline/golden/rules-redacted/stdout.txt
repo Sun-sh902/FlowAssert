@@ -1,0 +1,28 @@
+Mismatch: 3 rows of unknown total
+Verified 0 · Mismatch 3 · Unverified 0
+Source population unknown: the batch cannot be Verified.
+Destination coverage not established: absence and uniqueness stay unknown.
+  record 1 [redacted]: Mismatch
+    uniqueness unknown: insufficient evidence
+    field:name fail: comparison after trimming leading and trailing whitespace
+    field:email fail: comparison after Unicode case folding
+    field:phone fail: comparison of the digits 0-9 only
+    field:signed fail: date comparison with format '%Y-%m-%d'
+    field:at fail: date comparison with format '%d/%m/%Y %H:%M:%S.%f %z'
+    field:code fail: exact string comparison
+  record 2 [redacted]: Mismatch
+    uniqueness unknown: insufficient evidence
+    field:name fail: comparison after trimming leading and trailing whitespace
+    field:email fail: comparison after Unicode case folding
+    field:phone fail: comparison of the digits 0-9 only
+    field:signed fail: date comparison with format '%Y-%m-%d'
+    field:at unknown: value does not match date format '%d/%m/%Y %H:%M:%S.%f %z'
+    field:code fail: exact string comparison
+  record 3 [redacted]: Mismatch
+    uniqueness unknown: insufficient evidence
+    field:email fail: comparison after Unicode case folding
+    field:phone fail: comparison of the digits 0-9 only
+    field:signed fail: date comparison with format '%Y-%m-%d'
+    field:at unknown: value does not match date format '%d/%m/%Y %H:%M:%S.%f %z'
+    field:code fail: exact string comparison
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

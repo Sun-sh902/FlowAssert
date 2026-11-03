@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 1,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "destination_complete_stated": false,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "2de71ad249f625d74a86584065ea135e496dd9b7d5d6d08c4777799d8cb3c6c3",
+    "identical_content": false,
+    "source_complete_stated": false,
+    "source_encoding": "gb18030",
+    "source_sha256": "1b18cdea159603ac3f7a011c64ffc7e8d051066e560ee910ce783fd632cecbfa"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "p",
+        "p"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "K1",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:p": {
+          "actual": "\u540d\u5b57",
+          "expected": "\u540d\u5b57",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 1,
+  "workflow_execution": "Not assessed"
+}

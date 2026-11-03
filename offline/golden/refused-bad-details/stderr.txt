@@ -1,0 +1,1 @@
+refused: --details must be one of: problems, all

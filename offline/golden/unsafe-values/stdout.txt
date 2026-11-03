@@ -1,0 +1,11 @@
+Mismatch: 4 rows of 4
+Verified 0 · Mismatch 4 · Unverified 0
+  record 1 <script>alert(1)</script>: Mismatch
+    field:note fail: exact string comparison ('\u200bzero width' vs 'zero width')
+  record 2 K-ü: Mismatch
+    field:名前 fail: exact string comparison ('名字 Zoë' vs '名字 Zoe')
+  record 3 K-😀: Mismatch
+    field:note fail: exact string comparison ('line\nbreak' vs 'line\r\nbreak')
+  record 4 K-ctl: Mismatch
+    field:note fail: exact string comparison ('\\back\\slash' vs '\\back\\slash ')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

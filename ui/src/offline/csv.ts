@@ -50,7 +50,11 @@ function webDecoder(label: string): ChunkDecoder {
   };
 }
 
-/** Python's utf_16 incremental decoder: the first two bytes must be a byte order mark. */
+/**
+ * Python's utf_16 incremental decoder (encodings/utf_16.py): the input must start with a byte order mark. Without
+ * one, Python first decodes what it has as little-endian, so an invalid sequence there is reported as such, and only
+ * once it has decoded at least one character does it refuse the missing mark.
+ */
 function utf16Decoder(): ChunkDecoder {
   let inner: ChunkDecoder | null = null;
   let held = new Uint8Array(0);
@@ -60,15 +64,14 @@ function utf16Decoder(): ChunkDecoder {
       const bytes = new Uint8Array(held.length + chunk.length);
       bytes.set(held);
       bytes.set(chunk, held.length);
-      if (bytes.length < 2) {
-        if (final && bytes.length) throw new DecodeError();
-        held = bytes;
-        return "";
-      }
-      if (bytes[0] === 0xff && bytes[1] === 0xfe) inner = webDecoder("utf-16le");
-      else if (bytes[0] === 0xfe && bytes[1] === 0xff) inner = webDecoder("utf-16be");
-      else throw new DecodeError(true);
-      return inner.decode(bytes, final);
+      if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) inner = webDecoder("utf-16le");
+      else if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) inner = webDecoder("utf-16be");
+      if (inner) return inner.decode(bytes, final);
+      // utf_16_ex_decode in native (little-endian) order: an error first, then the missing mark once a character decoded.
+      const decoded = webDecoder("utf-16le").decode(bytes, final);
+      if (decoded) throw new DecodeError(true);
+      held = bytes;
+      return "";
     },
   };
 }

@@ -1,0 +1,7 @@
+Unverified: 1 rows of unknown total
+Verified 0 · Mismatch 0 · Unverified 1
+Source population unknown: the batch cannot be Verified.
+Destination coverage not established: absence and uniqueness stay unknown.
+  record 1 K1: Unverified
+    uniqueness unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

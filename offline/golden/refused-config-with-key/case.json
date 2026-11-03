@@ -1,0 +1,13 @@
+{
+  "name": "refused-config-with-key",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--key",
+    "k"
+  ]
+}

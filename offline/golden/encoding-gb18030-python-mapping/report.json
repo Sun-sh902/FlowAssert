@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.",
+  "cohort_state": "Verified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 1,
+  "inputs": {
+    "config_file_sha256": "c35671dee2f111f66e0d47f04675bdb25ea8b3f28331557ad2be02c55f15370e",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "97610f80e68f9d9356973d99b04e9bd5cda026bc5752f14ccc01dadab38f8186",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "gb18030",
+    "source_sha256": "381e40610b892ebcab617fc7a1508b2811c5aa14d55846844c0177dfa4fd2f30"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "p",
+        "p"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "K1",
+      "source_row": 0,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 1,
+  "workflow_execution": "Not assessed"
+}

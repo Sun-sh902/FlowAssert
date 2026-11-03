@@ -1,0 +1,1 @@
+refused: source and destination are the same file, so the check would not be independent

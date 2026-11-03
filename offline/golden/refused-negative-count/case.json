@@ -1,0 +1,17 @@
+{
+  "name": "refused-negative-count",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--destination-count",
+    "-1"
+  ]
+}

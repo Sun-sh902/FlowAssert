@@ -1446,3 +1446,33 @@ def test_conformance_cases_use_only_documented_inputs():
 def test_conformance_case_names_match_file_names():
     for path in sorted(CONFORMANCE.glob('*.json')):
         assert json.loads(path.read_text(encoding='utf-8'))['name'] == path.stem
+
+
+# --- v0.3.0: golden outputs for the browser check ----------------------------------------------
+
+def _golden_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('flowassert_golden', ROOT / 'offline/bench/golden.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_golden_outputs_are_what_golden_py_writes_now():
+    # The browser check is compared with these files byte for byte (ui/src/test/offline/golden.test.ts).
+    golden = _golden_module()
+    assert golden.check() == []
+    assert len(list(golden.GOLDEN.iterdir())) == len(golden.CASES)
+
+
+def test_golden_check_reports_a_changed_missing_or_extra_file(tmp_path):
+    golden = _golden_module()
+    expected, actual = tmp_path / 'expected', tmp_path / 'actual'
+    for root in (expected, actual):
+        (root / 'case').mkdir(parents=True)
+        (root / 'case' / 'same.txt').write_text('1')
+    (expected / 'case' / 'changed.txt').write_text('a')
+    (actual / 'case' / 'changed.txt').write_text('b')
+    (expected / 'case' / 'missing.txt').write_text('x')
+    (actual / 'case' / 'extra.txt').write_text('y')
+    assert golden.differences(expected, actual) == ['case/changed.txt', 'case/extra.txt', 'case/missing.txt']

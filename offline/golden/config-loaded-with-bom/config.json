@@ -1,0 +1,1 @@
+﻿{"fields":[{"source":"phone","destination":"phone"},{"source":"email","destination":"hs_email","rule":"casefold"}],"key":["external_id","external_id"]}

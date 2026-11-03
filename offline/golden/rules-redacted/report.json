@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 3,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_rows_without_key": 0,
+  "details": "all",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "config_file_sha256": "b8dc7d67be032a83094c5a7e73a264326c2e340e3ae3999cc8f383513596a5e5",
+    "destination_complete_stated": false,
+    "destination_sha256": "1da55a12f1bc4ae5035f8efa2eb5eaeaca5c594947115b0832d0b98fd9af53dc",
+    "identical_content": false,
+    "source_complete_stated": false,
+    "source_sha256": "471188ca5b781899e6b4f7c2b18f7bdc9822d0d5084f297086e8b80aa66a297a"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "name",
+        "name"
+      ],
+      [
+        "email",
+        "mail"
+      ],
+      [
+        "phone",
+        "tel"
+      ],
+      [
+        "signed",
+        "signed_on"
+      ],
+      [
+        "at",
+        "at"
+      ],
+      [
+        "code",
+        "code"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "rules": [
+      "trim",
+      "casefold",
+      "digits",
+      "date:%Y-%m-%d",
+      "date:%d/%m/%Y %H:%M:%S.%f %z",
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:at": {
+          "reason": "date comparison with format '%d/%m/%Y %H:%M:%S.%f %z'",
+          "rule": "date:%d/%m/%Y %H:%M:%S.%f %z",
+          "status": "fail"
+        },
+        "field:code": {
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "field:email": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "field:name": {
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "fail"
+        },
+        "field:phone": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "fail"
+        },
+        "field:signed": {
+          "reason": "date comparison with format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:at": {
+          "reason": "value does not match date format '%d/%m/%Y %H:%M:%S.%f %z'",
+          "rule": "date:%d/%m/%Y %H:%M:%S.%f %z",
+          "status": "unknown"
+        },
+        "field:code": {
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "field:email": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "field:name": {
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "fail"
+        },
+        "field:phone": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "fail"
+        },
+        "field:signed": {
+          "reason": "date comparison with format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:at": {
+          "reason": "value does not match date format '%d/%m/%Y %H:%M:%S.%f %z'",
+          "rule": "date:%d/%m/%Y %H:%M:%S.%f %z",
+          "status": "unknown"
+        },
+        "field:code": {
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "field:email": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "field:name": {
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "pass"
+        },
+        "field:phone": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "fail"
+        },
+        "field:signed": {
+          "reason": "date comparison with format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

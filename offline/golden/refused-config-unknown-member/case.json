@@ -1,0 +1,11 @@
+{
+  "name": "refused-config-unknown-member",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json"
+  ]
+}

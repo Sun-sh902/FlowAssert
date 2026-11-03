@@ -1,0 +1,3 @@
+Verified: 3 rows of 3
+Verified 3 · Mismatch 0 · Unverified 0
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

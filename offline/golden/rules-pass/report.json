@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.",
+  "cohort_state": "Verified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 3
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 3,
+  "inputs": {
+    "config_file_sha256": "b8dc7d67be032a83094c5a7e73a264326c2e340e3ae3999cc8f383513596a5e5",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "ab77fdbbfddf1e0bd0261f4bf1bcfa4dd25bd36bd289cf0c85af6427f2fa3a8a",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "471188ca5b781899e6b4f7c2b18f7bdc9822d0d5084f297086e8b80aa66a297a"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "name",
+        "name"
+      ],
+      [
+        "email",
+        "mail"
+      ],
+      [
+        "phone",
+        "tel"
+      ],
+      [
+        "signed",
+        "signed_on"
+      ],
+      [
+        "at",
+        "at"
+      ],
+      [
+        "code",
+        "code"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "rules": [
+      "trim",
+      "casefold",
+      "digits",
+      "date:%Y-%m-%d",
+      "date:%d/%m/%Y %H:%M:%S.%f %z",
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "P1",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "key": "P2",
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "key": "P3",
+      "source_row": 2,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowAssert report: Mismatch</title>
+<style>
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;max-width:72rem;padding:1rem;
+color:#1b1f24;background:#fff}
+h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #d0d7de}
+table{border-collapse:collapse;width:100%;margin:.5rem 0}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;
+text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f6f8fa}
+.state{display:inline-block;font-size:1.6rem;font-weight:700;padding:.2rem .8rem;border-radius:.3rem}
+.Verified{background:#dafbe1;color:#116329}.Mismatch{background:#ffebe9;color:#a40e26}
+.Unverified,.Pending{background:#fff8c5;color:#7d4e00}.premises{border:2px solid #7d4e00;padding:.5rem 1rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>FlowAssert report</h1>
+<p><span class="state Mismatch">Mismatch</span></p>
+<p>No claim is made: the result is not Verified.</p>
+<p>Evaluated at 2000-01-01T00:00:00Z by evaluator v2-current-state-1.</p>
+<section class="premises">
+<h2>Stated premises</h2>
+<p>FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>
+<table>
+<tr><th>Premise</th><th>Stated</th><th>Origin</th><th>Rows in file</th><th>Matched</th></tr>
+<tr><td>source_complete</td><td>yes</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>destination_complete</td><td>no</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>source_count</td><td><i>none</i></td><td>command-line option</td><td>4</td><td><i>none</i></td></tr>
+<tr><td>destination_count</td><td><i>none</i></td><td>command-line option</td><td>5</td><td><i>none</i></td></tr>
+</table>
+</section>
+<h2>Counts</h2>
+<table>
+<tr><th>Source rows observed</th><td>4</td></tr>
+<tr><th>Expected total</th><td>4</td></tr>
+<tr><th>Verified records</th><td>0</td></tr>
+<tr><th>Mismatch records</th><td>3</td></tr>
+<tr><th>Pending records</th><td>0</td></tr>
+<tr><th>Unverified records</th><td>1</td></tr>
+<tr><th>Source population known</th><td>yes</td></tr>
+<tr><th>Destination coverage sufficient</th><td>no</td></tr>
+<tr><th>Destination rows without key</th><td>0</td></tr>
+<tr><th>Destination-only Verified</th><td>0</td></tr>
+<tr><th>Destination-only Mismatch</th><td>1</td></tr>
+<tr><th>Destination-only Pending</th><td>0</td></tr>
+<tr><th>Destination-only Unverified</th><td>0</td></tr>
+</table>
+<h2>Limitations</h2>
+<p>Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.</p>
+<table>
+<tr><th>workflow_execution</th><td>Not assessed</td></tr>
+<tr><th>business_truth</th><td>Not assessed</td></tr>
+<tr><th>existed_by_deadline</th><td>Not assessed</td></tr>
+<tr><th>acquisition_authenticity</th><td>not_authenticated</td></tr>
+</table>
+<h2>Records that are not Verified (4)</h2>
+<table>
+<tr><th>Record</th><th>Key</th><th>State</th><th>Rule</th><th>Status</th><th>Reason</th><th>Expected</th><th>Actual</th><th>Compared as</th></tr>
+<tr><td rowspan="4">1</td><td rowspan="4"><code>&#x27;&lt;script&gt;alert(1)&lt;/script&gt;&#x27;</code></td><td rowspan="4" class="Mismatch">Mismatch</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:名前</td><td>pass</td><td>exact string comparison</td><td><code>&#x27;&lt;b&gt;&quot;bold&quot; &amp; \&#x27;quoted\&#x27;&lt;/b&gt;&#x27;</code></td><td><code>&#x27;&lt;b&gt;&quot;bold&quot; &amp; \&#x27;quoted\&#x27;&lt;/b&gt;&#x27;</code></td><td></td></tr>
+<tr><td>field:note</td><td>fail</td><td>comparison after trimming leading and trailing whitespace</td><td><code>&#x27;\u200bzero width&#x27;</code></td><td><code>&#x27;zero width&#x27;</code></td><td><code>&#x27;\u200bzero width&#x27;</code> vs <code>&#x27;zero width&#x27;</code></td></tr>
+<tr><td rowspan="4">2</td><td rowspan="4"><code>&#x27;K-ü&#x27;</code></td><td rowspan="4" class="Mismatch">Mismatch</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:名前</td><td>fail</td><td>exact string comparison</td><td><code>&#x27;名字 Zoë&#x27;</code></td><td><code>&#x27;名字 Zoe&#x27;</code></td><td></td></tr>
+<tr><td>field:note</td><td>pass</td><td>comparison after trimming leading and trailing whitespace</td><td><code>&#x27;tab\there&#x27;</code></td><td><code>&#x27;tab\there&#x27;</code></td><td><code>&#x27;tab\there&#x27;</code> vs <code>&#x27;tab\there&#x27;</code></td></tr>
+<tr><td rowspan="4">3</td><td rowspan="4"><code>&#x27;K-😀&#x27;</code></td><td rowspan="4" class="Mismatch">Mismatch</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:名前</td><td>pass</td><td>exact string comparison</td><td><code>&#x27;emoji 😀&#x27;</code></td><td><code>&#x27;emoji 😀&#x27;</code></td><td></td></tr>
+<tr><td>field:note</td><td>fail</td><td>comparison after trimming leading and trailing whitespace</td><td><code>&#x27;line\nbreak&#x27;</code></td><td><code>&#x27;line\r\nbreak&#x27;</code></td><td><code>&#x27;line\nbreak&#x27;</code> vs <code>&#x27;line\r\nbreak&#x27;</code></td></tr>
+<tr><td rowspan="4">4</td><td rowspan="4"><code>&#x27;K-ctl&#x27;</code></td><td rowspan="4" class="Unverified">Unverified</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:名前</td><td>pass</td><td>exact string comparison</td><td><code>&#x27;\x01\x7f\x85&#x27;</code></td><td><code>&#x27;\x01\x7f\x85&#x27;</code></td><td></td></tr>
+<tr><td>field:note</td><td>pass</td><td>comparison after trimming leading and trailing whitespace</td><td><code>&#x27;\\back\\slash&#x27;</code></td><td><code>&#x27;\\back\\slash &#x27;</code></td><td><code>&#x27;\\back\\slash&#x27;</code> vs <code>&#x27;\\back\\slash&#x27;</code></td></tr>
+</table>
+<h2>Destination-only records (1)</h2>
+<table>
+<tr><th>Destination row</th><th>Key</th><th>Rows</th><th>State</th><th>Reason</th></tr>
+<tr><td>5</td><td><code>&#x27;K-only-in-destination&#x27;</code></td><td>1</td><td class="Mismatch">Mismatch</td><td>key not in the source, and the source population is known</td></tr>
+</table>
+<h2>Inputs</h2>
+<table>
+<tr><th>source_sha256</th><td>52374a5a9c3d765288942e9fe51b2be91fae638c4d57294dee010ba8d05a0321</td></tr>
+<tr><th>destination_sha256</th><td>7f0114e1ffe9b78ea50f9fab1d4140334be3a6f4ef62bfa61ed65160143080fd</td></tr>
+<tr><th>source_complete_stated</th><td>yes</td></tr>
+<tr><th>destination_complete_stated</th><td>no</td></tr>
+<tr><th>identical_content</th><td>no</td></tr>
+<tr><th>config_file_sha256</th><td>189df04bb302f3daa8420acfec21e7190562d948be63e4c320686a0d634ad5bb</td></tr>
+<tr><th>source_encoding</th><td>utf-8</td></tr>
+<tr><th>destination_encoding</th><td>utf-8</td></tr>
+<tr><th>obligation type</th><td><code>&quot;current_state&quot;</code></td></tr>
+<tr><th>obligation key</th><td><code>[&quot;id&quot;, &quot;id&quot;]</code></td></tr>
+<tr><th>obligation fields</th><td><code>[[&quot;\u540d\u524d&quot;, &quot;\u540d\u524d&quot;], [&quot;note&quot;, &quot;note&quot;]]</code></td></tr>
+<tr><th>obligation comparison</th><td><code>&quot;per-field-rule&quot;</code></td></tr>
+<tr><th>obligation rules</th><td><code>[&quot;exact&quot;, &quot;trim&quot;]</code></td></tr>
+<tr><th>obligation scope</th><td><code>&quot;exact&quot;</code></td></tr>
+</table>
+</body>
+</html>

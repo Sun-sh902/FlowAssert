@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 4,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 4,
+  "inputs": {
+    "config_file_sha256": "d16f7147bb59a0b919d1cef5e44de5c8156e28dee5fb8deeb23fbc3d42a1fbf8",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "7f0114e1ffe9b78ea50f9fab1d4140334be3a6f4ef62bfa61ed65160143080fd",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "52374a5a9c3d765288942e9fe51b2be91fae638c4d57294dee010ba8d05a0321"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "\u540d\u524d",
+        "\u540d\u524d"
+      ],
+      [
+        "note",
+        "note"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "rules": [
+      "exact",
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 5,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "<script>alert(1)</script>",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "actual": "zero width",
+          "expected": "\u200bzero width",
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "field:\u540d\u524d": {
+          "actual": "<b>\"bold\" & 'quoted'</b>",
+          "expected": "<b>\"bold\" & 'quoted'</b>",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 0,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 1,
+      "key": "K-\u00fc",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "actual": "tab\there",
+          "expected": "tab\there",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:\u540d\u524d": {
+          "actual": "\u540d\u5b57 Zoe",
+          "expected": "\u540d\u5b57 Zo\u00eb",
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 1,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 1,
+      "key": "K-\ud83d\ude00",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "actual": "line\r\nbreak",
+          "expected": "line\nbreak",
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "field:\u540d\u524d": {
+          "actual": "emoji \ud83d\ude00",
+          "expected": "emoji \ud83d\ude00",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 2,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 1,
+      "key": "K-ctl",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "actual": "\\back\\slash ",
+          "expected": "\\back\\slash",
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "field:\u540d\u524d": {
+          "actual": "\u0001\u007f\u0085",
+          "expected": "\u0001\u007f\u0085",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 3,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

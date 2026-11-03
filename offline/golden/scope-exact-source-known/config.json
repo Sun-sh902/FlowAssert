@@ -1,0 +1,19 @@
+{
+  "key": [
+    "id",
+    "id"
+  ],
+  "fields": [
+    {
+      "source": "名前",
+      "destination": "名前",
+      "rule": "exact"
+    },
+    {
+      "source": "note",
+      "destination": "note",
+      "rule": "trim"
+    }
+  ],
+  "scope": "exact"
+}

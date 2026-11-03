@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 2,
+  "inputs": {
+    "config_file_sha256": "c35671dee2f111f66e0d47f04675bdb25ea8b3f28331557ad2be02c55f15370e",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "9b5d23e461fc141f4904b870e0730b4c0d2249e1351fad490424da1a777e4775",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "e386d216c8e8815d010cfb6ce044d5362062e5cb965c28848f59c5f929bb80b3"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "p",
+        "p"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 2,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 2,
+      "key": "A",
+      "rules": {
+        "existence": {
+          "reason": "candidates observed",
+          "status": "pass"
+        },
+        "field:p": {
+          "reason": "no arbitrary candidate selected",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "more than one destination row carries this key",
+          "status": "fail"
+        }
+      },
+      "source_row": 0,
+      "state": "Mismatch"
+    },
+    {
+      "key": "B",
+      "source_row": 1,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 2,
+  "workflow_execution": "Not assessed"
+}

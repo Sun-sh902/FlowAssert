@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowAssert report: Mismatch</title>
+<style>
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;max-width:72rem;padding:1rem;
+color:#1b1f24;background:#fff}
+h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #d0d7de}
+table{border-collapse:collapse;width:100%;margin:.5rem 0}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;
+text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f6f8fa}
+.state{display:inline-block;font-size:1.6rem;font-weight:700;padding:.2rem .8rem;border-radius:.3rem}
+.Verified{background:#dafbe1;color:#116329}.Mismatch{background:#ffebe9;color:#a40e26}
+.Unverified,.Pending{background:#fff8c5;color:#7d4e00}.premises{border:2px solid #7d4e00;padding:.5rem 1rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>FlowAssert report</h1>
+<p><span class="state Mismatch">Mismatch</span></p>
+<p>No claim is made: the result is not Verified.</p>
+<p>Evaluated at 2000-01-01T00:00:00Z by evaluator v2-current-state-1.</p>
+<section class="premises">
+<h2>Stated premises</h2>
+<p>FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>
+<table>
+<tr><th>Premise</th><th>Stated</th><th>Origin</th><th>Rows in file</th><th>Matched</th></tr>
+<tr><td>source_complete</td><td>yes</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>destination_complete</td><td>yes</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>source_count</td><td><i>none</i></td><td>command-line option</td><td>3</td><td><i>none</i></td></tr>
+<tr><td>destination_count</td><td><i>none</i></td><td>command-line option</td><td>3</td><td><i>none</i></td></tr>
+</table>
+</section>
+<h2>Counts</h2>
+<table>
+<tr><th>Source rows observed</th><td>3</td></tr>
+<tr><th>Expected total</th><td>3</td></tr>
+<tr><th>Verified records</th><td>0</td></tr>
+<tr><th>Mismatch records</th><td>1</td></tr>
+<tr><th>Pending records</th><td>0</td></tr>
+<tr><th>Unverified records</th><td>2</td></tr>
+<tr><th>Source population known</th><td>yes</td></tr>
+<tr><th>Destination coverage sufficient</th><td>yes</td></tr>
+<tr><th>Destination rows without key</th><td>0</td></tr>
+</table>
+<h2>Limitations</h2>
+<p>Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.</p>
+<table>
+<tr><th>workflow_execution</th><td>Not assessed</td></tr>
+<tr><th>business_truth</th><td>Not assessed</td></tr>
+<tr><th>existed_by_deadline</th><td>Not assessed</td></tr>
+<tr><th>acquisition_authenticity</th><td>not_authenticated</td></tr>
+</table>
+<h2>Records that are not Verified (3)</h2>
+<table>
+<tr><th>Record</th><th>Key</th><th>State</th><th>Rule</th><th>Status</th><th>Reason</th><th>Expected</th><th>Actual</th><th>Compared as</th></tr>
+<tr><td rowspan="8">1</td><td rowspan="8"><code>&#x27;P1&#x27;</code></td><td rowspan="8" class="Unverified">Unverified</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>pass</td><td>one row in stated complete destination</td><td></td><td></td><td></td></tr>
+<tr><td>field:name</td><td>unknown</td><td>empty after trimming whitespace; a missing value is not assumed to be a difference</td><td><code>&#x27; Ada &#x27;</code></td><td><code>&#x27;   &#x27;</code></td><td><code>&#x27;Ada&#x27;</code> vs <code>&#x27;&#x27;</code></td></tr>
+<tr><td>field:email</td><td>unknown</td><td>empty value; a missing value is not assumed to be a difference</td><td><code>&#x27;Ada@Example.test&#x27;</code></td><td><code>&#x27;&#x27;</code></td><td><code>&#x27;ada@example.test&#x27;</code> vs <code>&#x27;&#x27;</code></td></tr>
+<tr><td>field:phone</td><td>unknown</td><td>no digits to compare</td><td><code>&#x27;+1 (212) 555-0101&#x27;</code></td><td><code>&#x27;n/a&#x27;</code></td><td><code>&#x27;12125550101&#x27;</code> vs <code>&#x27;&#x27;</code></td></tr>
+<tr><td>field:signed</td><td>unknown</td><td>value does not match date format &#x27;%Y-%m-%d&#x27;</td><td><code>&#x27;2026-01-02&#x27;</code></td><td><code>&#x27;02/01/2026&#x27;</code></td><td><code>&#x27;2026-01-02T00:00:00&#x27;</code> vs <i>none</i></td></tr>
+<tr><td>field:at</td><td>unknown</td><td>value does not match date format &#x27;%d/%m/%Y %H:%M:%S.%f %z&#x27;</td><td><code>&#x27;02/01/2026 09:00:00.5 +0800&#x27;</code></td><td><code>&#x27;2026-01-02 09:00&#x27;</code></td><td><code>&#x27;2026-01-02T01:00:00.500000+00:00&#x27;</code> vs <i>none</i></td></tr>
+<tr><td>field:code</td><td>unknown</td><td>empty value; a missing value is not assumed to be a difference</td><td><code>&#x27;A1&#x27;</code></td><td><code>&#x27;&#x27;</code></td><td></td></tr>
+<tr><td rowspan="8">2</td><td rowspan="8"><code>&#x27;P2&#x27;</code></td><td rowspan="8" class="Mismatch">Mismatch</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>pass</td><td>one row in stated complete destination</td><td></td><td></td><td></td></tr>
+<tr><td>field:name</td><td>unknown</td><td>empty value; a missing value is not assumed to be a difference</td><td><code>&#x27;Grace&#x27;</code></td><td><code>&#x27;&#x27;</code></td><td><code>&#x27;Grace&#x27;</code> vs <code>&#x27;&#x27;</code></td></tr>
+<tr><td>field:email</td><td>fail</td><td>comparison after Unicode case folding</td><td><code>&#x27;Straße@x.test&#x27;</code></td><td><code>&#x27;x&#x27;</code></td><td><code>&#x27;strasse@x.test&#x27;</code> vs <code>&#x27;x&#x27;</code></td></tr>
+<tr><td>field:phone</td><td>unknown</td><td>no digits to compare</td><td><code>&#x27;555 0102&#x27;</code></td><td><code>&#x27;none&#x27;</code></td><td><code>&#x27;5550102&#x27;</code> vs <code>&#x27;&#x27;</code></td></tr>
+<tr><td>field:signed</td><td>unknown</td><td>value does not match date format &#x27;%Y-%m-%d&#x27;</td><td><code>&#x27;2026-1-2&#x27;</code></td><td><code>&#x27;2026-02-30&#x27;</code></td><td><code>&#x27;2026-01-02T00:00:00&#x27;</code> vs <i>none</i></td></tr>
+<tr><td>field:at</td><td>unknown</td><td>value does not match date format &#x27;%d/%m/%Y %H:%M:%S.%f %z&#x27;</td><td><code>&#x27;1/1/2026 23:59:59.999999 -0130&#x27;</code></td><td><code>&#x27;32/01/2026 00:00:00.0 +0000&#x27;</code></td><td><code>&#x27;2026-01-02T01:29:59.999999+00:00&#x27;</code> vs <i>none</i></td></tr>
+<tr><td>field:code</td><td>unknown</td><td>empty value; a missing value is not assumed to be a difference</td><td><code>&#x27;B2&#x27;</code></td><td><code>&#x27;&#x27;</code></td><td></td></tr>
+<tr><td rowspan="8">3</td><td rowspan="8"><code>&#x27;P3&#x27;</code></td><td rowspan="8" class="Unverified">Unverified</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>pass</td><td>one row in stated complete destination</td><td></td><td></td><td></td></tr>
+<tr><td>field:name</td><td>pass</td><td>comparison after trimming leading and trailing whitespace</td><td><code>&#x27;Alan&#x27;</code></td><td><code>&#x27;Alan&#x27;</code></td><td><code>&#x27;Alan&#x27;</code> vs <code>&#x27;Alan&#x27;</code></td></tr>
+<tr><td>field:email</td><td>unknown</td><td>empty value; a missing value is not assumed to be a difference</td><td><code>&#x27;ΣΊΣΥΦΟΣ@x.test&#x27;</code></td><td><code>&#x27;&#x27;</code></td><td><code>&#x27;σίσυφοσ@x.test&#x27;</code> vs <code>&#x27;&#x27;</code></td></tr>
+<tr><td>field:phone</td><td>unknown</td><td>no digits to compare</td><td><code>&#x27;٣ 12&#x27;</code></td><td><code>&#x27;—&#x27;</code></td><td><code>&#x27;12&#x27;</code> vs <code>&#x27;&#x27;</code></td></tr>
+<tr><td>field:signed</td><td>unknown</td><td>value does not match date format &#x27;%Y-%m-%d&#x27;</td><td><code>&#x27;2026-02-03&#x27;</code></td><td><code>&#x27;2026-13-01&#x27;</code></td><td><code>&#x27;2026-02-03T00:00:00&#x27;</code> vs <i>none</i></td></tr>
+<tr><td>field:at</td><td>unknown</td><td>value does not match date format &#x27;%d/%m/%Y %H:%M:%S.%f %z&#x27;</td><td><code>&#x27;03/02/2026 10:00:00.0 +0000&#x27;</code></td><td><code>&#x27;03/02/2026 10:00:00.0 +2400&#x27;</code></td><td><code>&#x27;2026-02-03T10:00:00+00:00&#x27;</code> vs <i>none</i></td></tr>
+<tr><td>field:code</td><td>unknown</td><td>empty value; a missing value is not assumed to be a difference</td><td><code>&#x27;C3&#x27;</code></td><td><code>&#x27;&#x27;</code></td><td></td></tr>
+</table>
+<h2>Inputs</h2>
+<table>
+<tr><th>source_sha256</th><td>471188ca5b781899e6b4f7c2b18f7bdc9822d0d5084f297086e8b80aa66a297a</td></tr>
+<tr><th>destination_sha256</th><td>fe14ce0a49e2aa55492083d889be0dea752d4883a558cfc186165c169205f69a</td></tr>
+<tr><th>source_complete_stated</th><td>yes</td></tr>
+<tr><th>destination_complete_stated</th><td>yes</td></tr>
+<tr><th>identical_content</th><td>no</td></tr>
+<tr><th>config_file_sha256</th><td>b8dc7d67be032a83094c5a7e73a264326c2e340e3ae3999cc8f383513596a5e5</td></tr>
+<tr><th>source_encoding</th><td>utf-8</td></tr>
+<tr><th>destination_encoding</th><td>utf-8</td></tr>
+<tr><th>obligation type</th><td><code>&quot;current_state&quot;</code></td></tr>
+<tr><th>obligation key</th><td><code>[&quot;id&quot;, &quot;id&quot;]</code></td></tr>
+<tr><th>obligation fields</th><td><code>[[&quot;name&quot;, &quot;name&quot;], [&quot;email&quot;, &quot;mail&quot;], [&quot;phone&quot;, &quot;tel&quot;], [&quot;signed&quot;, &quot;signed_on&quot;], [&quot;at&quot;, &quot;at&quot;], [&quot;code&quot;, &quot;code&quot;]]</code></td></tr>
+<tr><th>obligation comparison</th><td><code>&quot;per-field-rule&quot;</code></td></tr>
+<tr><th>obligation rules</th><td><code>[&quot;trim&quot;, &quot;casefold&quot;, &quot;digits&quot;, &quot;date:%Y-%m-%d&quot;, &quot;date:%d/%m/%Y %H:%M:%S.%f %z&quot;, &quot;exact&quot;]</code></td></tr>
+<tr><th>obligation scope</th><td><code>&quot;source&quot;</code></td></tr>
+</table>
+</body>
+</html>

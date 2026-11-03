@@ -1,0 +1,29 @@
+{
+  "name": "count-destination-mismatch",
+  "page": {
+    "source_encoding": "utf-8",
+    "destination_encoding": "utf-8",
+    "config": "canonical",
+    "source_complete": true,
+    "destination_complete": true,
+    "allow_identical_content": false,
+    "source_count": null,
+    "destination_count": "3"
+  },
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--source-encoding",
+    "utf-8",
+    "--destination-encoding",
+    "utf-8",
+    "--source-complete",
+    "--destination-complete",
+    "--destination-count",
+    "3"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "refused-no-field",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id"
+  ]
+}

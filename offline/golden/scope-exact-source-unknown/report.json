@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 3,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_only": [
+    {
+      "destination_row": 4,
+      "key": "K-only-in-destination",
+      "reason": "key not in the source; source population unknown, so no conclusion",
+      "rows": 1,
+      "state": "Unverified"
+    }
+  ],
+  "destination_only_counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 1,
+    "Verified": 0
+  },
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "config_file_sha256": "1f3987ce94284fb6c00f817129779f9a83013a599df3e4331c11abaa43b29e0d",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "7f0114e1ffe9b78ea50f9fab1d4140334be3a6f4ef62bfa61ed65160143080fd",
+    "identical_content": false,
+    "source_complete_stated": false,
+    "source_encoding": "utf-8",
+    "source_sha256": "52374a5a9c3d765288942e9fe51b2be91fae638c4d57294dee010ba8d05a0321"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "note",
+        "note"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "rules": [
+      "casefold"
+    ],
+    "scope": "exact",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 5,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "<script>alert(1)</script>",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "actual": "zero width",
+          "actual_normalized": "zero width",
+          "expected": "\u200bzero width",
+          "expected_normalized": "\u200bzero width",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 0,
+      "state": "Mismatch"
+    },
+    {
+      "key": "K-\u00fc",
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "K-\ud83d\ude00",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "actual": "line\r\nbreak",
+          "actual_normalized": "line\r\nbreak",
+          "expected": "line\nbreak",
+          "expected_normalized": "line\nbreak",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 2,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 1,
+      "key": "K-ctl",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "actual": "\\back\\slash ",
+          "actual_normalized": "\\back\\slash ",
+          "expected": "\\back\\slash",
+          "expected_normalized": "\\back\\slash",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 3,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

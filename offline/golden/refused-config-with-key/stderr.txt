@@ -1,0 +1,1 @@
+refused: --config cannot be combined with --key

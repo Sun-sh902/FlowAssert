@@ -1,0 +1,23 @@
+Mismatch: 3 rows of 3
+Verified 0 · Mismatch 1 · Unverified 2
+  record 1 P1: Unverified
+    field:name unknown: empty after trimming whitespace; a missing value is not assumed to be a difference (' Ada ' vs '   '), compared as ('Ada' vs '')
+    field:email unknown: empty value; a missing value is not assumed to be a difference ('Ada@Example.test' vs ''), compared as ('ada@example.test' vs '')
+    field:phone unknown: no digits to compare ('+1 (212) 555-0101' vs 'n/a'), compared as ('12125550101' vs '')
+    field:signed unknown: value does not match date format '%Y-%m-%d' ('2026-01-02' vs '02/01/2026'), compared as ('2026-01-02T00:00:00' vs None)
+    field:at unknown: value does not match date format '%d/%m/%Y %H:%M:%S.%f %z' ('02/01/2026 09:00:00.5 +0800' vs '2026-01-02 09:00'), compared as ('2026-01-02T01:00:00.500000+00:00' vs None)
+    field:code unknown: empty value; a missing value is not assumed to be a difference ('A1' vs '')
+  record 2 P2: Mismatch
+    field:name unknown: empty value; a missing value is not assumed to be a difference ('Grace' vs ''), compared as ('Grace' vs '')
+    field:email fail: comparison after Unicode case folding ('Straße@x.test' vs 'x'), compared as ('strasse@x.test' vs 'x')
+    field:phone unknown: no digits to compare ('555 0102' vs 'none'), compared as ('5550102' vs '')
+    field:signed unknown: value does not match date format '%Y-%m-%d' ('2026-1-2' vs '2026-02-30'), compared as ('2026-01-02T00:00:00' vs None)
+    field:at unknown: value does not match date format '%d/%m/%Y %H:%M:%S.%f %z' ('1/1/2026 23:59:59.999999 -0130' vs '32/01/2026 00:00:00.0 +0000'), compared as ('2026-01-02T01:29:59.999999+00:00' vs None)
+    field:code unknown: empty value; a missing value is not assumed to be a difference ('B2' vs '')
+  record 3 P3: Unverified
+    field:email unknown: empty value; a missing value is not assumed to be a difference ('ΣΊΣΥΦΟΣ@x.test' vs ''), compared as ('σίσυφοσ@x.test' vs '')
+    field:phone unknown: no digits to compare ('٣ 12' vs '—'), compared as ('12' vs '')
+    field:signed unknown: value does not match date format '%Y-%m-%d' ('2026-02-03' vs '2026-13-01'), compared as ('2026-02-03T00:00:00' vs None)
+    field:at unknown: value does not match date format '%d/%m/%Y %H:%M:%S.%f %z' ('03/02/2026 10:00:00.0 +0000' vs '03/02/2026 10:00:00.0 +2400'), compared as ('2026-02-03T10:00:00+00:00' vs None)
+    field:code unknown: empty value; a missing value is not assumed to be a difference ('C3' vs '')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

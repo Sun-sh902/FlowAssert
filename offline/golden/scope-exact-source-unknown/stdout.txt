@@ -1,0 +1,11 @@
+Mismatch: 4 rows of unknown total
+Verified 1 · Mismatch 3 · Unverified 0
+Source population unknown: the batch cannot be Verified.
+Destination-only: 1 records not in the source, listed without a conclusion.
+  record 1 <script>alert(1)</script>: Mismatch
+    field:note fail: comparison after Unicode case folding ('\u200bzero width' vs 'zero width'), compared as ('\u200bzero width' vs 'zero width')
+  record 3 K-😀: Mismatch
+    field:note fail: comparison after Unicode case folding ('line\nbreak' vs 'line\r\nbreak'), compared as ('line\nbreak' vs 'line\r\nbreak')
+  record 4 K-ctl: Mismatch
+    field:note fail: comparison after Unicode case folding ('\\back\\slash' vs '\\back\\slash '), compared as ('\\back\\slash' vs '\\back\\slash ')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

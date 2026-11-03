@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "config_file_sha256": "c35671dee2f111f66e0d47f04675bdb25ea8b3f28331557ad2be02c55f15370e",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "e386d216c8e8815d010cfb6ce044d5362062e5cb965c28848f59c5f929bb80b3",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "d7f25d480f9f918b9171341d8c0706ed7c1a3ced391300af4077f617a2ca7ce2"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "p",
+        "p"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 2,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "A",
+      "rules": {
+        "existence": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "field:p": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "A",
+      "rules": {
+        "existence": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "field:p": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    },
+    {
+      "key": "B",
+      "source_row": 2,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

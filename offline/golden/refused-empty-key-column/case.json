@@ -1,0 +1,13 @@
+{
+  "name": "refused-empty-key-column",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--key",
+    ":external_id",
+    "--field",
+    "phone"
+  ]
+}

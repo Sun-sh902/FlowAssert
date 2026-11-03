@@ -1,0 +1,14 @@
+{
+  "key": [
+    "k",
+    "k"
+  ],
+  "fields": [
+    {
+      "source": "p",
+      "destination": "p",
+      "rule": "exact"
+    }
+  ],
+  "scope": "exact"
+}

@@ -1,0 +1,1 @@
+refused: config.json: a source field is repeated

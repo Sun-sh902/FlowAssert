@@ -1,0 +1,19 @@
+{
+  "name": "count-cli-forms",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--source-count",
+    "+4",
+    "--destination-count",
+    "0_4"
+  ]
+}

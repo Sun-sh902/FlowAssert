@@ -1,0 +1,39 @@
+{
+  "key": [
+    "id",
+    "id"
+  ],
+  "fields": [
+    {
+      "source": "name",
+      "destination": "name",
+      "rule": "trim"
+    },
+    {
+      "source": "email",
+      "destination": "mail",
+      "rule": "casefold"
+    },
+    {
+      "source": "phone",
+      "destination": "tel",
+      "rule": "digits"
+    },
+    {
+      "source": "signed",
+      "destination": "signed_on",
+      "rule": "date:%Y-%m-%d"
+    },
+    {
+      "source": "at",
+      "destination": "at",
+      "rule": "date:%d/%m/%Y %H:%M:%S.%f %z"
+    },
+    {
+      "source": "code",
+      "destination": "code",
+      "rule": "exact"
+    }
+  ],
+  "scope": "source"
+}

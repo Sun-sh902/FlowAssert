@@ -1,0 +1,13 @@
+{
+  "name": "refused-same-file",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "./source.csv",
+    "--key",
+    "k",
+    "--field",
+    "p"
+  ]
+}

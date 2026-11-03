@@ -1,0 +1,14 @@
+{
+  "name": "rules-redacted",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--redact-values",
+    "--details",
+    "all"
+  ]
+}

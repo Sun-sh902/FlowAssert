@@ -1,0 +1,7 @@
+id,名前,note
+<script>alert(1)</script>,<b>"bold" & 'quoted'</b>,zero width
+K-ü,名字 Zoe,tab	here
+K-😀,emoji 😀,"line
+break"
+K-ctl,,\back\slash 
+K-only-in-destination,x,y

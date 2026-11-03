@@ -1,0 +1,11 @@
+{
+  "name": "refused-config-not-utf8",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json"
+  ]
+}

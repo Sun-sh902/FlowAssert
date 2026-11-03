@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 1,
+  "inputs": {
+    "config_file_sha256": "c35671dee2f111f66e0d47f04675bdb25ea8b3f28331557ad2be02c55f15370e",
+    "destination_complete_stated": false,
+    "destination_encoding": "utf-16",
+    "destination_sha256": "8327be414489e1d127467610eed8aa2634d5d7aee515c872a564f9f2eb5f97c2",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-16",
+    "source_sha256": "dcb1b497f21c9ac169983aef9ce248d3b66eeeed34e00625041144a709e76442"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "p",
+        "p"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 1,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "K1",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:p": {
+          "actual": "K2",
+          "expected": "\u540d\u5b57 Zo\u00eb \ud83d\ude00",
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 1,
+  "workflow_execution": "Not assessed"
+}

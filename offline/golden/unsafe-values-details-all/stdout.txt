@@ -1,0 +1,11 @@
+Mismatch: 4 rows of 4
+Verified 0 · Mismatch 4 · Unverified 0
+  record 1 [redacted]: Mismatch
+    field:note fail: exact string comparison
+  record 2 [redacted]: Mismatch
+    field:名前 fail: exact string comparison
+  record 3 [redacted]: Mismatch
+    field:note fail: exact string comparison
+  record 4 [redacted]: Mismatch
+    field:note fail: exact string comparison
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

@@ -1,0 +1,5 @@
+Mismatch: 4 rows of 4
+Verified 3 · Mismatch 1 · Unverified 0
+  record 4 D: Mismatch
+    field:p fail: exact string comparison ('\n' vs '\r\n')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

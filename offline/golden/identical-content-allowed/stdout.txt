@@ -1,0 +1,4 @@
+Verified: 1 rows of 1
+Verified 1 · Mismatch 0 · Unverified 0
+Source and destination files were identical (--allow-identical-content).
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.
