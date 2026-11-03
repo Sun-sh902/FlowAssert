@@ -195,6 +195,9 @@ class CsvFile:
 def run(args):
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
+    counts = {name: None if value is None else _int_arg(option, value, 0) for name, option, value in (
+        ("source_count", "--source-count", args.source_count),
+        ("destination_count", "--destination-count", args.destination_count))}
     details = _choice("--details", args.details, DETAILS, "problems")
     source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
     destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
@@ -220,7 +223,7 @@ def run(args):
     destination = CsvFile(args.destination, [key[1]] + [d for _, d in fields],
                           encoding=destination_encoding, max_rows=max_rows)
     report = evaluate({"key": key, "fields": fields}, source, destination, source_complete=args.source_complete,
-                      destination_complete=args.destination_complete, details=details)
+                      destination_complete=args.destination_complete, details=details, **counts)
     identical = source.sha256 == destination.sha256
     if identical and not args.allow_identical_content:
         raise Refused(
@@ -262,6 +265,12 @@ def summary(report, max_details=MAX_DETAILS):
     yield f"Verified {c['Verified']} · Mismatch {c['Mismatch']} · Unverified {c['Unverified']}"
     if report.get("inputs", {}).get("identical_content"):
         yield "Source and destination files were identical (--allow-identical-content)."
+    premises = report.get("premises", {})
+    for name, label, consequence in (("source_count", "Source", "the batch cannot be Verified"),
+                                     ("destination_count", "Destination", "absence and uniqueness stay unknown")):
+        count = premises.get(name, {})
+        if count.get("matched") is False:
+            yield f"{label} count stated {count['stated']}, file has {count['observed']} rows: {consequence}."
     if not report["source_population_known"]:
         yield "Source population unknown: the batch cannot be Verified."
     if not report["destination_coverage_sufficient"]:
@@ -339,6 +348,9 @@ def main(argv=None):
     parser.add_argument("--mapping", metavar="FILE", help="UTF-8 JSON file with key and fields column pairs")
     parser.add_argument("--source-complete", action="store_true", help="state that the source is the whole cohort")
     parser.add_argument("--destination-complete", action="store_true", help="state that the export covers the whole object")
+    parser.add_argument("--source-count", metavar="N", help="state the source total seen in the original system")
+    parser.add_argument("--destination-count", metavar="N",
+                        help="state the destination total seen in the original system")
     parser.add_argument("--allow-identical-content", action="store_true",
                         help="continue when two distinct files have identical content")
     parser.add_argument("--source-encoding", metavar="NAME", help="utf-8 (default), utf-16 or gb18030")

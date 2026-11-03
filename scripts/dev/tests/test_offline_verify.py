@@ -826,3 +826,111 @@ def test_evaluator_reports_its_premises():
     result = evaluator_v2.evaluate(KEY, [ROW], [ROW], source_complete='yes', destination_complete=True)
     assert result['premises']['source_complete'] == {'stated': False}
     assert result['premises']['destination_complete'] == {'stated': True}
+
+
+# --- v0.2.0: count cross-check -----------------------------------------------------------------
+
+COUNTED = ('k,p\n1,a\n2,b\n3,c\n', 'p,k\na,1\nb,2\nc,3\n')
+COUNTED_ARGS = ('--key', 'k', '--field', 'p', '--source-complete', '--destination-complete')
+
+
+@pytest.mark.parametrize('stated', ['3', '2', '4', '0'])
+def test_source_count(tmp_path, capsys, stated):
+    code, out, _, report = check(tmp_path, capsys, *COUNTED, *COUNTED_ARGS, '--source-count', stated)
+    matched = stated == '3'
+    assert report['premises']['source_count'] == {'stated': int(stated), 'observed': 3, 'matched': matched,
+                                                  'origin': 'command-line option'}
+    assert [r['state'] for r in report['records']] == ['Verified'] * 3
+    line = f'Source count stated {stated}, file has 3 rows: the batch cannot be Verified.'
+    if matched:
+        assert code == 0 and report['cohort_state'] == 'Verified' and report['expected_total'] == 3
+        assert 'count stated' not in out
+    else:
+        assert code == 3 and report['cohort_state'] == 'Unverified' and report['claim'] is None
+        assert report['expected_total'] is None and report['source_population_known'] is False
+        assert line in out.splitlines() and 'Source population unknown' in out
+
+
+@pytest.mark.parametrize('stated', ['3', '2', '4', '0'])
+def test_destination_count(tmp_path, capsys, stated):
+    code, out, _, report = check(tmp_path, capsys, *COUNTED, *COUNTED_ARGS, '--destination-count', stated)
+    matched = stated == '3'
+    assert report['premises']['destination_count'] == {'stated': int(stated), 'observed': 3, 'matched': matched,
+                                                       'origin': 'command-line option'}
+    line = f'Destination count stated {stated}, file has 3 rows: absence and uniqueness stay unknown.'
+    if matched:
+        assert code == 0 and report['destination_coverage_sufficient'] is True and 'count stated' not in out
+    else:
+        assert code == 3 and report['cohort_state'] == 'Unverified'
+        assert report['destination_coverage_sufficient'] is False and report['expected_total'] == 3
+        assert [r['state'] for r in report['records']] == ['Unverified'] * 3
+        assert line in out.splitlines()
+
+
+def test_zero_counts_match_files_without_rows(tmp_path, capsys):
+    code, out, _, report = check(tmp_path, capsys, 'k,p\n', 'p,k\n', *COUNTED_ARGS,
+                                 '--source-count', '0', '--destination-count', '0')
+    assert code == 3 and report['cohort_state'] == 'Unverified' and 'count stated' not in out
+    assert report['premises']['source_count']['matched'] is True
+    assert report['premises']['destination_count']['matched'] is True
+
+
+def test_premises_without_counts_record_the_rows_read(tmp_path, capsys):
+    code, out, _, report = check(tmp_path, capsys, *COUNTED, '--key', 'k', '--field', 'p')
+    assert set(report['premises']) == {'source_complete', 'destination_complete', 'source_count', 'destination_count'}
+    assert report['premises']['source_count'] == {'stated': None, 'observed': 3, 'matched': None,
+                                                  'origin': 'command-line option'}
+
+
+@pytest.mark.parametrize('option', ['--source-count', '--destination-count'])
+@pytest.mark.parametrize('value', ['abc', '1.5', '-1', '', ' 3', '3 ', '٣', '1e3', '0x3'])
+def test_a_count_that_is_not_a_non_negative_integer_is_refused(tmp_path, capsys, option, value):
+    code, err = refused(tmp_path, capsys, 'k,p\n1,x\n', args=('--key', 'k', '--field', 'p', option, value))
+    assert code == 2 and f'{option} must be a non-negative integer' in err
+
+
+def test_matching_counts_do_not_replace_completeness_statements(tmp_path, capsys):
+    code, out, _, report = check(tmp_path, capsys, *COUNTED, '--key', 'k', '--field', 'p',
+                                 '--source-count', '3', '--destination-count', '3')
+    assert code == 3 and report['expected_total'] is None and report['destination_coverage_sufficient'] is False
+    assert [r['state'] for r in report['records']] == ['Unverified'] * 3
+
+
+def test_a_count_mismatch_does_not_hide_a_field_that_differs(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, 'k,p\n1,a\n2,b\n', 'p,k\na,1\nx,2\n', *COUNTED_ARGS,
+                               '--source-count', '5', '--destination-count', '5')
+    assert code == 1 and report['cohort_state'] == 'Mismatch' and report['expected_total'] is None
+
+
+def test_a_destination_count_mismatch_leaves_a_missing_key_unknown(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, *COUNTED, *COUNTED_ARGS)
+    assert code == 0
+    code, _, _, report = check(tmp_path, capsys, 'k,p\n1,a\n2,b\n3,c\n', 'p,k\na,1\nb,2\n', *COUNTED_ARGS,
+                               '--destination-count', '3')
+    assert code == 3 and [r['state'] for r in report['records']] == ['Unverified'] * 3
+    assert report['records'][2]['rules']['existence'] == {
+        'status': 'unknown', 'reason': 'destination row count differs from the stated count; absence not established'}
+
+
+def test_without_destination_complete_a_count_mismatch_is_not_named_as_the_reason(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, 'k,p\n1,a\n2,b\n', 'p,k\na,1\n', '--key', 'k', '--field', 'p',
+                               '--source-complete', '--destination-count', '2')
+    assert code == 3 and report['records'][1]['rules']['existence'] == {
+        'status': 'unknown', 'reason': 'destination not stated complete; absence not established'}
+
+
+def test_the_destination_count_includes_rows_without_a_key(tmp_path, capsys):
+    code, _, _, report = check(tmp_path, capsys, 'k,p\n1,a\n', 'p,k\na,1\nb,\n', *COUNTED_ARGS,
+                               '--destination-count', '2')
+    assert code == 3 and report['premises']['destination_count']['matched'] is True
+    assert report['destination_rows_without_key'] == 1
+
+
+def test_evaluator_counts_rows_and_refuses_a_bad_count():
+    result = evaluator_v2.evaluate(KEY, [ROW], [ROW], source_count=1, destination_count=2, **COMPLETE)
+    assert result['premises']['source_count'] == {'stated': 1, 'observed': 1, 'matched': True}
+    assert result['premises']['destination_count'] == {'stated': 2, 'observed': 1, 'matched': False}
+    assert states(result) == ('Unverified', ['Unverified'])
+    for bad in (-1, True, 1.0, '1'):
+        with pytest.raises(ValueError):
+            evaluator_v2.evaluate(KEY, [ROW], [ROW], source_count=bad)

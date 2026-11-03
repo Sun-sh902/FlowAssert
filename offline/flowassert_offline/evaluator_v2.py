@@ -7,12 +7,15 @@ destination rows satisfy the rules for the supplied source rows?
 Premises are stated by the caller and never authenticated:
   source_complete       the source rows are the whole cohort
   destination_complete  the destination rows cover the whole object
+  source_count          the number of source rows the caller saw in the original system
+  destination_count     the same for the destination
 
 Without a premise the matching conclusion stays unknown. Absence and uniqueness
-need destination_complete. A field that differs is a Mismatch either way, because
-a row that exists can disprove a rule on its own. Comparison is exact: no trimming,
-case folding, or other normalization. There is no waiting window, so a result is
-never Pending.
+need destination_complete. A stated count that differs from the rows supplied
+withdraws the matching completeness premise; a count that agrees adds nothing.
+A field that differs is a Mismatch either way, because a row that exists can
+disprove a rule on its own. Comparison is exact: no trimming, case folding, or
+other normalization. There is no waiting window, so a result is never Pending.
 
 Rows are consumed once, source first. The source rows are indexed, and each
 destination row is folded into the entry for its key as it is read, so no
@@ -48,6 +51,12 @@ def _compare(expected, actual):
                      expected=expected, actual=actual)
     status = "pass" if expected == actual else "fail"
     return _rule(status, "exact string comparison", expected=expected, actual=actual)
+
+
+def _count(name, value):
+    if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value < 0):
+        raise ValueError(f"{name} must be None or a non-negative integer")
+    return value
 
 
 class _Records(Sequence):
@@ -98,11 +107,13 @@ class _Records(Sequence):
 
 
 class _Evaluation:
-    def __init__(self, obligation, source_complete, destination_complete):
+    def __init__(self, obligation, source_complete, destination_complete, source_count, destination_count):
         self.source_key, self.destination_key = obligation["key"]
         self.fields = obligation["fields"]
         self.source_complete = source_complete is True
         self.destination_complete = destination_complete is True
+        self.source_count = _count("source_count", source_count)
+        self.destination_count = _count("destination_count", destination_count)
         self.keys = []      # per source row: its key, or None
         self.values = []    # per source row: its compared field values
         self.first = {}     # key -> position of the first source row with it
@@ -147,13 +158,18 @@ class _Evaluation:
     def finish(self, details):
         if self.candidates is None:
             self.candidates = array("q", bytes(8 * len(self.keys)))
+        self.source_count_matches = None if self.source_count is None else self.source_count == len(self.keys)
+        self.destination_count_matches = (None if self.destination_count is None
+                                          else self.destination_count == self.destination_rows)
         # A destination row that cannot be matched could be the record being looked for.
-        self.coverage = self.destination_complete and self.keyless == 0
+        self.coverage = (self.destination_complete and self.keyless == 0
+                         and self.destination_count_matches is not False)
         self.states = bytearray(_STATE_CODE[self.record(p)["state"]] for p in range(len(self.keys)))
         counts = {name: 0 for name in STATES}
         for code in self.states:
             counts[STATES[code]] += 1
-        population_known = self.source_complete and self.invalid_source_keys == 0 and not self.repeated
+        population_known = (self.source_complete and self.invalid_source_keys == 0 and not self.repeated
+                            and self.source_count_matches is not False)
         result = {"evaluator": VERSION, "counts": counts, "records": _Records(self, details),
                   "expected_total": len(self.keys) if population_known else None,
                   "source_rows_observed": len(self.keys), "source_population_known": population_known,
@@ -174,6 +190,10 @@ class _Evaluation:
         return {
             "source_complete": {"stated": self.source_complete},
             "destination_complete": {"stated": self.destination_complete},
+            "source_count": {"stated": self.source_count, "observed": len(self.keys),
+                             "matched": self.source_count_matches},
+            "destination_count": {"stated": self.destination_count, "observed": self.destination_rows,
+                                  "matched": self.destination_count_matches},
         }
 
     def record(self, position):
@@ -199,13 +219,16 @@ class _Evaluation:
                 rules["field:" + source_field] = _compare(e, a)
         elif self.coverage:
             rules["existence"] = _rule("fail", "key not found in stated complete destination")
+        elif self.destination_complete and self.keyless == 0 and self.destination_count_matches is False:
+            rules["existence"] = _rule("unknown", "destination row count differs from the stated count; "
+                                                  "absence not established")
         else:
             rules["existence"] = _rule("unknown", "destination not stated complete; absence not established")
         return {"key": key, "source_row": position, "state": _state(rules), "candidates": candidates, "rules": rules}
 
 
 def evaluate(obligation, source_rows, destination_rows, *, source_complete=False, destination_complete=False,
-             details="all"):
+             source_count=None, destination_count=None, details="all"):
     """`obligation` is {"key": (source, destination), "fields": [(source, destination), ...]}.
     Rows are mappings, read once each, source rows first.
 
@@ -213,7 +236,7 @@ def evaluate(obligation, source_rows, destination_rows, *, source_complete=False
     for a Verified record. The returned "records" is a read-only sequence."""
     if details not in DETAILS:
         raise ValueError(f"details must be one of {', '.join(DETAILS)}")
-    evaluation = _Evaluation(obligation, source_complete, destination_complete)
+    evaluation = _Evaluation(obligation, source_complete, destination_complete, source_count, destination_count)
     for row in source_rows:
         evaluation.add_source(row)
     for row in destination_rows:
