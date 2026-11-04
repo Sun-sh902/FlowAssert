@@ -27,6 +27,7 @@
    "src/test/lookup-gate.test.ts": 102,
    "src/test/offline/api.test.ts": 89,
    "src/test/offline/bundle.test.ts": 55,
+   "src/test/offline/compare.test.ts": 42,
    "src/test/offline/conformance.test.ts": 40,
    "src/test/offline/golden.test.ts": 140,
    "src/test/offline/n8n-workflow.test.ts": 6,

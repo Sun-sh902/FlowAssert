@@ -1,0 +1,216 @@
+{
+  "name": "refused-different-fields",
+  "about": "Another set of compared fields is another obligation.",
+  "earlier": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": null,
+      "cohort_state": "Mismatch",
+      "counts": {
+        "Mismatch": 1,
+        "Pending": 0,
+        "Unverified": 0,
+        "Verified": 1
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "problems",
+      "evaluated_at": "2026-11-01T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": 2,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "49248933364541a616b0897e710cb847ea23aaa4711d66de22c626e93130d3e7",
+        "identical_content": false,
+        "source_complete_stated": true,
+        "source_sha256": "036577d459188ea6148b53f799555f5a6eba8512f818ab08e26a5ec9d5b4da23"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ],
+          [
+            "email",
+            "email"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 2,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 2,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "key": "K1",
+          "source_row": 0,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K2",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "b",
+              "expected": "b",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "0",
+              "expected": "2",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 1,
+          "state": "Mismatch"
+        }
+      ],
+      "source_population_known": true,
+      "source_rows_observed": 2,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "later": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": null,
+      "cohort_state": "Mismatch",
+      "counts": {
+        "Mismatch": 1,
+        "Pending": 0,
+        "Unverified": 0,
+        "Verified": 1
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "problems",
+      "evaluated_at": "2026-11-02T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": 2,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "49248933364541a616b0897e710cb847ea23aaa4711d66de22c626e93130d3e7",
+        "identical_content": false,
+        "source_complete_stated": true,
+        "source_sha256": "036577d459188ea6148b53f799555f5a6eba8512f818ab08e26a5ec9d5b4da23"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 2,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 2,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "key": "K1",
+          "source_row": 0,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K2",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "0",
+              "expected": "2",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 1,
+          "state": "Mismatch"
+        }
+      ],
+      "source_population_known": true,
+      "source_rows_observed": 2,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "expected": {
+    "comparable": false,
+    "reasons": [
+      "different-fields"
+    ]
+  }
+}

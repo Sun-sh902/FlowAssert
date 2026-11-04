@@ -1,0 +1,16 @@
+{
+  "name": "refused-same-report",
+  "about": "The same report twice: the same files, premises and evaluation time, even with another details level.",
+  "earlier": {
+    "golden": "example"
+  },
+  "later": {
+    "golden": "example-details-all"
+  },
+  "expected": {
+    "comparable": false,
+    "reasons": [
+      "same-report"
+    ]
+  }
+}

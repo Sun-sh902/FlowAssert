@@ -1,0 +1,240 @@
+{
+  "name": "premise-in-one-report-only",
+  "about": "allow_identical_content is stated in one report only, whose two files have the same content; the other report's destination is another file.",
+  "earlier": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.",
+      "cohort_state": "Verified",
+      "counts": {
+        "Mismatch": 0,
+        "Pending": 0,
+        "Unverified": 0,
+        "Verified": 1
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "problems",
+      "evaluated_at": "2026-11-01T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": 1,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "76b51318f1397c07f6eba0ae625c73e473d29e4bd28b441a5b92c6a2aeef04b9",
+        "identical_content": true,
+        "identical_content_allowed": true,
+        "source_complete_stated": true,
+        "source_sha256": "76b51318f1397c07f6eba0ae625c73e473d29e4bd28b441a5b92c6a2aeef04b9"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ],
+          [
+            "email",
+            "email"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "allow_identical_content": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 1,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 1,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "key": "K1",
+          "source_row": 0,
+          "state": "Verified"
+        }
+      ],
+      "source_population_known": true,
+      "source_rows_observed": 1,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "later": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": null,
+      "cohort_state": "Mismatch",
+      "counts": {
+        "Mismatch": 1,
+        "Pending": 0,
+        "Unverified": 0,
+        "Verified": 0
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "problems",
+      "evaluated_at": "2026-11-02T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": 1,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "61260ea10c70c2664b7802b252420a1a9fbd77966415ad7c7300da194a0f3ea5",
+        "identical_content": false,
+        "source_complete_stated": true,
+        "source_sha256": "76b51318f1397c07f6eba0ae625c73e473d29e4bd28b441a5b92c6a2aeef04b9"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ],
+          [
+            "email",
+            "email"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 1,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 1,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "candidates": 1,
+          "key": "K1",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "b",
+              "expected": "a",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "field:phone": {
+              "actual": "1",
+              "expected": "1",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 0,
+          "state": "Mismatch"
+        }
+      ],
+      "source_population_known": true,
+      "source_rows_observed": 1,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "expected": {
+    "comparable": true,
+    "order": "chronological",
+    "same_files_same_premises": false,
+    "premise_differences": [
+      [
+        "allow_identical_content",
+        true,
+        true
+      ]
+    ],
+    "digests_changed": {
+      "source": false,
+      "destination": true
+    },
+    "source_population_known": [
+      true,
+      true
+    ],
+    "destination_coverage_sufficient": [
+      true,
+      true
+    ],
+    "cohort_state": [
+      "Verified",
+      "Mismatch"
+    ],
+    "records": {
+      "became-problem": [
+        [
+          "K1",
+          "Verified",
+          "Mismatch"
+        ]
+      ],
+      "stopped-problem": [],
+      "still-problem": [],
+      "still-verified": [],
+      "only-earlier": [],
+      "only-later": []
+    },
+    "rule_changes": {
+      "K1": "not available"
+    },
+    "rule_level_unavailable": 1,
+    "destination_only": null,
+    "unmatched": []
+  }
+}

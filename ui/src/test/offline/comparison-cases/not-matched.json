@@ -1,0 +1,391 @@
+{
+  "name": "not-matched",
+  "about": "A record without a key, and keys on more than one record of either report, are not matched: nothing is guessed.",
+  "earlier": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": null,
+      "cohort_state": "Unverified",
+      "counts": {
+        "Mismatch": 0,
+        "Pending": 0,
+        "Unverified": 3,
+        "Verified": 2
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "problems",
+      "evaluated_at": "2026-11-01T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": null,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "92788858a04e2aa6e911ea695dbfe41ffee1eadccf87648bf755da342d32680b",
+        "identical_content": false,
+        "source_complete_stated": true,
+        "source_sha256": "90bde1433ba71885864d619814823d497977964ba870f3b96788fce3ae2ce4e4"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ],
+          [
+            "email",
+            "email"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 3,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 5,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "key": "K1",
+          "source_row": 0,
+          "state": "Verified"
+        },
+        {
+          "candidates": 0,
+          "key": null,
+          "rules": {
+            "existence": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:email": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:phone": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "uniqueness": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            }
+          },
+          "source_row": 1,
+          "state": "Unverified"
+        },
+        {
+          "key": "K8",
+          "source_row": 2,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K9",
+          "rules": {
+            "existence": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:email": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:phone": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "uniqueness": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            }
+          },
+          "source_row": 3,
+          "state": "Unverified"
+        },
+        {
+          "candidates": 1,
+          "key": "K9",
+          "rules": {
+            "existence": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:email": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:phone": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "uniqueness": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            }
+          },
+          "source_row": 4,
+          "state": "Unverified"
+        }
+      ],
+      "source_population_known": false,
+      "source_rows_observed": 5,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "later": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": null,
+      "cohort_state": "Unverified",
+      "counts": {
+        "Mismatch": 0,
+        "Pending": 0,
+        "Unverified": 2,
+        "Verified": 2
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "problems",
+      "evaluated_at": "2026-11-02T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": null,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "92788858a04e2aa6e911ea695dbfe41ffee1eadccf87648bf755da342d32680b",
+        "identical_content": false,
+        "source_complete_stated": true,
+        "source_sha256": "bfbf1601f6bf071f5a44ac4c1642e854d2b7b1166d52b37de2a692409d11e05f"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ],
+          [
+            "email",
+            "email"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 3,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 4,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "key": "K1",
+          "source_row": 0,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K8",
+          "rules": {
+            "existence": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:email": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:phone": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "uniqueness": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            }
+          },
+          "source_row": 1,
+          "state": "Unverified"
+        },
+        {
+          "candidates": 1,
+          "key": "K8",
+          "rules": {
+            "existence": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:email": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "field:phone": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            },
+            "uniqueness": {
+              "reason": "invalid or duplicate source key",
+              "status": "unknown"
+            }
+          },
+          "source_row": 2,
+          "state": "Unverified"
+        },
+        {
+          "key": "K9",
+          "source_row": 3,
+          "state": "Verified"
+        }
+      ],
+      "source_population_known": false,
+      "source_rows_observed": 4,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "expected": {
+    "comparable": true,
+    "order": "chronological",
+    "same_files_same_premises": false,
+    "premise_differences": [],
+    "digests_changed": {
+      "source": true,
+      "destination": false
+    },
+    "source_population_known": [
+      false,
+      false
+    ],
+    "destination_coverage_sufficient": [
+      true,
+      true
+    ],
+    "cohort_state": [
+      "Unverified",
+      "Unverified"
+    ],
+    "records": {
+      "became-problem": [],
+      "stopped-problem": [],
+      "still-problem": [],
+      "still-verified": [
+        [
+          "K1",
+          "Verified",
+          "Verified"
+        ]
+      ],
+      "only-earlier": [],
+      "only-later": []
+    },
+    "rule_changes": {
+      "K1": "not available"
+    },
+    "rule_level_unavailable": 1,
+    "destination_only": null,
+    "unmatched": [
+      [
+        "earlier",
+        null,
+        1,
+        "no-key"
+      ],
+      [
+        "earlier",
+        "K8",
+        2,
+        "repeated-key",
+        1,
+        2
+      ],
+      [
+        "earlier",
+        "K9",
+        3,
+        "repeated-key",
+        2,
+        1
+      ],
+      [
+        "earlier",
+        "K9",
+        4,
+        "repeated-key",
+        2,
+        1
+      ],
+      [
+        "later",
+        "K8",
+        1,
+        "repeated-key",
+        1,
+        2
+      ],
+      [
+        "later",
+        "K8",
+        2,
+        "repeated-key",
+        1,
+        2
+      ],
+      [
+        "later",
+        "K9",
+        3,
+        "repeated-key",
+        2,
+        1
+      ]
+    ]
+  }
+}

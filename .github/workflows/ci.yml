@@ -27,6 +27,9 @@ jobs:
       # The browser check is compared with these files byte for byte; here they are only checked, never written.
       - name: Golden outputs are current
         run: python offline/bench/golden.py --check
+      # The reports in the shared cases for comparing two reports (ui/src/test/offline/compare.test.ts).
+      - name: Comparison cases are current
+        run: python ui/scripts/offline/comparison_cases.py --check
       - name: Installed command
         run: |
           flowassert-verify --version

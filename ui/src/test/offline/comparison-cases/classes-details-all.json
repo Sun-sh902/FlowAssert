@@ -1,0 +1,579 @@
+{
+  "name": "classes-details-all",
+  "about": "Every class of a key found in both reports or in one, with details all: rule-level changes for every pair.",
+  "earlier": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": null,
+      "cohort_state": "Mismatch",
+      "counts": {
+        "Mismatch": 3,
+        "Pending": 0,
+        "Unverified": 0,
+        "Verified": 3
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "all",
+      "evaluated_at": "2026-11-01T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": 6,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "ea2d58668babc2a6faf5d1403a2515bd792bcddd5fab0ca63ffa2a0293df965e",
+        "identical_content": false,
+        "source_complete_stated": true,
+        "source_sha256": "cbbe1e0fd393d7cbe354dfd814323258e5b6cc42c1a7a2a7717e451d5e3b23af"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ],
+          [
+            "email",
+            "email"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 6,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 6,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "candidates": 1,
+          "key": "K1",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "a@x.test",
+              "expected": "a@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "111",
+              "expected": "111",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 0,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K2",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "b@x.test",
+              "expected": "b@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "222",
+              "expected": "222",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 1,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K3",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "c@x.test",
+              "expected": "c@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "330",
+              "expected": "333",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 2,
+          "state": "Mismatch"
+        },
+        {
+          "candidates": 1,
+          "key": "K4",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "d@x.test",
+              "expected": "d@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "440",
+              "expected": "444",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 3,
+          "state": "Mismatch"
+        },
+        {
+          "candidates": 1,
+          "key": "K5",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "e@x.test",
+              "expected": "e@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "550",
+              "expected": "555",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 4,
+          "state": "Mismatch"
+        },
+        {
+          "candidates": 1,
+          "key": "K6",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "f@x.test",
+              "expected": "f@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "666",
+              "expected": "666",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 5,
+          "state": "Verified"
+        }
+      ],
+      "source_population_known": true,
+      "source_rows_observed": 6,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "later": {
+    "report": {
+      "schema_version": 1,
+      "acquisition_authenticity": "not_authenticated",
+      "business_truth": "Not assessed",
+      "claim": null,
+      "cohort_state": "Mismatch",
+      "counts": {
+        "Mismatch": 2,
+        "Pending": 0,
+        "Unverified": 1,
+        "Verified": 3
+      },
+      "destination_coverage_sufficient": true,
+      "destination_rows_without_key": 0,
+      "details": "all",
+      "evaluated_at": "2026-11-02T09:30:00Z",
+      "evaluator": "v2-current-state-1",
+      "existed_by_deadline": "Not assessed",
+      "expected_total": 6,
+      "inputs": {
+        "destination_complete_stated": true,
+        "destination_sha256": "8877aae77eca43144fc2c42c302efb7ae3c5dcf1fc4415dd0fff41cf706b18d0",
+        "identical_content": false,
+        "source_complete_stated": true,
+        "source_sha256": "bb379348f2df66f07602750637bfca09a66fa4dd0bf6640b06a3a275d23cc386"
+      },
+      "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+      "obligation": {
+        "comparison": "exact-string",
+        "fields": [
+          [
+            "phone",
+            "phone"
+          ],
+          [
+            "email",
+            "email"
+          ]
+        ],
+        "key": [
+          "key",
+          "key"
+        ],
+        "type": "current_state"
+      },
+      "premises": {
+        "destination_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "destination_count": {
+          "matched": null,
+          "observed": 6,
+          "origin": "command-line option",
+          "stated": null
+        },
+        "source_complete": {
+          "origin": "command-line option",
+          "stated": true
+        },
+        "source_count": {
+          "matched": null,
+          "observed": 6,
+          "origin": "command-line option",
+          "stated": null
+        }
+      },
+      "records": [
+        {
+          "candidates": 1,
+          "key": "K1",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "a@x.test",
+              "expected": "a@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "111",
+              "expected": "111",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 0,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K2",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "b@x.test",
+              "expected": "b@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "999",
+              "expected": "222",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 1,
+          "state": "Mismatch"
+        },
+        {
+          "candidates": 1,
+          "key": "K3",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "c@x.test",
+              "expected": "c@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "333",
+              "expected": "333",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 2,
+          "state": "Verified"
+        },
+        {
+          "candidates": 1,
+          "key": "K4",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "d@x.test",
+              "expected": "d@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "441",
+              "expected": "444",
+              "reason": "exact string comparison",
+              "status": "fail"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 3,
+          "state": "Mismatch"
+        },
+        {
+          "candidates": 1,
+          "key": "K5",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "e@x.test",
+              "expected": "e@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "",
+              "expected": "555",
+              "reason": "empty value; a missing value is not assumed to be a difference",
+              "status": "unknown"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 4,
+          "state": "Unverified"
+        },
+        {
+          "candidates": 1,
+          "key": "K7",
+          "rules": {
+            "existence": {
+              "reason": "candidate observed",
+              "status": "pass"
+            },
+            "field:email": {
+              "actual": "g@x.test",
+              "expected": "g@x.test",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "field:phone": {
+              "actual": "777",
+              "expected": "777",
+              "reason": "exact string comparison",
+              "status": "pass"
+            },
+            "uniqueness": {
+              "reason": "one row in stated complete destination",
+              "status": "pass"
+            }
+          },
+          "source_row": 5,
+          "state": "Verified"
+        }
+      ],
+      "source_population_known": true,
+      "source_rows_observed": 6,
+      "workflow_execution": "Not assessed"
+    }
+  },
+  "expected": {
+    "comparable": true,
+    "order": "chronological",
+    "same_files_same_premises": false,
+    "premise_differences": [],
+    "digests_changed": {
+      "source": true,
+      "destination": true
+    },
+    "source_population_known": [
+      true,
+      true
+    ],
+    "destination_coverage_sufficient": [
+      true,
+      true
+    ],
+    "cohort_state": [
+      "Mismatch",
+      "Mismatch"
+    ],
+    "records": {
+      "became-problem": [
+        [
+          "K2",
+          "Verified",
+          "Mismatch"
+        ]
+      ],
+      "stopped-problem": [
+        [
+          "K3",
+          "Mismatch",
+          "Verified"
+        ]
+      ],
+      "still-problem": [
+        [
+          "K4",
+          "Mismatch",
+          "Mismatch"
+        ],
+        [
+          "K5",
+          "Mismatch",
+          "Unverified"
+        ]
+      ],
+      "still-verified": [
+        [
+          "K1",
+          "Verified",
+          "Verified"
+        ]
+      ],
+      "only-earlier": [
+        [
+          "K6",
+          "Verified",
+          null
+        ]
+      ],
+      "only-later": [
+        [
+          "K7",
+          null,
+          "Verified"
+        ]
+      ]
+    },
+    "rule_changes": {
+      "K1": [],
+      "K2": [
+        "field:phone"
+      ],
+      "K3": [
+        "field:phone"
+      ],
+      "K4": [
+        "field:phone"
+      ],
+      "K5": [
+        "field:phone"
+      ]
+    },
+    "rule_level_unavailable": 0,
+    "destination_only": null,
+    "unmatched": []
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "refused-redacted-golden",
+  "about": "Two golden reports: the example and the same check redacted, which is also the same report twice.",
+  "earlier": {
+    "golden": "example"
+  },
+  "later": {
+    "golden": "example-redacted"
+  },
+  "expected": {
+    "comparable": false,
+    "reasons": [
+      "redacted",
+      "same-report"
+    ]
+  }
+}

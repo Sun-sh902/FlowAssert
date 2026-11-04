@@ -6,6 +6,8 @@ From 0.3.0 the CSV check page of the web UI writes the same two reports, byte fo
 
 From 0.4.0 the packaged JavaScript checker (`checkCsv` in `flowassert-check.js`, used by the n8n example) runs the page's check and writes the same two reports. Its premises' `origin` is the one its caller chose: `JavaScript call` (the default) or `n8n Code node`.
 
+From 0.5.0 the web UI can keep reports in the browser and compare two reports of the same obligation; [Comparing two reports](report-comparison.md) describes how a report is read for that and what a comparison gives.
+
 The report never claims more than its evidence. A member that FlowAssert could not establish is `null`, `false` or `"unknown"`, never a guess.
 
 ## Versioning
