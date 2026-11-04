@@ -62,9 +62,12 @@ export function expectNoNetwork(page: Page, requests: { urls: string[]; local: s
   expect(requests.local.filter((u) => !u.startsWith(`blob:${origin}/`))).toEqual([]);
 }
 
+/** A file to choose: a path, or a name and its bytes. */
+export type Chosen = string | { name: string; mimeType: string; buffer: Buffer };
+
 export interface Choices {
-  source: string;
-  destination: string;
+  source: Chosen;
+  destination: Chosen;
   key?: [string, string];
   fields?: [string, string, string?][];
   config?: string;
@@ -102,7 +105,7 @@ export async function check(page: Page, c: Choices) {
   await page.getByTestId("run-check").click();
 }
 
-export const EXAMPLE: Choices = {
+export const EXAMPLE = {
   source: join(EXAMPLES, "source.csv"),
   destination: join(EXAMPLES, "destination.csv"),
   key: ["external_id", "external_id"],
@@ -112,7 +115,7 @@ export const EXAMPLE: Choices = {
   ],
   sourceComplete: true,
   destinationComplete: true,
-};
+} satisfies Choices;
 
 /** Click a download button and return the saved file's text. */
 export async function download(page: Page, testId: string): Promise<{ name: string; text: string }> {

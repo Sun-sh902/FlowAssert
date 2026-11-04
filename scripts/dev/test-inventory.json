@@ -222,6 +222,63 @@
    "chrome › check.spec.ts › the sample files download as offline/examples has them, from this page": {
     "passed": 1
    },
+   "chrome › first-check.spec.ts › axe · dark · desktop · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › axe · dark · desktop · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › axe · dark · phone · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › axe · dark · phone · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › axe · light · desktop · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › axe · light · desktop · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › axe · light · phone · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › axe · light · phone · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › help after a refusal › a refused check: missing columns of a file separated by semicolons, the fields of a line, identical content, the same file, the row limit": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › help after a refusal › an encoding hint under a refused header, which changes nothing itself": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › help after a refusal › no hint where none is written: a quoted field left open": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › in Chinese, each English text stays as written, with its explanation next to it": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › scenario contacts-crm: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › scenario empty-key: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › scenario extra-in-destination: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › scenario orders-rules: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › the feedback link opens the trial form on GitHub in a new tab, with only the template in its address": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › what the result means › Verified, Mismatch and Unverified each explained from the report, with no request and nothing stored": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › what the result means › an opened saved report is explained too": {
+    "passed": 1
+   },
    "chrome › interactions.spec.ts › a simulated read announces loading, then the result, in a live region": {
     "passed": 1
    },
@@ -593,6 +650,63 @@
     "passed": 1
    },
    "webkit › check.spec.ts › the sample files download as offline/examples has them, from this page": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · dark · desktop · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · dark · desktop · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · dark · phone · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · dark · phone · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · light · desktop · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · light · desktop · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · light · phone · en · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › axe · light · phone · zh-CN · scenarios, an explained result, a hint and a saved report": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › help after a refusal › a refused check: missing columns of a file separated by semicolons, the fields of a line, identical content, the same file, the row limit": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › help after a refusal › an encoding hint under a refused header, which changes nothing itself": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › help after a refusal › no hint where none is written: a quoted field left open": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › in Chinese, each English text stays as written, with its explanation next to it": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › scenario contacts-crm: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › scenario empty-key: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › scenario extra-in-destination: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › scenario orders-rules: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › the feedback link opens the trial form on GitHub in a new tab, with only the template in its address": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › what the result means › Verified, Mismatch and Unverified each explained from the report, with no request and nothing stored": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › what the result means › an opened saved report is explained too": {
     "passed": 1
    },
    "webkit › interactions.spec.ts › a simulated read announces loading, then the result, in a live region": {
