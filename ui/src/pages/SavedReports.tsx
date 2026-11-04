@@ -9,6 +9,7 @@
 import { ArrowLeft, Download, FileUp, GitCompareArrows, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
+import { Gloss } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
@@ -547,7 +548,18 @@ export function SavedReportPage({ id }: { id: string }) {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0">
             <Seal state={view.cohort} size="lg" />
-            <p className="mt-3 max-w-[60ch] text-md leading-[1.55] text-ink">{view.claim ?? "No claim is made: the result is not Verified."}</p>
+            <p className="mt-3 max-w-[60ch] text-md leading-[1.55] text-ink">
+              {view.claim === null ? (
+                "No claim is made: the result is not Verified."
+              ) : (
+                <>
+                  <span data-no-translate lang="en">
+                    {view.claim}
+                  </span>
+                  <Gloss text={view.claim} className="text-sm" />
+                </>
+              )}
+            </p>
             <p className="mt-2 text-xs text-ink-3">
               <span>evaluated at </span>
               <Value className="text-ink-3">{report.evaluated_at}</Value>
@@ -574,7 +586,12 @@ export function SavedReportPage({ id }: { id: string }) {
               ))}
             </dl>
             <Notices view={view} />
-            <p className="mt-4 max-w-[70ch] text-xs leading-[1.55] text-ink-3">{view.limitations}</p>
+            <p className="mt-4 max-w-[70ch] text-xs leading-[1.55] text-ink-3">
+              <span data-no-translate lang="en">
+                {view.limitations}
+              </span>
+              <Gloss text={view.limitations} />
+            </p>
             <dl className="mt-3 grid gap-x-3 gap-y-0.5 text-xs sm:grid-cols-[130px_minmax(0,1fr)]">
               <dt className="text-ink-3">Key</dt>
               <dd className="min-w-0">

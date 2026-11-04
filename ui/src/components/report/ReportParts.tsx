@@ -11,6 +11,7 @@ import { pyRepr } from "../../offline/pystr";
 import type { ResultView } from "../../offline/runner";
 import { cn } from "../../lib/cn";
 import { RuleStatusIcon, RuleStatusLabel, StatusBadge } from "../ui/status";
+import { Gloss } from "./Gloss";
 
 export const PREMISE_LABEL: Record<string, string> = {
   source_complete: "The source file is the whole batch",
@@ -85,6 +86,7 @@ export function RuleLine({ name, rule }: { name: string; rule: RuleResult }) {
           {rule.reason}
         </span>
       </div>
+      <Gloss text={rule.reason} className="mt-0" />
       {"expected" in rule && (
         <div className="grid gap-0.5 text-xs sm:grid-cols-[90px_minmax(0,1fr)]">
           <span className="text-ink-3">Source value</span>
@@ -183,6 +185,7 @@ export function DestinationOnlyList({ view }: { view: ResultView }) {
                 <span data-no-translate className="text-xs text-ink-3">
                   {r.reason}
                 </span>
+                <Gloss text={r.reason} className="mt-0 basis-full text-right" />
               </span>
             </li>
           ))}

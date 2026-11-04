@@ -1630,6 +1630,8 @@ export const EXACT: Record<string, string> = {
   "Both reports have the same evaluation time.": "两份报告的评估时间相同。",
   "No comparison is shown: a saved entry is not a valid FlowAssert report any more.": "不显示比较：有一个已保存的条目不再是有效的 FlowAssert 报告。",
   "These two reports cannot be compared, so no comparison is shown.": "这两份报告不能比较，因此不显示比较。",
+  /* ---------- Chinese explanations of the English texts (v0.6.0, i18n/englishTexts.ts) ---------- */
+  "What the summary lines mean. The summary stays as the command line writes it.": "摘要各行的意思。摘要本身保持命令行写出的英文原文。",
   /* ---------- Help after a refusal (v0.6.0, offline/refusalHint.ts) ---------- */
   "What might help": "可能有帮助的做法",
   "A suggestion only: nothing was changed, and the check was not tried again.": "这只是建议：没有改动任何内容，也没有重新核对。",

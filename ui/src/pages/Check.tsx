@@ -16,6 +16,7 @@ import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "rea
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
 import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
+import { Gloss, SummaryGlosses } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { Seal, StatusGlyph } from "../components/ui/status";
 import { canonicalConfig, readConfig, Refused } from "../offline/check";
@@ -215,6 +216,7 @@ function FilePicker({
           <p className="mt-1 text-xs text-mismatch-ink">
             <span>Refused: </span>
             <Value className="text-mismatch-ink">{header.result.message}</Value>
+            <Gloss text={header.result.message} />
           </p>
           <RefusalHelp message={header.result.message} sources={sources} />
         </>
@@ -303,6 +305,7 @@ function FieldEditor({
           {problem ? (
             <span className="block text-mismatch-ink">
               <Value className="text-mismatch-ink">{problem}</Value>
+              <Gloss text={problem} />
             </span>
           ) : (
             row.rule === "date" && <span className="block text-ink-3">{`Python strptime directives: ${SUPPORTED_DIRECTIVES.map((d) => "%" + d).join(" ")}. A value with %z is compared in UTC.`}</span>
@@ -419,7 +422,18 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
           <Seal state={view.cohort} size="lg" />
-          <p className="mt-3 max-w-[60ch] text-md leading-[1.55] text-ink">{view.claim ?? "No claim is made: the result is not Verified."}</p>
+          <p className="mt-3 max-w-[60ch] text-md leading-[1.55] text-ink">
+            {view.claim === null ? (
+              "No claim is made: the result is not Verified."
+            ) : (
+              <>
+                <span data-no-translate lang="en">
+                  {view.claim}
+                </span>
+                <Gloss text={view.claim} className="text-sm" />
+              </>
+            )}
+          </p>
           <p className="mt-3 text-sm text-ink-2">{view.expectedTotal === null ? `${view.sourceRows} rows of unknown total` : `${view.sourceRows} rows of ${total}`}</p>
           <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
             {(["Verified", "Mismatch", "Unverified"] as const).map((s) => (
@@ -433,7 +447,12 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
             ))}
           </dl>
           <Notices view={view} />
-          <p className="mt-4 max-w-[70ch] text-xs leading-[1.55] text-ink-3">{view.limitations}</p>
+          <p className="mt-4 max-w-[70ch] text-xs leading-[1.55] text-ink-3">
+            <span data-no-translate lang="en">
+              {view.limitations}
+            </span>
+            <Gloss text={view.limitations} />
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" className={buttonClass("primary")} onClick={() => saveBlob(result.json!, "flowassert-report.json")} data-testid="download-json">
               <Download size={14} aria-hidden />
@@ -481,6 +500,7 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
       <pre data-testid="summary" tabIndex={0} role="region" aria-labelledby="summary-h" className="surface mt-2 max-h-96 overflow-auto rounded-md px-4 py-3 font-mono text-[12px] leading-[1.5] whitespace-pre-wrap text-ink">
         {result.summary}
       </pre>
+      <SummaryGlosses summary={result.summary} />
     </section>
   );
 }
@@ -836,6 +856,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
                 <span className="text-mismatch-ink">
                   <span>Configuration refused: </span>
                   <Value className="text-mismatch-ink">{configMessage.text}</Value>
+                  <Gloss text={configMessage.text} />
                 </span>
               )}
               {!configMessage && <span className="text-ink-3">The configuration file holds the key, the fields with their rules and the scope — never a premise.</span>}
@@ -941,6 +962,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
             <span className={run.result.exit === 2 ? "text-mismatch-ink" : "text-mismatch-ink"} data-testid="refusal">
               <span>{run.result.exit === 2 ? "Refused: nothing was checked. " : "The check failed and no result is shown. "}</span>
               <Value className="text-mismatch-ink">{run.result.message}</Value>
+              <Gloss text={run.result.message} />
             </span>
           )}
         </p>
