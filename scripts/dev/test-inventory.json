@@ -4,7 +4,7 @@
   "files": {
    "src/test/access-states.test.tsx": 23,
    "src/test/archive-match.test.tsx": 4,
-   "src/test/check-page.test.tsx": 11,
+   "src/test/check-page.test.tsx": 13,
    "src/test/comparison.test.ts": 12,
    "src/test/connections.test.tsx": 5,
    "src/test/contract-drift-mutations.test.ts": 79,
@@ -34,6 +34,7 @@
    "src/test/offline/n8n-workflow.test.ts": 6,
    "src/test/offline/python-semantics.test.ts": 55,
    "src/test/offline/random-parity.test.ts": 2,
+   "src/test/offline/refusal-hint.test.ts": 17,
    "src/test/offline/saved-report.test.ts": 99,
    "src/test/offline/sha256.test.ts": 5,
    "src/test/overview.test.tsx": 10,

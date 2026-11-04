@@ -24,6 +24,7 @@ import { EvaluatorError, parseRule, type Scope } from "../offline/evaluator";
 import type { ChosenConfig } from "../offline/pageCheck";
 import { SUPPORTED_DIRECTIVES } from "../offline/strptime";
 import { Cancelled, inThreadRunner, workerRunner, type CheckRunner, type HeaderResult, type Progress, type RunInput, type RunResult } from "../offline/runner";
+import { HINT_BYTES, refusalHint, type Hint, type HintFile, type HintPart } from "../offline/refusalHint";
 import { readReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
 import { saveBlob } from "../lib/download";
@@ -101,6 +102,58 @@ function selectionOf(key: [string, string], fields: FieldRow[], scope: Scope): C
   return { key, fields: fields.map((f) => [f.source, f.destination, ruleText(f)] as const), scope };
 }
 
+/* ---------- Help after a refusal ---------- */
+
+interface HintSource {
+  file: File | null;
+  encoding: Encoding;
+  /** The columns the check needs from this file, when they are chosen. */
+  columns?: readonly string[];
+}
+
+/** The hint for a refusal (offline/refusalHint.ts), from the first bytes of the chosen files; null while none is justified. */
+function useHint(message: string, sources: readonly HintSource[]): Hint | null {
+  const [found, setFound] = useState<{ message: string; sources: readonly HintSource[]; hint: Hint | null } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const read = sources
+      .filter((s): s is HintSource & { file: File } => s.file !== null)
+      .map(async (s): Promise<HintFile> => ({ name: s.file.name, size: s.file.size, encoding: s.encoding, columns: s.columns, head: new Uint8Array(await s.file.slice(0, HINT_BYTES).arrayBuffer()) }));
+    // Reading a chosen file is local; a file that can no longer be read gives no hint.
+    Promise.all(read).then(
+      (files) => live && setFound({ message, sources, hint: refusalHint(message, files) }),
+      () => live && setFound({ message, sources, hint: null }),
+    );
+    return () => void (live = false);
+  }, [message, sources]);
+  return found && found.message === message && found.sources === sources ? found.hint : null;
+}
+
+function HintParts({ parts }: { parts: readonly HintPart[] }) {
+  return (
+    <>
+      {parts.map((p, i) => (typeof p === "string" ? <span key={i}>{p}</span> : <Value key={i} className="text-[0.95em] text-ink">{p.value}</Value>))}
+    </>
+  );
+}
+
+/** A suggestion under a refusal, which the person may follow by changing a choice; it never acts by itself. */
+function RefusalHelp({ message, sources }: { message: string; sources: readonly HintSource[] }) {
+  const hint = useHint(message, sources);
+  if (!hint) return null;
+  return (
+    <div className="mt-2 max-w-[72ch] rounded-md border border-dashed border-line-strong px-3 py-2 text-xs leading-[1.5] text-ink-2" data-testid="refusal-hint" data-hint={hint.kinds.join(" ")}>
+      <p className="font-semibold text-ink">What might help</p>
+      {hint.paragraphs.map((p, i) => (
+        <p key={i} className="mt-1">
+          <HintParts parts={p} />
+        </p>
+      ))}
+      <p className="mt-1 text-ink-3">A suggestion only: nothing was changed, and the check was not tried again.</p>
+    </div>
+  );
+}
+
 /* ---------- Files ---------- */
 
 function FilePicker({
@@ -119,6 +172,7 @@ function FilePicker({
   const hint =
     side === "source" ? "The records that should have reached the destination." : "An export from the system the records should have reached.";
   const header = choice.header;
+  const sources = useMemo(() => [{ file: choice.file, encoding: choice.encoding }], [choice.file, choice.encoding]);
   return (
     <fieldset className="min-w-0 rounded-md border border-line px-4 pt-2 pb-4">
       <legend className="px-1 text-sm font-semibold text-ink">{title}</legend>
@@ -157,10 +211,13 @@ function FilePicker({
         )}
       </div>
       {header.kind === "read" && !header.result.ok && (
-        <p className="mt-1 text-xs text-mismatch-ink">
-          <span>Refused: </span>
-          <Value className="text-mismatch-ink">{header.result.message}</Value>
-        </p>
+        <>
+          <p className="mt-1 text-xs text-mismatch-ink">
+            <span>Refused: </span>
+            <Value className="text-mismatch-ink">{header.result.message}</Value>
+          </p>
+          <RefusalHelp message={header.result.message} sources={sources} />
+        </>
       )}
     </fieldset>
   );
@@ -504,6 +561,14 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const destinationColumns = columns("destination");
 
   const selection = useMemo(() => selectionOf(key, fields, scope), [key, fields, scope]);
+  // What a hint after a refused check may read: the chosen files, and the columns the check needed from each.
+  const hintSources = useMemo<HintSource[]>(
+    () => [
+      { file: choices.source.file, encoding: choices.source.encoding, columns: selection ? [selection.key[0], ...selection.fields.map((f) => f[0])] : undefined },
+      { file: choices.destination.file, encoding: choices.destination.encoding, columns: selection ? [selection.key[1], ...selection.fields.map((f) => f[1])] : undefined },
+    ],
+    [choices.source.file, choices.source.encoding, choices.destination.file, choices.destination.encoding, selection],
+  );
   const fingerprint = selection ? JSON.stringify(selection) : null;
   const loadedUnchanged = loaded !== null && fingerprint === loaded.fingerprint;
 
@@ -879,6 +944,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
             </span>
           )}
         </p>
+        {run.kind === "done" && !run.result.view && run.result.exit === 2 && <RefusalHelp message={run.result.message} sources={hintSources} />}
       </section>
 
       {run.kind === "done" && run.result.view && <Result result={run.result} headingRef={resultHeading} />}

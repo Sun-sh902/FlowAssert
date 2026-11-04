@@ -185,6 +185,44 @@ describe("CSV check page", () => {
     const refusal = await screen.findByTestId("refusal", {}, { timeout: 5000 });
     expect(refusal.textContent).toContain("bad.csv: unexpected end of data");
     expect(screen.queryByRole("region", { name: "Result" })).toBeNull();
+    // No hint is written for this refusal, so none is shown.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(screen.queryByTestId("refusal-hint")).toBeNull();
+  });
+
+  it("suggests an encoding under a refused header, and changes nothing itself", async () => {
+    const user = userEvent.setup();
+    render(<Check runner={inThreadRunner()} />);
+    await user.upload(screen.getByTestId("source-file"), new File([readFileSync(join(REPO_ROOT, "offline/golden/decode-wrong-encoding/source.csv"))], "source.csv"));
+    const hint = await screen.findByTestId("refusal-hint", {}, { timeout: 5000 });
+    expect(hint.getAttribute("data-hint")).toBe("gb18030");
+    expect(hint.textContent).toContain("If the file is GB18030, choose GB18030 as its encoding.");
+    expect(hint.textContent).toContain("A suggestion only: nothing was changed, and the check was not tried again.");
+    // The refusal is the command line's, and the encoding is still the one chosen.
+    expect(screen.getByText("source.csv: not UTF-8")).toBeTruthy();
+    expect((screen.getByTestId("source-encoding") as HTMLSelectElement).value).toBe("utf-8");
+  });
+
+  it("says how many fields a refused line has, under the refusal, and runs nothing again", async () => {
+    const inner = inThreadRunner();
+    let runs = 0;
+    const runner: CheckRunner = { ...inner, run: (input, progress) => (runs++, inner.run(input, progress)) };
+    const user = userEvent.setup();
+    render(<Check runner={runner} />);
+    await user.upload(screen.getByTestId("source-file"), new File(["k,p\n1,2\n3,4,5\n"], "s.csv"));
+    await user.upload(screen.getByTestId("destination-file"), new File(["k,p\n1,2\n"], "d.csv"));
+    await waitFor(() => expect(screen.getAllByText("2 columns")).toHaveLength(2));
+    await user.selectOptions(screen.getByTestId("key-source"), "k");
+    await user.selectOptions(screen.getByTestId("key-destination"), "k");
+    await user.selectOptions(screen.getByTestId("field-0-source"), "p");
+    await user.selectOptions(screen.getByTestId("field-0-destination"), "p");
+    await user.click(screen.getByTestId("run-check"));
+    expect((await screen.findByTestId("refusal", {}, { timeout: 5000 })).textContent).toContain("refused: s.csv: line 3 does not match the header");
+    const hint = await screen.findByTestId("refusal-hint");
+    expect(hint.getAttribute("data-hint")).toBe("line-fields");
+    expect(hint.textContent).toContain("Line 3 has 3 fields; the header has 2.");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(runs).toBe(1);
   });
 
   it("downloads the configuration in its canonical form and loads it back with the CLI's validation", async () => {

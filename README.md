@@ -194,6 +194,8 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | 2 | Input refused, such as a malformed file or a missing column |
 | 4 | Internal failure; nothing was concluded |
 
+A refused check names the problem in one line. [When a check is refused](docs/guides/refusals.md) explains each message and what to do.
+
 The two completeness flags matter. Without `--source-complete`, a batch cannot be Verified. Without `--destination-complete`, missing records and duplicates stay unknown. FlowAssert does not check these statements, so a wrong statement gives a wrong result. If you know the totals in the original systems, pass `--source-count` and `--destination-count` too: a total that differs from the file withdraws the matching statement. A matching total does not prove completeness.
 
 Comparison is exact by default: spaces, case and phone formatting count as differences. A `--config` file can choose `trim`, `casefold`, `digits` or `date:FORMAT` for each field; rules are never inferred. Empty cells are Unverified, because a CSV cannot show why a value is empty. Full details are in [offline/README.md](offline/README.md).

@@ -153,6 +153,8 @@ Check `$?` immediately after running `flowassert-verify`:
 
 Only exit status `0` means `Verified`. A scheduled check should distinguish `1` (data discrepancy), `3` (insufficient evidence), and `2` or `4` (check did not complete).
 
+When a check is refused (`2`), [When a check is refused](refusals.md) explains each message and what you can do about it.
+
 ## 5. More options for real exports
 
 ### Files that are not UTF-8
@@ -244,6 +246,6 @@ The **CSV check** page of the FlowAssert UI runs the same check without a termin
 4. **What you state.** Tick *The source file is the whole batch* and *The destination export covers the whole object* only when they are true, exactly as for the two flags in section 3. Both start unticked. The two totals are optional and work like `--source-count` and `--destination-count`.
 5. Press **Check.** A progress bar shows the files being read; **Cancel** stops the check and shows no result.
 
-The result shows the batch state, the counts, every premise you stated with its origin `browser form`, the limitations, every record that is not Verified with its rule results, and the summary exactly as the command line prints it. **Download JSON report** and **Download HTML report** save the same reports as `--json` and `--html`. A refused check shows the refusal and no result.
+The result shows the batch state, the counts, every premise you stated with its origin `browser form`, the limitations, every record that is not Verified with its rule results, and the summary exactly as the command line prints it. **Download JSON report** and **Download HTML report** save the same reports as `--json` and `--html`. A refused check shows the refusal and no result; where the first bytes of your files justify one, a hint under it suggests a choice to change, such as the encoding. The hint changes nothing itself. [When a check is refused](refusals.md) has the same help.
 
 The page accepts only the date directives `%Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%`, uses the command line's default limits, and has no `--details all` or `--redact-values`. Section 6 applies to its results unchanged.
