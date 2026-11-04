@@ -1,13 +1,13 @@
 /**
  * The CSV check page in Chrome, on the production build: a full check of the example files in English and in
  * Chinese, at desktop width and at 375 px, with the command line's summary and reports byte for byte; no request from
- * choosing the files to downloading both reports, and nothing of the files left in storage or the address; the
- * refusals; and the axe audit of the existing suites.
+ * choosing the files to downloading both reports, and nothing of the files left in storage or the address (no report
+ * is kept unless "Keep" is pressed: e2e/saved-reports.spec.ts); the refusals; and the axe audit of the existing suites.
  */
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { EXAMPLE, GOLDEN, anyTime, asBrowser, check, download, expectNoNetwork, golden, openCheck, recordRequests, storedState, type Locale } from "./check-helpers.ts";
-import { AXE_PATH, writeReport } from "./helpers.ts";
+import { EXAMPLE, GOLDEN, anyTime, asBrowser, audit, check, download, expectNoNetwork, golden, openCheck, recordRequests, storedState, type Locale } from "./check-helpers.ts";
+import { writeReport } from "./helpers.ts";
 
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, phone: { width: 375, height: 812 } } as const;
 const LOCALES: Locale[] = ["en", "zh-CN"];
@@ -48,7 +48,9 @@ for (const locale of LOCALES) {
         await expect(region.locator(`[data-premise="${name}"]`)).toContainText("browser form");
       }
       await expect(region.locator('.fa-seal[data-s="Verified"]')).toHaveCount(0);
-      // Nothing of the files or the statements is kept, and the address is unchanged.
+      // Nothing of the files or the statements is kept, and the address is unchanged. "Keep this report in this
+      // browser" is offered and not pressed, so no report is kept either: there is no IndexedDB database at all.
+      await expect(page.getByTestId("keep-report")).toBeEnabled();
       const stored = await storedState(page);
       expect(stored.session).toEqual([]);
       expect(stored.cookie).toBe("");
@@ -140,20 +142,6 @@ test("cancelling a check shows no result", async ({ page }) => {
   await page.getByTestId("run-check").click();
   await result(page);
 });
-
-interface AxeResult {
-  violations: { id: string; impact: string | null; help: string; nodes: { target: string[] }[] }[];
-}
-
-async function audit(page: Page): Promise<string[]> {
-  await page.addScriptTag({ path: AXE_PATH });
-  const result = await page.evaluate(async () => {
-    const axe = (window as unknown as { axe: { run: (ctx: unknown, opts: unknown) => Promise<AxeResult> } }).axe;
-    const r = await axe.run({ exclude: [["[data-ornament]"]] }, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] }, resultTypes: ["violations"] });
-    return { violations: r.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.map((n) => ({ target: n.target })) })) };
-  });
-  return result.violations.map((v) => `${v.impact} ${v.id} ×${v.nodes.length}: ${v.help} — ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(" | ")}`);
-}
 
 for (const theme of ["light", "dark"] as const) {
   for (const [width, viewport] of Object.entries(VIEWPORTS)) {

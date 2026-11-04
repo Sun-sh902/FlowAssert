@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { expect, type BrowserContext, type Page } from "@playwright/test";
+import { AXE_PATH } from "./helpers.ts";
 
 export const REPO = resolve(process.cwd(), "..");
 export const EXAMPLES = join(REPO, "offline/examples");
@@ -129,4 +130,19 @@ export function storedState(page: Page) {
     url: location.href,
     indexedDB: (await indexedDB.databases()).map((d) => d.name ?? ""),
   }));
+}
+
+interface AxeResult {
+  violations: { id: string; impact: string | null; help: string; nodes: { target: string[] }[] }[];
+}
+
+/** The axe audit of the existing suites: WCAG 2.2 AA and best practice, ornaments excluded. One line per violation. */
+export async function audit(page: Page): Promise<string[]> {
+  await page.addScriptTag({ path: AXE_PATH });
+  const result = await page.evaluate(async () => {
+    const axe = (window as unknown as { axe: { run: (ctx: unknown, opts: unknown) => Promise<AxeResult> } }).axe;
+    const r = await axe.run({ exclude: [["[data-ornament]"]] }, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] }, resultTypes: ["violations"] });
+    return { violations: r.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.map((n) => ({ target: n.target })) })) };
+  });
+  return result.violations.map((v) => `${v.impact} ${v.id} ×${v.nodes.length}: ${v.help} — ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(" | ")}`);
 }

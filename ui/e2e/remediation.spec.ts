@@ -153,9 +153,12 @@ async function openDrawer(page: Page, hash = "#/demo/verifications", width = 375
 /**
  * A point on non-interactive drawer content: the "Configure" group label. Chosen by element, not by a fixed
  * fraction of the drawer height, so adding navigation items cannot turn the "blank" click into a link click.
+ * Measured where the label is now: when the drawer is taller than the window, moving focus scrolls it.
  */
 async function blankPoint(panel: Locator) {
-  const b = (await panel.locator("p.kicker").filter({ hasText: "Configure" }).boundingBox())!;
+  const label = panel.locator("p.kicker").filter({ hasText: "Configure" });
+  await label.scrollIntoViewIfNeeded();
+  const b = (await label.boundingBox())!;
   return { x: b.x + Math.min(40, b.width / 4), y: b.y + b.height / 2 };
 }
 const where = (page: Page) => page.evaluate(() => `${document.activeElement?.tagName}:${(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent ?? "").trim().slice(0, 30)}`);
@@ -192,7 +195,9 @@ test("UIA-002 · blank click, then Shift+Tab ×20 and (WebKit) Option+Tab ×20 s
     expect(await inside(dialog), `Shift+Tab #${i + 1} → ${await where(page)}`).toBe(true);
   }
   if (browserName === "webkit") {
-    await page.mouse.click(blank.x, blank.y);
+    // Shift+Tab has scrolled the drawer to its last control: the label is measured again.
+    const again = await blankPoint(panel);
+    await page.mouse.click(again.x, again.y);
     for (let i = 0; i < 20; i++) {
       await page.keyboard.press("Alt+Tab");
       expect(await inside(dialog), `Option+Tab #${i + 1} → ${await where(page)}`).toBe(true);

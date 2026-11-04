@@ -1,7 +1,8 @@
 /**
  * The GitHub Pages build (vite build --mode pages), served from /FlowAssert/ as GitHub Pages serves it: its Content
- * Security Policy, the CSV check as its home page and working under that policy, and every page that needs the local
- * Service saying it works only locally without making a request.
+ * Security Policy, the CSV check as its home page and working under that policy, saved reports working under it with
+ * the notice that the origin is shared, and every page that needs the local Service saying it works only locally
+ * without making a request.
  */
 import { expect, test } from "@playwright/test";
 import { EXAMPLE, check, expectNoNetwork, golden, openCheck, recordRequests } from "./check-helpers.ts";
@@ -36,6 +37,28 @@ test("the home page is the CSV check, and it runs under the policy without a req
   expect(await page.getByTestId("summary").textContent()).toBe(golden("example-page", "stdout.txt"));
   requests.stop();
   expectNoNetwork(page, requests);
+});
+
+test("saved reports work under the policy, without a request, and say that the origin is shared", async ({ page, context }) => {
+  await openCheck(page, BASE);
+  const requests = recordRequests(context);
+  await check(page, EXAMPLE);
+  await page.locator("[data-result]").waitFor({ timeout: 30_000 });
+  // The notice is beside the button that keeps a report, and on the saved reports page.
+  const notice = "On this online demo, saved reports are kept for the site sun-sh902.github.io, which every GitHub Pages site of that account shares: another of those sites could read them.";
+  await expect(page.getByTestId("pages-origin-notice")).toHaveText(notice);
+  await page.getByTestId("keep-report").click();
+  await expect(page.getByTestId("keep-status")).toContainText("This report is kept in this browser.");
+  await page.getByTestId("open-saved-reports").click();
+  await expect(page.getByRole("heading", { level: 1, name: "Saved reports" })).toBeVisible();
+  await expect(page.getByTestId("pages-origin-notice")).toHaveText(notice);
+  await expect(page.getByTestId("saved-entry")).toHaveCount(1);
+  await page.getByTestId("saved-entry").getByTestId("open-entry").click();
+  await expect(page.locator("[data-result]")).toHaveAttribute("data-result", "Mismatch");
+  requests.stop();
+  expectNoNetwork(page, requests);
+  const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  expect(policy).toContain("connect-src 'none'");
 });
 
 for (const hash of LOCAL_ROUTES) {

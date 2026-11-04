@@ -163,6 +163,9 @@
    "chrome › check-pages.spec.ts › a Service page opened directly still requests nothing from a Service": {
     "passed": 1
    },
+   "chrome › check-pages.spec.ts › saved reports work under the policy, without a request, and say that the origin is shared": {
+    "passed": 1
+   },
    "chrome › check-pages.spec.ts › the MOCK demo pages stay available": {
     "passed": 1
    },
@@ -370,6 +373,42 @@
    "chrome › responsive.spec.ts › touch targets at 375px": {
     "passed": 1
    },
+   "chrome › saved-reports.spec.ts › a file that is not a valid report is refused, and nothing is stored": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › a pair that is not comparable is refused with the reason, and no comparison is shown": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › a report is kept only when Keep is pressed, and is found in the list with its original bytes": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › axe · dark · desktop · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › axe · dark · phone · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › axe · light · desktop · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › axe · light · phone · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › deleting one and deleting all leave nothing: the database is empty, then gone": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › every kind of golden report imports, and opens as it was written": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › the comparison page in Chinese, at phone width, without horizontal scroll": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › two reports with different premises: the premise difference comes before any count": {
+    "passed": 1
+   },
+   "chrome › saved-reports.spec.ts › with storage blocked, saving is refused with the reason and the check still works": {
+    "passed": 1
+   },
    "chrome › screenshots.spec.ts › detail not found · dark": {
     "skipped": 1,
     "reason": "set FA_CAPTURE=1 to write deliverable screenshots"
@@ -495,6 +534,9 @@
     "passed": 1
    },
    "webkit › check-pages.spec.ts › a Service page opened directly still requests nothing from a Service": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › saved reports work under the policy, without a request, and say that the origin is shared": {
     "passed": 1
    },
    "webkit › check-pages.spec.ts › the MOCK demo pages stay available": {
@@ -702,6 +744,42 @@
     "passed": 1
    },
    "webkit › responsive.spec.ts › touch targets at 375px": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › a file that is not a valid report is refused, and nothing is stored": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › a pair that is not comparable is refused with the reason, and no comparison is shown": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › a report is kept only when Keep is pressed, and is found in the list with its original bytes": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › axe · dark · desktop · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › axe · dark · phone · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › axe · light · desktop · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › axe · light · phone · saved reports, a saved report and a comparison": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › deleting one and deleting all leave nothing: the database is empty, then gone": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › every kind of golden report imports, and opens as it was written": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › the comparison page in Chinese, at phone width, without horizontal scroll": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › two reports with different premises: the premise difference comes before any count": {
+    "passed": 1
+   },
+   "webkit › saved-reports.spec.ts › with storage blocked, saving is refused with the reason and the check still works": {
     "passed": 1
    },
    "webkit › screenshots.spec.ts › detail not found · dark": {
