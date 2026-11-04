@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0 (unreleased)
+
+History and change, in the browser only: reports can be kept in the browser on request, and two reports of the same obligation can be compared. The verdicts, summaries, reports and exit statuses of the command-line checker, the browser check, the packaged JavaScript checker, the GitHub Action and the n8n example are unchanged; every golden case gives the same bytes as in 0.4.0. The Service, the frozen contracts, the pinned Evaluator v1, the Action and the LOCAL_RESEARCH and MOCK pages are unchanged.
+
+### Added
+
+- **Saved reports** (`#/check/reports`, Chinese: 已保存的报告), reached from the CSV check page and the "Browser check" navigation. After a check, "Keep this report in this browser" keeps that one JSON report; a JSON report written by the command line, the Action or n8n can be imported. Nothing is stored unless the person asks, every time: a check stores nothing by default, no setting turns saving on, and the CSV files are never stored. Reports are kept in one IndexedDB database of the site, `flowassert-saved-reports`; reading the list never creates it, and "Delete all" deletes it. The page lists each report's time, how it was obtained, cohort state, counts, key and fields, and whether it is redacted, and shows where they are kept. A report can be opened (the state, the claim or "No claim is made", every premise with its origin, the counts, the limitations and the records that are not Verified), downloaded with its original bytes, or deleted. Saving, importing, listing, comparing and deleting make no request. If storage is unavailable, saving is refused with the reason and the check still works.
+- **Reading a report** (`ui/src/offline/savedReport.ts`): a file is accepted only as a valid `schema_version` 1 report, read with the configuration file's JSON reader (a duplicate member is refused), of at most 200 MiB, and whose own numbers agree; otherwise it is refused with the check that failed and nothing is stored. An opened or compared report is always read again from its original bytes.
+- **Comparing two reports** (`#/check/compare`, `ui/src/offline/compare.ts`, specified in [`docs/report-comparison.md`](docs/report-comparison.md)): for two reports of the same obligation, the records that became a problem, stopped being one or stayed one (with both states), stayed Verified, or are in one source only, destination-only keys compared the same way, and the records that cannot be matched by key, with the reason. The page shows the two reports, then any premise difference and any changed file digest, before any count, then the classes and their records. A comparison is a view of two observations, never a new verdict: it re-evaluates nothing, changes no state and never says that a problem was fixed. Two reports of another obligation, a redacted report or the same report twice are refused with the reasons.
+- Shared comparison cases (`ui/src/test/offline/comparison-cases/`), written from reports of the command-line checker by `ui/scripts/offline/comparison_cases.py`; CI checks they are current.
+- Browser tests of saved reports and comparisons with the real IndexedDB in Chrome (`ui/e2e/saved-reports.spec.ts`), in the CI job of the CSV check.
+
+### Changed
+
+- `flowassert_offline.__version__` and the packaged checker's `VERSION` are `0.5.0`; the n8n example holds that build.
+- The browser check's register says that a report is kept only when the person asks. On the online demo, the CSV check and saved reports pages say that the site `sun-sh902.github.io` is shared by every GitHub Pages site of the account, so another of them could read the reports kept there.
+- The CSV check and its saved reports pages are one chunk of the UI build, so moving between them loads nothing.
+
 ## 0.4.0 (2026-11-04)
 
 Workflow integration: the check runs where data already moves. The verdicts, summaries, reports and exit statuses of the command-line checker and of the browser check are unchanged; every golden case gives the same bytes as in 0.3.0. Two fixes concern Windows only. The Service, the frozen contracts, the pinned Evaluator v1 and the UI pages are unchanged.

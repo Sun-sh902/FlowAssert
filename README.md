@@ -208,7 +208,8 @@ summary and the JSON and HTML reports are the command line's, byte for byte, exc
 **Your files stay on your computer.** They are read in the browser, in a Web Worker, and nothing is uploaded: from
 choosing the files to downloading the reports, the page makes no network request. Nothing you choose or state is
 stored; you choose the files and state the premises again at every check. Only the column and rule choices can be
-saved, as a configuration file you download yourself.
+saved, as a configuration file you download yourself. A report is kept in the browser only when you ask for it (see
+below).
 
 - **Online demo:** <https://sun-sh902.github.io/FlowAssert/>. Its Content Security Policy
   forbids every connection, and the pages that need the local Service say that they work only locally.
@@ -228,6 +229,34 @@ Differences from the command line:
 The browser check is built from the same specification and is tested against the command line: every conformance case,
 88 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
 a difference would be a bug; please report one.
+
+### Saved reports and comparing two results
+
+From 0.5.0 the **Saved reports** page (`#/check/reports`) keeps JSON reports in this browser, and compares two of them.
+
+- **What is stored, and only when you ask.** After a check, "Keep this report in this browser" keeps that one JSON
+  report. You can also import a JSON report written by the command line, the GitHub Action or n8n; a file that is not
+  a valid FlowAssert report is refused and nothing is kept. A check stores nothing unless you press the button, every
+  time; no setting turns saving on. The CSV files are never stored. A report holds the keys and compared values of
+  its records (unless it was written with `--redact-values`).
+- **Where.** In one IndexedDB database of the page's site, `flowassert-saved-reports`, in this browser profile.
+  Anyone using this browser profile can read it. Nothing is uploaded: saving, importing, listing, comparing and
+  deleting make no request.
+- **Deleting.** Delete one report, or all of them with a confirmation; deleting all removes the database. Clearing
+  the site's data in the browser removes it too.
+- **Premises are never reused.** A saved report shows the premises that were stated for it, with their origin.
+  Nothing from it fills in the CSV check: each check starts with nothing chosen or stated.
+- **Comparing.** Two reports of the same obligation (key, fields, rules, scope and comparison) can be compared: which
+  records became a problem, stopped being one or stayed one, which are only in one source, and what could not be
+  matched by key. When the two reports state different premises, the page says so before any count, because a change
+  may come from the premises and not from the data. A comparison says what each report recorded; it is not a new
+  verdict. Redacted reports, reports of another obligation and the same report twice are refused.
+  [Comparing two reports](docs/report-comparison.md) is the specification.
+- **Not authenticated.** An imported report is not authenticated, and comparing two reports does not authenticate
+  either of them. The page says so wherever it shows one.
+- **The online demo.** Its site, `sun-sh902.github.io`, is shared by every GitHub Pages site of that GitHub account,
+  so another of those sites could read the reports kept there. Saving works there, and the page says this. For
+  reports you would not want another site to read, run the UI locally.
 
 ## Use in GitHub Actions
 
@@ -667,6 +696,7 @@ Repository history was scanned for common key formats before publication, and no
 | --- | --- |
 | Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness. The same holds for the two statements in the browser check |
 | Browser check | Supports fewer date directives than the command line, and follows Python 3.15 where Python versions differ. See [Check in your browser](#check-in-your-browser) |
+| Saved reports | Kept in the browser profile, readable by anyone using it, and on the online demo by other GitHub Pages sites of the same account. Imported reports are not authenticated. See [Saved reports and comparing two results](#saved-reports-and-comparing-two-results) |
 | n8n example | Tested on a self-hosted n8n 2.46.4 only, not on n8n Cloud. It reads files with the Read/Write Files node, which n8n restricts to `~/.n8n-files` by default |
 | Evaluator status | The pinned version is labelled `Round03.5 research — unapproved` |
 | P3A-AUD-001 | A legacy path such as `/api/v1/verifications/x%2Fevidence` can address the wrong resource. Use the query routes for unusual IDs |
