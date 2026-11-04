@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0 (unreleased)
+## 0.5.0 (2026-11-04)
 
 History and change, in the browser only: reports can be kept in the browser on request, and two reports of the same obligation can be compared. The verdicts, summaries, reports and exit statuses of the command-line checker, the browser check, the packaged JavaScript checker, the GitHub Action and the n8n example are unchanged; every golden case gives the same bytes as in 0.4.0. The Service, the frozen contracts, the pinned Evaluator v1, the Action and the LOCAL_RESEARCH and MOCK pages are unchanged.
 
