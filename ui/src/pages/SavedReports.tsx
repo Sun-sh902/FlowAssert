@@ -8,12 +8,13 @@
  */
 import { ArrowLeft, Download, FileUp, GitCompareArrows, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { DestinationOnlyList, Notices, Premises, RecordCard, Value } from "../components/report/ReportParts";
+import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
 import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
 import type { Counts } from "../offline/evaluator";
+import { explain } from "../offline/explain";
 import { NotAReport, instant, readReport, readReportFile, viewOf, type ReadReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
 import { saveBlob } from "../lib/download";
@@ -601,6 +602,8 @@ export function SavedReportPage({ id }: { id: string }) {
           </div>
           <Premises premises={view.premises} />
         </div>
+
+        <ResultExplanation explanation={explain(report, { redacted })} />
 
         <h3 className="serif mt-8 text-xl text-ink">{`Records that are not Verified (${view.problemCount})`}</h3>
         {view.problemCount === 0 ? (

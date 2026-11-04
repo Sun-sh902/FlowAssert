@@ -86,6 +86,25 @@ describe("CSV check page", () => {
     expect(anyTime(await saved[1]!.blob.text())).toBe(anyTime(asBrowser(golden("example-page", "report.html"))));
   });
 
+  it("says what the result means next to it, read from the report, and leaves the summary as the command line prints it", async () => {
+    const user = await chooseExample();
+    await chooseColumns(user);
+    await user.click(screen.getByTestId("run-check"));
+    const result = await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
+    const explanation = within(result).getByTestId("explanation");
+    expect(explanation.getAttribute("data-explains")).toBe("Mismatch");
+    expect(within(explanation).getByRole("heading", { name: "What this result means" })).toBeTruthy();
+    // Nothing was stated: a phone differs, a key is repeated, and the rest is not established.
+    expect([...explanation.querySelectorAll("[data-point]")].map((p) => p.getAttribute("data-point"))).toEqual([
+      "mismatch-records", "fail:phone", "fail-duplicate", "see-records", "also",
+      "population-unknown", "source-not-stated", "coverage-not-established", "destination-not-stated", "not-found", "found-once",
+    ]);
+    expect(explanation.querySelector('[data-point="source-not-stated"]')!.textContent).toContain("FlowAssert cannot check the statement");
+    // Column names are the report's, kept out of translation.
+    expect(explanation.querySelector('[data-point="fail:phone"] [data-no-translate]')!.textContent).toBe("phone");
+    expect(within(result).getByTestId("summary").textContent).toBe(golden("example-page-no-premises", "stdout.txt"));
+  });
+
   it("stores nothing the user chose or stated, and leaves the address alone", async () => {
     const before = window.location.href;
     // Saved reports (v0.5.0) live in IndexedDB: a check without "Keep" must not touch it at all, not even to read.

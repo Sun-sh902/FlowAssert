@@ -8,6 +8,7 @@
  */
 import { MAX_BYTES, NeedMore, Refused, readHeader, sha256Hex, type Encoding } from "./csv";
 import type { DestinationOnlyRecord, Premise, SourceRecord, State } from "./evaluator";
+import { explain, type Explanation } from "./explain";
 import { pageCheck, type ChosenConfig } from "./pageCheck";
 import { writeHtml, writeJson, type Report } from "./report";
 
@@ -64,6 +65,8 @@ export interface RunResult {
   /** The refusal or failure, as the command line prints it on stderr. */
   message: string;
   view: ResultView | null;
+  /** "What this result means", read from the whole report (./explain.ts); shown beside the result, never in it. */
+  explanation: Explanation | null;
   json: Blob | null;
   html: Blob | null;
 }
@@ -161,13 +164,14 @@ export async function runCheck(input: RunInput, onProgress: (p: Progress) => voi
     evaluating: () => onProgress({ phase: "evaluating", bytes: total, total, rows }),
   });
   const report = outcome.report;
-  if (!report) return { exit: outcome.exit, summary: "", message: outcome.stderr.trimEnd(), view: null, json: null, html: null };
+  if (!report) return { exit: outcome.exit, summary: "", message: outcome.stderr.trimEnd(), view: null, explanation: null, json: null, html: null };
   onProgress({ phase: "writing-reports", bytes: total, total, rows });
   return {
     exit: outcome.exit,
     summary: outcome.stdout,
     message: "",
     view: view(report),
+    explanation: explain(report),
     json: new Blob([...writeJson(report)], { type: "application/json" }),
     html: new Blob([...writeHtml(report)], { type: "text/html;charset=utf-8" }),
   };

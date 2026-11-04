@@ -15,7 +15,7 @@ import { Archive, Download, FileUp, Library, Play, Plus, Square, Trash2, Upload 
 import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
-import { DestinationOnlyList, Notices, Premises, RecordCard, Value } from "../components/report/ReportParts";
+import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { Seal, StatusGlyph } from "../components/ui/status";
 import { canonicalConfig, readConfig, Refused } from "../offline/check";
@@ -391,6 +391,8 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
         </div>
         <Premises premises={view.premises} />
       </div>
+
+      {result.explanation && <ResultExplanation explanation={result.explanation} />}
 
       <h3 className="serif mt-8 text-xl text-ink">{`Records that are not Verified (${view.problemCount})`}</h3>
       {view.problemCount === 0 ? (

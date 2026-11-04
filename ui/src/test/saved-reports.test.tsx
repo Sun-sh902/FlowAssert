@@ -272,6 +272,16 @@ describe("an opened saved report", () => {
     expect(screen.getByText(/^Not authenticated: this report was imported from a file\./)).toBeTruthy();
   });
 
+  it("says what the result means, from the saved report", async () => {
+    const store = memoryStore();
+    const entry = await stored(store, "rules-pass", { kind: "checked" });
+    render(withStore(store, <SavedReportPage id={entry.id} />));
+    const explanation = await screen.findByTestId("explanation");
+    expect(explanation.getAttribute("data-explains")).toBe("Verified");
+    expect([...explanation.querySelectorAll("[data-point]")].map((p) => p.getAttribute("data-point"))).toEqual(["verified-records", "verified-premises", "verified-rules", "scope-source", "not-shown"]);
+    expect(explanation.textContent).toContain("This rests on two statements FlowAssert cannot check");
+  });
+
   it("shows the claim of a Verified report", async () => {
     const store = memoryStore();
     const entry = await stored(store, "rules-pass", { kind: "checked" });
