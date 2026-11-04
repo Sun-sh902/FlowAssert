@@ -4,17 +4,67 @@
 
 **工作流显示成功了，但预期的业务数据真的到了吗？**
 
-FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”，再把每条记录判定为 **Verified**、**Mismatch**、**Pending** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。
-
-**在线试用：** <https://sun-sh902.github.io/FlowAssert/> 在浏览器里核对两个 CSV 文件，页面上有示例文件，你的文件不会离开电脑。详见[在浏览器中核对](#在浏览器中核对)。
+FlowAssert 把来源 CSV（应该到达的记录）与目标系统的导出文件（现在实际有的记录）对照，把每条记录判定为 **Verified**、**Mismatch** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。它在你的电脑上运行，可以用命令行，也可以用浏览器，只读取本地文件。
 
 > [!IMPORTANT]
 > **这是由一位维护者维护的早期项目。** 它还不是生产软件。
 > Service 和 UI 只处理 5 个审核过的合成样例。它们没有连接真实的 n8n、HubSpot 或 Google Sheets，不接收凭据，也不采集外部数据。哈希和本地回执只能说明内部一致，不能证明任何数据是真实的。
 
-许可证：[Apache 2.0](LICENSE)
+## 在线试用
 
-![FlowAssert 总览页：5 个合成样例的实时结果和归档结果](docs/readme/zh/overview-light.png)
+<https://sun-sh902.github.io/FlowAssert/> 在浏览器里运行核对。你的文件不会离开电脑：页面不发任何网络请求。
+
+1. 选择你的两个 CSV 文件，或在 **手边没有文件？试试一个场景** 中选一个合成场景（共四个）。
+2. 选择键列和要比较的字段，只声明你确实知道的关于文件的内容。
+3. 点 **检查**。结果下面的 **这个结果是什么意思** 只根据报告来解释结果。
+
+详见[在浏览器中核对](#在浏览器中核对)。
+
+## 安装并运行一次核对
+
+只需要 Python 3.9 或更高版本。它只读取本地文件，不发任何网络请求。
+
+```sh
+git clone https://github.com/Sun-sh902/FlowAssert.git
+cd FlowAssert
+python3 -m pip install ./offline
+
+flowassert-verify \
+  --source offline/examples/source.csv \
+  --destination offline/examples/destination.csv \
+  --key external_id \
+  --field phone \
+  --field email:hs_email \
+  --source-complete --destination-complete
+```
+
+结果如下，退出码为 1:
+
+```text
+Mismatch: 4 rows of 4
+Verified 1 · Mismatch 3 · Unverified 0
+  record 2 SYN-002: Mismatch
+    field:phone fail: exact string comparison ('+1 212 555 0102' vs '+1 212 555 0199')
+  record 3 SYN-003: Mismatch
+    existence fail: key not found in stated complete destination
+    ...
+  record 4 SYN-004: Mismatch
+    uniqueness fail: more than one destination row carries this key
+    ...
+```
+
+[第一次核对指南](docs/guides/first-check.zh-CN.md)逐行解释输出，[第一次核对的场景](offline/examples/scenarios/README.zh-CN.md)里有更多可以运行的小例子。核对被拒绝（退出码 2）时，[核对被拒绝时](docs/guides/refusals.zh-CN.md)解释每条消息。
+
+## 四种结果的意思
+
+| 结果 | 意思 | 退出码 | 该做什么 |
+| --- | --- | --- | --- |
+| **Verified**（已验证） | 在你声明的前提下，每条记录都通过了每条规则，并且这一批已知是完整的 | 0 | 保留报告；前提是结果的一部分 |
+| **Mismatch**（不一致） | 至少一条规则被证明不成立：某个值不同、某条记录不在已声明完整的导出中，或两行目标数据带有同一个键 | 1 | 查看列出的记录 |
+| **Unverified**（未验证） | 没有规则被证明不成立，但证据不足以说 Verified | 3 | 看哪些内容没有确立，以及什么证据能解决 |
+| **Pending**（待定） | 在等待窗口内，暂时没有结论。CSV 核对没有等待窗口，所以从不给出 Pending | — | 等待或重新观测 |
+
+输入被拒绝（退出码 2）或内部故障（4）都没有结果。批次可能比记录更不确定：每条记录都通过，但没有声明来源文件是完整的一批时，批次是 Unverified。FlowAssert 不检查你的声明，所以声明错了，结果也会错。[为什么我的结果是 Unverified？](docs/faq.zh-CN.md#为什么我的结果是-unverified)
 
 界面支持简体中文：在左侧栏底部切换 `EN` 和 `中文` 即可。本文的截图来自中文界面。
 
@@ -29,24 +79,21 @@ FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”
 
 ## 目录
 
+- [在线试用](#在线试用)
+- [安装并运行一次核对](#安装并运行一次核对)
+- [四种结果的意思](#四种结果的意思)
 - [要解决的问题](#要解决的问题)
 - [截图](#截图)
 - [已有和没有的内容](#已有和没有的内容)
-- [快速开始：比较两个 CSV 文件](#快速开始比较两个-csv-文件)
+- [命令行选项](#命令行选项)
 - [在浏览器中核对](#在浏览器中核对)
 - [在 GitHub Actions 中使用](#在-github-actions-中使用)
 - [在 n8n 中使用](#在-n8n-中使用)
-- [快速开始：运行 Service 和 UI](#快速开始运行-service-和-ui)
 - [验证如何工作](#验证如何工作)
-- [架构](#架构)
-- [后端](#后端)
-- [前端](#前端)
-- [测试](#测试)
 - [安全模型](#安全模型)
 - [已知问题](#已知问题)
-- [如何扩展](#如何扩展)
-- [仓库结构](#仓库结构)
-- [项目历史](#项目历史)
+- [常见问题](#常见问题)
+- [开发](#开发)
 - [术语表](#术语表)
 - [路线图](#路线图)
 - [参与贡献](#参与贡献)
@@ -133,38 +180,7 @@ FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”
 | 登录、多用户、部署 | 不存在 |
 | 用户验证 | 从未做过 |
 
-## 快速开始：比较两个 CSV 文件
-
-只需要 Python 3.9 或更高版本。它只读取本地文件，不发任何网络请求。
-
-```sh
-git clone https://github.com/Sun-sh902/FlowAssert.git
-cd FlowAssert
-python3 -m pip install ./offline
-
-flowassert-verify \
-  --source offline/examples/source.csv \
-  --destination offline/examples/destination.csv \
-  --key external_id \
-  --field phone \
-  --field email:hs_email \
-  --source-complete --destination-complete
-```
-
-结果如下，退出码为 1:
-
-```text
-Mismatch: 4 rows of 4
-Verified 1 · Mismatch 3 · Unverified 0
-  record 2 SYN-002: Mismatch
-    field:phone fail: exact string comparison ('+1 212 555 0102' vs '+1 212 555 0199')
-  record 3 SYN-003: Mismatch
-    existence fail: key not found in stated complete destination
-    ...
-  record 4 SYN-004: Mismatch
-    uniqueness fail: more than one destination row carries this key
-    ...
-```
+## 命令行选项
 
 不安装也可以运行：把命令换成 `python3 offline/verify.py`，选项相同。也可以直接从 GitHub 安装：
 
@@ -309,78 +325,6 @@ n8n 2.0 起默认禁用，n8n Cloud 也不提供）。Code 节点中是打包成
 发布中）。它只定义一个全局变量 `FlowAssert`，包含 `checkCsv` 和 `VERSION`，不导入任何东西，也不发出请求；其他
 JavaScript 环境也可以这样调用（见 `ui/src/offline/api.ts`）。
 
-## 快速开始：运行 Service 和 UI
-
-### 环境要求
-
-| 工具 | 版本 |
-| --- | --- |
-| Python | 3.14，用于 Service |
-| 系统 Python 3 | `/usr/bin/python3`，用于隔离的只读检查 |
-| Node.js | 22 系列的 22.12+、24 或 26+ |
-| npm、git、lsof、curl | 较新版本即可 |
-| Google Chrome 和 Playwright WebKit | 仅浏览器测试需要 |
-
-项目在 Apple 芯片的 macOS 上开发和测试，其他平台未测试。
-
-### 安装
-
-```sh
-scripts/dev/bootstrap.sh
-```
-
-它会按锁文件安装固定版本的依赖，校验固定的文件身份，并创建合成归档。每个阶段失败时都会给出名称和日志。如果 `PATH` 里没有 `python3.14`，可以这样指定：
-
-```sh
-FA_PYTHON=/path/to/python3.14 scripts/dev/bootstrap.sh
-```
-
-### 运行
-
-在一个终端里运行：
-
-```sh
-scripts/dev/service.sh
-```
-
-在另一个终端里运行：
-
-```sh
-cd ui
-npm run dev
-```
-
-打开 <http://127.0.0.1:5183>。按 Ctrl-C 可以停止任一进程。Service 停止后，页面显示 *Service unavailable*，绝不会换成演示数据。
-
-用 `FA_STATE` 选择其他归档：
-
-| 状态 | 内容 |
-| --- | --- |
-| `dev-main`（默认） | 10 条归档评估：5 个样例，2 批 |
-| `dev-single` | 5 条归档评估，每个样例一条 |
-| `dev-empty` | 有效的空归档 |
-| `dev-run-bound` | 6 条归档评估，最新的 `SPEC-001` 带本地回执 |
-
-```sh
-FA_STATE=dev-run-bound scripts/dev/service.sh
-```
-
-### 页面
-
-| 页面 | 地址 | 数据来源 |
-| --- | --- | --- |
-| Overview | `#/` | Service |
-| Verifications | `#/verifications` | Service |
-| 验证详情和证据 | `#/local/verifications/SPEC-001` | Service |
-| 按精确 ID 查询详情 | `#/local/verification-lookup?verification_id=SPEC-001` | Service |
-| History | `#/local/history` | Service 归档 |
-| Capture runs | `#/capture` | 未实现 |
-| Connections、Rules、Settings | `#/connections`、`#/rules`、`#/settings` | Mock |
-| Demo | `#/demo`、`#/demo/verifications` | Mock |
-| Interface states | `#/states` | 模拟 |
-
-在 UI 里，**live** 指 Service 启动时根据样例算出的结果，并不是对外部系统的最新观测。
-
 ## 验证如何工作
 
 ### 四种状态
@@ -448,221 +392,6 @@ Pending 不代表成功。Unverified 不代表已确认失败。请求失败则�
 
 它不声称 n8n 执行过写入，不声称来源本身真实，不声称现实中的每条线索都已列出，不声称不存在语义重复，也不声称目标系统之后会一直正确。
 
-## 架构
-
-```text
-Browser (React, hash routes)
-   │  relative /api/v1/...  GET only
-   ▼
-Vite API gate (dev and preview only; exact route and query allowlist)
-   │
-   ▼
-FastAPI Service on 127.0.0.1:8765
-   ├─ Catalog: five results computed at startup, held in memory
-   └─ ArchiveStore: append-only SQLite
-          ▲ written only by local commands
-archive_cli.py, seed_run_bound.py ──> pinned Evaluator
-
-flowassert-verify (offline/)   separate; local CSV files only
-```
-
-HTTP 层没有写接口。UI 的静态构建没有门禁，所以其中的 Service 页面会显示 *Service unavailable*。
-
-两个 Evaluator 彼此独立。Service 和 UI 使用冻结的 Evaluator v1，其摘要已固定。`offline/` 使用 Evaluator v2，它支持选定字段，但没有经过独立审查。测试会检查两者在共同样例上的结果一致。
-
-## 后端
-
-技术栈是 Python 3.14、FastAPI、Pydantic、jsonschema 和 SQLite，源码在 `service/`。
-
-### 模块
-
-| 文件 | 作用 |
-| --- | --- |
-| `app/main.py` | 应用入口、冻结的 Detail 和 Evidence 路由、错误信封、边界中间件 |
-| `app/service.py` | Catalog、启动时评估、带签名的证据分页 |
-| `app/adapter.py` | 调用固定版 Evaluator，并检查输入未被修改 |
-| `app/identity.py` | 规范 JSON、摘要和固定的源文件身份校验 |
-| `app/validation.py` | 冻结 Schema 校验和跨字段不变量 |
-| `app/models.py` | 由冻结的 OpenAPI 生成的 Pydantic 模型 |
-| `app/history_api.py` | History 路由 |
-| `app/history_store.py` | SQLite 归档、发布、完整性检查和准入 |
-| `app/history_security.py` | 私有文件、签名密钥和历史游标 |
-| `app/verification_lookup.py` | 精确 ID 查询路由 |
-| `app/local_boundary.py` | Host 和 Origin 检查 |
-| `app/execution_collector.py` | 实验性的独立进程运行和 HMAC 回执 |
-| `app/admission_models.py`、`app/admission_serialization.py` | 实验性状态类型及其公开形式 |
-| `archive_cli.py` | 本地 `init`、`seed` 和 `check` 命令 |
-| `run_history.py` | 受支持的启动入口，包含全部路由 |
-| `run.py` | 冻结的 Phase 1 启动入口，包含两个路由 |
-
-### HTTP API
-
-所有路由都是 GET，而且只在回环地址上提供。
-
-| 路由 | 用途 |
-| --- | --- |
-| `/api/v1/verifications/{id}` | 单个结果。`?phase3b=true` 会附加采集和准入字段 |
-| `/api/v1/verifications/{id}/evidence` | 该结果的证据，分页 |
-| `/api/v1/verification-lookup?verification_id=` | 同样的 Detail,ID 作为查询数据 |
-| `/api/v1/verification-evidence?verification_id=` | 同样的证据，ID 作为查询数据 |
-| `/api/v1/history` | 归档列表，冻结格式 |
-| `/api/v1/history/{history_id}` | 单条归档评估，冻结格式 |
-| `/api/v1/history/{history_id}/evidence` | 该条的归档证据 |
-| `/api/v1/history/verifications` | 带实验性状态字段的归档列表 |
-| `/api/v1/history/verifications/{history_id}` | 带这些字段的归档评估 |
-| `/api/v1/history/verifications/{history_id}/evidence` | 归档证据，UI 门禁不转发这个路由 |
-
-契约在 [`service/contracts/`](service/contracts/)。错误使用统一的信封：
-
-```json
-{
-  "error": {
-    "code": "run_not_found",
-    "message": "Offline request could not be completed.",
-    "request_id": "…",
-    "retryable": false,
-    "details": []
-  }
-}
-```
-
-| 状态码 | 含义 |
-| --- | --- |
-| 400 | 查询错误，或游标被伪造、不匹配 |
-| 403 | Host 或 Origin 被拒绝 |
-| 404 | 未找到 |
-| 409 | 快照冲突或已过期 |
-| 422 | 参数无效 |
-| 503 | 源文件身份、完整性或归档故障 |
-
-### 快照和游标
-
-| 命名空间 | 示例 | 生命周期 |
-| --- | --- | --- |
-| Catalog | `snapshot-…` | 每次 Service 启动都会变，因为包含执行时间 |
-| History | `history-snapshot_…` | 永久，由归档内容派生 |
-| History list | `list_…` | 把一个列表视图固定在某个高水位 |
-
-游标经过 HMAC 签名，并绑定到查询范围。伪造的游标返回 400。游标真实但快照已不存在时返回 409。
-
-### 归档
-
-`service/migrations/001.sql` 定义了 `archive_meta`、`archives`、`records`、`evidence` 和 `seed_sets`。
-
-- 触发器阻止修改已发布内容，也阻止任何删除。
-- 发布在一个事务内从 `BUILDING` 变为 `PUBLISHED`，并先重放 Evaluator。
-- `history_id` 是 `hist_` 加上规范候选内容的 SHA-256。
-- 每次读取都检查文件安全、Schema、内容摘要，以及记录和证据的关联。
-- 检查失败时返回 503 并带上完整性结果，绝不返回部分数据。
-
-归档候选必须在语义上等于审核样例，所以这 5 个样例之外的内容都无法归档。
-
-### 实验性回执
-
-`execution_collector.py` 在独立进程里运行 Evaluator，并签发回执，绑定输入、结果、Evaluator 摘要、上下文和完整候选内容。只有 `scripts/dev/seed_run_bound.py` 调用它，HTTP 路由不会调用。
-
-`CAPTURED_COMPLETE` 和 `ADMITTED_RUN_BOUND` 只表示这些本地检查通过了。密钥在同一台机器上，所以回执无法证明采集过外部数据。live 读取总是报告 *Not implemented*。详见 [EXPERIMENTAL_ADMISSION_BOUNDARY.md](service/docs/phase3b/EXPERIMENTAL_ADMISSION_BOUNDARY.md)。
-
-## 前端
-
-技术栈是 React 19、TypeScript、Vite 和 Tailwind，源码在 `ui/`。设计系统名为 Evidence Atelier([DESIGN_SYSTEM.md](ui/docs/DESIGN_SYSTEM.md))。
-
-前端从不计算判定，只负责接收、校验和展示 Service 报告的内容。
-
-### 数据流
-
-```text
-exchange       GET only, no credentials, no redirects, time and size limits
-  ▼
-decode         frozen schema, then cross-field checks; refuse the whole body on any failure
-  ▼
-adapter        wire data to view models
-  ▼
-hook           request order, cancellation, snapshot pinning
-  ▼
-page
-```
-
-| 路径 | 作用 |
-| --- | --- |
-| `ui/server/localApiGate.ts` | dev 和 preview 环境的 API 白名单 |
-| `ui/src/data/local/` | Service 数据源、解码、规范 JSON、ID 规则、证据链 |
-| `ui/src/data/history/` | 归档数据源、解码、列表链 |
-| `ui/src/data/workspace/` | 实时和归档结果对比 |
-| `ui/src/data/contract/` | 线上类型和 Schema 的逐字副本 |
-| `ui/src/domain/` | 视图模型、状态轴、完整性规则 |
-| `ui/src/adapters/` | 线上数据转视图模型 |
-| `ui/src/lib/` | 路由、读取生命周期 Hook、格式化 |
-| `ui/src/pages/`、`ui/src/components/` | 界面 |
-| `ui/src/mocks/` | 演示数据 |
-| `ui/src/lab/` | 设计实验，不进入产品构建 |
-
-### 分开的词表
-
-这些词表严格分开，这样一类问题绝不会被报告成另一类。
-
-| 词表 | 取值 | 回答的问题 |
-| --- | --- | --- |
-| 判定 | 4 种状态 | 业务结果是什么 |
-| 读取状态 | 8 种状态，例如 `LOADING` 和 `SERVICE_UNAVAILABLE` | 这次读取情况如何 |
-| 完整性 | `verified`、`failed`、`unverifiable`、`pending` | 内容与摘要是否一致 |
-| 状态轴 | Capture、Admission、Archive、Verdict | 每一步发生了什么 |
-| 对比 | 8 种状态，例如 `SAME_INPUT_AGREE` | 实时结果和归档结果是什么关系 |
-
-所以 Service 停止时显示的是 `NO_VERDICT`，不是 Unverified。实时结果和归档结果不同只是诊断信息，不是 Mismatch。
-
-### 界面语言
-
-界面默认是英文，选择 `中文` 后保存在当前浏览器，并重新加载页面。
-
-中文是展示层，代码在 `ui/src/i18n/`：词库按英文原文匹配，只翻译界面文字和无障碍标签。它不修改 Provider、解码器或视图模型里的数据。
-
-以下内容始终保持原样：
-
-- Evaluator 的理由原文和 Service 的保证声明
-- ID、摘要、证据值和接口字段名
-- 校验器给开发者看的技术诊断信息
-- 合成姓名和公司名
-
-### 完整性和读取行为
-
-- 证据分页拼接后，必须与 Detail 列出的引用完全一致。重复、缺失、乱序和游标循环都会被拒绝。
-- 浏览器通过无损解析还原 Python 的规范 JSON，再重新计算 SHA-256。还原不了时结果是 `not_checkable`，绝不算通过。
-- 单调时钟读数保留为十进制文本，因为它可能超过 JavaScript 的安全整数范围。
-- 没有轮询、缓存和自动重试。实时读取最多同时进行两个，迟到的响应会被丢弃。
-
-摘要一致只说明同一个 Service 给出的两个值相符，不能证明任何来源。
-
-## 测试
-
-| 层 | 工具 | 范围 |
-| --- | --- | --- |
-| 后端 | pytest | 300 多个测试，覆盖路由、归档、游标、回执和失败路径 |
-| 脚本和离线核对 | pytest | 开发工具、CSV 核对，以及与 Evaluator v1 的一致性 |
-| 前端 | Vitest | 1800 多个测试，包括契约漂移、恶意响应和中文界面 |
-| 浏览器 | Playwright | Chrome 和 WebKit，覆盖工作区、历史、查询、门禁安全和无障碍 |
-| 布局 | 自定义 | 200 格响应式矩阵和布局偏移检查 |
-| 身份 | `check_identities.py` | 固定版 Evaluator、契约和后端源文件映射 |
-
-运行一个测试配置：
-
-```sh
-scripts/dev/regression.sh --portable NEW-LABEL   # backend, identities, typecheck, lint, Vitest
-scripts/dev/regression.sh --product NEW-LABEL    # plus every browser suite and the matrix
-scripts/dev/regression.sh NEW-LABEL              # release: plus historical custody
-```
-
-浏览器配置需要先运行：
-
-```sh
-scripts/dev/bootstrap.sh --product-harness
-cd ui && npx playwright install webkit
-```
-
-门禁状态有 PASS、FAIL、BLOCKED 和 NOT RUN。有 BLOCKED 门禁的运行退出码为 3，不算通过。测试数量会与 `scripts/dev/test-inventory.json` 比对，所以跳过或缺少测试都会让运行失败。结果写入 `.dev-runtime/regression/LABEL/`。
-
-**在你的克隆里**，`protected-custody` 门禁会报告 BLOCKED，因为它要比较原机器上的同级文件夹，而这些文件夹没有公开。在其他环境里，`--product` 是最完整的可用检查。
-
 ## 安全模型
 
 Service 是为本机单用户设计的。
@@ -700,82 +429,13 @@ Service 是为本机单用户设计的。
 
 2026-11-01 的 `npm audit` 和 Python 锁文件的 OSV 查询都没有报告已知漏洞。
 
-## 如何扩展
+## 常见问题
 
-Service 的设计是遇到未审核内容就失败，所以有几项限制是刻意写死的：
+[常见问题](docs/faq.zh-CN.md)：为什么结果是 Unverified，FlowAssert 能否检查文件是否完整，文件会不会离开电脑，它和比对（diff）工具有什么不同，能不能用在真实数据上。
 
-| 限制 | 位置 |
-| --- | --- |
-| 只比较 `phone`，只支持精确比较 | `service/vendor/model.py`、`app/models.py`、契约 |
-| 5 个样例，`SPEC-00[1-5]` | `app/history_api.py`、`app/history_store.py`、`ui/src/data/local/config.ts` |
-| 一个工作区，`ws-synthetic-01` | `app/validation.py`、UI 范围检查 |
-| 只接受合成来源 | `app/validation.py`、历史契约 |
-| 归档必须等于审核样例 | `app/history_store.py` 的 `validate_candidate` |
-| 固定的 Evaluator 身份 | `app/identity.py`、`ui/src/data/local/config.ts` |
+## 开发
 
-修改 `model.py` 后，Service 会一直返回 503，直到更新固定值，这是有意设计的。
-
-接入真实数据的规划在 [docs/product-dev/final-version/](docs/product-dev/final-version/):[产品定义 v0.2](docs/product-dev/final-version/PRODUCT_DEFINITION_v0.2.md)和[验证计划](docs/product-dev/final-version/S1_VALIDATION_PLAN.md)。规划建议先做用户验证，并用只读沙箱账号测试，再写连接器。`offline/flowassert_offline/evaluator_v2.py` 是走向可配置规则的第一步。
-
-## 仓库结构
-
-```text
-offline/                     可安装的 CSV 核对工具和 Evaluator v2
-action.yml, action/          包装离线核对的 GitHub Action
-examples/n8n/                带打包浏览器核对的 n8n 工作流
-service/
-  app/                       FastAPI 应用
-  vendor/model.py            固定版 Evaluator v1
-  contracts/                 OpenAPI 契约和审核示例
-  fixtures/                  5 个合成样例
-  migrations/                SQLite Schema
-  tests/                     后端测试
-  baseline/                  已验收的 Phase 1 文件，供测试使用
-  evidence/                  文件身份基线
-  docs/                      后端设计记录
-ui/
-  src/                       应用，中文词库在 src/i18n/
-  server/                    开发环境 API 门禁
-  e2e*/                      浏览器测试
-  scripts/                   测试框架和证据工具
-  docs/                      设计和集成说明
-scripts/dev/                 安装、播种、运行、回归
-docs/readme/                 README 使用的截图
-docs/product-dev/            报告、截图、原始测试证据
-```
-
-`docs/product-dev/` 和 `service/evidence/` 大多是项目的原始开发记录，按原样公开。其中的路径指向原机器，在别处并不存在。改写这些路径会破坏记录的摘要。
-
-建议的阅读起点：
-
-| 主题 | 文档 |
-| --- | --- |
-| 项目结项 | [PROJECT_CLOSEOUT_20261101.md](docs/product-dev/final-version/PROJECT_CLOSEOUT_20261101.md) |
-| 归档设计 | [ARCHIVE_INTEGRITY_MODEL.md](service/docs/phase3a/ARCHIVE_INTEGRITY_MODEL.md)、[SQLITE_SCHEMA.md](service/docs/phase3a/SQLITE_SCHEMA.md) |
-| 快照和游标 | [SNAPSHOT_AND_CURSOR_MODEL.md](service/docs/phase3a/SNAPSHOT_AND_CURSOR_MODEL.md) |
-| 后端决策 | [ARCHITECTURE_DECISIONS.md](service/docs/phase3a/ARCHITECTURE_DECISIONS.md) |
-| 前端契约 | [frontend-provider-contract.md](service/contracts/frontend-provider-contract.md) |
-| UI 结构 | [INFORMATION_ARCHITECTURE.md](ui/docs/INFORMATION_ARCHITECTURE.md) |
-| 回归配置 | [REGRESSION_PROFILES.md](docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md) |
-
-上面的文档都是英文。
-
-## 项目历史
-
-| 日期（2026 年） | 里程碑 |
-| --- | --- |
-| 10 月 13 日 | 产品定义、可行性研究、信任模型实验 |
-| 10 月 16–17 日 | Evidence Atelier UI、集成规划、第一版 Service |
-| 10 月 20 日 | Phase 3A 获 Owner 验收，仅限本地合成研究，带一项遗留例外 |
-| 10 月 22–23 日 | Phase 3B 规划获验收，但不授权实施；产品第 1、2 轮 |
-| 10 月 24–27 日 | Trusted Runner 准备工作；安装停在管理员登录一步 |
-| 10 月 29 日 | 机器重装，从外置盘恢复 452,602 个文件 |
-| 10 月 31 日 | 实验性本地回执和记录对账 |
-| 11 月 1 日 | 完成离线 CSV 核对和中文界面，公开发布，继续维护 |
-
-大量开发和审查工作由一位 Owner 主导，并使用了 AI 编程助手。从记录来看，文档里的“independent review”指独立的角色或会话，不代表第三方审计。
-
-这个分支上的 Phase 3B 工作没有 Owner 验收，也没有独立审查。加固采集的另一批准备材料保存在私有位置，不在这个仓库里。
+架构、后端和前端、测试、仓库结构、项目历史、如何扩展，以及如何在本地运行 Service 和 UI，见[开发](docs/development.zh-CN.md)。
 
 ## 术语表
 
@@ -809,6 +469,8 @@ docs/product-dev/            报告、截图、原始测试证据
 欢迎提交问题报告、真实的验证场景和聚焦的 Pull Request。详见 [CONTRIBUTING.md](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)和[安全策略](SECURITY.md)。这些文档是英文的。
 
 ## 许可证
+
+许可证：[Apache 2.0](LICENSE)。
 
 Copyright 2026 The FlowAssert Authors. 依据 [Apache License, Version 2.0](LICENSE) 授权。详见 [NOTICE](NOTICE)。
 

@@ -20,7 +20,7 @@ python3 -m pip install pytest ./offline
 python3 -m pytest scripts/dev/tests/test_offline_verify.py
 ```
 
-The Service and UI need the tools listed in the [README](README.md):
+The Service and UI need the tools listed in [Development](docs/development.md#requirements):
 
 ```sh
 scripts/dev/bootstrap.sh --product-harness
