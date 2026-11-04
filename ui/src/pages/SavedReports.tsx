@@ -9,6 +9,7 @@
 import { ArrowLeft, Download, FileUp, GitCompareArrows, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
+import { FeedbackLink } from "../components/report/Feedback";
 import { Gloss } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { PageHead, SectionHead } from "../components/ui/atelier";
@@ -277,6 +278,7 @@ export function SavedReportsPage() {
       <PageHead
         kicker="Check in this browser · kept only when you ask"
         title="Saved reports"
+        aside={<FeedbackLink />}
         lede={
           <>
             <p>Reports you chose to keep from the CSV check, and reports you imported from the command line, the GitHub Action or n8n. Nothing here was uploaded, and nothing is sent.</p>

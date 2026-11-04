@@ -1628,6 +1628,11 @@ export const EXACT: Record<string, string> = {
   "Both reports have the same evaluation time.": "两份报告的评估时间相同。",
   "No comparison is shown: a saved entry is not a valid FlowAssert report any more.": "不显示比较：有一个已保存的条目不再是有效的 FlowAssert 报告。",
   "These two reports cannot be compared, so no comparison is shown.": "这两份报告不能比较，因此不显示比较。",
+  /* ---------- Feedback (v0.6.0): a link to the trial feedback form on GitHub ---------- */
+  "Tried it? Tell us": "试用过了？告诉我们",
+  "The form opens on GitHub in a new tab, and is public. Nothing from this page goes with it: do not paste real data, keys, values or reports.": "表单会在新标签页中打开 GitHub，内容是公开的。这个页面上的任何内容都不会随之发送：请不要粘贴真实数据、键、值或报告。",
+  "Give feedback": "提交反馈",
+  "(opens GitHub in a new tab)": "（在新标签页中打开 GitHub）",
   /* ---------- Scenarios (v0.6.0, offline/examples/scenarios/) ---------- */
   "No files at hand? Try a scenario": "手边没有文件？试试一个场景",
   "Each scenario is a pair of small synthetic files. Using one fills in its two files, its columns and its rules. It states nothing for you: the statements in step # are yours to make, and in these files they are true by construction.": "每个场景是一对小的合成文件。使用场景会填入它的两个文件、列和规则，但不会替你声明任何内容：第 # 步中的声明由你来作；在这些文件里，这些声明按设计是成立的。",

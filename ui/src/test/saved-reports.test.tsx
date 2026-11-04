@@ -373,6 +373,22 @@ describe("the comparison page", () => {
   });
 });
 
+describe("feedback", () => {
+  it("links to the trial feedback form on GitHub, in a new tab, with nothing but the template in its address", async () => {
+    render(withStore(memoryStore(), <SavedReportsPage />));
+    const link = (await screen.findByTestId("give-feedback")) as HTMLAnchorElement;
+    const url = new URL(link.href);
+    expect(`${url.origin}${url.pathname}`).toBe("https://github.com/Sun-sh902/FlowAssert/issues/new");
+    expect([...url.searchParams]).toEqual([["template", "trial_feedback.yml"]]);
+    expect(url.hash).toBe("");
+    expect(link.target).toBe("_blank");
+    expect(link.rel).toBe("noopener noreferrer");
+    cleanupAll();
+    render(<Check runner={inThreadRunner()} />);
+    expect((screen.getByTestId("give-feedback") as HTMLAnchorElement).href).toBe(link.href);
+  });
+});
+
 describe("routes and navigation", () => {
   it("parses the saved reports routes", () => {
     expect(parseHash("#/check/reports").route).toEqual({ name: "saved-reports" });

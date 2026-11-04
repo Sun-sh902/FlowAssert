@@ -16,6 +16,7 @@ import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "rea
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
 import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
+import { FeedbackLink } from "../components/report/Feedback";
 import { Gloss, SummaryGlosses } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
@@ -775,6 +776,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
               <Library size={13} aria-hidden />
               Open saved reports
             </a>
+            <FeedbackLink className="mt-3 border-0 border-t border-line-subtle px-0 pb-0" />
           </div>
         }
         lede={

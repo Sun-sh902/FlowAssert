@@ -66,6 +66,8 @@ Verified 1 · Mismatch 3 · Unverified 0
 
 输入被拒绝（退出码 2）或内部故障（4）都没有结果。批次可能比记录更不确定：每条记录都通过，但没有声明来源文件是完整的一批时，批次是 Unverified。FlowAssert 不检查你的声明，所以声明错了，结果也会错。[为什么我的结果是 Unverified？](docs/faq.zh-CN.md#为什么我的结果是-unverified)
 
+**试用过了？告诉我们：** [试用反馈表单](https://github.com/Sun-sh902/FlowAssert/issues/new?template=trial_feedback.yml)会问你是怎么用的、想核对什么、卡在哪里、结果是否清楚。表单内容是公开的，请不要粘贴真实数据、键、值或报告。
+
 界面支持简体中文：在左侧栏底部切换 `EN` 和 `中文` 即可。本文的截图来自中文界面。
 
 | 英文 | 中文界面 |
@@ -466,7 +468,7 @@ Service 是为本机单用户设计的。
 
 ## 参与贡献
 
-欢迎提交问题报告、真实的验证场景和聚焦的 Pull Request。详见 [CONTRIBUTING.md](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)和[安全策略](SECURITY.md)。这些文档是英文的。
+欢迎提交试用反馈、问题报告、真实的验证场景和聚焦的 Pull Request。详见 [CONTRIBUTING.md](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)和[安全策略](SECURITY.md)。这些文档是英文的。
 
 ## 许可证
 

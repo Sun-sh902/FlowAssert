@@ -66,6 +66,8 @@ The [first-check guide](docs/guides/first-check.md) explains each line, and [Sce
 
 A refused input (exit status 2) or an internal failure (4) has no result at all. A batch can be less certain than its records: when every record passes but the source file is not stated to be the whole batch, the batch is Unverified. FlowAssert does not check what you state, so a wrong statement gives a wrong result. [Why is my result Unverified?](docs/faq.md#why-is-my-result-unverified)
 
+**Tried it? Tell us:** [the trial feedback form](https://github.com/Sun-sh902/FlowAssert/issues/new?template=trial_feedback.yml) asks how you used it, what you wanted to check, where you got stuck and whether the result was clear. It is public, so do not paste real data, keys, values or reports.
+
 ## Contents
 
 - [Try it online](#try-it-online)
@@ -483,7 +485,7 @@ The aim is to find out whether this is useful to people who maintain automations
 
 ## Contributing
 
-Bug reports, examples of real verification problems and focused pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md) and the [security policy](SECURITY.md).
+Trial feedback, bug reports, examples of real verification problems and focused pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md) and the [security policy](SECURITY.md).
 
 ## License
 

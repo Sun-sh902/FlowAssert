@@ -2,6 +2,8 @@
 
 FlowAssert is an early-stage project with one maintainer. Bug reports, examples of real verification problems, and focused pull requests are welcome. For a larger change, please open an issue first.
 
+If you tried FlowAssert, the **I tried FlowAssert** issue form asks how a first check went and where it was unclear; any answer helps. Do not paste real data, keys, values or reports into an issue.
+
 Replies may take some time.
 
 ## Principles
