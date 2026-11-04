@@ -51,7 +51,7 @@
    "src/test/remediation.test.tsx": 26,
    "src/test/residual-closeout.test.tsx": 20,
    "src/test/rules.test.tsx": 10,
-   "src/test/saved-reports.test.tsx": 17,
+   "src/test/saved-reports.test.tsx": 23,
    "src/test/settings.test.tsx": 7,
    "src/test/shell.test.tsx": 7,
    "src/test/uia009-nullable-label.test.tsx": 16,

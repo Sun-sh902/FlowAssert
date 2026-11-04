@@ -17,6 +17,7 @@ import { inThreadRunner } from "../offline/runner";
 import { parseHash } from "../lib/router";
 import { ReportStoreContext, StorageUnavailable, memoryStore, type ReportStore } from "../lib/savedReports";
 import { Check } from "../pages/Check";
+import { CompareReportsPage } from "../pages/CompareReports";
 import { SavedReportPage, SavedReportsPage } from "../pages/SavedReports";
 import { REPO_ROOT } from "./fixtures/sources";
 import { renderApp } from "./render";
@@ -27,6 +28,9 @@ const goldenFile = (name: string, fileName = `${name}.json`) => new File([golden
 const example = (file: string) => new File([readFileSync(join(REPO_ROOT, "offline/examples", file))], file, { type: "text/csv" });
 const caseReport = (name: string, side: "earlier" | "later") =>
   new TextEncoder().encode(JSON.stringify((JSON.parse(readFileSync(join(__dirname, "offline/comparison-cases", `${name}.json`), "utf-8")) as Record<string, { report: unknown }>)[side]!.report));
+
+/** Words a comparison must never use: it says what two reports recorded, not that anything got better or is right. */
+const OVERSTATING = /\b(fix(ed|es)?|improv\w*|resolv\w*|correct\w*|better|worse|regress\w*|success\w*)\b/i;
 
 let saved: { blob: Blob; name: string }[] = [];
 
@@ -286,6 +290,79 @@ describe("an opened saved report", () => {
   });
 });
 
+describe("the comparison page", () => {
+  async function compare(earlierBytes: Uint8Array, laterBytes: Uint8Array, obtained: Parameters<ReportStore["add"]>[1] = { kind: "checked" }) {
+    const store = memoryStore();
+    const a = await store.add(readReport(earlierBytes, "a"), obtained);
+    const b = await store.add(readReport(laterBytes, "b"), obtained);
+    render(withStore(store, <CompareReportsPage earlier={a.id} later={b.id} />));
+    await waitFor(() => expect(screen.getAllByText(/Earlier report/).length).toBeGreaterThan(0));
+    await waitFor(() => expect(document.querySelector('[data-testid="before-counts"], [data-testid="not-comparable"]')).not.toBeNull());
+  }
+
+  it("says that the premises differ before any count", async () => {
+    await compare(caseReport("premise-flags-differ", "earlier"), caseReport("premise-flags-differ", "later"));
+    const differences = screen.getByTestId("premise-differences");
+    expect(within(differences).getByText("The two reports state different premises")).toBeTruthy();
+    expect([...differences.querySelectorAll("[data-premise-difference]")].map((e) => e.getAttribute("data-premise-difference"))).toEqual(["destination_complete", "source_complete"]);
+    // In document order the premise difference comes before every count.
+    const firstCount = document.querySelector("[data-count], [data-class-count]")!;
+    expect(differences.compareDocumentPosition(firstCount) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(document.querySelector('[data-class-count="stopped-problem"]')!.textContent).toBe("1");
+    expect(within(document.querySelector('[data-class="stopped-problem"]') as HTMLElement).getByText("K1")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(OVERSTATING);
+  });
+
+  it("says when only the origin of the premises differs, and when the files and premises are the same", async () => {
+    await compare(caseReport("premise-origin-differs", "earlier"), caseReport("premise-origin-differs", "later"));
+    expect(screen.getByText("The premises were stated in different places")).toBeTruthy();
+    expect(screen.queryByTestId("same-files")).toBeNull();
+    document.body.innerHTML = "";
+    await compare(caseReport("same-files-same-premises", "earlier"), caseReport("same-files-same-premises", "later"));
+    expect(screen.getByTestId("same-files").textContent).toBe("The two reports describe the same files under the same premises.");
+    expect(screen.queryByTestId("premise-differences")).toBeNull();
+  });
+
+  it("lists every class with its records and both states, rule changes, and what could not be matched", async () => {
+    await compare(caseReport("classes-details-problems", "earlier"), caseReport("classes-details-problems", "later"));
+    const counts = Object.fromEntries([...document.querySelectorAll("[data-class-count]")].map((e) => [e.getAttribute("data-class-count"), e.textContent]));
+    expect(counts).toEqual({ "became-problem": "1", "stopped-problem": "1", "still-problem": "2", "still-verified": "1", "only-earlier": "1", "only-later": "1", "not-matched": "0" });
+    const still = document.querySelector('[data-class="still-problem"] [data-key="K5"]') as HTMLElement;
+    expect(still.textContent).toContain("earlierMismatch");
+    expect(still.textContent).toContain("laterUnverified");
+    expect(within(document.querySelector('[data-class="became-problem"]') as HTMLElement).getByText(/Rule-level changes are not available for this record/)).toBeTruthy();
+    expect(screen.getByTestId("rule-level-unavailable").textContent).toContain("For 3 records in both reports");
+    expect(document.body.textContent).not.toMatch(OVERSTATING);
+    document.body.innerHTML = "";
+    await compare(caseReport("not-matched", "earlier"), caseReport("not-matched", "later"));
+    const unmatched = screen.getByTestId("unmatched");
+    expect(within(unmatched).getByText("no key: the record cannot be matched")).toBeTruthy();
+    expect(within(unmatched).getAllByText("the key is on 2 records of the earlier report and 1 of the later one")).toHaveLength(3);
+  });
+
+  it("refuses a pair that is not comparable, with the reasons, and shows no comparison", async () => {
+    await compare(caseReport("refused-different-scope", "earlier"), caseReport("refused-different-scope", "later"));
+    const refusal = screen.getByTestId("not-comparable");
+    expect(within(refusal).getByText("These two reports cannot be compared, so no comparison is shown.")).toBeTruthy();
+    expect(refusal.querySelector('[data-reason="different-scope"]')!.textContent).toBe("The scope differs. the scope differs: source in the earlier report, exact in the later one");
+    expect(screen.queryByTestId("before-counts")).toBeNull();
+    expect(document.querySelector("[data-class-count]")).toBeNull();
+  });
+
+  it("refuses a redacted report", async () => {
+    await compare(goldenBytes("example"), goldenBytes("example-redacted"));
+    expect(document.querySelector('[data-reason="redacted"]')).not.toBeNull();
+    expect(document.querySelector("[data-class-count]")).toBeNull();
+  });
+
+  it("says that imported reports are not authenticated, and that the order is swapped", async () => {
+    await compare(caseReport("swapped-order", "earlier"), caseReport("swapped-order", "later"), { kind: "imported", fileName: "a.json" });
+    expect(screen.getAllByText("Not authenticated: imported from a file.")).toHaveLength(2);
+    expect(screen.getByTestId("order-reversed")).toBeTruthy();
+    expect(screen.getByTestId("swap").getAttribute("href")).toMatch(/^#\/check\/compare\?earlier=[0-9a-f]{32}&later=[0-9a-f]{32}$/);
+  });
+});
+
 describe("routes and navigation", () => {
   it("parses the saved reports routes", () => {
     expect(parseHash("#/check/reports").route).toEqual({ name: "saved-reports" });
@@ -350,6 +427,9 @@ describe("in Chinese", () => {
     cleanupAll();
     expect(await inChinese(withStore(store, <SavedReportPage id={a.id} />), () => expect(screen.getByRole("region", { name: "Result" })).toBeTruthy())).toEqual([]);
     cleanupAll();
-    void [b, c, d, e, f];
+    for (const [x, y] of [[a, b], [c, d], [e, f], [a, c]] as const) {
+      expect(await inChinese(withStore(store, <CompareReportsPage earlier={x.id} later={y.id} />), () => expect(document.querySelector('[data-testid="before-counts"], [data-testid="not-comparable"]')).not.toBeNull())).toEqual([]);
+      cleanupAll();
+    }
   });
 });

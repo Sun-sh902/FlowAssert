@@ -24,6 +24,7 @@ const browserCheck = () => import("./pages/BrowserCheck");
 const Check = lazy(() => browserCheck().then((m) => ({ default: m.Check })));
 const SavedReportsPage = lazy(() => browserCheck().then((m) => ({ default: m.SavedReportsPage })));
 const SavedReportPage = lazy(() => browserCheck().then((m) => ({ default: m.SavedReportPage })));
+const CompareReportsPage = lazy(() => browserCheck().then((m) => ({ default: m.CompareReportsPage })));
 
 const TITLES: Record<string, string> = {
   check: "CSV check — FlowAssert",
@@ -223,6 +224,11 @@ export function App() {
       {route.name === "saved-report" && (
         <Suspense fallback={<p role="status" className="kicker">Opening the saved reports…</p>}>
           <SavedReportPage key={route.id} id={route.id} />
+        </Suspense>
+      )}
+      {route.name === "compare-reports" && (
+        <Suspense fallback={<p role="status" className="kicker">Opening the saved reports…</p>}>
+          <CompareReportsPage earlier={location.params.get("earlier")} later={location.params.get("later")} />
         </Suspense>
       )}
       {/* The GitHub Pages demo has no local Service: its pages say so and never try to reach it. */}

@@ -3,4 +3,5 @@
  * page is open, moving between them, saving, listing and comparing load nothing more.
  */
 export { Check } from "./Check";
+export { CompareReportsPage } from "./CompareReports";
 export { SavedReportPage, SavedReportsPage } from "./SavedReports";
