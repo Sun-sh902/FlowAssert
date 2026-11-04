@@ -4,7 +4,7 @@ import { setLocale, useLocale, type Locale } from "../../i18n/locale";
 import { cn } from "../../lib/cn";
 import { PAGES_BUILD } from "../../lib/build";
 import { DEMO_NOW_MS, formatDateTime } from "../../lib/format";
-import { isHistoryRoute, isLocalRoute, type Route } from "../../lib/router";
+import { isCheckRoute, isHistoryRoute, isLocalRoute, type Route } from "../../lib/router";
 import { useTheme, type ThemePreference } from "../../lib/theme";
 import { useRadioGroupKeys } from "../ui/atelier";
 import { SERVICE_STATUS_SCOPE, ServiceStatus } from "./ServiceStatus";
@@ -54,8 +54,11 @@ interface NavItem {
   match: (r: Route) => boolean;
 }
 
-/** The CSV check: files compared in this browser; nothing is sent. */
-const CHECK_NAV: NavItem[] = [{ n: "00", label: "CSV check", href: "#/check", match: (r: Route) => r.name === "check" }];
+/** The CSV check, and the reports kept from it on request: files compared in this browser; nothing is sent. */
+const CHECK_NAV: NavItem[] = [
+  { n: "00", label: "CSV check", href: "#/check", match: (r: Route) => r.name === "check" },
+  { n: "··", label: "Saved reports", href: "#/check/reports", match: (r: Route) => r.name === "saved-reports" || r.name === "saved-report" || r.name === "compare-reports" },
+];
 /** The product: pages that read the local Python service (LOCAL_RESEARCH). */
 const NAV: NavItem[] = [
   { n: "01", label: "Overview", href: PAGES_BUILD ? "#/overview" : "#/", match: (r: Route) => r.name === "workspace" },
@@ -224,7 +227,7 @@ function RailFooter({ register }: { register: Register }) {
         {register === "check" ? (
           <>
             <p className="kicker mb-0.5 text-ink-2">Browser check register</p>
-            Your files are read in this browser and never sent. Nothing you choose is stored.
+            Your files are read in this browser and never sent. A report is kept only when you ask.
           </>
         ) : PAGES_BUILD && local ? (
           <>
@@ -254,7 +257,7 @@ function RailFooter({ register }: { register: Register }) {
   );
 }
 
-function TopBar({ crumbs, register }: { crumbs: ReactNode; register: Register }) {
+function TopBar({ crumbs, register, saved }: { crumbs: ReactNode; register: Register; saved: boolean }) {
   const [open, setOpen] = useState(false);
   const local = register === "local";
   return (
@@ -296,7 +299,11 @@ function TopBar({ crumbs, register }: { crumbs: ReactNode; register: Register })
           <dl className="grid gap-4 text-xs leading-[1.5] text-ink-2 sm:grid-cols-3">
             <div>
               <dt className="mb-1 font-semibold text-ink">Real on this page</dt>
-              <dd>Your own files, read in this browser by the rules of flowassert-verify. The JSON and HTML reports are the command line’s, byte for byte.</dd>
+              {saved ? (
+                <dd>Reports you kept or imported, read again from their original bytes in this browser. Imported reports are not authenticated, and a comparison does not authenticate either report.</dd>
+              ) : (
+                <dd>Your own files, read in this browser by the rules of flowassert-verify. The JSON and HTML reports are the command line’s, byte for byte.</dd>
+              )}
             </div>
             <div>
               <dt className="mb-1 font-semibold text-ink">Stated by you</dt>
@@ -352,7 +359,7 @@ const DESKTOP_QUERY = "(min-width: 64rem)";
 export function AppShell({ route, crumbs, children }: { route: Route; crumbs: ReactNode; children: ReactNode }) {
   const [drawer, setDrawer] = useState(false);
   const local = isLocalRoute(route);
-  const register: Register = route.name === "check" ? "check" : local ? "local" : "demo";
+  const register: Register = isCheckRoute(route) ? "check" : local ? "local" : "demo";
   const closeRef = useRef<HTMLButtonElement>(null);
   const openRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -452,7 +459,7 @@ export function AppShell({ route, crumbs, children }: { route: Route; crumbs: Re
       )}
 
       <div inert={drawer} className="min-w-0 px-4 sm:px-8 xl:px-11">
-        <TopBar crumbs={crumbs} register={register} />
+        <TopBar crumbs={crumbs} register={register} saved={register === "check" && route.name !== "check"} />
         <main id="main" tabIndex={-1} className="mx-auto max-w-[1280px] pt-7 pb-16 outline-none focus-visible:shadow-none lg:pt-8">
           {children}
         </main>

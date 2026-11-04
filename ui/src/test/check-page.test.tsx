@@ -1,6 +1,7 @@
 /**
  * The CSV check page (#/check): choices are made by the user and nothing is preselected, the check gives the command
- * line's summary and reports (origin "browser form"), refusals show no result, and nothing the user states is stored.
+ * line's summary and reports (origin "browser form"), refusals show no result, and nothing the user states is stored:
+ * a check without "Keep this report in this browser" stores nothing at all (tests of keeping: saved-reports.test.tsx).
  * The check runs in this thread here (inThreadRunner); the browser suite runs it in the real Web Worker.
  */
 import { readFileSync } from "node:fs";
@@ -87,12 +88,18 @@ describe("CSV check page", () => {
 
   it("stores nothing the user chose or stated, and leaves the address alone", async () => {
     const before = window.location.href;
+    // Saved reports (v0.5.0) live in IndexedDB: a check without "Keep" must not touch it at all, not even to read.
+    const touched: string[] = [];
+    vi.stubGlobal("indexedDB", new Proxy({}, { get: (_, name) => (touched.push(String(name)), () => undefined) }));
     const user = await chooseExample();
     await chooseColumns(user);
     await user.click(screen.getByTestId("source-complete"));
     await user.type(screen.getByTestId("source-count"), "4");
     await user.click(screen.getByTestId("run-check"));
     await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
+    // "Keep this report in this browser" is offered, and not pressed.
+    expect(screen.getByTestId("keep-report")).toBeTruthy();
+    expect(touched).toEqual([]);
     expect(localStorage.length).toBe(0);
     expect(sessionStorage.length).toBe(0);
     expect(document.cookie).toBe("");

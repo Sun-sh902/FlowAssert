@@ -7,21 +7,28 @@
  * Nothing is preselected or inferred, and nothing is remembered: files, statements, counts and choices live in this
  * component's state only, never in storage or the address. Only a configuration file the user downloads keeps the
  * column and rule choices. Values from the files are marked data-no-translate, so the Chinese interface never alters them.
+ *
+ * A result's JSON report is kept in this browser only when the user presses "Keep this report in this browser", for
+ * that one report (lib/savedReports.ts); the files are never kept. Nothing from a saved report fills in this page.
  */
-import { Download, FileUp, Play, Plus, Square, Trash2, Upload } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Archive, Download, FileUp, Library, Play, Plus, Square, Trash2, Upload } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
-import { RuleStatusIcon, RuleStatusLabel, Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
+import { DestinationOnlyList, Notices, Premises, RecordCard, Value } from "../components/report/ReportParts";
+import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
+import { Seal, StatusGlyph } from "../components/ui/status";
 import { canonicalConfig, readConfig, Refused } from "../offline/check";
 import { ENCODINGS, type Encoding } from "../offline/csv";
-import { EvaluatorError, parseRule, type Premise, type RuleResult, type Scope, type SourceRecord } from "../offline/evaluator";
+import { EvaluatorError, parseRule, type Scope } from "../offline/evaluator";
 import type { ChosenConfig } from "../offline/pageCheck";
-import { pyRepr } from "../offline/pystr";
 import { SUPPORTED_DIRECTIVES } from "../offline/strptime";
-import { Cancelled, inThreadRunner, workerRunner, type CheckRunner, type HeaderResult, type Progress, type RunInput, type RunResult, type ResultView } from "../offline/runner";
+import { Cancelled, inThreadRunner, workerRunner, type CheckRunner, type HeaderResult, type Progress, type RunInput, type RunResult } from "../offline/runner";
+import { readReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
 import { saveBlob } from "../lib/download";
+import { useAllFontFaces } from "../lib/fonts";
+import { useReportStore } from "../lib/savedReports";
 import exampleSource from "../../../offline/examples/source.csv?raw";
 import exampleDestination from "../../../offline/examples/destination.csv?raw";
 
@@ -71,14 +78,6 @@ const PHASE: Record<Progress["phase"], string> = {
   "writing-reports": "Writing the reports",
 };
 
-const PREMISE_LABEL: Record<string, string> = {
-  source_complete: "The source file is the whole batch",
-  destination_complete: "The destination export covers the whole object",
-  source_count: "Source total in the original system",
-  destination_count: "Destination total in the original system",
-  allow_identical_content: "The two identical files come from different systems",
-};
-
 const COUNT = /^[0-9]+$/;
 
 const ruleText = (row: FieldRow) => (row.rule === "date" ? `date:${row.format}` : row.rule);
@@ -100,14 +99,6 @@ function selectionOf(key: [string, string], fields: FieldRow[], scope: Scope): C
   if (fields.some((f) => !f.source || !f.destination || ruleProblem(f))) return null;
   if (new Set(fields.map((f) => f.source)).size !== fields.length) return null;
   return { key, fields: fields.map((f) => [f.source, f.destination, ruleText(f)] as const), scope };
-}
-
-function Value({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <code data-no-translate className={cn("font-mono text-[12px] break-all whitespace-pre-wrap text-ink", className)}>
-      {children}
-    </code>
-  );
 }
 
 /* ---------- Files ---------- */
@@ -300,136 +291,61 @@ function CountInput({ label, hint, value, onChange, testId }: { label: string; h
 
 /* ---------- Result ---------- */
 
-const yesNo = (v: boolean | number | bigint | null | undefined) => (v === null || v === undefined ? "none" : typeof v === "boolean" ? (v ? "yes" : "no") : String(v));
+type KeepState = { kind: "idle" } | { kind: "keeping" } | { kind: "kept" } | { kind: "refused"; error: unknown };
 
-function Premises({ premises }: { premises: [string, Premise][] }) {
+/** Keep this one report in this browser, only when the user asks; a refusal leaves the result as it is. */
+function KeepReport({ json }: { json: Blob }) {
+  const store = useReportStore();
+  const [state, setState] = useState<KeepState>({ kind: "idle" });
+  const id = useId();
+  const keep = async () => {
+    setState({ kind: "keeping" });
+    try {
+      // The report is read back as any saved report is, so what is kept is a report the saved pages accept.
+      const read = readReport(new Uint8Array(await json.arrayBuffer()), "flowassert-report.json");
+      await store.add(read, { kind: "checked" });
+      setState({ kind: "kept" });
+    } catch (e) {
+      // StorageUnavailable above all (blocked storage, a private window, no space); whatever it is, nothing was kept.
+      setState({ kind: "refused", error: e });
+    }
+  };
   return (
-    <section aria-labelledby="premises-h" className="min-w-0 rounded-md border-2 border-unverified-line px-4 py-3">
-      <h3 id="premises-h" className="text-sm font-semibold text-ink">
-        Stated premises
-      </h3>
-      <p className="mt-0.5 text-xs text-ink-3">FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>
-      <dl className="mt-2 grid gap-2">
-        {premises.map(([name, p]) => (
-          <div key={name} className="min-w-0 border-t border-line-subtle pt-2" data-premise={name}>
-            <dt className="text-xs text-ink-2">
-              {PREMISE_LABEL[name] ?? name} <span className="font-mono text-[10.5px] text-ink-4">{name}</span>
-            </dt>
-            <dd className="mt-0.5 flex flex-wrap gap-x-3 font-mono text-[11.5px] text-ink">
-              <span>
-                <span className="text-ink-3">stated </span>
-                {yesNo(p.stated)}
-              </span>
-              {"observed" in p && (
-                <span>
-                  <span className="text-ink-3">rows in file </span>
-                  {String(p.observed)}
-                </span>
-              )}
-              {"matched" in p && (
-                <span>
-                  <span className="text-ink-3">matched </span>
-                  {yesNo(p.matched)}
-                </span>
-              )}
-              <span>
-                <span className="text-ink-3">origin </span>
-                <span data-no-translate>{p.origin}</span>
-              </span>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
-
-function RuleLine({ name, rule }: { name: string; rule: RuleResult }) {
-  return (
-    <li className="grid gap-1 border-t border-line-subtle py-2 first:border-t-0">
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <Value className="text-ink-2">{name}</Value>
-        <span className="inline-flex items-center gap-1">
-          <RuleStatusIcon status={rule.status} />
-          <RuleStatusLabel status={rule.status} />
-        </span>
-        <span data-no-translate className="text-xs text-ink-3">
-          {rule.reason}
-        </span>
-      </div>
-      {"expected" in rule && (
-        <div className="grid gap-0.5 text-xs sm:grid-cols-[90px_minmax(0,1fr)]">
-          <span className="text-ink-3">Source value</span>
-          <Value>{pyRepr(rule.expected)}</Value>
-          <span className="text-ink-3">Destination value</span>
-          <Value>{pyRepr(rule.actual)}</Value>
-          {"expected_normalized" in rule && (
-            <>
-              <span className="text-ink-3">Compared as</span>
-              <Value>{`${pyRepr(rule.expected_normalized)} vs ${pyRepr(rule.actual_normalized)}`}</Value>
-            </>
-          )}
-        </div>
-      )}
-    </li>
-  );
-}
-
-function RecordCard({ record }: { record: SourceRecord }) {
-  return (
-    <li className="surface min-w-0 rounded-md px-4 py-3" data-record={record.source_row + 1}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="min-w-0 text-sm text-ink">
-          <span>{`Record ${record.source_row + 1}`}</span>
-          {" · "}
-          {record.key === null ? <span className="text-ink-3">no key</span> : <Value>{record.key}</Value>}
-        </p>
-        <StatusBadge state={record.state} />
-      </div>
-      <ul className="mt-1.5">
-        {Object.entries(record.rules ?? {}).map(([name, rule]) => (
-          <RuleLine key={name} name={name} rule={rule} />
-        ))}
-      </ul>
-    </li>
-  );
-}
-
-function Notices({ view }: { view: ResultView }) {
-  const lines: string[] = [];
-  for (const [name, p] of view.premises) {
-    if (p.matched !== false) continue;
-    lines.push(
-      name === "source_count"
-        ? `Source count stated ${String(p.stated)}, file has ${p.observed} rows: the batch cannot be Verified.`
-        : `Destination count stated ${String(p.stated)}, file has ${p.observed} rows: absence and uniqueness stay unknown.`,
-    );
-  }
-  if (!view.populationKnown) lines.push("Source population unknown: the batch cannot be Verified.");
-  if (!view.coverageSufficient) lines.push("Destination coverage not established: absence and uniqueness stay unknown.");
-  if (view.destinationOnly) {
-    const n = view.destinationOnlyCount;
-    lines.push(
-      !n
-        ? "Destination-only: 0 records not in the source."
-        : view.populationKnown
-          ? `Destination-only: ${n} records not in the source, each a Mismatch.`
-          : `Destination-only: ${n} records not in the source, listed without a conclusion.`,
-    );
-  }
-  if (view.inputs.some(([k, v]) => k === "identical_content" && v === true)) lines.push("Source and destination files were identical (allowed in this check).");
-  if (!lines.length) return null;
-  return (
-    <ul className="mt-3 grid gap-1 text-sm text-ink-2">
-      {lines.map((line) => (
-        <li key={line} className="flex gap-2">
-          <span aria-hidden className="text-ink-4">
-            —
+    <div className="mt-5 max-w-[62ch] border-t border-line-subtle pt-4">
+      <button
+        type="button"
+        className={buttonClass()}
+        onClick={() => void keep()}
+        disabled={state.kind === "keeping" || state.kind === "kept"}
+        aria-describedby={`${id}-what`}
+        data-testid="keep-report"
+      >
+        <Archive size={14} aria-hidden />
+        Keep this report in this browser
+      </button>
+      <p id={`${id}-what`} className="mt-1.5 text-xs leading-[1.5] text-ink-3">
+        The report holds the keys and compared values of the records. It stays in this browser profile until you delete it, and anyone using this browser profile can read it.
+      </p>
+      <PagesOriginNotice className="mt-1 text-xs leading-[1.5] text-ink-3" />
+      <p role="status" className="mt-1.5 text-xs" data-testid="keep-status">
+        {state.kind === "keeping" && <span className="text-ink-2">Keeping the report…</span>}
+        {state.kind === "kept" && (
+          <span className="text-ink-2">
+            <span>This report is kept in this browser.</span>{" "}
+            <a href="#/check/reports" className="font-medium text-ink underline decoration-line-strong underline-offset-[3px]">
+              Open saved reports
+            </a>
           </span>
-          <span>{line}</span>
-        </li>
-      ))}
-    </ul>
+        )}
+        {state.kind === "refused" && (
+          <span className="text-mismatch-ink" data-testid="keep-refused">
+            <span>The report was not kept. </span>
+            <StorageProblem error={state.error} />
+            <span> The result on this page is unchanged.</span>
+          </span>
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -471,6 +387,7 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
               Download HTML report
             </button>
           </div>
+          <KeepReport json={result.json!} />
         </div>
         <Premises premises={view.premises} />
       </div>
@@ -496,32 +413,7 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
         </>
       )}
 
-      {view.destinationOnly && (
-        <>
-          <h3 className="serif mt-8 text-xl text-ink">{`Destination-only records (${view.destinationOnlyCount})`}</h3>
-          {view.destinationOnly.length > 0 && (
-            <ul className="mt-2 grid gap-2">
-              {view.destinationOnly.map((r) => (
-                <li key={r.key} className="surface flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm">
-                  <span className="min-w-0">
-                    <span>{`Destination row ${r.destination_row + 1}`}</span>
-                    {" · "}
-                    <Value>{r.key}</Value>
-                    {" · "}
-                    <span className="text-ink-3">{`${r.rows} rows`}</span>
-                  </span>
-                  <span className="flex flex-wrap items-center gap-2">
-                    <StatusBadge state={r.state} />
-                    <span data-no-translate className="text-xs text-ink-3">
-                      {r.reason}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+      {view.destinationOnly && <DestinationOnlyList view={view} />}
 
       <h3 id="summary-h" className="serif mt-8 text-xl text-ink">
         Summary, as the command line prints it
@@ -547,9 +439,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const [runner] = useState<CheckRunner>(() => given ?? (typeof Worker === "function" ? workerRunner(startWorker) : inThreadRunner()));
   useEffect(() => () => runner.dispose(), [runner]);
   // Load every font face now, so a check that shows new characters never fetches one.
-  useEffect(() => {
-    if (typeof document !== "undefined" && document.fonts) document.fonts.forEach((face) => void face.load().catch(() => undefined));
-  }, []);
+  useAllFontFaces();
 
   const [choices, setChoices] = useState<Record<Side, Choice>>({
     source: { file: null, encoding: "utf-8", header: noHeader },
@@ -725,6 +615,16 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       <PageHead
         kicker="Check in this browser · nothing is uploaded"
         title="CSV check"
+        aside={
+          <div className="rounded-md border border-line px-4 py-3 text-sm text-ink-2">
+            <p className="font-semibold text-ink">Saved reports</p>
+            <p className="mt-0.5 text-xs leading-[1.5] text-ink-3">Reports you chose to keep in this browser, or imported, and two of them compared.</p>
+            <a href="#/check/reports" className={cn(buttonClass("default", "sm"), "mt-2")} data-testid="open-saved-reports">
+              <Library size={13} aria-hidden />
+              Open saved reports
+            </a>
+          </div>
+        }
         lede={
           <>
             <p>

@@ -17,11 +17,19 @@ import { CaptureRuns, WorkspaceOverview, WorkspaceVerifications } from "./pages/
 
 // The interface-state specimens are a reference page few visits open; keep them out of the main bundle.
 const States = lazy(() => import("./pages/States").then((m) => ({ default: m.States })));
-// The CSV check carries the offline checker (evaluator, CSV reader, Unicode tables); only its own visits load it.
-const Check = lazy(() => import("./pages/Check").then((m) => ({ default: m.Check })));
+// The CSV check carries the offline checker (evaluator, CSV reader, Unicode tables); only its own visits load it. Its
+// saved reports pages read reports with the same code, and come in the same chunk, so moving between them, saving,
+// listing and comparing never load anything.
+const browserCheck = () => import("./pages/BrowserCheck");
+const Check = lazy(() => browserCheck().then((m) => ({ default: m.Check })));
+const SavedReportsPage = lazy(() => browserCheck().then((m) => ({ default: m.SavedReportsPage })));
+const SavedReportPage = lazy(() => browserCheck().then((m) => ({ default: m.SavedReportPage })));
 
 const TITLES: Record<string, string> = {
   check: "CSV check — FlowAssert",
+  "saved-reports": "Saved reports — FlowAssert",
+  "saved-report": "Saved report — FlowAssert",
+  "compare-reports": "Comparing two reports — FlowAssert",
   workspace: "Overview — FlowAssert",
   capture: "Capture runs — FlowAssert",
   "demo-overview": "Demo overview — FlowAssert",
@@ -42,6 +50,29 @@ function Crumbs({ route }: { route: Route }) {
         <>
           <b className="font-semibold whitespace-nowrap text-ink">CSV check</b>
           <span className="truncate">in this browser · your files stay on this computer</span>
+        </>
+      );
+    case "saved-reports":
+      return (
+        <>
+          <a href="#/check" className="fa-hit whitespace-nowrap hover:text-ink">
+            CSV check
+          </a>
+          <span aria-hidden>/</span>
+          <b className="font-semibold whitespace-nowrap text-ink">Saved reports</b>
+          <span className="hidden truncate sm:inline">kept in this browser · nothing is uploaded</span>
+        </>
+      );
+    case "saved-report":
+    case "compare-reports":
+      return (
+        <>
+          <a href="#/check/reports" className="fa-hit whitespace-nowrap hover:text-ink">
+            Saved reports
+          </a>
+          <span aria-hidden>/</span>
+          <b className="font-semibold whitespace-nowrap text-ink">{route.name === "saved-report" ? "Saved report" : "Comparing two reports"}</b>
+          <span className="hidden truncate sm:inline">kept in this browser · nothing is uploaded</span>
         </>
       );
     case "workspace":
@@ -182,6 +213,16 @@ export function App() {
       {route.name === "check" && (
         <Suspense fallback={<p role="status" className="kicker">Opening the CSV check…</p>}>
           <Check />
+        </Suspense>
+      )}
+      {route.name === "saved-reports" && (
+        <Suspense fallback={<p role="status" className="kicker">Opening the saved reports…</p>}>
+          <SavedReportsPage />
+        </Suspense>
+      )}
+      {route.name === "saved-report" && (
+        <Suspense fallback={<p role="status" className="kicker">Opening the saved reports…</p>}>
+          <SavedReportPage key={route.id} id={route.id} />
         </Suspense>
       )}
       {/* The GitHub Pages demo has no local Service: its pages say so and never try to reach it. */}

@@ -4,6 +4,10 @@
  *   #/                         LOCAL_RESEARCH workspace Overview, read from the local Service's archive (product round 01);
  *                              in the GitHub Pages build, the CSV check (#/overview is the Overview in both builds)
  *   #/check                    CSV check: two files compared in this browser (v0.3.0); nothing is sent
+ *   #/check/reports            Saved reports (v0.5.0): reports kept in this browser on request, or imported; nothing is sent
+ *   #/check/reports/:id        One saved report, read again from its original bytes
+ *   #/check/compare?earlier=ID&later=ID
+ *                              Two saved reports compared: a view of two observations, never a new verdict
  *   #/verifications            LOCAL_RESEARCH Verifications: the five reviewed cases with their four status axes
  *                              (#/local/verifications is the same page, kept so earlier links keep working)
  *   #/capture                  Capture runs — not implemented in this build; states so and offers no action
@@ -38,6 +42,9 @@ import { PAGES_BUILD } from "./build";
 
 export type Route =
   | { name: "check" }
+  | { name: "saved-reports" }
+  | { name: "saved-report"; id: string }
+  | { name: "compare-reports" }
   | { name: "workspace" }
   | { name: "capture" }
   | { name: "demo-overview" }
@@ -53,6 +60,9 @@ export type Route =
   | { name: "local-history" }
   | { name: "local-history-entry"; id: string }
   | { name: "not-found" };
+
+/** The browser check's routes: the CSV check, its saved reports and their comparison. Nothing on them is sent. */
+export const isCheckRoute = (r: Route) => r.name === "check" || r.name === "saved-reports" || r.name === "saved-report" || r.name === "compare-reports";
 
 /** The Phase 3A archive routes (LOCAL_RESEARCH). */
 export const isHistoryRoute = (r: Route) => r.name === "local-history" || r.name === "local-history-entry";
@@ -107,6 +117,9 @@ function parse(hash: string): Location {
   if (parts.length === 0) route = PAGES_BUILD ? { name: "check" } : { name: "workspace" };
   else if (parts[0] === "overview" && parts.length === 1) route = { name: "workspace" };
   else if (parts[0] === "check" && parts.length === 1) route = { name: "check" };
+  else if (parts[0] === "check" && parts[1] === "reports" && parts.length === 2) route = { name: "saved-reports" };
+  else if (parts[0] === "check" && parts[1] === "reports" && parts[2] && parts.length === 3) route = { name: "saved-report", id: decodeSegment(parts[2]) };
+  else if (parts[0] === "check" && parts[1] === "compare" && parts.length === 2) route = { name: "compare-reports" };
   else if (parts[0] === "verifications" && parts.length === 1) route = { name: "local-verifications" };
   else if (parts[0] === "capture" && parts.length === 1) route = { name: "capture" };
   else if (parts[0] === "demo" && parts.length === 1) route = { name: "demo-overview" };
