@@ -32,6 +32,7 @@
    "src/test/offline/n8n-workflow.test.ts": 6,
    "src/test/offline/python-semantics.test.ts": 55,
    "src/test/offline/random-parity.test.ts": 2,
+   "src/test/offline/saved-report.test.ts": 99,
    "src/test/offline/sha256.test.ts": 5,
    "src/test/overview.test.tsx": 10,
    "src/test/p3a-aud-002-validator.test.ts": 224,
