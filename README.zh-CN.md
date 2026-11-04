@@ -6,6 +6,8 @@
 
 FlowAssert 对比“应该存在什么”和“目标系统里实际有什么”，再把每条记录判定为 **Verified**、**Mismatch**、**Pending** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。
 
+**在线试用：** <https://sun-sh902.github.io/FlowAssert/> 在浏览器里核对两个 CSV 文件，页面上有示例文件，你的文件不会离开电脑。详见[在浏览器中核对](#在浏览器中核对)。
+
 > [!IMPORTANT]
 > **这是由一位维护者维护的早期项目。** 它还不是生产软件。
 > Service 和 UI 只处理 5 个审核过的合成样例。它们没有连接真实的 n8n、HubSpot 或 Google Sheets，不接收凭据，也不采集外部数据。哈希和本地回执只能说明内部一致，不能证明任何数据是真实的。
@@ -213,7 +215,7 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 
 **文件留在你的电脑上。** 文件在浏览器里（一个 Web Worker 中）读取，不上传任何内容：从选择文件到下载报告，页面不发出任何网络请求。你的选择和声明都不会被保存，每次核对都要重新选择文件、重新声明前提。只有列和规则的选择可以保存为一个由你自己下载的配置文件。
 
-- **在线演示：** 发布后的地址是 <https://sun-sh902.github.io/FlowAssert/>。它的内容安全策略（CSP）禁止任何连接；需要本地 Service 的页面会写明“仅本地可用”。
+- **在线演示：** <https://sun-sh902.github.io/FlowAssert/>。它的内容安全策略（CSP）禁止任何连接；需要本地 Service 的页面会写明“仅本地可用”。
 - **本地运行：** `cd ui && npm ci && npm run dev`，然后打开 <http://127.0.0.1:5183/#/check>。页面上有示例文件。
 
 与命令行的区别：

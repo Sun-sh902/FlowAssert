@@ -6,6 +6,8 @@ English | [简体中文](README.zh-CN.md)
 
 FlowAssert compares what should exist with what a destination system holds, then reports each record as **Verified**, **Mismatch**, **Pending** or **Unverified**. Its central rule: without enough evidence, it refuses to say Verified.
 
+**Try it online:** <https://sun-sh902.github.io/FlowAssert/> compares two CSV files in your browser, with sample files on the page. Your files never leave your computer. See [Check in your browser](#check-in-your-browser).
+
 > [!IMPORTANT]
 > **Early-stage project with one maintainer.** It is not production software.
 > The Service and UI work on five reviewed synthetic cases only. They have no live n8n, HubSpot or Google Sheets connection, take no credentials, and capture no external data. Hashes and local receipts show internal consistency, not that any data is authentic.
@@ -208,7 +210,7 @@ choosing the files to downloading the reports, the page makes no network request
 stored; you choose the files and state the premises again at every check. Only the column and rule choices can be
 saved, as a configuration file you download yourself.
 
-- **Online demo:** <https://sun-sh902.github.io/FlowAssert/>, once it is published. Its Content Security Policy
+- **Online demo:** <https://sun-sh902.github.io/FlowAssert/>. Its Content Security Policy
   forbids every connection, and the pages that need the local Service say that they work only locally.
 - **Locally:** `cd ui && npm ci && npm run dev`, then open <http://127.0.0.1:5183/#/check>. Sample files are on the page.
 
