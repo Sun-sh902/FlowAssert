@@ -18,7 +18,7 @@ import { buttonClass } from "../components/ui/primitives";
 import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
 import { Gloss, SummaryGlosses } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
-import { Seal, StatusGlyph } from "../components/ui/status";
+import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
 import { canonicalConfig, readConfig, Refused } from "../offline/check";
 import { ENCODINGS, type Encoding } from "../offline/csv";
 import { EvaluatorError, parseRule, type Scope } from "../offline/evaluator";
@@ -33,6 +33,7 @@ import { useAllFontFaces } from "../lib/fonts";
 import { useReportStore } from "../lib/savedReports";
 import exampleSource from "../../../offline/examples/source.csv?raw";
 import exampleDestination from "../../../offline/examples/destination.csv?raw";
+import { SCENARIOS, chosenOf, premisesText, type Scenario } from "./scenarios";
 
 type Side = "source" | "destination";
 type RuleKind = "exact" | "trim" | "casefold" | "digits" | "date";
@@ -222,6 +223,61 @@ function FilePicker({
         </>
       )}
     </fieldset>
+  );
+}
+
+/* ---------- Scenarios ---------- */
+
+/**
+ * Small synthetic scenarios (./scenarios.ts): each says what to expect with which premises. Choosing one fills in its
+ * files and configuration; the premises stay as they are, unstated until the person states them.
+ */
+function ScenarioPanel({ inUse, onUse }: { inUse: string | null; onUse: (s: Scenario) => void }) {
+  const used = SCENARIOS.find((s) => s.id === inUse);
+  return (
+    <section aria-labelledby="scenarios-h" className="mt-4 rounded-md border border-line px-4 py-3" data-testid="scenarios">
+      <h3 id="scenarios-h" className="text-sm font-semibold text-ink">
+        No files at hand? Try a scenario
+      </h3>
+      <p className="mt-0.5 max-w-[78ch] text-xs leading-[1.5] text-ink-3">
+        Each scenario is a pair of small synthetic files. Using one fills in its two files, its columns and its rules. It states nothing for you: the statements in step 3 are yours to make, and in these files they are true by construction.
+      </p>
+      <ul className="mt-2 grid gap-3 lg:grid-cols-2">
+        {SCENARIOS.map((s) => (
+          <li key={s.id} className="surface flex min-w-0 flex-col rounded-md px-3 py-2.5" data-scenario={s.id}>
+            <p className="text-sm font-medium text-ink">{s.title}</p>
+            <p className="mt-0.5 text-xs leading-[1.5] text-ink-2">{s.description}</p>
+            <p className="mt-2 text-2xs font-semibold tracking-wide text-ink-3 uppercase">What to expect</p>
+            <dl className="mt-1 grid gap-1.5 text-xs">
+              {s.expect.map((e) => (
+                <div key={premisesText(e.premises)} className="min-w-0">
+                  <dt className="flex flex-wrap items-center gap-x-2 text-ink-2">
+                    <span>{premisesText(e.premises)}</span>
+                    <StatusBadge state={e.result} size="sm" />
+                  </dt>
+                  <dd className="mt-0.5 leading-[1.5] text-ink-3">{e.why}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-auto pt-2">
+              <button type="button" className={buttonClass("default", "sm")} onClick={() => onUse(s)} data-testid={`scenario-${s.id}`}>
+                <FileUp size={13} aria-hidden />
+                <span>Use this scenario</span>
+                <span className="sr-only">{`: ${s.title}`}</span>
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p role="status" className="mt-2 text-xs text-ink-2" data-testid="scenario-status">
+        {used && (
+          <>
+            <span>Scenario in use:</span> <span>{used.title}</span>
+            <span>. Its files and configuration are filled in, and nothing is stated.</span>
+          </>
+        )}
+      </p>
+    </section>
   );
 }
 
@@ -536,6 +592,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const [destinationCount, setDestinationCount] = useState("");
   const [allowIdentical, setAllowIdentical] = useState(false);
   const [run, setRun] = useState<RunState>({ kind: "idle" });
+  const [scenario, setScenario] = useState<string | null>(null);
   const headerReads = useRef<Record<Side, number>>({ source: 0, destination: 0 });
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
@@ -688,9 +745,17 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
     else if (run.kind === "done" || run.kind === "failed" || run.kind === "cancelled") statusRef.current?.focus();
   }, [run]);
 
-  const useSamples = () => {
-    readColumns("source", new File([exampleSource], "source.csv", { type: "text/csv" }), choices.source.encoding);
-    readColumns("destination", new File([exampleDestination], "destination.csv", { type: "text/csv" }), choices.destination.encoding);
+  /** Fill in a scenario's files and configuration; its files are UTF-8. Every statement starts unstated again. */
+  const chooseScenario = (scenario: Scenario) => {
+    readColumns("source", new File([scenario.source], "source.csv", { type: "text/csv" }), "utf-8");
+    readColumns("destination", new File([scenario.destination], "destination.csv", { type: "text/csv" }), "utf-8");
+    const chosen = chosenOf(scenario);
+    setKey([chosen.key[0], chosen.key[1]]);
+    setFields(chosen.fields.map(([source, destination, rule]) => ({ id: nextId.current++, source, destination, rule: (rule.startsWith("date:") ? "date" : rule) as RuleKind, format: rule.startsWith("date:") ? rule.slice(5) : "" })));
+    setScope(chosen.scope);
+    setLoaded(null);
+    setConfigMessage(null);
+    setScenario(scenario.id);
   };
   const sample = (text: string, name: string) => saveBlob(new Blob([text], { type: "text/csv" }), name);
 
@@ -728,16 +793,17 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       <section aria-labelledby="files-h">
         <SectionHead id="files-h" title="1 · Files" aside="read on this computer" />
         <div className="grid gap-4 md:grid-cols-2">
-          <FilePicker side="source" choice={choices.source} onFile={(f) => readColumns("source", f, choices.source.encoding)} onEncoding={(e) => readColumns("source", choices.source.file, e)} />
+          <FilePicker side="source" choice={choices.source} onFile={(f) => (setScenario(null), readColumns("source", f, choices.source.encoding))} onEncoding={(e) => readColumns("source", choices.source.file, e)} />
           <FilePicker
             side="destination"
             choice={choices.destination}
-            onFile={(f) => readColumns("destination", f, choices.destination.encoding)}
+            onFile={(f) => (setScenario(null), readColumns("destination", f, choices.destination.encoding))}
             onEncoding={(e) => readColumns("destination", choices.destination.file, e)}
           />
         </div>
+        <ScenarioPanel inUse={scenario} onUse={chooseScenario} />
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink-2">
-          <span>No files at hand? Sample files:</span>
+          <span>The files of the command line’s first example:</span>
           <button type="button" className={buttonClass("ghost", "sm")} onClick={() => sample(exampleSource, "source.csv")} data-testid="sample-source">
             <Download size={13} aria-hidden />
             <span data-no-translate>source.csv</span>
@@ -745,10 +811,6 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
           <button type="button" className={buttonClass("ghost", "sm")} onClick={() => sample(exampleDestination, "destination.csv")} data-testid="sample-destination">
             <Download size={13} aria-hidden />
             <span data-no-translate>destination.csv</span>
-          </button>
-          <button type="button" className={buttonClass("default", "sm")} onClick={useSamples} data-testid="use-samples">
-            <FileUp size={13} aria-hidden />
-            Use the sample files
           </button>
         </div>
       </section>

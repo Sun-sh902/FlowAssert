@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.",
+  "cohort_state": "Verified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 4
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 4,
+  "inputs": {
+    "config_file_sha256": "97ea4b88b84f53cc230eb108430cc73dfe9e79dd71b7b2dc9146f36021922385",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "98a58fcb677e45e0a5b60bb4ad0a71a6afd043ca735d4bf4ecb80dbb444697e3",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "3fb2594aa5c60e92710d14ba9b3407675a0ff95ce7ae804c131fb375f73c61fa"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "customer_email",
+        "email"
+      ],
+      [
+        "status",
+        "status"
+      ]
+    ],
+    "key": [
+      "order_id",
+      "order_id"
+    ],
+    "rules": [
+      "casefold",
+      "trim"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "SO-2001",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "key": "SO-2002",
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "key": "SO-2003",
+      "source_row": 2,
+      "state": "Verified"
+    },
+    {
+      "key": "SO-2004",
+      "source_row": 3,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

@@ -252,6 +252,35 @@ describe("CSV check page", () => {
     expect((screen.getByTestId("run-check") as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("fills in a scenario's files and configuration, states nothing, and gives the result its golden case gives", async () => {
+    const user = userEvent.setup();
+    render(<Check runner={inThreadRunner()} />);
+    const card = screen.getByTestId("scenarios").querySelector('[data-scenario="orders-rules"]') as HTMLElement;
+    // What to expect, with which premises, is written on the card.
+    expect(within(card).getByText("With both statements made")).toBeTruthy();
+    expect(within(card).getByText("With no statement made")).toBeTruthy();
+    await user.click(screen.getByTestId("scenario-orders-rules"));
+    await waitFor(() => expect(screen.getAllByText("3 columns")).toHaveLength(2));
+    expect((screen.getByTestId("key-source") as HTMLSelectElement).value).toBe("order_id");
+    expect((screen.getByTestId("field-0-rule") as HTMLSelectElement).value).toBe("casefold");
+    expect((screen.getByTestId("field-1-rule") as HTMLSelectElement).value).toBe("trim");
+    for (const id of ["source-complete", "destination-complete", "allow-identical"]) expect((screen.getByTestId(id) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByTestId("source-count") as HTMLInputElement).value).toBe("");
+    expect(screen.getByTestId("scenario-status").textContent).toContain("nothing is stated");
+    await user.click(screen.getByTestId("run-check"));
+    let result = await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
+    expect(result.getAttribute("data-result")).toBe("Unverified");
+    expect(within(result).getByTestId("summary").textContent).toBe(golden("scenario-orders-rules-no-statements", "stdout.txt"));
+    await user.click(screen.getByTestId("source-complete"));
+    await user.click(screen.getByTestId("destination-complete"));
+    await user.click(screen.getByTestId("run-check"));
+    result = await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
+    expect(result.getAttribute("data-result")).toBe("Verified");
+    expect(within(result).getByTestId("summary").textContent).toBe(golden("scenario-orders-rules-both-statements", "stdout.txt"));
+    await user.click(screen.getByTestId("download-json"));
+    expect(anyTime(await saved[0]!.blob.text())).toBe(anyTime(asBrowser(golden("scenario-orders-rules-both-statements", "report.json"))));
+  });
+
   it("suggests same-named pairs only when asked", async () => {
     const user = await chooseExample();
     expect((screen.getByTestId("field-0-source") as HTMLSelectElement).value).toBe("");

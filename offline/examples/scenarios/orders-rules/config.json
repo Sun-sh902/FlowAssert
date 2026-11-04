@@ -1,0 +1,19 @@
+{
+  "key": [
+    "order_id",
+    "order_id"
+  ],
+  "fields": [
+    {
+      "source": "customer_email",
+      "destination": "email",
+      "rule": "casefold"
+    },
+    {
+      "source": "status",
+      "destination": "status",
+      "rule": "trim"
+    }
+  ],
+  "scope": "source"
+}

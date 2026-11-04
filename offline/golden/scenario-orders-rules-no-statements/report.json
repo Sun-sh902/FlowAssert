@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 4,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "config_file_sha256": "97ea4b88b84f53cc230eb108430cc73dfe9e79dd71b7b2dc9146f36021922385",
+    "destination_complete_stated": false,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "98a58fcb677e45e0a5b60bb4ad0a71a6afd043ca735d4bf4ecb80dbb444697e3",
+    "identical_content": false,
+    "source_complete_stated": false,
+    "source_encoding": "utf-8",
+    "source_sha256": "3fb2594aa5c60e92710d14ba9b3407675a0ff95ce7ae804c131fb375f73c61fa"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "customer_email",
+        "email"
+      ],
+      [
+        "status",
+        "status"
+      ]
+    ],
+    "key": [
+      "order_id",
+      "order_id"
+    ],
+    "rules": [
+      "casefold",
+      "trim"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "SO-2001",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:customer_email": {
+          "actual": "buyer2001@example.test",
+          "actual_normalized": "buyer2001@example.test",
+          "expected": "buyer2001@example.test",
+          "expected_normalized": "buyer2001@example.test",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:status": {
+          "actual": "shipped",
+          "actual_normalized": "shipped",
+          "expected": "shipped",
+          "expected_normalized": "shipped",
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "SO-2002",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:customer_email": {
+          "actual": "buyer2002@example.test",
+          "actual_normalized": "buyer2002@example.test",
+          "expected": "Buyer2002@Example.test",
+          "expected_normalized": "buyer2002@example.test",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:status": {
+          "actual": "processing ",
+          "actual_normalized": "processing",
+          "expected": "processing",
+          "expected_normalized": "processing",
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "SO-2003",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:customer_email": {
+          "actual": "buyer2003@example.test",
+          "actual_normalized": "buyer2003@example.test",
+          "expected": "buyer2003@example.test",
+          "expected_normalized": "buyer2003@example.test",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:status": {
+          "actual": " shipped",
+          "actual_normalized": "shipped",
+          "expected": "shipped",
+          "expected_normalized": "shipped",
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "SO-2004",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:customer_email": {
+          "actual": "buyer2004@example.test",
+          "actual_normalized": "buyer2004@example.test",
+          "expected": "BUYER2004@EXAMPLE.TEST",
+          "expected_normalized": "buyer2004@example.test",
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:status": {
+          "actual": "cancelled",
+          "actual_normalized": "cancelled",
+          "expected": "cancelled",
+          "expected_normalized": "cancelled",
+          "reason": "comparison after trimming leading and trailing whitespace",
+          "rule": "trim",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 3,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

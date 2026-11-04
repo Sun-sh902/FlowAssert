@@ -1,0 +1,15 @@
+Unverified: 4 rows of unknown total
+Verified 0 · Mismatch 0 · Unverified 4
+Source population unknown: the batch cannot be Verified.
+Destination coverage not established: absence and uniqueness stay unknown.
+  record 1 M-501: Unverified
+    uniqueness unknown: insufficient evidence
+  record 2 M-502: Unverified
+    uniqueness unknown: insufficient evidence
+  record 3 (no key): Unverified
+    existence unknown: invalid or duplicate source key
+    uniqueness unknown: invalid or duplicate source key
+    field:email unknown: invalid or duplicate source key
+  record 4 M-504: Unverified
+    uniqueness unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

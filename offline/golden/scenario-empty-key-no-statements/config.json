@@ -1,0 +1,14 @@
+{
+  "key": [
+    "member_id",
+    "member_id"
+  ],
+  "fields": [
+    {
+      "source": "email",
+      "destination": "email",
+      "rule": "exact"
+    }
+  ],
+  "scope": "source"
+}

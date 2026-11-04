@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 1,
+    "Verified": 3
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "config_file_sha256": "37081a51de703932198273918bdecc5f9a5556f844ffc83047565daa663958e4",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "f2144d7c72de7ac747cd1f0d4f40f6b18debad6fe5e66828b6487c1f6c9e875d",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "528fb66bd38dfde4ac5d2a1e6a96e3cffe4078efb3aa68ac5fb857d1900d7030"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "email",
+        "email"
+      ]
+    ],
+    "key": [
+      "member_id",
+      "member_id"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "M-501",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "key": "M-502",
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "candidates": 0,
+      "key": null,
+      "rules": {
+        "existence": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "field:email": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    },
+    {
+      "key": "M-504",
+      "source_row": 3,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

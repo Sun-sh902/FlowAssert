@@ -1,0 +1,8 @@
+Unverified: 4 rows of unknown total
+Verified 3 · Mismatch 0 · Unverified 1
+Source population unknown: the batch cannot be Verified.
+  record 3 (no key): Unverified
+    existence unknown: invalid or duplicate source key
+    uniqueness unknown: invalid or duplicate source key
+    field:email unknown: invalid or duplicate source key
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

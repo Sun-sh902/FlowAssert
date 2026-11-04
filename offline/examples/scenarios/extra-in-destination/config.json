@@ -1,0 +1,14 @@
+{
+  "key": [
+    "sku",
+    "sku"
+  ],
+  "fields": [
+    {
+      "source": "price",
+      "destination": "price",
+      "rule": "exact"
+    }
+  ],
+  "scope": "exact"
+}

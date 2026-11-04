@@ -1,0 +1,5 @@
+order_id,email,status
+SO-2001,buyer2001@example.test,shipped
+SO-2002,buyer2002@example.test,processing 
+SO-2003,buyer2003@example.test, shipped
+SO-2004,buyer2004@example.test,cancelled

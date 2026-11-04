@@ -305,6 +305,20 @@ CASES = {
                                    "--source-complete", "--destination-complete", "--redact-values"]),
 }
 
+# The scenarios of offline/examples/scenarios/ (0.6.0): each expectation of scenarios.json is a case the page runs,
+# named scenario-ID-PREMISES, so the command line and the browser are held to the same result for each.
+SCENARIOS = ROOT / "offline" / "examples" / "scenarios"
+SCENARIO_PREMISES = {(True, True): "both-statements", (True, False): "source-statement",
+                     (False, True): "destination-statement", (False, False): "no-statements"}
+for _scenario in json.loads((SCENARIOS / "scenarios.json").read_text(encoding="utf-8"))["scenarios"]:
+    _folder = SCENARIOS / _scenario["id"]
+    for _expect in _scenario["expect"]:
+        _premises = _expect["premises"]
+        _suffix = SCENARIO_PREMISES[(_premises["source_complete"], _premises["destination_complete"])]
+        CASES[f"scenario-{_scenario['id']}-{_suffix}"] = (
+            {"source.csv": (_folder / "source.csv").read_bytes(), "destination.csv": (_folder / "destination.csv").read_bytes()},
+            page(_scenario["config"], **_premises))
+
 
 def _files(name, spec):
     files, run = spec

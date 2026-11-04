@@ -1,0 +1,19 @@
+Mismatch: 5 rows of unknown total
+Verified 0 · Mismatch 1 · Unverified 4
+Source population unknown: the batch cannot be Verified.
+Destination coverage not established: absence and uniqueness stay unknown.
+  record 1 C-1001: Unverified
+    uniqueness unknown: insufficient evidence
+  record 2 C-1002: Mismatch
+    uniqueness unknown: insufficient evidence
+    field:phone fail: exact string comparison ('+1 555 0100 102' vs '+1 555 0100 199')
+  record 3 C-1003: Unverified
+    existence unknown: destination not stated complete; absence not established
+    uniqueness unknown: insufficient evidence
+    field:phone unknown: insufficient evidence
+    field:email unknown: insufficient evidence
+  record 4 C-1004: Unverified
+    uniqueness unknown: insufficient evidence
+  record 5 C-1005: Unverified
+    uniqueness unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

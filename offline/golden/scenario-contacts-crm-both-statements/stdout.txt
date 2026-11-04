@@ -1,0 +1,10 @@
+Mismatch: 5 rows of 5
+Verified 3 · Mismatch 2 · Unverified 0
+  record 2 C-1002: Mismatch
+    field:phone fail: exact string comparison ('+1 555 0100 102' vs '+1 555 0100 199')
+  record 3 C-1003: Mismatch
+    existence fail: key not found in stated complete destination
+    uniqueness unknown: insufficient evidence
+    field:phone unknown: insufficient evidence
+    field:email unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

@@ -1,0 +1,14 @@
+Unverified: 4 rows of unknown total
+Verified 0 · Mismatch 0 · Unverified 4
+Source population unknown: the batch cannot be Verified.
+Destination coverage not established: absence and uniqueness stay unknown.
+Destination-only: 1 records not in the source, listed without a conclusion.
+  record 1 SKU-301: Unverified
+    uniqueness unknown: insufficient evidence
+  record 2 SKU-302: Unverified
+    uniqueness unknown: insufficient evidence
+  record 3 SKU-303: Unverified
+    uniqueness unknown: insufficient evidence
+  record 4 SKU-304: Unverified
+    uniqueness unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

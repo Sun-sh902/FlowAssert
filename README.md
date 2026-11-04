@@ -229,7 +229,7 @@ Differences from the command line:
 | Memory | Each file is held in memory while it is read | The source is kept for the used columns; the destination is streamed |
 
 The browser check is built from the same specification and is tested against the command line: every conformance case,
-88 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
+97 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
 a difference would be a bug; please report one.
 
 ### Saved reports and comparing two results

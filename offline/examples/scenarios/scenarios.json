@@ -1,0 +1,171 @@
+{
+  "about": "Synthetic scenarios for a first check. Each has a source and a destination CSV in its folder, the configuration the CSV check page uses (config.json, as the page writes it), and the result to expect with each set of premises. offline/bench/golden.py runs each expectation as a golden case named scenario-ID-PREMISES; ui/src/test/offline/scenarios.test.ts checks that each result is the one written here.",
+  "scenarios": [
+    {
+      "id": "contacts-crm",
+      "title": "Contacts synced to a CRM",
+      "description": "A contact list synced to a CRM: one phone number changed, and one contact is missing.",
+      "config": {
+        "key": [
+          "contact_id",
+          "external_id"
+        ],
+        "fields": [
+          {
+            "source": "phone",
+            "destination": "phone_number",
+            "rule": "exact"
+          },
+          {
+            "source": "email",
+            "destination": "email",
+            "rule": "exact"
+          }
+        ],
+        "scope": "source"
+      },
+      "expect": [
+        {
+          "premises": {
+            "source_complete": true,
+            "destination_complete": true
+          },
+          "result": "Mismatch",
+          "why": "C-1002 has a different phone number, and C-1003 is not in an export stated to cover the whole object."
+        },
+        {
+          "premises": {
+            "source_complete": false,
+            "destination_complete": false
+          },
+          "result": "Mismatch",
+          "why": "The different phone number of C-1002 is a Mismatch on its own, because the row exists. C-1003 is not found, but without the destination statement that does not show it is missing, so it is Unverified."
+        }
+      ]
+    },
+    {
+      "id": "orders-rules",
+      "title": "Orders compared with trim and casefold",
+      "description": "An order export compared with the rules casefold for the email and trim for the status: the files differ only in letter case and spaces.",
+      "config": {
+        "key": [
+          "order_id",
+          "order_id"
+        ],
+        "fields": [
+          {
+            "source": "customer_email",
+            "destination": "email",
+            "rule": "casefold"
+          },
+          {
+            "source": "status",
+            "destination": "status",
+            "rule": "trim"
+          }
+        ],
+        "scope": "source"
+      },
+      "expect": [
+        {
+          "premises": {
+            "source_complete": true,
+            "destination_complete": true
+          },
+          "result": "Verified",
+          "why": "Only letter case and spaces differ, and the two rules ignore them."
+        },
+        {
+          "premises": {
+            "source_complete": false,
+            "destination_complete": false
+          },
+          "result": "Unverified",
+          "why": "No rule fails, but without the statements a record found once is not shown to be the only one with its key, and the batch is not known to be whole."
+        }
+      ]
+    },
+    {
+      "id": "extra-in-destination",
+      "title": "An extra record in the destination",
+      "description": "A price list whose destination holds one record that is not in the source, checked with scope exact.",
+      "config": {
+        "key": [
+          "sku",
+          "sku"
+        ],
+        "fields": [
+          {
+            "source": "price",
+            "destination": "price",
+            "rule": "exact"
+          }
+        ],
+        "scope": "exact"
+      },
+      "expect": [
+        {
+          "premises": {
+            "source_complete": true,
+            "destination_complete": true
+          },
+          "result": "Mismatch",
+          "why": "SKU-399 is in the destination and not in a source stated to be the whole batch."
+        },
+        {
+          "premises": {
+            "source_complete": true,
+            "destination_complete": false
+          },
+          "result": "Mismatch",
+          "why": "The extra row exists, so the destination statement is not needed for it. Without that statement the four source records are Unverified."
+        },
+        {
+          "premises": {
+            "source_complete": false,
+            "destination_complete": false
+          },
+          "result": "Unverified",
+          "why": "SKU-399 is listed without a conclusion: it could belong to a source record that is not in the file."
+        }
+      ]
+    },
+    {
+      "id": "empty-key",
+      "title": "A source row with an empty key",
+      "description": "A member list in which one source row has no key.",
+      "config": {
+        "key": [
+          "member_id",
+          "member_id"
+        ],
+        "fields": [
+          {
+            "source": "email",
+            "destination": "email",
+            "rule": "exact"
+          }
+        ],
+        "scope": "source"
+      },
+      "expect": [
+        {
+          "premises": {
+            "source_complete": true,
+            "destination_complete": true
+          },
+          "result": "Unverified",
+          "why": "A row without a key cannot be matched, so the source population is unknown even with the source statement."
+        },
+        {
+          "premises": {
+            "source_complete": false,
+            "destination_complete": false
+          },
+          "result": "Unverified",
+          "why": "The row without a key cannot be matched, and nothing else is established either."
+        }
+      ]
+    }
+  ]
+}

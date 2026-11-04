@@ -1,0 +1,19 @@
+{
+  "key": [
+    "contact_id",
+    "external_id"
+  ],
+  "fields": [
+    {
+      "source": "phone",
+      "destination": "phone_number",
+      "rule": "exact"
+    },
+    {
+      "source": "email",
+      "destination": "email",
+      "rule": "exact"
+    }
+  ],
+  "scope": "source"
+}

@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 4
+  },
+  "destination_coverage_sufficient": true,
+  "destination_only": [
+    {
+      "destination_row": 4,
+      "key": "SKU-399",
+      "reason": "key not in the source, and the source population is known",
+      "rows": 1,
+      "state": "Mismatch"
+    }
+  ],
+  "destination_only_counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 4,
+  "inputs": {
+    "config_file_sha256": "37ef41880373406d1b2d5922960a2686a224192cf47a87c90b69cf701af67c36",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "d0e832bd793e52956d5f9726860bd0bafdfc18f4cf8d3d52d2fba4c26383fef3",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "017298cdf9a501e91cad091057bf1686c8941c00cf6a887eb2a29a3ec95cf00d"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "price",
+        "price"
+      ]
+    ],
+    "key": [
+      "sku",
+      "sku"
+    ],
+    "rules": [
+      "exact"
+    ],
+    "scope": "exact",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 5,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "SKU-301",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "key": "SKU-302",
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "key": "SKU-303",
+      "source_row": 2,
+      "state": "Verified"
+    },
+    {
+      "key": "SKU-304",
+      "source_row": 3,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}
