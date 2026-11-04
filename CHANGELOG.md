@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0 (unreleased)
+## 0.6.0 (2026-11-04)
 
 A first check that a newcomer can finish and understand. This release adds no checking capability. The verdicts, summaries, JSON and HTML reports, exit statuses and comparisons of the command-line checker, the browser check, the packaged JavaScript checker, the GitHub Action and the n8n example are unchanged; every existing golden case and comparison case gives the same bytes as in 0.5.0, and the packaged checker differs from 0.5.0 only in its version string. Everything new is shown next to a result, never inside it. The Service, the frozen contracts, the pinned Evaluator v1, the Action and the LOCAL_RESEARCH and MOCK pages are unchanged. Nothing new makes a request or stores anything.
 
