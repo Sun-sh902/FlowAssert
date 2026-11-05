@@ -4,9 +4,10 @@
  * explanation from this table (components/report/Gloss.tsx). The catalogue in zh-CN.ts translates interface text in
  * place; this table never replaces a text, it only explains it.
  *
- * The table covers every refusal message of offline/flowassert_offline/cli.py and ui/src/offline/csv.ts, every reason
- * of evaluator_v2.py, the claim, the limitations and the lines of the printed summary. A test scans the Python sources
- * (src/test/english-texts.test.ts), so a new message without an explanation fails it.
+ * The table covers every refusal message of offline/flowassert_offline/cli.py, sheets.py (the Google Sheets source of
+ * the command line) and ui/src/offline/csv.ts, every reason of evaluator_v2.py, the claim, the limitations and the lines
+ * of the printed summary. A test scans the Python sources (src/test/english-texts.test.ts), so a new message without
+ * an explanation fails it.
  */
 
 export interface Gloss {
@@ -57,8 +58,152 @@ const OS_ERRORS: Record<string, string> = {
 
 const decodeZh = (file: string, label: string, noBom?: string) => `${file}：不能按 ${label} 解码${noBom ? "（文件开头没有字节顺序标记；FlowAssert 只读取带标记的 UTF-16）" : ""}。FlowAssert 从不猜测编码。`;
 
+/** Which of the command line's two requests to Google a sheet refusal is about. */
+const SHEET_REQUEST: Record<string, string> = {
+  "Google Sheets values": "读取 Google 表格的值时",
+  "Google Drive revision metadata": "读取 Google 云端硬盘的版本信息时",
+};
+const SHEET_WHAT = "(Google Sheets values|Google Drive revision metadata)";
+
+/** What a response that is not the documented JSON was, by the detail the command line names. */
+const NOT_JSON_DETAIL: Record<string, string> = {
+  "a compressed body": "响应正文是压缩过的",
+  "not UTF-8": "响应不是 UTF-8 编码",
+  "a duplicate member": "有成员重复出现",
+  "not JSON": "响应不是 JSON",
+  "not an object": "响应最外层不是 JSON 对象",
+  "version is not a whole number written as a string": "version 不是写成字符串的整数",
+  "modifiedTime is not a string": "modifiedTime 不是字符串",
+  "range is missing": "缺少 range",
+  "majorDimension is not ROWS": "majorDimension 不是 ROWS",
+  "values is not a list of rows": "values 不是由行组成的列表",
+  "a cell is not valid Unicode": "有一个单元格不是有效的 Unicode 文本",
+};
+
+const status = (s?: string) => (s ? `，状态 ${s.trim()}` : "");
+const noConclusion = "这次没有得出任何结论，也没有写报告。";
+
+/**
+ * Refusals of the Google Sheets source (offline/flowassert_offline/sheets.py and the options in cli.py). The read is
+ * refused whenever it failed or is in doubt; nothing in a message is the credential.
+ */
+const SHEET_REFUSALS: readonly Entry[] = [
+  ["sheet-option-needs-sheet", /^(--source-range|--source-timeout|--skip-source-revision) needs --source-sheet$/, (o) => `${o} 只能和 --source-sheet 一起使用。`],
+  ["sheet-and-source", /^--source and --source-sheet cannot be combined$/, () => "--source 和 --source-sheet 不能同时使用：来源要么是一个文件，要么是一个表格范围。"],
+  ["sheet-needs-range", /^--source-sheet needs --source-range$/, () => "使用 --source-sheet 时必须用 --source-range 指定要读取的范围。"],
+  ["sheet-encoding", /^--source-encoding does not apply to a sheet source$/, () => "--source-encoding 不适用于表格来源：从表格读取的是文本，没有文件编码。"],
+  ["sheet-id", /^--source-sheet must be a spreadsheet ID: letters, digits, - and _, at most 200 characters$/, () => "--source-sheet 必须是表格 ID：只含字母、数字、- 和 _，最多 200 个字符。"],
+  [
+    "sheet-range-form",
+    /^--source-range (.+) must name a tab and bounded columns, such as Leads!A1:F or Leads!A1:F500$/s,
+    (r) => `--source-range ${r} 必须写明工作表名和有界的列，例如 Leads!A1:F 或 Leads!A1:F500。不接受没有工作表名的范围、命名范围、单个单元格和整行范围。`,
+  ],
+  ["sheet-range-order", /^--source-range (.+) starts after it ends$/s, (r) => `--source-range ${r} 的起点在终点之后。`],
+  [
+    "sheet-no-credential",
+    /^no credential: set FLOWASSERT_SHEETS_TOKEN to a read-only OAuth access token, or FLOWASSERT_SHEETS_API_KEY to an API key for a sheet shared for viewing$/,
+    () => "没有凭据：请把只读的 OAuth 访问令牌放在环境变量 FLOWASSERT_SHEETS_TOKEN 中，或者把 API 密钥放在 FLOWASSERT_SHEETS_API_KEY 中（只适用于共享为“知道链接的人可查看”的表格）。FlowAssert 只从环境变量读取凭据。",
+  ],
+  ["sheet-two-credentials", /^set only one of FLOWASSERT_SHEETS_TOKEN and FLOWASSERT_SHEETS_API_KEY$/, () => "FLOWASSERT_SHEETS_TOKEN 和 FLOWASSERT_SHEETS_API_KEY 只能设置其中一个。"],
+  [
+    "sheet-bad-credential",
+    /^(FLOWASSERT_SHEETS_TOKEN|FLOWASSERT_SHEETS_API_KEY) does not hold a credential: printable ASCII without spaces, at most 4096 characters$/,
+    (v) => `${v} 中不是凭据：凭据只能由可打印的 ASCII 字符组成，不含空格，最多 4096 个字符。FlowAssert 不会显示它的内容。`,
+  ],
+  [
+    "sheet-test-endpoint",
+    /^FLOWASSERT_SHEETS_TEST_ENDPOINT must be http:\/\/127\.0\.0\.1:PORT or http:\/\/\[::1\]:PORT; it is for tests only$/,
+    () => "FLOWASSERT_SHEETS_TEST_ENDPOINT 只能是 http://127.0.0.1:端口 或 http://[::1]:端口；它只用于测试，平时不要设置。",
+  ],
+  [
+    "sheet-http-400",
+    new RegExp(`^${SHEET_WHAT}: the request was not accepted \\(HTTP 400( [A-Z_]+)?\\); check that the tab exists and the range lies inside it$`),
+    (w, s) => `${SHEET_REQUEST[w!]}，请求没有被接受（HTTP 400${status(s)}）。请检查工作表是否存在，范围是否在工作表之内。${noConclusion}`,
+  ],
+  [
+    "sheet-http-401",
+    new RegExp(`^${SHEET_WHAT}: the credential was not accepted \\(HTTP 401( [A-Z_]+)?\\); it may have expired or been revoked$`),
+    (w, s) => `${SHEET_REQUEST[w!]}，凭据没有被接受（HTTP 401${status(s)}）：它可能已过期或被撤销。${noConclusion}`,
+  ],
+  [
+    "sheet-http-403",
+    new RegExp(`^${SHEET_WHAT}: access was denied \\(HTTP 403( [A-Z_]+)?\\); the credential may lack the read-only scope, its project may not have the API enabled, or the sheet is not shared with it$`),
+    (w, s) => `${SHEET_REQUEST[w!]}，访问被拒绝（HTTP 403${status(s)}）：凭据可能缺少只读权限范围，它所属的项目可能没有启用这个 API，或者表格没有共享给它。${noConclusion}`,
+  ],
+  [
+    "sheet-http-404",
+    new RegExp(`^${SHEET_WHAT}: not found \\(HTTP 404( [A-Z_]+)?\\); check the spreadsheet ID and that the credential can see it$`),
+    (w, s) => `${SHEET_REQUEST[w!]}，找不到（HTTP 404${status(s)}）。请检查表格 ID，以及这个凭据能否看到它。${noConclusion}`,
+  ],
+  [
+    "sheet-http-429",
+    new RegExp(`^${SHEET_WHAT}: rate limited \\(HTTP 429( [A-Z_]+)?\\); FlowAssert does not retry: wait, then run the check again$`),
+    (w, s) => `${SHEET_REQUEST[w!]}，请求太频繁被限制（HTTP 429${status(s)}）。FlowAssert 不会自动重试：请稍等，再运行一次核对。${noConclusion}`,
+  ],
+  [
+    "sheet-http-5xx",
+    new RegExp(`^${SHEET_WHAT}: server error \\(HTTP (\\d{3})( [A-Z_]+)?\\); FlowAssert does not retry: run the check again later$`),
+    (w, c, s) => `${SHEET_REQUEST[w!]}，服务器出错（HTTP ${c}${status(s)}）。FlowAssert 不会自动重试：请稍后再运行一次核对。${noConclusion}`,
+  ],
+  [
+    "sheet-http-other",
+    new RegExp(`^${SHEET_WHAT}: unexpected response \\(HTTP (\\d+)( [A-Z_]+)?\\)$`),
+    (w, c, s) => `${SHEET_REQUEST[w!]}，收到了意外的响应（HTTP ${c}${status(s)}）。${noConclusion}`,
+  ],
+  [
+    "sheet-redirect",
+    new RegExp(`^${SHEET_WHAT}: redirected \\(HTTP (\\d+)\\), and FlowAssert does not follow redirects$`),
+    (w, c) => `${SHEET_REQUEST[w!]}，响应是重定向（HTTP ${c}）。FlowAssert 从不跟随重定向。${noConclusion}`,
+  ],
+  [
+    "sheet-tls",
+    new RegExp(`^${SHEET_WHAT}: the server's TLS certificate could not be verified$`),
+    (w) => `${SHEET_REQUEST[w!]}，无法验证服务器的 TLS 证书，所以没有继续。在 macOS 上使用 python.org 的 Python 时，可能需要先运行 Python 文件夹里的“Install Certificates.command”。${noConclusion}`,
+  ],
+  [
+    "sheet-timeout",
+    new RegExp(`^${SHEET_WHAT}: no complete response within (\\d+) seconds; FlowAssert does not retry$`),
+    (w, n) => `${SHEET_REQUEST[w!]}，${n} 秒内没有收到完整的响应。FlowAssert 不会自动重试。${noConclusion}`,
+  ],
+  ["sheet-connection", new RegExp(`^${SHEET_WHAT}: the connection failed$`), (w) => `${SHEET_REQUEST[w!]}，连接失败（例如无法解析域名、无法连接或 TLS 出错）。${noConclusion}`],
+  [
+    "sheet-max-bytes",
+    new RegExp(`^${SHEET_WHAT}: response exceeds --max-bytes limit of (\\d+)$`),
+    (w, n) => `${SHEET_REQUEST[w!]}，响应超过了 --max-bytes 上限 ${n} 字节，没有继续读取。${noConclusion}`,
+  ],
+  [
+    "sheet-not-json",
+    new RegExp(`^${SHEET_WHAT}: the response is not the JSON the API documents \\((.+)\\)$`, "s"),
+    (w, d) => `${SHEET_REQUEST[w!]}，响应不是 API 文档所描述的 JSON（${NOT_JSON_DETAIL[d!] ?? d}）。${noConclusion}`,
+  ],
+  [
+    "sheet-range-returned",
+    /^Google Sheets returned the range (.+) for (.+), which is not the range asked for$/s,
+    (r, a) => `Google 表格返回的范围是 ${r}，请求的是 ${a}，两者不是同一个范围。${noConclusion}`,
+  ],
+  ["sheet-too-many-rows", /^(.+): the response has more rows than the range holds$/s, (r) => `${r}：响应中的行数超过了这个范围能容纳的行数。${noConclusion}`],
+  ["sheet-row-wider-than-range", /^(.+): row (\d+) has more cells than the range has columns$/s, (r, n) => `${r}：第 ${n} 行的单元格比这个范围的列数多。${noConclusion}`],
+  [
+    "sheet-cell-not-text",
+    /^(.+): row (\d+) has a cell that is not text; FlowAssert reads formatted values only$/s,
+    (r, n) => `${r}：第 ${n} 行有一个单元格不是文本；FlowAssert 只读取格式化后的值（FORMATTED_VALUE）。${noConclusion}`,
+  ],
+  ["sheet-beyond-header", /^(.+): row (\d+) has a value beyond the header$/s, (r, n) => `${r}：第 ${n} 行在表头最后一列之后还有值。没有列名的值无法核对；请给这一列写上列名，或缩小范围。`],
+  [
+    "sheet-revision-uneven",
+    /^the sheet's revision could not be read the same way before and after the values; run the check again$/,
+    () => `读取值之前和之后，表格的版本信息一次有、一次没有，所以无法确定读到的是同一个状态。请再运行一次核对。${noConclusion}`,
+  ],
+  [
+    "sheet-changed",
+    /^the sheet changed while it was read: Drive version (\d+) modified (.+?) before the values, version (\d+) modified (.+?) after; run the check again$/s,
+    (a, ta, b, tb) => `读取期间表格发生了变化：读取值之前，云端硬盘版本是 ${a}（修改时间 ${ta}），之后是 ${b}（修改时间 ${tb}）。这个版本号也会因用户看不到的改动而增加。请再运行一次核对。${noConclusion}`,
+  ],
+];
+
 /** Refusals, as the command line prints them after "refused: ". The most specific come first. */
 const REFUSALS: readonly Entry[] = [
+  ...SHEET_REFUSALS,
   ["same-file", /^source and destination are the same file, so the check would not be independent$/, () => "来源和目标是同一个文件，这样的核对不独立。"],
   [
     "identical-content",
@@ -152,7 +297,22 @@ const SUMMARY: readonly Entry[] = [
   ["summary-state", /^(Verified|Mismatch|Unverified|Pending): (\d+) rows of (unknown total|\d+)$/, (s, n, t) => `批次结果：${STATE[s!]}。来源文件有 ${n} 行，${t === "unknown total" ? "总数未知" : `总数 ${t}`}。`],
   ["summary-counts", /^Verified (\d+) · Mismatch (\d+) · Unverified (\d+)$/, (v, m, u) => `各状态的记录数：已验证 ${v} · 不一致 ${m} · 未验证 ${u}。`],
   ["summary-identical", /^Source and destination files were identical \(--allow-identical-content\)\.$/, () => "来源文件和目标文件内容完全相同（已用 --allow-identical-content 允许）。"],
-  ["summary-source-count", /^Source count stated (\d+), file has (\d+) rows: the batch cannot be Verified\.$/, (s, o) => `声明的来源总数是 ${s}，文件中有 ${o} 行：这一批不能是已验证。`],
+  [
+    "summary-source-count",
+    /^Source count stated (\d+), (file|range) has (\d+) rows: the batch cannot be Verified\.$/,
+    (s, where, o) => `声明的来源总数是 ${s}，${where === "range" ? "表格范围" : "文件"}中有 ${o} 行：这一批不能是已验证。`,
+  ],
+  [
+    "summary-sheet-source",
+    /^Source read by FlowAssert from Google Sheets: spreadsheet (.+), range (.+), at (.+)\.$/s,
+    (id, r, t) => `来源行由 FlowAssert 从 Google 表格读取（只读）：表格 ${id}，范围 ${r}，时间 ${t}。这省去了导出这一步；它不能说明这个范围包含了应有的全部记录，那仍是你的声明（--source-complete）。`,
+  ],
+  ["summary-sheet-revision", /^Drive version (\d+) before and after the values were read\.$/, (v) => `读取值之前和之后，云端硬盘版本都是 ${v}。`],
+  [
+    "summary-sheet-no-revision",
+    /^The read cannot be tied to a revision: (.+)\.$/s,
+    (r) => `这次读取无法对应到某个版本：${r === "not requested (--skip-source-revision)" ? "没有请求版本信息（--skip-source-revision）" : r === "Google Drive returned no version" ? "Google 云端硬盘没有返回版本号" : r}。`,
+  ],
   ["summary-destination-count", /^Destination count stated (\d+), file has (\d+) rows: absence and uniqueness stay unknown\.$/, (s, o) => `声明的目标总数是 ${s}，文件中有 ${o} 行：缺失和唯一性保持未知。`],
   ["summary-population", /^Source population unknown: the batch cannot be Verified\.$/, () => "来源总体未知：这一批不能是已验证。"],
   ["summary-coverage", /^Destination coverage not established: absence and uniqueness stay unknown\.$/, () => "目标覆盖未确立：缺失和唯一性保持未知。"],

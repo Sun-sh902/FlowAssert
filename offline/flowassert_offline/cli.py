@@ -1,4 +1,5 @@
-"""Compare a source CSV with a destination CSV export. Local files only; no network.
+"""Compare a source CSV with a destination CSV export. Local files only, and no network, unless --source-sheet
+reads the source from a Google Sheets range, read-only (docs/connectors/google-sheets.md).
 
     flowassert-verify --source leads.csv --destination contacts.csv \\
         --key external_id --field phone --field email:hs_email \\
@@ -16,7 +17,8 @@ import json
 import os
 import sys
 
-from . import __version__
+from . import __version__, sheets
+from .errors import Refused
 from .evaluator_v2 import DETAILS, SCOPES, STATES, evaluate, parse_rule
 
 EXIT = {"Verified": 0, "Mismatch": 1, "Unverified": 3}
@@ -24,6 +26,8 @@ MAX_BYTES = 209_715_200
 MAX_ROWS = 1_000_000
 MAX_DETAILS = 50
 SCHEMA_VERSION = 1
+# A report whose source is a Google Sheets range: three members of version 1 mean something else for it.
+SHEET_SCHEMA_VERSION = 2
 CLAIM = ("At this evaluation, under the stated premises, the supplied destination rows satisfy the rules "
          "for the supplied source rows.")
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
@@ -35,10 +39,6 @@ CONFIG_MEMBERS = ("key", "fields", "scope")
 # Premises are stated at each run, so a configuration file cannot carry them.
 COMMAND_LINE_ONLY = {"source_complete", "destination_complete", "source_count", "destination_count",
                      "allow_identical_content"}
-
-
-class Refused(Exception):
-    pass
 
 
 class _HashReader(io.BufferedIOBase):
@@ -281,6 +281,26 @@ def _selection(args, max_bytes):
     return key, [(s, d, "exact") for s, d in pairs], scope, sha
 
 
+def _sheet_source(args, max_bytes):
+    """The sheet source the options name, checked and with the credential read, or None for a file."""
+    if args.source_sheet is None:
+        for option, given in (("--source-range", args.source_range is not None),
+                              ("--source-timeout", args.source_timeout is not None),
+                              ("--skip-source-revision", args.skip_source_revision)):
+            if given:
+                raise Refused(f"{option} needs --source-sheet")
+        return None
+    if args.source is not None:
+        raise Refused("--source and --source-sheet cannot be combined")
+    if args.source_range is None:
+        raise Refused("--source-sheet needs --source-range")
+    if args.source_encoding is not None:
+        raise Refused("--source-encoding does not apply to a sheet source")
+    timeout = sheets.TIMEOUT if args.source_timeout is None else _int_arg("--source-timeout", args.source_timeout, 1)
+    return sheets.SheetSource(args.source_sheet, args.source_range, max_bytes=max_bytes, timeout=timeout,
+                              revision=not args.skip_source_revision)
+
+
 def run(args):
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
@@ -290,14 +310,22 @@ def run(args):
     details = _choice("--details", args.details, DETAILS, "problems")
     source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
     destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
+    sheet = _sheet_source(args, max_bytes)
     key, fields, scope, selection_sha = _selection(args, max_bytes)
     if len({s for s, _, _ in fields}) != len(fields):
         raise Refused("a source field is repeated")
-    if os.path.realpath(args.source) == os.path.realpath(args.destination):
-        raise Refused("source and destination are the same file, so the check would not be independent")
-    _check_size(args.source, max_bytes)
+    if sheet is None:
+        if os.path.realpath(args.source) == os.path.realpath(args.destination):
+            raise Refused("source and destination are the same file, so the check would not be independent")
+        _check_size(args.source, max_bytes)
     _check_size(args.destination, max_bytes)
-    source = CsvFile(args.source, [key[0]] + [s for s, _, _ in fields], encoding=source_encoding, max_rows=max_rows)
+    source_columns = [key[0]] + [s for s, _, _ in fields]
+    if sheet is None:
+        source = CsvFile(args.source, source_columns, encoding=source_encoding, max_rows=max_rows)
+    else:
+        sheet.select(source_columns, max_rows)
+        sheet.read()
+        source = sheet
     destination = CsvFile(args.destination, [key[1]] + [d for _, d, _ in fields],
                           encoding=destination_encoding, max_rows=max_rows)
     obligation = {"key": key, "fields": fields, "scope": scope or "source"}
@@ -309,7 +337,7 @@ def run(args):
             "source and destination have identical content, so the check would not be independent; "
             "pass --allow-identical-content if they really come from different systems"
         )
-    report["schema_version"] = SCHEMA_VERSION
+    report["schema_version"] = SCHEMA_VERSION if sheet is None else SHEET_SCHEMA_VERSION
     report["details"] = details
     report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     inputs = {"source_sha256": source.sha256, "destination_sha256": destination.sha256,
@@ -319,7 +347,11 @@ def run(args):
     if identical:
         inputs["identical_content_allowed"] = True
     inputs.update(selection_sha)
-    if args.source_encoding is not None or args.destination_encoding is not None:
+    if sheet is not None:
+        inputs["source_sheet"] = sheet.member
+        if args.destination_encoding is not None:
+            inputs["destination_encoding"] = destination_encoding
+    elif args.source_encoding is not None or args.destination_encoding is not None:
         inputs["source_encoding"] = source_encoding
         inputs["destination_encoding"] = destination_encoding
     report["inputs"] = inputs
@@ -344,11 +376,26 @@ def run(args):
     return report
 
 
+def sheet_lines(sheet):
+    """What the summary says of a source read from Google Sheets: where it was read, and whether it is tied to a
+    revision. Never that the range is the whole cohort: that is the premise source_complete."""
+    yield (f"Source read by FlowAssert from Google Sheets: spreadsheet {sheet['spreadsheet_id']}, "
+           f"range {sheet['range_returned']}, at {sheet['read_at']}.")
+    revision = sheet["revision"]
+    if revision["available"]:
+        yield f"Drive version {revision['before']['version']} before and after the values were read."
+    else:
+        yield f"The read cannot be tied to a revision: {revision['reason']}."
+
+
 def summary(report, max_details=MAX_DETAILS):
     c = report["counts"]
     total = report["expected_total"]
     yield f"{report['cohort_state']}: {report['source_rows_observed']} rows of {'unknown total' if total is None else total}"
     yield f"Verified {c['Verified']} · Mismatch {c['Mismatch']} · Unverified {c['Unverified']}"
+    sheet = report.get("inputs", {}).get("source_sheet")
+    if sheet is not None:
+        yield from sheet_lines(sheet)
     if report.get("inputs", {}).get("identical_content"):
         yield "Source and destination files were identical (--allow-identical-content)."
     premises = report.get("premises", {})
@@ -356,7 +403,8 @@ def summary(report, max_details=MAX_DETAILS):
                                      ("destination_count", "Destination", "absence and uniqueness stay unknown")):
         count = premises.get(name, {})
         if count.get("matched") is False:
-            yield f"{label} count stated {count['stated']}, file has {count['observed']} rows: {consequence}."
+            held = "range has" if sheet is not None and name == "source_count" else "file has"
+            yield f"{label} count stated {count['stated']}, {held} {count['observed']} rows: {consequence}."
     if not report["source_population_known"]:
         yield "Source population unknown: the batch cannot be Verified."
     if not report["destination_coverage_sufficient"]:
@@ -441,6 +489,27 @@ def _state_class(state):
     return state if state in STATES else ""
 
 
+def _write_sheet(sheet, f):
+    f.write("<h2>Source read from Google Sheets</h2>\n"
+            "<p>FlowAssert read the source rows itself, read-only, so no export step could cut them short or edit "
+            "them. This does not show that the range holds every record that should exist: that is the stated "
+            "premise source_complete.</p>\n")
+    f.write("".join(f"<p>{_h(line)}</p>\n" for line in sheet_lines(sheet)))
+    f.write("<table>\n")
+    for name, value in sheet.items():
+        if name == "revision":
+            continue
+        f.write(f"<tr><th>{_h(name)}</th><td>{_h(value)}</td></tr>\n")
+    revision = sheet["revision"]
+    if revision["available"]:
+        for moment in ("before", "after"):
+            for name in ("version", "modified_time"):
+                f.write(f"<tr><th>revision {moment} {_h(name)}</th><td>{_h(revision[moment][name])}</td></tr>\n")
+    else:
+        f.write(f"<tr><th>revision</th><td>{_h(revision['reason'])}</td></tr>\n")
+    f.write("</table>\n")
+
+
 def write_html(report, f):
     """Write one self-contained HTML page: no scripts, and no external styles, fonts or images."""
     state = report["cohort_state"]
@@ -516,8 +585,13 @@ def write_html(report, f):
                         f"{_h(record['state'])}</td><td>{_h(record['reason'])}</td></tr>\n")
             f.write("</table>\n")
 
+    sheet = report.get("inputs", {}).get("source_sheet")
+    if sheet is not None:
+        _write_sheet(sheet, f)
     f.write("<h2>Inputs</h2>\n<table>\n")
     for name, value in report.get("inputs", {}).items():
+        if name == "source_sheet":
+            continue
         f.write(f"<tr><th>{_h(name)}</th><td>{_h(value)}</td></tr>\n")
     for name, value in report.get("obligation", {}).items():
         f.write(f"<tr><th>obligation {_h(name)}</th><td><code>{_h(json.dumps(value))}</code></td></tr>\n")
@@ -553,8 +627,16 @@ def _write_reports(report, targets):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version", version=__version__)
-    parser.add_argument("--source", required=True)
-    parser.add_argument("--destination", required=True)
+    parser.add_argument("--source")
+    parser.add_argument("--destination")
+    parser.add_argument("--source-sheet", metavar="ID",
+                        help="read the source from this Google Sheets spreadsheet, read-only, in place of --source")
+    parser.add_argument("--source-range", metavar="RANGE",
+                        help="with --source-sheet: a tab and bounded columns, such as Leads!A1:F or Leads!A1:F500")
+    parser.add_argument("--source-timeout", metavar="SECONDS",
+                        help=f"with --source-sheet: the longest each request may take (default: {sheets.TIMEOUT})")
+    parser.add_argument("--skip-source-revision", action="store_true",
+                        help="with --source-sheet: do not read the Drive revision; the report says so")
     parser.add_argument("--key", help="source column, or source:destination")
     parser.add_argument("--field", action="append", default=[], help="source column, or source:destination; repeatable")
     parser.add_argument("--mapping", metavar="FILE", help="UTF-8 JSON file with key and fields column pairs")
@@ -582,6 +664,11 @@ def main(argv=None):
     parser.add_argument("--html", metavar="PATH", help="write a self-contained HTML report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
     args = parser.parse_args(argv)
+    # As argparse words it for a required option: --source-sheet stands in for --source.
+    missing = [option for option, absent in (("--source", args.source is None and args.source_sheet is None),
+                                             ("--destination", args.destination is None)) if absent]
+    if missing:
+        parser.error(f"the following arguments are required: {', '.join(missing)}")
     try:
         max_details = _int_arg("--max-details", args.max_details, 0)
         report = run(args)

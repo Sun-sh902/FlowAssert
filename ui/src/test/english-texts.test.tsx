@@ -19,6 +19,7 @@ vi.mock("../i18n/locale", () => ({ useLocale: () => "zh-CN", pageLocale: () => "
 
 const read = (path: string) => readFileSync(join(REPO_ROOT, path), "utf-8");
 const CLI = read("offline/flowassert_offline/cli.py");
+const SHEETS = read("offline/flowassert_offline/sheets.py");
 const EVALUATOR = read("offline/flowassert_offline/evaluator_v2.py");
 const CSV = read("ui/src/offline/csv.ts");
 
@@ -73,6 +74,24 @@ const SAMPLES: Record<string, string[]> = {
   "{reader.line_num}": ["7"],
   "{self.max_rows}": ["1000000"],
   "{hint}": ["", " (no byte order mark)"],
+  // The Google Sheets source (sheets.py, and its options in cli.py).
+  "{option}": ["--source-range", "--source-timeout", "--skip-source-revision"],
+  "{text!r}": ["'A1:F'", "'Leads!F1:A'"],
+  "{what}": ["Google Sheets values", "Google Drive revision metadata"],
+  "{s}": ["", " PERMISSION_DENIED"],
+  "{code}": ["500", "503", "418"],
+  "{response.status}": ["302", "307"],
+  "{self.timeout}": ["60"],
+  "{self.max_bytes}": ["209715200"],
+  "{detail}": ["a compressed body", "not UTF-8", "a duplicate member", "NaN is not JSON", "not JSON", "not an object", "version is not a whole number written as a string", "modifiedTime is not a string", "range is missing", "majorDimension is not ROWS", "values is not a list of rows", "a cell is not valid Unicode"],
+  "{returned!r}": ["'Leads!A1:G1000'"],
+  "{self.range.text!r}": ["'Leads!A1:F'"],
+  "{where}": ["Leads!A1:F"],
+  "{number}": ["7"],
+  "{before['version']}": ["57"],
+  "{before['modified_time']}": ["2026-11-05T08:00:00.000Z", "None"],
+  "{after['version']}": ["58"],
+  "{after['modified_time']}": ["2026-11-05T08:00:01.000Z"],
 };
 
 /** Every message a template can give, or an error naming an expression with no samples. */
@@ -107,7 +126,8 @@ function expand(template: string): string[] {
 }
 
 describe("every message in the sources has an explanation", () => {
-  const refusals = literalsAfter(CLI, /raise Refused\(/g);
+  // sheets.py also builds refusals that a caller raises: return Refused(…).
+  const refusals = [...literalsAfter(CLI, /raise Refused\(/g), ...literalsAfter(SHEETS, /(?:raise|return) Refused\(/g)];
 
   test("the scan finds the command line's refusals, the reasons and the CSV errors", () => {
     expect(refusals.length).toBeGreaterThan(35);
