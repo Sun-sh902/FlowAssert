@@ -83,7 +83,8 @@ describe("reading a report", () => {
 
 /** An altered golden report, the check that refuses it, and words of its message. */
 const ALTERED: [string, string, (r: Json) => void, ReportCheck, string][] = [
-  ["schema_version 2", "example", (r) => (r.schema_version = 2), "schema-version", "schema_version must be 1, not 2"],
+  ["schema_version 3", "example", (r) => (r.schema_version = 3), "schema-version", "schema_version must be 1 or 2, not 3"],
+  ["schema_version 2 without a sheet source", "example", (r) => (r.schema_version = 2), "member", "inputs.source_sheet is missing"],
   ["no schema_version (FlowAssert 0.1.x)", "example", (r) => delete r.schema_version, "member", "schema_version is missing"],
   ["a missing member", "example", (r) => delete r.limitations, "member", "limitations is missing"],
   ["counts of the wrong type", "example", (r) => (r.counts.Mismatch = "3"), "member", "counts.Mismatch must be a whole number"],

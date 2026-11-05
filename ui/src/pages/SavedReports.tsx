@@ -536,6 +536,7 @@ export function SavedReportPage({ id }: { id: string }) {
 
   const { report, redacted } = value.read;
   const view = viewOf(report);
+  const sheet = report.inputs.source_sheet;
   const total = view.expectedTotal === null ? "unknown total" : String(view.expectedTotal);
   return (
     <div className="grid gap-8">
@@ -603,10 +604,41 @@ export function SavedReportPage({ id }: { id: string }) {
               <dd className="min-w-0">
                 <Value>{report.obligation.fields.map((f, i) => `${pair(f)} (${report.obligation.rules?.[i] ?? "exact"})`).join(", ")}</Value>
               </dd>
-              <dt className="text-ink-3">Source file</dt>
-              <dd className="min-w-0">
-                <Value className="text-ink-2">{report.inputs.source_sha256}</Value>
-              </dd>
+              {sheet ? (
+                <>
+                  <dt className="text-ink-3">Source read</dt>
+                  <dd className="min-w-0" data-testid="saved-source-sheet">
+                    <span>Read by FlowAssert from Google Sheets, read-only:</span> <span>range</span> <Value>{sheet.range_returned}</Value> <span>of spreadsheet</span> <Value>{sheet.spreadsheet_id}</Value>
+                  </dd>
+                  <dt className="text-ink-3">Read at</dt>
+                  <dd className="min-w-0">
+                    <Value className="text-ink-2">{sheet.read_at}</Value>
+                  </dd>
+                  <dt className="text-ink-3">Revision</dt>
+                  <dd className="min-w-0" data-testid="saved-source-revision">
+                    {sheet.revision.available ? (
+                      <>
+                        <span>Drive version, the same before and after the values were read:</span> <Value>{sheet.revision.before.version}</Value>
+                      </>
+                    ) : (
+                      <>
+                        <span>The read cannot be tied to a revision:</span> <Value>{sheet.revision.reason}</Value>
+                      </>
+                    )}
+                  </dd>
+                  <dt className="text-ink-3">Source rows digest</dt>
+                  <dd className="min-w-0">
+                    <Value className="text-ink-2">{report.inputs.source_sha256}</Value> <span>(canonical form)</span>
+                  </dd>
+                </>
+              ) : (
+                <>
+                  <dt className="text-ink-3">Source file</dt>
+                  <dd className="min-w-0">
+                    <Value className="text-ink-2">{report.inputs.source_sha256}</Value>
+                  </dd>
+                </>
+              )}
               <dt className="text-ink-3">Destination file</dt>
               <dd className="min-w-0">
                 <Value className="text-ink-2">{report.inputs.destination_sha256}</Value>

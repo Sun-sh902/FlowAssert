@@ -17,7 +17,7 @@ export type RecordClass = (typeof CLASSES)[number];
 export const DESTINATION_ONLY_CLASSES = ["still-problem", "only-earlier", "only-later"] as const;
 export type DestinationOnlyClass = (typeof DESTINATION_ONLY_CLASSES)[number];
 
-export type NotComparableCode = "different-key" | "different-fields" | "different-rules" | "different-scope" | "different-comparison" | "redacted" | "same-report";
+export type NotComparableCode = "different-key" | "different-fields" | "different-rules" | "different-scope" | "different-comparison" | "different-source" | "redacted" | "same-report";
 
 export interface NotComparable {
   code: NotComparableCode;
@@ -106,6 +106,8 @@ export interface Comparison {
   /** Every premise whose stated value or origin differs, in name order. */
   premiseDifferences: PremiseDifference[];
   digests: { source: Change<string>; destination: Change<string> };
+  /** Both sources are the same Google Sheets range (a comparison is refused when the sources differ). */
+  sheetSource: boolean;
   /** Neither file's digest changed and the premises are the same. */
   sameFilesSamePremises: boolean;
   records: Record<RecordClass, RecordChange[]>;
@@ -131,6 +133,17 @@ const samePremise = (a: StatedPremise, b: StatedPremise) => sameStated(a.stated,
 
 const isRedacted = (r: SavedReport) => r.records.some((x) => x.key === REDACTED) || (r.destination_only ?? []).some((x) => x.key === REDACTED);
 
+/**
+ * Where a report's source rows came from, as one obligation reads them: a file, or one range of one spreadsheet read
+ * with fixed render options. The range is compared as it was asked for: the returned range can name a last row that
+ * changes as rows are added, which is a change in the data, not in the obligation.
+ */
+export function sourceOf(r: SavedReport): string {
+  const sheet = r.inputs.source_sheet;
+  if (!sheet) return "a CSV file";
+  return `Google Sheets range ${sheet.range_requested} of spreadsheet ${sheet.spreadsheet_id} (${sheet.value_render_option}, ${sheet.date_time_render_option})`;
+}
+
 function refusals(earlier: SavedReport, later: SavedReport): NotComparable[] {
   const out: NotComparable[] = [];
   const a = earlier.obligation;
@@ -141,6 +154,7 @@ function refusals(earlier: SavedReport, later: SavedReport): NotComparable[] {
     out.push({ code: "different-rules", message: `the rules differ: ${shown(rulesOf(earlier))} in the earlier report, ${shown(rulesOf(later))} in the later one` });
   if (scopeOf(earlier) !== scopeOf(later)) out.push({ code: "different-scope", message: `the scope differs: ${scopeOf(earlier)} in the earlier report, ${scopeOf(later)} in the later one` });
   if (a.comparison !== b.comparison) out.push({ code: "different-comparison", message: `the comparison differs: ${a.comparison} in the earlier report, ${b.comparison} in the later one` });
+  if (sourceOf(earlier) !== sourceOf(later)) out.push({ code: "different-source", message: `the source differs: ${sourceOf(earlier)} in the earlier report, ${sourceOf(later)} in the later one` });
   for (const [name, r] of [["earlier", earlier], ["later", later]] as const) {
     if (isRedacted(r)) out.push({ code: "redacted", message: `the ${name} report was written with --redact-values: its keys are ${REDACTED}, so no record can be matched` });
   }
@@ -269,6 +283,7 @@ export function compareReports(earlier: SavedReport, later: SavedReport): Compar
     details: { earlier: earlier.details, later: later.details },
     premiseDifferences,
     digests,
+    sheetSource: earlier.inputs.source_sheet !== undefined,
     sameFilesSamePremises: !digests.source.changed && !digests.destination.changed && premiseDifferences.length === 0,
     records,
     ruleLevelUnavailable: unavailable,

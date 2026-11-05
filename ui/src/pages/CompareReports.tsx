@@ -51,6 +51,7 @@ const REFUSAL_TEXT: Record<NotComparableCode, string> = {
   "different-rules": "The rules differ.",
   "different-scope": "The scope differs.",
   "different-comparison": "The comparison differs.",
+  "different-source": "The source differs: a CSV file in one report and a Google Sheets range in the other, or two different ranges.",
   redacted: "A report is redacted, so its keys cannot be matched.",
   "same-report": "The two are the same report.",
 };
@@ -195,7 +196,7 @@ function Before({ c }: { c: Comparison }) {
           </p>
         )}
         <dl className="surface grid gap-x-3 gap-y-1 rounded-md px-4 py-3 text-xs sm:grid-cols-[230px_minmax(0,1fr)]">
-          <Fact label="Source file">
+          <Fact label={c.sheetSource ? "Source rows (Google Sheets range)" : "Source file"}>
             <span data-digest="source">{changedText(c.digests.source.changed)}</span>
             {c.digests.source.changed && (
               <span className="block">

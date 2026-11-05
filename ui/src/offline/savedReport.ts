@@ -9,6 +9,10 @@
  * does not list are ignored, as the format asks. The original bytes are kept unchanged beside the parsed value, so a
  * download gives back exactly the file that was read; what the page shows comes from the parsed value.
  *
+ * Version 2 is a report whose source the command line read from a Google Sheets range (docs/connectors/google-sheets.md):
+ * the same members, with inputs.source_sheet saying where the rows were read. That member is shown as the report
+ * records it; nothing here contacts Google, and a sheet source is no more Verified than the same rows in a file.
+ *
  * A report read here is not authenticated: its files, statements and numbers are what the file says.
  */
 import { MAX_BYTES } from "./csv";
@@ -28,6 +32,12 @@ const NOT_ASSESSED = ["workflow_execution", "business_truth", "existed_by_deadli
 const SHA256 = /^[0-9a-f]{64}$/;
 /** datetime.isoformat() in UTC with "Z": microseconds only when they are not 0. */
 const EVALUATED_AT = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d{6})?Z$/;
+/** schema_version 2: the source is a Google Sheets range (offline/flowassert_offline/sheets.py). */
+export const SHEET_SCHEMA_VERSION = 2;
+const SPREADSHEET_ID = /^[A-Za-z0-9_-]{1,200}$/;
+const DRIVE_VERSION = /^[0-9]{1,20}$/;
+/** The reasons a sheet read cannot be tied to a revision. */
+export const NO_REVISION = ["not requested (--skip-source-revision)", "Google Drive returned no version"] as const;
 
 /** Which check refused the file. */
 export type ReportCheck =
@@ -55,6 +65,26 @@ export class NotAReport extends Error {
   }
 }
 
+export interface DriveRevision {
+  version: string;
+  modified_time: string | null;
+}
+
+/** Where the command line read the source rows of a schema_version 2 report. */
+export interface SourceSheet {
+  read_by: "FlowAssert";
+  service: "Google Sheets API v4";
+  spreadsheet_id: string;
+  range_requested: string;
+  range_returned: string;
+  value_render_option: "FORMATTED_VALUE";
+  date_time_render_option: "FORMATTED_STRING";
+  major_dimension: "ROWS";
+  read_at: string;
+  revision: { available: true; before: DriveRevision; after: DriveRevision } | { available: false; reason: (typeof NO_REVISION)[number] };
+  canonical_form: "flowassert-sheet-csv-1";
+}
+
 export interface ReportInputs {
   source_sha256: string;
   destination_sha256: string;
@@ -66,6 +96,8 @@ export interface ReportInputs {
   config_file_sha256?: string;
   source_encoding?: string;
   destination_encoding?: string;
+  /** schema_version 2 only. */
+  source_sheet?: SourceSheet;
 }
 
 export interface ReportObligation {
@@ -83,7 +115,7 @@ export interface StatedPremise extends Premise {
 
 /** A schema_version 1 report, with the members docs/report-format.md lists and nothing else. */
 export interface SavedReport {
-  schema_version: 1;
+  schema_version: 1 | 2;
   cohort_state: (typeof RECORD_STATES)[number];
   claim: string | null;
   counts: Counts;
@@ -232,7 +264,54 @@ function premises(v: PyValue | undefined): Record<string, StatedPremise> {
   return out;
 }
 
-function inputs(v: PyValue | undefined): ReportInputs {
+function exactly<T extends string>(o: Obj, name: string, value: T): T {
+  const path = `inputs.source_sheet.${name}`;
+  if (member(o, name, "inputs.source_sheet.") !== value) fail("inputs", `${path} must be ${pyRepr(value)}, not ${describe(o[name])}`);
+  return value;
+}
+
+function revisionAt(v: PyValue | undefined, path: string): DriveRevision {
+  const o = obj(v, path);
+  const version = str(member(o, "version", `${path}.`), `${path}.version`);
+  if (!DRIVE_VERSION.test(version)) fail("inputs", `${path}.version must be a whole number written as a string, not ${pyRepr(version)}`);
+  return { version, modified_time: nullableStr(member(o, "modified_time", `${path}.`), `${path}.modified_time`) };
+}
+
+function sourceSheet(v: PyValue | undefined): SourceSheet {
+  const o = obj(v, "inputs.source_sheet");
+  const text = (name: string) => str(member(o, name, "inputs.source_sheet."), `inputs.source_sheet.${name}`);
+  const id = text("spreadsheet_id");
+  if (!SPREADSHEET_ID.test(id)) fail("inputs", `inputs.source_sheet.spreadsheet_id must be letters, digits, - and _, not ${pyRepr(id)}`);
+  const readAt = text("read_at");
+  if (!EVALUATED_AT.test(readAt) || Number.isNaN(Date.parse(readAt))) fail("inputs", `inputs.source_sheet.read_at must be a UTC time such as 2026-11-02T08:15:30.123456Z, not ${pyRepr(readAt)}`);
+  const r = obj(member(o, "revision", "inputs.source_sheet."), "inputs.source_sheet.revision");
+  const available = bool(member(r, "available", "inputs.source_sheet.revision."), "inputs.source_sheet.revision.available");
+  let revision: SourceSheet["revision"];
+  if (available) {
+    const before = revisionAt(member(r, "before", "inputs.source_sheet.revision."), "inputs.source_sheet.revision.before");
+    const after = revisionAt(member(r, "after", "inputs.source_sheet.revision."), "inputs.source_sheet.revision.after");
+    // The command line refuses a read during which the revision changed, so a report never records one.
+    if (before.version !== after.version || before.modified_time !== after.modified_time) fail("inputs", "inputs.source_sheet.revision differs before and after the values, which the command line refuses");
+    revision = { available: true, before, after };
+  } else {
+    revision = { available: false, reason: oneOf(member(r, "reason", "inputs.source_sheet.revision."), "inputs.source_sheet.revision.reason", NO_REVISION, "inputs") };
+  }
+  return {
+    read_by: exactly(o, "read_by", "FlowAssert"),
+    service: exactly(o, "service", "Google Sheets API v4"),
+    spreadsheet_id: id,
+    range_requested: text("range_requested"),
+    range_returned: text("range_returned"),
+    value_render_option: exactly(o, "value_render_option", "FORMATTED_VALUE"),
+    date_time_render_option: exactly(o, "date_time_render_option", "FORMATTED_STRING"),
+    major_dimension: exactly(o, "major_dimension", "ROWS"),
+    read_at: readAt,
+    revision,
+    canonical_form: exactly(o, "canonical_form", "flowassert-sheet-csv-1"),
+  };
+}
+
+function inputs(v: PyValue | undefined, version: 1 | 2): ReportInputs {
   const o = obj(v, "inputs");
   const out: ReportInputs = {
     source_sha256: sha(member(o, "source_sha256", "inputs."), "inputs.source_sha256"),
@@ -250,7 +329,13 @@ function inputs(v: PyValue | undefined): ReportInputs {
   for (const name of ["mapping_file_sha256", "config_file_sha256"] as const) if (Object.hasOwn(o, name)) out[name] = sha(o[name], `inputs.${name}`);
   const encodings = ["source_encoding", "destination_encoding"] as const;
   const given = encodings.filter((n) => Object.hasOwn(o, n));
-  if (given.length === 1) fail("inputs", `inputs.${given[0]} is present without inputs.${encodings.find((n) => n !== given[0])}: both are recorded`);
+  if (version === SHEET_SCHEMA_VERSION) {
+    // A sheet has no encoding: only the destination's is recorded, when it was chosen.
+    if (Object.hasOwn(o, "source_encoding")) fail("inputs", "inputs.source_encoding is present, but the source is a Google Sheets range, which has no encoding");
+    out.source_sheet = sourceSheet(member(o, "source_sheet", "inputs."));
+  } else if (given.length === 1) {
+    fail("inputs", `inputs.${given[0]} is present without inputs.${encodings.find((n) => n !== given[0])}: both are recorded`);
+  }
   for (const name of given) out[name] = oneOf(o[name], `inputs.${name}`, ENCODING_NAMES, "inputs");
   return out;
 }
@@ -324,13 +409,13 @@ function destinationOnly(v: PyValue | undefined, populationKnown: boolean): Dest
 export function reportOf(data: PyValue): SavedReport {
   const o = obj(data, "the report");
   const version = member(o, "schema_version", "");
-  if (version !== SCHEMA_VERSION) fail("schema-version", `schema_version must be ${SCHEMA_VERSION}, not ${describe(version)}`);
+  if (version !== SCHEMA_VERSION && version !== SHEET_SCHEMA_VERSION) fail("schema-version", `schema_version must be ${SCHEMA_VERSION} or ${SHEET_SCHEMA_VERSION}, not ${describe(version)}`);
 
   const ob = obligation(member(o, "obligation", ""));
   const details = oneOf(member(o, "details", ""), "details", ["problems", "all"] as const);
   const ruleNames = ["existence", "uniqueness", ...ob.fields.map(([s]) => `field:${s}`)];
   const pr = premises(member(o, "premises", ""));
-  const inp = inputs(member(o, "inputs", ""));
+  const inp = inputs(member(o, "inputs", ""), version as 1 | 2);
 
   const rows = count(member(o, "source_rows_observed", ""), "source_rows_observed");
   const c = counts(member(o, "counts", ""), "counts");
@@ -371,7 +456,7 @@ export function reportOf(data: PyValue): SavedReport {
   if (destinationCount.observed! < keyless) fail("premises", `destination_rows_without_key is ${keyless}, more than the ${destinationCount.observed} destination rows`);
 
   const report: SavedReport = {
-    schema_version: 1,
+    schema_version: version as 1 | 2,
     cohort_state: "Unverified",
     claim: null,
     counts: c,

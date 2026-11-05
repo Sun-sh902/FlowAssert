@@ -1,6 +1,6 @@
 # Report format
 
-`flowassert-verify --json PATH` writes one JSON object to a new file. This page describes `schema_version` 1, written by FlowAssert 0.2.0 and later. `--html PATH` writes the same report as a single HTML page for people; it is described at the end.
+`flowassert-verify --json PATH` writes one JSON object to a new file. This page describes `schema_version` 1, written by FlowAssert 0.2.0 and later, and `schema_version` 2, written from 0.7.0 only when the source is a Google Sheets range ([A report from a Google Sheets source](#a-report-from-a-google-sheets-source)). `--html PATH` writes the same report as a single HTML page for people; it is described at the end.
 
 From 0.3.0 the CSV check page of the web UI writes the same two reports, byte for byte, from the same inputs; it runs as `--config` with both encodings stated. The only difference is the `origin` of each premise, `browser form` (see [`premises`](#premises)).
 
@@ -14,6 +14,8 @@ The report never claims more than its evidence. A member that FlowAssert could n
 
 `schema_version` is the first member. It changes when a member is removed or renamed, or when the meaning of a value changes. New members can be added without a change, so a reader should ignore members it does not know.
 
+A report whose source is a Google Sheets range (`--source-sheet`, 0.7.0 and later) has `schema_version` 2, because three members of version 1 mean something else for it; every other report is version 1. A reader that knows only version 1 refuses a version 2 report, rather than show the sheet's rows as a file.
+
 Reports from FlowAssert 0.1.x have no `schema_version`. They have the same members as a 0.2.0 report run with `--details all`, except `schema_version`, `details` and `premises`, and their `claim` text is shorter.
 
 ## Members that depend on options
@@ -23,7 +25,8 @@ Reports from FlowAssert 0.1.x have no `schema_version`. They have the same membe
 | `inputs.identical_content_allowed` | The two files have identical content and `--allow-identical-content` was passed |
 | `inputs.mapping_file_sha256` | `--mapping` was used |
 | `inputs.config_file_sha256` | `--config` was used |
-| `inputs.source_encoding`, `inputs.destination_encoding` | `--source-encoding` or `--destination-encoding` was passed. Both are recorded |
+| `inputs.source_encoding`, `inputs.destination_encoding` | `--source-encoding` or `--destination-encoding` was passed. Both are recorded; with a sheet source, only `destination_encoding` |
+| `inputs.source_sheet` | The source is a Google Sheets range (`--source-sheet`); `schema_version` is then 2 |
 | `obligation.rules` | `--config` was used |
 | `obligation.scope` | `--scope` was passed, or the configuration file has `scope` |
 | `premises.allow_identical_content` | `--allow-identical-content` was passed |
@@ -37,7 +40,7 @@ Reports from FlowAssert 0.1.x have no `schema_version`. They have the same membe
 
 | Member | Type | Meaning |
 | --- | --- | --- |
-| `schema_version` | integer | Always `1` in this format |
+| `schema_version` | integer | `1`, or `2` for a report whose source is a Google Sheets range |
 | `cohort_state` | string | The batch result: `Verified`, `Mismatch` or `Unverified`. The exit status follows it: 0, 1, 3 |
 | `claim` | string or null | When `cohort_state` is `Verified`: "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows." Otherwise `null` |
 | `counts` | object | Number of records in each state (see below) |
@@ -155,8 +158,47 @@ With scope `exact`, each destination key that is not in the source becomes one e
 
 A destination-only Mismatch makes `cohort_state` a Mismatch. An Unverified destination-only record does not change `cohort_state`.
 
+## A report from a Google Sheets source
+
+From 0.7.0, `flowassert-verify --source-sheet ID --source-range RANGE` reads the source rows from one range of a Google Sheets spreadsheet, read-only, in place of a source file ([the design note](connectors/google-sheets.md)). Its report has `schema_version` 2, and every member of version 1 with the same meaning, except:
+
+| Member | In version 2 |
+| --- | --- |
+| `inputs.source_sha256` | SHA-256 of the canonical form of the values read (`flowassert-sheet-csv-1`, below), not of a file's bytes |
+| `source_rows_observed`, `premises.source_count.observed` | The data rows of the range: every row after its first, the header |
+| `premises.source_complete` | `--source-complete`: the sheet range is the whole batch. Still a statement FlowAssert does not verify |
+| `inputs.source_encoding` | Never present; `inputs.destination_encoding` is present alone when `--destination-encoding` was passed |
+| `inputs.identical_content` | Whether the canonical form and the destination file have the same SHA-256 |
+| `inputs.source_sheet` | Where the rows were read, below. Always present |
+
+Reading the sheet removes the export step, so no export could have cut the rows short or edited them. It does not show that the range holds every record that should exist: that stays the premise `source_complete`. The same cell values give the same records, rule results, counts and cohort state as a CSV file with the same rows.
+
+### `inputs.source_sheet`
+
+| Member | Meaning |
+| --- | --- |
+| `read_by` | Always `FlowAssert`: the rows were read by FlowAssert, not exported by a person. It is not a statement about completeness |
+| `service` | Always `Google Sheets API v4` |
+| `spreadsheet_id` | The spreadsheet ID, as given to `--source-sheet` |
+| `range_requested` | The range as given to `--source-range`, such as `Leads!A1:F` |
+| `range_returned` | The range the API said it read, such as `Leads!A1:F1000` |
+| `value_render_option` | Always `FORMATTED_VALUE`: every cell as the text the sheet shows |
+| `date_time_render_option` | Always `FORMATTED_STRING` (ignored by the API with `FORMATTED_VALUE`, and recorded to name both options) |
+| `major_dimension` | Always `ROWS` |
+| `read_at` | When the values were requested, in UTC ISO 8601 like `evaluated_at` |
+| `revision` | `{"available": true, "before": {"version": V, "modified_time": T}, "after": {...}}`: Google Drive's `version` (a string of digits) and `modifiedTime` (a string, or `null` when Drive gave none) just before and just after the values were read, which are equal; or `{"available": false, "reason": R}`, where `R` is `not requested (--skip-source-revision)` or `Google Drive returned no version`: the read cannot be tied to a revision |
+| `canonical_form` | Always `flowassert-sheet-csv-1` |
+
+The report never records the credential, the account or the spreadsheet's title. `--redact-values` leaves the spreadsheet ID and the range in place: they are not values.
+
+### The canonical form `flowassert-sheet-csv-1`
+
+UTF-8 without a byte order mark. The header row, then every data row padded with empty strings to the header's width, each followed by a line feed (also the last). Cells are separated by commas. A cell is written in double quotes, with each `"` inside doubled, when it contains `,`, `"`, a carriage return or a line feed, or when it is the only cell of its row and is empty; every other cell is written as it is. `flowassert-verify --source` reads this text as exactly the rows the sheet gave.
+
 ## HTML report
 
 `--html PATH` writes one HTML file and, like `--json`, refuses to overwrite an existing file. If either report cannot be written, neither is left behind. The page shows the cohort result and claim, every stated premise, the counts, the limitations, every record that is not Verified with its rule results, every destination-only record, and the inputs. It follows `--redact-values`.
+
+A report from a Google Sheets source has one more section, "Source read from Google Sheets", before the inputs: the members of `inputs.source_sheet`, the revision, and the sentence that the read does not show that the range holds every record that should exist.
 
 Every value from a file is escaped. The page has no scripts and loads nothing: its styles are inline, and a Content Security Policy blocks everything else. It works when opened offline.

@@ -8,6 +8,10 @@
  * A premise is explained as what it means, how a person could find out whether it is true, and that FlowAssert cannot
  * check it. It is never offered as a way to reach Verified.
  *
+ * A report whose source was read from a Google Sheets range (inputs.source_sheet, schema_version 2) gets the same points,
+ * worded for a range instead of a file, and two more: where the rows were read, and whether the read is tied to a
+ * revision. Reading the sheet is never offered as evidence that the range is the whole batch.
+ *
  * The text is English, in parts: a string is interface text, which the Chinese catalogue (i18n/zh-CN.ts) translates
  * as it translates the rest of the page; a { value } is something the report holds, such as a column name or a rule,
  * shown exactly as written.
@@ -15,6 +19,13 @@
 import type { Counts, DestinationOnlyRecord, Premise, RuleResult, SourceRecord, State } from "./evaluator";
 
 export type Part = string | { value: string };
+
+/** The members of inputs.source_sheet this module reads. */
+export interface SheetOrigin {
+  spreadsheet_id: string;
+  range_returned: string;
+  revision: { available: true; before: { version: string } } | { available: false; reason: string };
+}
 
 export interface Point {
   /** What the point is about, for tests and for the page's data-point attribute: "population-unknown", "unknown:empty:phone", … */
@@ -44,6 +55,8 @@ export interface Explainable {
   records: readonly SourceRecord[] | { problems(): Iterable<SourceRecord> };
   destination_only?: readonly DestinationOnlyRecord[];
   obligation: { fields: readonly (readonly string[])[]; rules?: readonly string[]; scope?: string };
+  /** Only source_sheet is read: a report from the command line's Google Sheets source has it. */
+  inputs?: { source_sheet?: SheetOrigin };
   workflow_execution: string;
   business_truth: string;
   existed_by_deadline: string;
@@ -163,22 +176,33 @@ function notEstablished(report: Explainable, t: ReturnType<typeof tally>, room: 
   const points: Point[] = [];
   const premise = (name: string) => report.premises[name];
   const sourceRows = report.source_rows_observed;
+  const sheet = sheetOf(report) !== null;
 
   if (!report.source_population_known) {
     points.push({
       id: "population-unknown",
-      text: ["The source population is unknown, so the batch cannot be Verified: records that belong to the batch but are not in the source file cannot be ruled out."],
+      text: [
+        sheet
+          ? "The source population is unknown, so the batch cannot be Verified: records that belong to the batch but are not in the sheet range cannot be ruled out."
+          : "The source population is unknown, so the batch cannot be Verified: records that belong to the batch but are not in the source file cannot be ruled out.",
+      ],
     });
     if (premise("source_complete")?.stated !== true) {
       points.push({
         id: "source-not-stated",
-        text: ["It was not stated that the source file is the whole batch."],
+        text: [sheet ? "It was not stated that the sheet range is the whole batch." : "It was not stated that the source file is the whole batch."],
         detail: [
-          plural(
-            sourceRows,
-            "That statement means the file holds every record that should have reached the destination, not a sample, a filtered view or one page of them. One way to find out is to compare the file’s # row with the total the source system shows for this batch. FlowAssert cannot check the statement, and a wrong statement gives a wrong result.",
-            "That statement means the file holds every record that should have reached the destination, not a sample, a filtered view or one page of them. One way to find out is to compare the file’s # rows with the total the source system shows for this batch. FlowAssert cannot check the statement, and a wrong statement gives a wrong result.",
-          ),
+          sheet
+            ? plural(
+                sourceRows,
+                "That statement means the range holds every record that should have reached the destination, not a sample, a filtered view or part of them. Reading the sheet does not show that. One way to find out is to compare the range’s # row with the total the source system shows for this batch. FlowAssert cannot check the statement, and a wrong statement gives a wrong result.",
+                "That statement means the range holds every record that should have reached the destination, not a sample, a filtered view or part of them. Reading the sheet does not show that. One way to find out is to compare the range’s # rows with the total the source system shows for this batch. FlowAssert cannot check the statement, and a wrong statement gives a wrong result.",
+              )
+            : plural(
+                sourceRows,
+                "That statement means the file holds every record that should have reached the destination, not a sample, a filtered view or one page of them. One way to find out is to compare the file’s # row with the total the source system shows for this batch. FlowAssert cannot check the statement, and a wrong statement gives a wrong result.",
+                "That statement means the file holds every record that should have reached the destination, not a sample, a filtered view or one page of them. One way to find out is to compare the file’s # rows with the total the source system shows for this batch. FlowAssert cannot check the statement, and a wrong statement gives a wrong result.",
+              ),
         ],
       });
     }
@@ -207,8 +231,16 @@ function notEstablished(report: Explainable, t: ReturnType<typeof tally>, room: 
     if (count?.matched === false) {
       points.push({
         id: "source-count-differs",
-        text: [`The source total stated (${String(count.stated)}) differs from the row count of the file (${count.observed}).`],
-        detail: ["The file and the total do not describe the same records. Only the source system can show which is right; FlowAssert cannot."],
+        text: [
+          sheet
+            ? `The source total stated (${String(count.stated)}) differs from the row count of the sheet range (${count.observed}).`
+            : `The source total stated (${String(count.stated)}) differs from the row count of the file (${count.observed}).`,
+        ],
+        detail: [
+          sheet
+            ? "The range and the total do not describe the same records. Only the source system can show which is right; FlowAssert cannot."
+            : "The file and the total do not describe the same records. Only the source system can show which is right; FlowAssert cannot.",
+        ],
       });
     }
   }
@@ -287,11 +319,17 @@ function notEstablished(report: Explainable, t: ReturnType<typeof tally>, room: 
     points.push({
       id: "destination-only-unverified",
       text: [
-        plural(
-          unconcluded,
-          "# destination key is not in the source. It is listed without a conclusion: the source population is unknown, so it could belong to a source record that is not in the file.",
-          "# destination keys are not in the source. They are listed without a conclusion: the source population is unknown, so each could belong to a source record that is not in the file.",
-        ),
+        sheet
+          ? plural(
+              unconcluded,
+              "# destination key is not in the source. It is listed without a conclusion: the source population is unknown, so it could belong to a source record that is not in the sheet range.",
+              "# destination keys are not in the source. They are listed without a conclusion: the source population is unknown, so each could belong to a source record that is not in the sheet range.",
+            )
+          : plural(
+              unconcluded,
+              "# destination key is not in the source. It is listed without a conclusion: the source population is unknown, so it could belong to a source record that is not in the file.",
+              "# destination keys are not in the source. They are listed without a conclusion: the source population is unknown, so each could belong to a source record that is not in the file.",
+            ),
       ],
     });
   }
@@ -307,14 +345,19 @@ function verified(report: Explainable): Point[] {
   });
   const source = report.premises.source_complete?.stated === true;
   const destination = report.premises.destination_complete?.stated === true;
+  const sheet = sheetOf(report) !== null;
   if (source || destination) {
     points.push({
       id: "verified-premises",
       text: [
         source && destination
-          ? "This rests on two statements FlowAssert cannot check: that the source file is the whole batch, and that the destination export covers the whole object. If either is wrong, this result is wrong."
+          ? sheet
+            ? "This rests on two statements FlowAssert cannot check: that the sheet range is the whole batch, and that the destination export covers the whole object. Reading the sheet does not show the first. If either is wrong, this result is wrong."
+            : "This rests on two statements FlowAssert cannot check: that the source file is the whole batch, and that the destination export covers the whole object. If either is wrong, this result is wrong."
           : source
-            ? "This rests on a statement FlowAssert cannot check: that the source file is the whole batch. If it is wrong, this result is wrong."
+            ? sheet
+              ? "This rests on a statement FlowAssert cannot check: that the sheet range is the whole batch. Reading the sheet does not show it. If it is wrong, this result is wrong."
+              : "This rests on a statement FlowAssert cannot check: that the source file is the whole batch. If it is wrong, this result is wrong."
             : "This rests on a statement FlowAssert cannot check: that the destination export covers the whole object. If it is wrong, this result is wrong.",
       ],
     });
@@ -324,9 +367,13 @@ function verified(report: Explainable): Point[] {
     points.push({
       id: "verified-counts",
       text: [
-        counts.length === 2
-          ? "The two totals stated from the original systems matched the rows in the files. A matching total does not prove that a file is complete."
-          : "The total stated from the original system matched the rows in its file. A matching total does not prove that a file is complete.",
+        sheet
+          ? counts.length === 2
+            ? "The two totals stated from the original systems matched the rows read from the sheet range and the export. A matching total does not prove that either is complete."
+            : "The total stated from the original system matched the rows read. A matching total does not prove that the rows are complete."
+          : counts.length === 2
+            ? "The two totals stated from the original systems matched the rows in the files. A matching total does not prove that a file is complete."
+            : "The total stated from the original system matched the rows in its file. A matching total does not prove that a file is complete.",
       ],
     });
   }
@@ -385,6 +432,29 @@ function mismatch(report: Explainable, t: ReturnType<typeof tally>): Point[] {
   return points;
 }
 
+const sheetOf = (report: Explainable): SheetOrigin | null => report.inputs?.source_sheet ?? null;
+
+/** Where a sheet source was read, and whether the read is tied to a revision: from the report, after the other points. */
+function sheetPoints(sheet: SheetOrigin): Point[] {
+  const revision = sheet.revision;
+  return [
+    {
+      id: "source-sheet",
+      text: ["The source rows were read by FlowAssert from Google Sheets, read-only, from the range", " ", { value: sheet.range_returned }, " ", "of spreadsheet", " ", { value: sheet.spreadsheet_id }],
+      detail: [
+        "No export step could cut these rows short or edit them. That does not show that the range holds every record that should exist, and the same rows in a CSV file would give the same result.",
+      ],
+    },
+    revision.available
+      ? { id: "source-sheet-revision", text: ["Google Drive gave the same version before and after the values were read:", " ", { value: revision.before.version }] }
+      : {
+          id: "source-sheet-no-revision",
+          text: ["The read cannot be tied to a revision:", " ", { value: revision.reason }],
+          detail: ["Without a revision, the report cannot show that the values did not change while they were read."],
+        },
+  ];
+}
+
 /**
  * The points for one report, in the order a reader needs them. `redacted`: the report was written with
  * --redact-values, so its keys are all "[redacted]".
@@ -395,17 +465,26 @@ export function explain(report: Explainable, { redacted = false }: { redacted?: 
   let points: Point[] = [];
   let more = 0;
   const scope = report.obligation.scope ?? "source";
+  const sheet = sheetOf(report);
+  const sheetRoom = sheet ? 2 : 0;
 
   if (state === "Verified") {
     points = verified(report);
   } else {
     if (state === "Mismatch") points = mismatch(report, t);
     if (state === "Unverified" && report.source_rows_observed === 0) {
-      points.push({ id: "no-rows", text: ["The source file has no data rows, so there is no record to verify, and an empty batch is never Verified."] });
+      points.push({
+        id: "no-rows",
+        text: [
+          sheetOf(report)
+            ? "The sheet range has no data rows, so there is no record to verify, and an empty batch is never Verified."
+            : "The source file has no data rows, so there is no record to verify, and an empty batch is never Verified.",
+        ],
+      });
     } else if (state === "Unverified" && report.counts.Verified === report.source_rows_observed) {
       points.push({ id: "all-records-passed", text: [plural(report.counts.Verified, "The # source record passed every rule, but the batch is not Verified, for the reasons below.", "All # source records passed every rule, but the batch is not Verified, for the reasons below.")] });
     }
-    const rest = notEstablished(report, t, MAX_POINTS - points.length - 1);
+    const rest = notEstablished(report, t, MAX_POINTS - points.length - 1 - sheetRoom);
     if (rest.points.length) {
       if (state === "Mismatch") points.push({ id: "also", text: ["The report also shows what is not established:"] });
       points.push(...rest.points);
@@ -428,6 +507,7 @@ export function explain(report: Explainable, { redacted = false }: { redacted?: 
       });
     }
   }
+  if (sheet) points.push(...sheetPoints(sheet));
   return { state, lead: LEAD[state], points, more };
 }
 
