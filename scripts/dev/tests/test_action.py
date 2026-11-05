@@ -448,3 +448,17 @@ def test_the_step_falls_back_to_python_and_runs_the_check(tmp_path):
     assert result.returncode == 1, result.stderr
     assert 'Mismatch: 4 rows of 4\n' in result.stdout
     assert outputs(tmp_path)['state'] == 'Mismatch'
+
+
+def test_the_action_is_named_at_one_released_version_everywhere():
+    # README.md, README.zh-CN.md and action.yml show `uses: Sun-sh902/FlowAssert@vX.Y.Z`. They name one version, and
+    # it has a dated section in CHANGELOG.md, so no example points at a version that was never released.
+    uses = re.compile(r'uses: Sun-sh902/FlowAssert@v(\d+\.\d+\.\d+)\b')
+    found = {name: uses.findall((ROOT / name).read_text(encoding='utf-8'))
+             for name in ('README.md', 'README.zh-CN.md', 'action.yml')}
+    assert all(found.values()), found
+    versions = {v for values in found.values() for v in values}
+    assert len(versions) == 1, found
+    version = versions.pop()
+    changelog = (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8')
+    assert re.search(rf'^## {re.escape(version)} \(\d{{4}}-\d{{2}}-\d{{2}}\)$', changelog, re.M), version

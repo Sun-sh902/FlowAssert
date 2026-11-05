@@ -326,7 +326,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - uses: Sun-sh902/FlowAssert@v0.4.0
+      - uses: Sun-sh902/FlowAssert@v0.6.0
         id: flowassert
         with:
           source: exports/source.csv
