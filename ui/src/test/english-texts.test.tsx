@@ -230,3 +230,24 @@ describe("on the page, in the Chinese interface", () => {
     expect(document.querySelector('[data-gloss="repeated-column"]')!.textContent).toBe("s.csv：表头中有列名重复出现。");
   });
 });
+
+describe("the trial feedback form, one language at a time", () => {
+  const form = (name: string) => read(`.github/ISSUE_TEMPLATE/${name}`);
+  const ids = (text: string) => [...text.matchAll(/^\s+id: (\S+)$/gm)].map((m) => m[1]);
+
+  test("the English form holds no Chinese, the Chinese copy asks the same questions", () => {
+    const english = form("trial_feedback.yml");
+    const chinese = form("trial_feedback_zh-CN.yml");
+    expect(english).not.toMatch(/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/);
+    expect(chinese).toMatch(/[\u4e00-\u9fff]/);
+    expect(ids(chinese)).toEqual(ids(english));
+    expect(ids(english).length).toBeGreaterThan(0);
+  });
+
+  test("the Chinese interface links to the Chinese copy, with nothing but the template in its address", () => {
+    render(<Check runner={inThreadRunner()} />);
+    const url = new URL((screen.getByTestId("give-feedback") as HTMLAnchorElement).href);
+    expect(`${url.origin}${url.pathname}`).toBe("https://github.com/Sun-sh902/FlowAssert/issues/new");
+    expect([...url.searchParams]).toEqual([["template", "trial_feedback_zh-CN.yml"]]);
+  });
+});

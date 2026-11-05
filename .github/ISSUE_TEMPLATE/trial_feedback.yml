@@ -1,61 +1,60 @@
-name: I tried FlowAssert / 试用反馈
-description: Tell us how a first check went, where you got stuck, and whether the result was clear. 告诉我们第一次核对是否顺利、卡在哪里、结果是否清楚。
+name: I tried FlowAssert
+description: Tell us how a first check went, where you got stuck, and whether the result was clear.
 title: "Trial feedback: "
 body:
   - type: markdown
     attributes:
       value: |
         Thank you for trying FlowAssert. Only what you wanted to check is required; a few words help.
-        感谢试用 FlowAssert。只有“你想核对什么”是必填的；几句话就很有帮助。
 
         **Do not paste real data, keys, values, column names you would not share, or reports.** This issue is public. Describe what happened in your own words, or use the synthetic scenarios in `offline/examples/scenarios/`.
-        **请不要粘贴真实数据、键、值、不便公开的列名或报告。** 这个 Issue 是公开的。请用自己的话描述发生了什么，或使用 `offline/examples/scenarios/` 中的合成场景。
   - type: checkboxes
     id: used
     attributes:
-      label: How you used it / 你是怎么用的
+      label: How you used it
       options:
-        - label: Command line (flowassert-verify) / 命令行
-        - label: Browser, the online demo / 浏览器：在线演示
-        - label: Browser, run locally / 浏览器：本地运行
+        - label: Command line (flowassert-verify)
+        - label: Browser, the online demo
+        - label: Browser, run locally
         - label: GitHub Action
-        - label: n8n example / n8n 示例
+        - label: n8n example
   - type: textarea
     id: goal
     attributes:
-      label: What you wanted to check / 你想核对什么
-      description: For example "that a nightly sync wrote every order to the CRM". No real names or values. 例如“每晚同步是否把每个订单都写进了 CRM”。不要写真实名称或值。
+      label: What you wanted to check
+      description: For example "that a nightly sync wrote every order to the CRM". No real names or values.
     validations:
       required: true
   - type: textarea
     id: stuck
     attributes:
-      label: Where you got stuck / 卡在哪里
-      description: A step that was unclear, a refusal, an option you could not find. Quote a refusal message only if it holds no real value. 不清楚的步骤、被拒绝的核对、找不到的选项。只有在拒绝消息不含真实值时才引用它。
+      label: Where you got stuck
+      description: A step that was unclear, a refusal, an option you could not find. Quote a refusal message only if it holds no real value.
   - type: dropdown
     id: result
     attributes:
-      label: What the result told you / 结果是什么
+      label: What the result told you
       options:
         - Verified
         - Mismatch
         - Unverified
-        - Refused / 被拒绝
-        - I did not get a result / 没有得到结果
+        - Refused
+        - I did not get a result
   - type: dropdown
     id: clear
     attributes:
-      label: Was it clear why? / 原因清楚吗
+      label: Was it clear why?
       options:
-        - Yes / 清楚
-        - Partly / 部分清楚
-        - No / 不清楚
+        - Yes
+        - Partly
+        - No
   - type: textarea
     id: unclear
     attributes:
-      label: What would have made it clearer / 怎样会更清楚
+      label: What would have made it clearer
   - type: input
     id: version
     attributes:
-      label: Version, if you know it / 版本（如果知道）
-      description: The output of `flowassert-verify --version`, or the tag of the Action. `flowassert-verify --version` 的输出，或 Action 的标签。
+      label: Version, if you know it
+      description: The output of `flowassert-verify --version`, or the tag of the Action.
+
