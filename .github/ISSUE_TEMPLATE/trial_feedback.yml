@@ -1,6 +1,7 @@
 name: I tried FlowAssert
 description: Tell us how a first check went, where you got stuck, and whether the result was clear.
 title: "Trial feedback: "
+labels: [feedback]
 body:
   - type: markdown
     attributes:

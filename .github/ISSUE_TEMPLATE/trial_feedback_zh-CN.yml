@@ -1,6 +1,7 @@
 name: 试用反馈（中文）
 description: 告诉我们第一次核对是否顺利、卡在哪里、结果是否清楚。
 title: "试用反馈："
+labels: [feedback]
 body:
   - type: markdown
     attributes:
