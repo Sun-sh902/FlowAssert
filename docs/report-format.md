@@ -1,5 +1,7 @@
 # Report format
 
+English | [简体中文](report-format.zh-CN.md)
+
 `flowassert-verify --json PATH` writes one JSON object to a new file. This page describes `schema_version` 1, written by FlowAssert 0.2.0 and later, and `schema_version` 2, written from 0.7.0 only when the source is a Google Sheets range ([A report from a Google Sheets source](#a-report-from-a-google-sheets-source)). `--html PATH` writes the same report as a single HTML page for people; it is described at the end.
 
 From 0.3.0 the CSV check page of the web UI writes the same two reports, byte for byte, from the same inputs; it runs as `--config` with both encodings stated. The only difference is the `origin` of each premise, `browser form` (see [`premises`](#premises)).

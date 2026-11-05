@@ -10,7 +10,7 @@ No terminal? The same check runs in your browser, and your files stay on your co
 
 ## 1. Install the command
 
-Python 3.11+ is supported; Python 3.9 and 3.10 are best-effort because macOS ships Python 3.9. Only the Python standard library is used, and the command makes no network requests.
+Python 3.11+ is supported; Python 3.9 and 3.10 are best-effort because macOS ships Python 3.9. Only the Python standard library is used, and the command makes no network requests: only `--source-sheet`, which reads the source from Google Sheets ([the Google Sheets guide](google-sheets.md)), does, and only when you use it.
 
 From a local clone of the repository:
 

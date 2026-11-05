@@ -10,7 +10,7 @@ FlowAssert 始终遵循同一条核心规则：**证据不足时，绝不说 Ver
 
 ## 1. 安装命令
 
-正式支持 Python 3.11+；由于 macOS 自带 Python 3.9，Python 3.9 和 3.10 提供尽力支持。工具只使用 Python 标准库，只读取本地文件，不发任何网络请求。
+正式支持 Python 3.11+；由于 macOS 自带 Python 3.9，Python 3.9 和 3.10 提供尽力支持。工具只使用 Python 标准库，只读取本地文件，不发任何网络请求：只有从 Google 表格读取来源的 `--source-sheet`（见 [Google 表格指南](google-sheets.zh-CN.md)）会发请求，而且只在你使用它时。
 
 在本地克隆的仓库根目录安装：
 
@@ -219,7 +219,7 @@ Source count stated 120, file has 118 rows: the batch cannot be Verified.
 
 ### 报告
 
-- `--json report.json` 保留每一条记录。默认（`--details problems`）时，`Verified` 记录只保留键、行号和状态，大文件的报告因此更小；`--details all` 保留每条记录的全部规则明细。格式说明见 [report-format.md](../report-format.md)（英文）。
+- `--json report.json` 保留每一条记录。默认（`--details problems`）时，`Verified` 记录只保留键、行号和状态，大文件的报告因此更小；`--details all` 保留每条记录的全部规则明细。格式说明见 [report-format.zh-CN.md](../report-format.zh-CN.md)。
 - `--html report.html` 写一个给不看 JSON 的人看的页面：结果、你声明的每项前提、计数、局限，以及每条不是 `Verified` 的记录。页面没有脚本，不从网络加载任何内容。
 
 这两个选项都不会覆盖已有文件。

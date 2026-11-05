@@ -5,6 +5,8 @@ English | [简体中文](faq.zh-CN.md)
 - [Why is my result Unverified?](#why-is-my-result-unverified)
 - [Can FlowAssert check that my files are complete?](#can-flowassert-check-that-my-files-are-complete)
 - [Do my files leave my computer?](#do-my-files-leave-my-computer)
+- [Does FlowAssert still need `--source-complete` when it reads my sheet?](#does-flowassert-still-need---source-complete-when-it-reads-my-sheet)
+- [Does FlowAssert change my sheet?](#does-flowassert-change-my-sheet)
 - [How is this different from a diff tool?](#how-is-this-different-from-a-diff-tool)
 - [Can I use it on real data?](#can-i-use-it-on-real-data)
 
@@ -23,18 +25,36 @@ The statements are yours to make, and only when you know they are true. FlowAsse
 
 No. A CSV file cannot show what was left out when it was exported: a filter, a row limit, one page of results or an interrupted export all give a file that looks whole. FlowAssert has no connection to your systems, so it cannot compare the file with them. That is why completeness is a statement you make, recorded in the report with where it was made.
 
+From 0.7.0 the command line can read the source from a Google Sheets range itself, which removes the export step for the source. It still cannot show that the range holds every record that should exist: see [the next questions](#does-flowassert-still-need---source-complete-when-it-reads-my-sheet).
+
 Totals help a little. If you pass the total your system shows (`--source-count`, `--destination-count`, or the two totals on the page) and it differs from the rows in the file, the matching statement is withdrawn. A total that matches does not prove that the file is complete.
 
 ## Do my files leave my computer?
 
 No.
 
-- **The command line** reads local files and makes no network request.
+- **The command line** reads local files and makes no network request, unless you give it `--source-sheet`: then it reads that one range of your Google Sheets spreadsheet with three read-only `GET` requests to Google, and sends Google nothing of your files ([the Google Sheets guide](guides/google-sheets.md)).
 - **The browser check** reads the files in the browser, in a Web Worker. From choosing the files to downloading the reports it makes no request, and the online demo's Content Security Policy forbids every connection. Nothing you choose or state is stored, unless you press **Keep this report in this browser**, which keeps that one report in this browser profile (see [Saved reports](../README.md#saved-reports-and-comparing-two-results)).
 - **The GitHub Action** runs on your workflow's runner and downloads nothing. Its log and job summary show no key or value unless you set `show-records`.
 - **The n8n example** runs in your n8n instance; the Code node makes no request.
 
 The **Give feedback** links on the CSV check and saved reports pages open GitHub in a new tab only when you press them, and carry nothing from the page.
+
+## Does FlowAssert still need `--source-complete` when it reads my sheet?
+
+Yes. Reading the sheet shows which rows the range held when FlowAssert read it, and that no export cut them short or edited them on the way. It cannot show that the range holds every record that should exist: a record that was never entered, a row outside the range, or a filter applied before the rows were copied into the sheet all leave a range that looks whole. Whether the range is the whole batch is a statement only you can make, so without `--source-complete` the batch is never Verified, exactly as for a file. The report records the statement as a premise FlowAssert does not verify.
+
+The same cell values give the same result as the same rows in a CSV file: reading the sheet removes one step you had to trust, and does not make a result more Verified. `--source-count` helps in the same way as for a file.
+
+## Does FlowAssert change my sheet?
+
+No. FlowAssert sends only three HTTPS `GET` requests: two to Google Drive for the file's version (`www.googleapis.com/drive/v3/files/...`, fields `version` and `modifiedTime`), and one to the Google Sheets API for the values of the range (`sheets.googleapis.com/v4/spreadsheets/.../values/...`). How that is enforced:
+
+- The code sends no other method and no request body, and connects only to those two hosts, over TLS with the certificate verified. It follows no redirect and retries nothing. Tests record every request it makes, against a local fake of the two endpoints, and fail on any other method, host or path.
+- You give it a read-only credential: a token with only `spreadsheets.readonly` and `drive.metadata.readonly`, or an API key for a sheet shared for viewing. Even a credential that could write is used only for those `GET` requests.
+- The credential stays in the environment variable you set; FlowAssert never writes it anywhere.
+
+Only the command line reads sheets. The browser check, the GitHub Action and the n8n example make no request to Google.
 
 ## How is this different from a diff tool?
 

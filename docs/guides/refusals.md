@@ -13,6 +13,7 @@ In the messages below, `FILE` is the path you gave (the file's name in the brows
 - [Configuration and mapping files](#configuration-and-mapping-files)
 - [Options](#options)
 - [The two files together](#the-two-files-together)
+- [Reading a Google Sheets range](#reading-a-google-sheets-range)
 
 ## Reading the CSV files
 
@@ -216,3 +217,121 @@ Both paths lead to one file. Pass the export of the destination system as `--des
 ### `source and destination have identical content, so the check would not be independent; pass --allow-identical-content if they really come from different systems`
 
 The two files have exactly the same bytes, which usually means one file was compared with a copy of itself. Pass the export of the destination system as `--destination`. If the two files really come from different systems and happen to be identical, `--allow-identical-content` records that statement in the report. FlowAssert cannot check it.
+
+## Reading a Google Sheets range
+
+These messages come only from the command line with `--source-sheet` ([the Google Sheets guide](google-sheets.md)). In them, `RANGE` is the range you gave, and `WHAT` says which request failed: `Google Sheets values` (the cells) or `Google Drive revision metadata` (the file's version, read before and after the values). A name in capitals after the status code, such as `PERMISSION_DENIED`, is the status Google's error gave; the error's own message is never repeated. No message contains your credential. FlowAssert never retries: after you change something, run the check again.
+
+### `--source and --source-sheet cannot be combined`, `--source-sheet needs --source-range`, `--source-range needs --source-sheet`
+
+The source is either a file (`--source`) or a sheet range (`--source-sheet` with `--source-range`). `--source-timeout` and `--skip-source-revision` also need `--source-sheet`.
+
+### `--source-encoding does not apply to a sheet source`
+
+A sheet's cells arrive as text, with no file encoding. Leave the option out. `--destination-encoding` still applies to the destination file.
+
+### `--source-sheet must be a spreadsheet ID: letters, digits, - and _, at most 200 characters`
+
+Pass only the ID, the long part of the spreadsheet's address after `/d/`, not the whole address.
+
+### `--source-range 'RANGE' must name a tab and bounded columns, such as Leads!A1:F or Leads!A1:F500`
+
+Write the tab's name, `!`, and a first and last cell with columns: `Leads!A1:F`. Quote a tab name with spaces or other characters: `'Q3 leads'!A1:F`, with a quote inside a name written twice. A range without a tab, a named range, a single cell and whole rows (`Leads!1:500`) are refused, so that the report always says which cells were read.
+
+### `--source-range 'RANGE' starts after it ends`
+
+The first column or row comes after the last. Swap them.
+
+### `no credential: set FLOWASSERT_SHEETS_TOKEN to a read-only OAuth access token, or FLOWASSERT_SHEETS_API_KEY to an API key for a sheet shared for viewing`
+
+FlowAssert takes a credential only from one of these two environment variables, never from an option or a file. Set one of them in the shell that runs the check (the guide shows how without leaving it in the shell's history).
+
+### `set only one of FLOWASSERT_SHEETS_TOKEN and FLOWASSERT_SHEETS_API_KEY`
+
+Both are set. `unset` the one you do not mean to use.
+
+### `FLOWASSERT_SHEETS_TOKEN does not hold a credential: printable ASCII without spaces, at most 4096 characters`, and the same for `FLOWASSERT_SHEETS_API_KEY`
+
+The variable is empty, longer than 4,096 characters, or holds a space, a line break or another character a credential does not have; often a copy that took in a space or a line break. Set it again. FlowAssert does not show what it holds.
+
+### `FLOWASSERT_SHEETS_TEST_ENDPOINT must be http://127.0.0.1:PORT or http://[::1]:PORT; it is for tests only`
+
+This variable points the command at a local fake of Google's endpoints, for FlowAssert's own tests. Unset it.
+
+### `WHAT: the credential was not accepted (HTTP 401 ...); it may have expired or been revoked`
+
+Access tokens expire. Obtain a new one, or check that the API key was not deleted.
+
+### `WHAT: access was denied (HTTP 403 ...); the credential may lack the read-only scope, its project may not have the API enabled, or the sheet is not shared with it`
+
+- A token: was it issued with `spreadsheets.readonly`, and for the Drive request with `drive.metadata.readonly`? Without the Drive scope, add `--skip-source-revision`.
+- An API key: is the Google Sheets API (and for the version, the Google Drive API) enabled in its project, and does the key's restriction allow them? Is the sheet shared so that anyone with the link can view it?
+- A token for an account that cannot open the sheet: share the sheet with that account, for viewing.
+
+### `WHAT: not found (HTTP 404 ...); check the spreadsheet ID and that the credential can see it`
+
+The ID is wrong, the spreadsheet was deleted, or it is not visible to this credential.
+
+### `WHAT: the request was not accepted (HTTP 400 ...); check that the tab exists and the range lies inside it`
+
+Usually a tab name that does not exist (names are matched as written), or a range beyond the tab's last column.
+
+### `WHAT: rate limited (HTTP 429 ...); FlowAssert does not retry: wait, then run the check again`
+
+Google limits how many reads a project or a user can make per minute. Wait a minute or so, then run the check again.
+
+### `WHAT: server error (HTTP N ...); FlowAssert does not retry: run the check again later`
+
+A 5xx status: a problem on Google's side. Run the check again later.
+
+### `WHAT: redirected (HTTP N), and FlowAssert does not follow redirects`, and `WHAT: unexpected response (HTTP N ...)`
+
+The answer was not one the API documents for a read. FlowAssert concludes nothing from it. If it persists, something between you and Google, such as a network sign-in page, may be answering instead.
+
+### `WHAT: no complete response within N seconds; FlowAssert does not retry`
+
+The request took longer than `--source-timeout` (60 seconds by default). Run the check again, bound the range's rows, or pass a larger `--source-timeout`.
+
+### `WHAT: the server's TLS certificate could not be verified`
+
+FlowAssert always verifies the certificate, and has no option to skip it. On macOS with Python from python.org, run "Install Certificates.command" in the Python folder once. On a network that inspects encrypted traffic, the certificate it presents is not Google's.
+
+### `WHAT: the connection failed`
+
+The name could not be looked up, or the connection could not be made. Check that the computer is online. FlowAssert connects directly and does not use a proxy set in `HTTPS_PROXY`.
+
+### `WHAT: response exceeds --max-bytes limit of N`
+
+The response is larger than `--max-bytes` (200 MiB by default). Bound the range, or raise the limit.
+
+### `WHAT: the response is not the JSON the API documents (DETAIL)`
+
+The answer was not the documented JSON: `DETAIL` names what was wrong, such as `not JSON` or `majorDimension is not ROWS`. Nothing is concluded from it. If it persists, please report it, with the message but without any credential or data.
+
+### `Google Sheets returned the range 'R' for 'RANGE', which is not the range asked for`
+
+The API said it read other cells than those asked for, for example other columns. FlowAssert refuses rather than check other cells. Check the range, and that its columns lie inside the tab.
+
+### `RANGE: the response has more rows than the range holds`, `RANGE: row N has more cells than the range has columns`
+
+The response does not fit the range it names. Nothing is concluded from it.
+
+### `RANGE: row N has a cell that is not text; FlowAssert reads formatted values only`
+
+FlowAssert asks for every cell as the text the sheet shows, and got something else. Please report it.
+
+### `RANGE: row N has a value beyond the header`
+
+Row `N` of the sheet has a value in a column whose header cell is empty or missing. Give that column a name in the header row, or narrow the range to the named columns.
+
+### `RANGE: repeated column name`, `RANGE: missing column NAME`, `RANGE: exceeds --max-rows limit of N`
+
+As for a file: see [Choosing columns](#choosing-columns) and [`FILE: exceeds --max-rows limit of N`](#file-exceeds---max-rows-limit-of-n). The header is the first row of the range: if your range starts below it, the first row read is taken as the header. An empty range has no columns, so every column is missing.
+
+### `the sheet changed while it was read: Drive version A modified T before the values, version B modified U after; run the check again`
+
+Google Drive recorded a change to the file between just before and just after the values were read, so the values cannot be tied to one state of the sheet. Drive counts changes a person cannot see too, so this can happen when no cell changed. Run the check again; if someone is editing the sheet, wait until they finish.
+
+### `the sheet's revision could not be read the same way before and after the values; run the check again`
+
+One of the two Drive reads gave a version and the other did not. Run the check again.

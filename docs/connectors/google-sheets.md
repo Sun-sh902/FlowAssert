@@ -141,8 +141,8 @@ Rows are built as follows:
 
 | In the response | Becomes |
 | --- | --- |
-| The first row | The header. Its width is the number of cells it has: trailing empty header cells are not part of it **[doc]**. A header cell in the middle that is empty is a column named `""`, as in a CSV header |
-| A row with fewer cells than the header | Padded with empty strings: cells omitted at the end of a row are empty cells **[doc]** |
+| The first row | The header. Its width is the number of cells it has, so trailing empty header cells are not part of it. A header cell in the middle that is empty is a column named `""`, as in a CSV header |
+| A row with fewer cells than the header | Padded with empty strings: cells omitted at the end of a row are empty cells. The description says that "empty trailing rows and columns will not be included" **[doc]**; that each row's own trailing empty cells are left out is **[unconfirmed]** |
 | A row with more cells than the header | Refused: a value in a column without a name cannot be checked, and a CSV file would be refused for the same row |
 | An empty row (`[]`) between rows | A data row whose cells are all empty. It has no key, so the source population is not known. FlowAssert does not skip it, because it cannot tell an empty record from a gap; remove it or narrow the range |
 | Rows omitted at the end of the range | Not rows. They are empty in the sheet **[doc]** |
@@ -178,8 +178,9 @@ form, named `flowassert-sheet-csv-1`, is:
   feed (`\n`, also after the last row);
 - cells separated by `,`;
 - a cell in double quotes, with each `"` inside written twice, when it contains `,`, `"`, a carriage return or a line
-  feed, or when it is the only cell of its row and is empty; every other cell as it is;
-- no rows at all (an empty range): zero bytes.
+  feed, or when it is the only cell of its row and is empty; every other cell as it is.
+
+An empty range has no header, so it is refused for its missing columns before anything is hashed.
 
 This is a CSV file that `flowassert-verify --source` reads as exactly the same rows. A person can therefore rebuild
 the digest from the values, and the tests use this form to prove that a sheet and a file with the same rows give the
@@ -267,7 +268,7 @@ because FlowAssert cannot know what it contains.
 | `RANGE: repeated column name` | As for a file |
 | `RANGE: missing column NAME` | As for a file; an empty range has no columns |
 | `RANGE: exceeds --max-rows limit of N` | As for a file |
-| `the sheet changed while it was read: Drive version A before the values, B after; run the check again` | Version or modification time differs |
+| `the sheet changed while it was read: Drive version A modified T before the values, version B modified U after; run the check again` | Version or modification time differs |
 | `the sheet's revision could not be read the same way before and after the values; run the check again` | One Drive read has a `version`, the other not |
 
 ## The report

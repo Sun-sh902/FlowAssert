@@ -4,7 +4,7 @@
 
 **工作流显示成功了，但预期的业务数据真的到了吗？**
 
-FlowAssert 把来源 CSV（应该到达的记录）与目标系统的导出文件（现在实际有的记录）对照，把每条记录判定为 **Verified**、**Mismatch** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。它在你的电脑上运行，可以用命令行，也可以用浏览器，只读取本地文件。
+FlowAssert 把来源 CSV（应该到达的记录）与目标系统的导出文件（现在实际有的记录）对照，把每条记录判定为 **Verified**、**Mismatch** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。它在你的电脑上运行，可以用命令行，也可以用浏览器，读取本地文件；从 0.7.0 起，命令行还可以以只读方式从 Google 表格的一个范围读取来源行（见[从 Google 表格读取来源](#从-google-表格读取来源)）。
 
 > [!IMPORTANT]
 > **这是由一位维护者维护的早期项目。** 它还不是生产软件。
@@ -22,7 +22,7 @@ FlowAssert 把来源 CSV（应该到达的记录）与目标系统的导出文�
 
 ## 安装并运行一次核对
 
-只需要 Python 3.9 或更高版本。它只读取本地文件，不发任何网络请求。
+只需要 Python 3.9 或更高版本。它只读取本地文件，不发任何网络请求（只有 `--source-sheet` 会读取 Google 的数据，而且只在你使用它时）。
 
 ```sh
 git clone https://github.com/Sun-sh902/FlowAssert.git
@@ -88,6 +88,7 @@ Verified 1 · Mismatch 3 · Unverified 0
 - [截图](#截图)
 - [已有和没有的内容](#已有和没有的内容)
 - [命令行选项](#命令行选项)
+- [从 Google 表格读取来源](#从-google-表格读取来源)
 - [在浏览器中核对](#在浏览器中核对)
 - [在 GitHub Actions 中使用](#在-github-actions-中使用)
 - [在 n8n 中使用](#在-n8n-中使用)
@@ -177,7 +178,8 @@ Verified 1 · Mismatch 3 · Unverified 0
 | 本地执行回执 | 实验性质，在这个 Service 之外不能证明任何事 |
 | Connections、Rules、Settings 页面 | Mock 演示，不连接也不执行任何东西 |
 | Capture runs 页面 | 未实现 |
-| n8n、HubSpot 或 Google Sheets 连接器 | 不存在 |
+| Google 表格来源（`--source-sheet`） | 只在命令行中提供：以只读方式读取表格的一个范围作为来源。针对 Google 接口的本地仿制服务测试过，还没有在 Google 上实际试过 |
+| n8n 或 HubSpot 连接器 | 不存在 |
 | 从 UI 发起验证 | 不存在 |
 | 登录、多用户、部署 | 不存在 |
 | 用户验证 | 从未做过 |
@@ -205,11 +207,15 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | `--destination-count N` | 你声明在原系统里看到的目标总数；与文件行数不符时缺失和重复都只能是未知 |
 | `--allow-identical-content` | 两份不同文件的内容完全相同时允许继续，并在报告 `inputs` 中记录 |
 | `--source-encoding NAME` | `utf-8`（默认）、`utf-16` 或 `gb18030` |
+| `--source-sheet ID` | 以只读方式从这个 Google 表格读取来源，代替 `--source`（[指南](docs/guides/google-sheets.zh-CN.md)） |
+| `--source-range RANGE` | 与 `--source-sheet` 一起使用：带工作表名和有界列的范围，例如 `Leads!A1:F` 或 `Leads!A1:F500` |
+| `--source-timeout SECONDS` | 与 `--source-sheet` 一起使用：每个请求最长可用的时间（默认 `60`） |
+| `--skip-source-revision` | 与 `--source-sheet` 一起使用：不从 Google 云端硬盘读取文件版本；报告会写明这次读取无法对应到某个版本 |
 | `--destination-encoding NAME` | `utf-8`（默认）、`utf-16` 或 `gb18030` |
 | `--max-bytes N` | 读取前拒绝超过 `N` 字节的文件（默认 `209715200`，即 200 MiB） |
 | `--max-rows N` | 读取时拒绝超过 `N` 行的 CSV 文件（默认 `1000000`） |
 | `--max-details N` | 摘要中最多打印 `N` 条非 Verified 记录，`0` 表示不打印（默认 `50`） |
-| `--json PATH` | 写入含文件摘要的完整报告，不会覆盖已有文件。[格式说明（英文）](docs/report-format.md) |
+| `--json PATH` | 写入含文件摘要的完整报告，不会覆盖已有文件。[格式说明](docs/report-format.zh-CN.md) |
 | `--details problems\|all` | `problems`（默认）：`--json` 中 Verified 记录只保留键、行号和状态。`all`：保留每条记录的全部明细 |
 | `--html PATH` | 写入一个独立的 HTML 报告，不会覆盖已有文件 |
 | `--redact-values` | 输出中不显示键和比较值 |
@@ -228,6 +234,24 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 这两个完整性选项很重要。不加 `--source-complete`，批次不可能是 Verified。不加 `--destination-complete`，缺失和重复都只能是未知。FlowAssert 不会核实这些声明，所以声明错了，结果也会错。如果知道原系统里的总数，再加上 `--source-count` 和 `--destination-count`：总数与文件不符时，对应的完整性声明不再成立。总数相符也不能证明文件完整。
 
 默认是精确比较：空格、大小写和电话格式的差异都算不同。`--config` 配置文件可以为每个字段选择 `trim`、`casefold`、`digits` 或 `date:FORMAT`，规则不会自动推断。空单元格判为 Unverified，因为 CSV 无法说明它为什么是空的。详情见 [offline/README.md](offline/README.md)。
+
+## 从 Google 表格读取来源
+
+从 0.7.0 起，`flowassert-verify` 可以自己从 Google 表格的一个范围读取来源行，而不是从你导出的 CSV 文件读取。目标仍是导出的 CSV 文件。
+
+```sh
+read -rs FLOWASSERT_SHEETS_TOKEN && export FLOWASSERT_SHEETS_TOKEN   # 只读令牌，手动输入，不会保存
+flowassert-verify --source-sheet SPREADSHEET_ID --source-range 'Leads!A1:F' \
+  --destination crm-export.csv --key lead_id --field phone --field email:hs_email
+```
+
+- **只读。** 只发送三个 HTTPS `GET` 请求：读取值之前和之后，向 Google 云端硬盘读取文件版本；向 Google Sheets API 读取值。证书总是验证；不重试，也不跟随重定向。
+- **凭据只留在环境变量中。** `FLOWASSERT_SHEETS_TOKEN`（带只读权限范围的 OAuth 访问令牌）或 `FLOWASSERT_SHEETS_API_KEY`（API 密钥，用于共享为可查看的表格）。凭据从不作为选项传入，从不从文件读取，也从不打印或写进报告。
+- **能说明什么。** FlowAssert 读取时范围中有哪些行，中间没有任何能截断或改动它们的导出步骤；以及读取前后文件版本是否相同。报告记录表格 ID、请求的范围和返回的范围、时间和版本，`schema_version` 为 2。
+- **不能说明什么。** 这个范围包含了应有的全部记录：`--source-complete` 仍然是你的声明，没有它，这一批永远不会是已验证。同样的单元格值，会得到和放在 CSV 文件里的同样的行相同的结果。
+- **还没有在 Google 上实际试过。** 只针对两个接口的本地仿制服务测试过。只有命令行会读取表格：浏览器核对、Action 和 n8n 示例都不会向 Google 发送任何请求。
+
+[Google 表格指南](docs/guides/google-sheets.zh-CN.md)介绍如何准备范围、获取只读凭据、一个完整的示例以及如何阅读结果；[设计说明](docs/connectors/google-sheets.zh-CN.md)包含所有细节和每一种拒绝。
 
 ## 在浏览器中核对
 
@@ -415,7 +439,8 @@ Service 是为本机单用户设计的。
 
 | 问题 | 详情 |
 | --- | --- |
-| 完整性声明 | 离线核对不会核实 `--source-complete` 和 `--destination-complete`，声明错了，结果也会错。`--source-count` 和 `--destination-count` 能发现一部分错误声明，但总数相符不能证明文件完整。浏览器核对中的两项声明同样如此 |
+| 完整性声明 | 离线核对不会核实 `--source-complete` 和 `--destination-complete`，声明错了，结果也会错。`--source-count` 和 `--destination-count` 能发现一部分错误声明，但总数相符不能证明文件完整。浏览器核对中的两项声明同样如此。使用 Google 表格来源（`--source-sheet`）时，这项限制变窄了，但没有消失：没有任何导出步骤能截断或改动来源行，但范围是否包含了应有的全部记录，仍然是你的声明 `--source-complete`。目标始终是导出文件 |
+| Google 表格来源 | 只针对 Google 两个接口的本地仿制服务测试过，还没有在真实的表格上运行过。关于 Google 行为的部分说法，所依据的文档在编写时无法阅读（见[设计说明](docs/connectors/google-sheets.zh-CN.md#资料来源)）。只在命令行中提供 |
 | 浏览器核对 | 支持的日期指令比命令行少，Python 版本之间有差异的地方按 Python 3.15 处理。见[在浏览器中核对](#在浏览器中核对) |
 | 已保存的报告 | 保存在浏览器配置文件中，使用它的任何人都能读取；在线演示中，同一账号的其他 GitHub Pages 站点也能读取。导入的报告未经认证。见[已保存的报告和两次结果对比](#已保存的报告和两次结果对比) |
 | n8n 示例 | 只在自托管的 n8n 2.46.4 上测试过，没有在 n8n Cloud 上测试。它用 Read/Write Files 节点读取文件，n8n 默认只允许读取 `~/.n8n-files` |

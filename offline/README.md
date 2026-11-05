@@ -1,6 +1,6 @@
 # Offline CSV check
 
-Compares a source CSV with a CSV export from the destination system, with the `flowassert-verify` command. It uses only the Python standard library, reads local files, and makes no network requests. Python 3.11+ is supported; Python 3.9 and 3.10 are best-effort because macOS ships Python 3.9.
+Compares a source CSV with a CSV export from the destination system, with the `flowassert-verify` command. It uses only the Python standard library, reads local files, and makes no network requests, unless `--source-sheet` reads the source from a Google Sheets range, read-only ([the Google Sheets guide](../docs/guides/google-sheets.md)). Python 3.11+ is supported; Python 3.9 and 3.10 are best-effort because macOS ships Python 3.9.
 
 Install it from a clone, or from GitHub:
 

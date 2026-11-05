@@ -13,6 +13,7 @@
 - [配置文件和映射文件](#配置文件和映射文件)
 - [选项](#选项)
 - [两个文件放在一起](#两个文件放在一起)
+- [读取 Google 表格范围](#读取-google-表格范围)
 
 ## 读取 CSV 文件
 
@@ -216,3 +217,121 @@ Python 的 `strptime` 无法使用这个格式；括号里的错误来自 Python
 ### `source and destination have identical content, so the check would not be independent; pass --allow-identical-content if they really come from different systems`
 
 两个文件的字节完全相同，这通常意味着一个文件和它自己的副本作了比较。请把目标系统的导出文件作为 `--destination` 传入。如果两个文件确实来自不同系统，只是恰好相同，`--allow-identical-content` 会把这项声明写进报告。FlowAssert 无法检查它。
+
+## 读取 Google 表格范围
+
+这些消息只来自使用 `--source-sheet` 的命令行（见 [Google 表格指南](google-sheets.zh-CN.md)）。消息中，`RANGE` 是你给出的范围，`WHAT` 说明是哪个请求失败了：`Google Sheets values`（单元格）或 `Google Drive revision metadata`（文件版本，在读取值之前和之后各读一次）。状态码后面的大写名称，例如 `PERMISSION_DENIED`，是 Google 错误中的状态；错误本身的消息从不转述。消息中从不包含你的凭据。FlowAssert 从不自动重试：改动之后，请再运行一次核对。
+
+### `--source and --source-sheet cannot be combined`、`--source-sheet needs --source-range`、`--source-range needs --source-sheet`
+
+来源要么是一个文件（`--source`），要么是一个表格范围（`--source-sheet` 加 `--source-range`）。`--source-timeout` 和 `--skip-source-revision` 也只能和 `--source-sheet` 一起使用。
+
+### `--source-encoding does not apply to a sheet source`
+
+表格中的单元格以文本到达，没有文件编码。请去掉这个选项。`--destination-encoding` 仍然适用于目标文件。
+
+### `--source-sheet must be a spreadsheet ID: letters, digits, - and _, at most 200 characters`
+
+只传入 ID，也就是表格地址中 `/d/` 后面的那一长串，而不是整个地址。
+
+### `--source-range 'RANGE' must name a tab and bounded columns, such as Leads!A1:F or Leads!A1:F500`
+
+写出工作表名、`!`，以及带列的起始和结束单元格：`Leads!A1:F`。工作表名中有空格或其他字符时要加引号：`'Q3 leads'!A1:F`，名字中的单引号写两次。没有工作表名的范围、命名范围、单个单元格和整行范围（`Leads!1:500`）都会被拒绝，这样报告总能说明读取的是哪些单元格。
+
+### `--source-range 'RANGE' starts after it ends`
+
+起始列或起始行在结束之后。把它们对调。
+
+### `no credential: set FLOWASSERT_SHEETS_TOKEN to a read-only OAuth access token, or FLOWASSERT_SHEETS_API_KEY to an API key for a sheet shared for viewing`
+
+FlowAssert 只从这两个环境变量之一读取凭据，从不从选项或文件读取。请在运行核对的命令行环境中设置其中一个（指南中说明了如何设置而不留在命令历史里）。
+
+### `set only one of FLOWASSERT_SHEETS_TOKEN and FLOWASSERT_SHEETS_API_KEY`
+
+两个都设置了。用 `unset` 去掉你不打算使用的那个。
+
+### `FLOWASSERT_SHEETS_TOKEN does not hold a credential: printable ASCII without spaces, at most 4096 characters`，`FLOWASSERT_SHEETS_API_KEY` 同理
+
+变量为空、长于 4,096 个字符，或者含有空格、换行或凭据中不会有的其他字符；常见原因是复制时带进了空格或换行。请重新设置。FlowAssert 不会显示它的内容。
+
+### `FLOWASSERT_SHEETS_TEST_ENDPOINT must be http://127.0.0.1:PORT or http://[::1]:PORT; it is for tests only`
+
+这个变量让命令连接 Google 接口的本地仿制服务，只用于 FlowAssert 自己的测试。请删除它。
+
+### `WHAT: the credential was not accepted (HTTP 401 ...); it may have expired or been revoked`
+
+访问令牌会过期。请获取新的令牌，或者确认 API 密钥没有被删除。
+
+### `WHAT: access was denied (HTTP 403 ...); the credential may lack the read-only scope, its project may not have the API enabled, or the sheet is not shared with it`
+
+- 令牌：签发时是否带有 `spreadsheets.readonly`，云端硬盘请求是否带有 `drive.metadata.readonly`？没有云端硬盘权限范围时，请加上 `--skip-source-revision`。
+- API 密钥：它所在的项目是否启用了 Google Sheets API（读取版本还需要 Google Drive API），密钥的限制是否允许这些 API？表格是否共享为“知道链接的人可查看”？
+- 令牌所属的账号打不开这个表格：把表格以查看权限共享给这个账号。
+
+### `WHAT: not found (HTTP 404 ...); check the spreadsheet ID and that the credential can see it`
+
+ID 不对，表格已被删除，或者这个凭据看不到它。
+
+### `WHAT: the request was not accepted (HTTP 400 ...); check that the tab exists and the range lies inside it`
+
+通常是工作表名不存在（名字按原样匹配），或者范围超出了工作表的最后一列。
+
+### `WHAT: rate limited (HTTP 429 ...); FlowAssert does not retry: wait, then run the check again`
+
+Google 限制一个项目或一个用户每分钟可以读取的次数。等一分钟左右，再运行一次核对。
+
+### `WHAT: server error (HTTP N ...); FlowAssert does not retry: run the check again later`
+
+5xx 状态：Google 那边的问题。稍后再运行一次核对。
+
+### `WHAT: redirected (HTTP N), and FlowAssert does not follow redirects`，以及 `WHAT: unexpected response (HTTP N ...)`
+
+收到的响应不是 API 文档中读取请求应有的响应。FlowAssert 不从中得出任何结论。如果一直出现，可能是你和 Google 之间的某个东西（例如网络登录页面）代替 Google 作了回答。
+
+### `WHAT: no complete response within N seconds; FlowAssert does not retry`
+
+请求用时超过了 `--source-timeout`（默认 60 秒）。再运行一次核对，限定范围的行数，或者传入更大的 `--source-timeout`。
+
+### `WHAT: the server's TLS certificate could not be verified`
+
+FlowAssert 总是验证证书，没有跳过验证的选项。在 macOS 上使用 python.org 的 Python 时，请运行一次 Python 文件夹中的“Install Certificates.command”。在会检查加密流量的网络中，对方出示的证书不是 Google 的。
+
+### `WHAT: the connection failed`
+
+无法解析域名，或者无法建立连接。请检查电脑是否联网。FlowAssert 直接连接，不使用 `HTTPS_PROXY` 中设置的代理。
+
+### `WHAT: response exceeds --max-bytes limit of N`
+
+响应大于 `--max-bytes`（默认 200 MiB）。请限定范围，或调高上限。
+
+### `WHAT: the response is not the JSON the API documents (DETAIL)`
+
+响应不是文档所描述的 JSON：`DETAIL` 说明了哪里不对，例如 `not JSON` 或 `majorDimension is not ROWS`。FlowAssert 不从中得出任何结论。如果一直出现，欢迎反馈，附上这条消息，但不要附上任何凭据或数据。
+
+### `Google Sheets returned the range 'R' for 'RANGE', which is not the range asked for`
+
+API 说它读取的单元格和请求的不同，例如列不同。FlowAssert 拒绝核对其他单元格。请检查范围，以及它的列是否在工作表之内。
+
+### `RANGE: the response has more rows than the range holds`、`RANGE: row N has more cells than the range has columns`
+
+响应和它所说的范围不相符。FlowAssert 不从中得出任何结论。
+
+### `RANGE: row N has a cell that is not text; FlowAssert reads formatted values only`
+
+FlowAssert 请求的是每个单元格在表格中显示的文本，收到的却是别的东西。欢迎反馈。
+
+### `RANGE: row N has a value beyond the header`
+
+表格的第 `N` 行在某一列中有值，而这一列的表头单元格是空的或不存在。请在表头行给这一列写上列名，或者把范围缩小到有列名的列。
+
+### `RANGE: repeated column name`、`RANGE: missing column NAME`、`RANGE: exceeds --max-rows limit of N`
+
+和文件相同：见[选择列](#选择列)和 [`FILE: exceeds --max-rows limit of N`](#file-exceeds---max-rows-limit-of-n)。表头是范围的第一行：如果范围从表头下面开始，读到的第一行会被当作表头。空范围没有任何列，所以每一列都缺少。
+
+### `the sheet changed while it was read: Drive version A modified T before the values, version B modified U after; run the check again`
+
+在读取值之前和之后，Google 云端硬盘记录到了文件的改动，所以这些值无法对应到表格的同一个状态。云端硬盘也会记录用户看不到的改动，所以即使没有任何单元格变化，也可能出现这种情况。再运行一次核对；如果有人正在编辑表格，请等他们完成。
+
+### `the sheet's revision could not be read the same way before and after the values; run the check again`
+
+两次云端硬盘读取中，一次有版本、另一次没有。再运行一次核对。

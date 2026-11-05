@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 **The workflow succeeded. Did the expected business data actually arrive?**
 
-FlowAssert compares a source CSV, the records that should have arrived, with an export of the destination system, what is there now, and reports each record as **Verified**, **Mismatch** or **Unverified**. Its central rule: without enough evidence, it never says Verified. It runs on your computer, in a terminal or in your browser, and reads only local files.
+FlowAssert compares a source CSV, the records that should have arrived, with an export of the destination system, what is there now, and reports each record as **Verified**, **Mismatch** or **Unverified**. Its central rule: without enough evidence, it never says Verified. It runs on your computer, in a terminal or in your browser, and reads local files; from 0.7.0 the command line can also read the source rows from a Google Sheets range, read-only ([Read the source from Google Sheets](#read-the-source-from-google-sheets)).
 
 > [!IMPORTANT]
 > **Early-stage project with one maintainer.** It is not production software.
@@ -22,7 +22,7 @@ More in [Check in your browser](#check-in-your-browser).
 
 ## Install and run one check
 
-This needs only Python 3.9 or later. It reads local files and makes no network requests.
+This needs only Python 3.9 or later. It reads local files and makes no network requests (only `--source-sheet` reads from Google, and only when you use it).
 
 ```sh
 git clone https://github.com/Sun-sh902/FlowAssert.git
@@ -77,6 +77,7 @@ A refused input (exit status 2) or an internal failure (4) has no result at all.
 - [Screenshots](#screenshots)
 - [What is and is not here](#what-is-and-is-not-here)
 - [Command-line options](#command-line-options)
+- [Read the source from Google Sheets](#read-the-source-from-google-sheets)
 - [Check in your browser](#check-in-your-browser)
 - [Use in GitHub Actions](#use-in-github-actions)
 - [Use in n8n](#use-in-n8n)
@@ -166,7 +167,8 @@ The workspace pages are checked across a 200-cell responsive matrix, in both the
 | Local execution receipts | Experimental; they prove nothing outside this Service |
 | Connections, Rules, Settings pages | Mock demo. Nothing connects or runs |
 | Capture runs page | Not implemented |
-| n8n, HubSpot or Google Sheets connectors | Do not exist |
+| Google Sheets source (`--source-sheet`) | Command line only: reads one range of a spreadsheet, read-only, as the source. Tested against a local fake of Google's endpoints; not yet tried against Google |
+| n8n or HubSpot connectors | Do not exist |
 | Starting a verification from the UI | Does not exist |
 | Login, multi-user, deployment | Do not exist |
 | User validation | Never done |
@@ -194,6 +196,10 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | `--destination-count N` | You state the destination total seen in the original system; a different row count leaves absence and duplicates unknown |
 | `--allow-identical-content` | Continue when two distinct files have identical content, and record that in `inputs` |
 | `--source-encoding NAME` | `utf-8` (default), `utf-16` or `gb18030` |
+| `--source-sheet ID` | Read the source from this Google Sheets spreadsheet, read-only, in place of `--source` ([guide](docs/guides/google-sheets.md)) |
+| `--source-range RANGE` | With `--source-sheet`: a tab and bounded columns, such as `Leads!A1:F` or `Leads!A1:F500` |
+| `--source-timeout SECONDS` | With `--source-sheet`: the longest each request may take (default: `60`) |
+| `--skip-source-revision` | With `--source-sheet`: do not read the file's version from Google Drive; the report says the read cannot be tied to a revision |
 | `--destination-encoding NAME` | `utf-8` (default), `utf-16` or `gb18030` |
 | `--max-bytes N` | Refuse a file larger than `N` bytes before reading (default: `209715200`, 200 MiB) |
 | `--max-rows N` | Refuse a CSV with more than `N` rows while reading (default: `1000000`) |
@@ -217,6 +223,24 @@ A refused check names the problem in one line. [When a check is refused](docs/gu
 The two completeness flags matter. Without `--source-complete`, a batch cannot be Verified. Without `--destination-complete`, missing records and duplicates stay unknown. FlowAssert does not check these statements, so a wrong statement gives a wrong result. If you know the totals in the original systems, pass `--source-count` and `--destination-count` too: a total that differs from the file withdraws the matching statement. A matching total does not prove completeness.
 
 Comparison is exact by default: spaces, case and phone formatting count as differences. A `--config` file can choose `trim`, `casefold`, `digits` or `date:FORMAT` for each field; rules are never inferred. Empty cells are Unverified, because a CSV cannot show why a value is empty. Full details are in [offline/README.md](offline/README.md).
+
+## Read the source from Google Sheets
+
+From 0.7.0, `flowassert-verify` can read the source rows itself from one range of a Google Sheets spreadsheet, instead of from a CSV file you exported. The destination is still a CSV export.
+
+```sh
+read -rs FLOWASSERT_SHEETS_TOKEN && export FLOWASSERT_SHEETS_TOKEN   # a read-only token, typed, not stored
+flowassert-verify --source-sheet SPREADSHEET_ID --source-range 'Leads!A1:F' \
+  --destination crm-export.csv --key lead_id --field phone --field email:hs_email
+```
+
+- **Read-only.** Three HTTPS `GET` requests and nothing else: Google Drive for the file's version before and after, and the Google Sheets API for the values. Certificates are always verified; there is no retry and no redirect.
+- **The credential stays in the environment.** `FLOWASSERT_SHEETS_TOKEN` (an OAuth access token with the read-only scopes) or `FLOWASSERT_SHEETS_API_KEY` (an API key, for a sheet shared for viewing). It is never an option, never read from a file, and never printed or written into a report.
+- **What it shows.** Which rows the range held when FlowAssert read it, with no export step that could cut them short or edit them, and whether the file's version was the same before and after the read. The report records the spreadsheet ID, the ranges asked for and returned, the time and the version, and has `schema_version` 2.
+- **What it does not show.** That the range holds every record that should exist: `--source-complete` is still your statement, and without it the batch is never Verified. The same cell values give the same result as the same rows in a CSV file.
+- **Not yet tried against Google.** It is tested against a local fake of the two endpoints only. The command line is the only part that reads sheets: the browser check, the Action and the n8n example make no request to Google.
+
+[The Google Sheets guide](docs/guides/google-sheets.md) covers preparing the range, obtaining a read-only credential, one complete example and reading the result; [the design note](docs/connectors/google-sheets.md) has every detail and refusal.
 
 ## Check in your browser
 
@@ -434,7 +458,8 @@ Repository history was scanned for common key formats before publication, and no
 
 | Issue | Detail |
 | --- | --- |
-| Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness. The same holds for the two statements in the browser check |
+| Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness. The same holds for the two statements in the browser check. With a Google Sheets source (`--source-sheet`) the limitation is narrower, not gone: no export step can cut the source rows short or edit them, but whether the range holds every record that should exist is still `--source-complete`, your statement. The destination is always an export |
+| Google Sheets source | Tested against a local fake of Google's two endpoints only; not yet run against a real spreadsheet. Some statements about Google's behaviour rest on documentation that could not be read when it was written ([design note](docs/connectors/google-sheets.md#sources)). Command line only |
 | Browser check | Supports fewer date directives than the command line, and follows Python 3.15 where Python versions differ. See [Check in your browser](#check-in-your-browser) |
 | Saved reports | Kept in the browser profile, readable by anyone using it, and on the online demo by other GitHub Pages sites of the same account. Imported reports are not authenticated. See [Saved reports and comparing two results](#saved-reports-and-comparing-two-results) |
 | n8n example | Tested on a self-hosted n8n 2.46.4 only, not on n8n Cloud. It reads files with the Read/Write Files node, which n8n restricts to `~/.n8n-files` by default |
