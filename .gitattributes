@@ -4,3 +4,4 @@ offline/examples/** -text
 offline/conformance/** -text
 examples/n8n/*.json -text
 ui/src/test/offline/comparison-cases/** -text
+offline/golden-sheets/** -text
