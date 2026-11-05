@@ -3,6 +3,7 @@
 ## Unreleased
 
 - The trial feedback form is in one language at a time: `.github/ISSUE_TEMPLATE/trial_feedback.yml` is in English only, and its Chinese copy, `trial_feedback_zh-CN.yml`, is the one the Chinese interface and `README.zh-CN.md` link to. The English changelog no longer quotes Chinese interface texts.
+- The CSV check page chooses each file with its own "Choose a file" button, in the interface's language. The browser's file button, which the browser labels in the system's language (Chinese on a Chinese system even in the English interface), is hidden.
 
 ## 0.6.0 (2026-11-04)
 

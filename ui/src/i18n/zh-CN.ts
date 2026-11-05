@@ -1335,6 +1335,8 @@ export const EXACT: Record<string, string> = {
   "The records that should have reached the destination.": "应当到达目标系统的记录。",
   "An export from the system the records should have reached.": "从记录应当到达的系统中导出的文件。",
   "CSV file": "CSV 文件",
+  "Choose a file": "选择文件",
+  "No file chosen": "未选择文件",
   Encoding: "编码",
   "UTF-# (byte order mark optional)": "UTF-#（字节顺序标记可有可无）",
   "UTF-# (byte order mark required)": "UTF-#（必须有字节顺序标记）",

@@ -171,6 +171,7 @@ function FilePicker({
   onEncoding: (encoding: Encoding) => void;
 }) {
   const id = useId();
+  const fileInput = useRef<HTMLInputElement>(null);
   const title = side === "source" ? "Source file" : "Destination export";
   const hint =
     side === "source" ? "The records that should have reached the destination." : "An export from the system the records should have reached.";
@@ -180,16 +181,36 @@ function FilePicker({
     <fieldset className="min-w-0 rounded-md border border-line px-4 pt-2 pb-4">
       <legend className="px-1 text-sm font-semibold text-ink">{title}</legend>
       <p className="text-xs text-ink-3">{hint}</p>
-      <label className="fa-field" htmlFor={`${id}-file`}>
-        <span className="label">CSV file</span>
-      </label>
+      <div className="fa-field">
+        <span className="label" id={`${id}-file-label`}>
+          CSV file
+        </span>
+      </div>
+      {/* The browser draws a file input's own button and "no file" text in the system's language, whatever the
+          interface language is, so the input stays hidden and this button, in the interface's words, opens it. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className={buttonClass("default", "sm")}
+          aria-labelledby={`${id}-file-label ${id}-file-button`}
+          id={`${id}-file-button`}
+          onClick={() => fileInput.current?.click()}
+          data-testid={`${side}-choose-file`}
+        >
+          <FileUp size={13} aria-hidden />
+          Choose a file
+        </button>
+        {!choice.file && <span className="text-sm text-ink-3">No file chosen</span>}
+      </div>
       <input
-        id={`${id}-file`}
+        ref={fileInput}
         type="file"
         accept=".csv,text/csv,text/plain"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
         data-testid={`${side}-file`}
         onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-        className="block w-full max-w-full text-sm text-ink-2 file:mr-3 file:rounded-md file:border file:border-line file:bg-surface file:px-3 file:py-1.5 file:text-sm file:text-ink"
       />
       <label className="fa-field mt-2">
         <span className="label">Encoding</span>

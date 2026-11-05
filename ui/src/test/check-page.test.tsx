@@ -52,6 +52,26 @@ async function chooseColumns(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("CSV check page", () => {
+  it("chooses files with its own button, in the interface's words, never the browser's file button", async () => {
+    const user = userEvent.setup();
+    render(<Check runner={inThreadRunner()} />);
+    for (const side of ["source", "destination"]) {
+      const input = screen.getByTestId(`${side}-file`) as HTMLInputElement;
+      // The browser draws its file button in the system's language; the input is hidden and out of the tab order.
+      expect(input.className).toContain("sr-only");
+      expect(input.tabIndex).toBe(-1);
+      const button = screen.getByTestId(`${side}-choose-file`);
+      expect(button.textContent).toBe("Choose a file");
+      const opened = vi.fn();
+      input.addEventListener("click", opened);
+      await user.click(button);
+      expect(opened).toHaveBeenCalledTimes(1);
+    }
+    expect(screen.getAllByText("No file chosen")).toHaveLength(2);
+    await user.upload(screen.getByTestId("source-file"), new File(["k\n1\n"], "s.csv", { type: "text/csv" }));
+    await waitFor(() => expect(screen.getAllByText("No file chosen")).toHaveLength(1));
+  });
+
   it("preselects nothing: no column, no rule beyond exact, no premise, no count", async () => {
     await chooseExample();
     expect((screen.getByTestId("key-source") as HTMLSelectElement).value).toBe("");

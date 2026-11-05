@@ -4,7 +4,7 @@
   "files": {
    "src/test/access-states.test.tsx": 23,
    "src/test/archive-match.test.tsx": 4,
-   "src/test/check-page.test.tsx": 14,
+   "src/test/check-page.test.tsx": 15,
    "src/test/comparison.test.ts": 12,
    "src/test/connections.test.tsx": 5,
    "src/test/contract-drift-mutations.test.ts": 79,
