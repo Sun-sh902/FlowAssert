@@ -1,0 +1,34 @@
+{
+  "drive": [
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    },
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    }
+  ],
+  "values": [
+    {
+      "status": 200,
+      "json": {
+        "range": "Leads!A1:C1000",
+        "majorDimension": "ROWS",
+        "values": [
+          [
+            "lead_id",
+            "Phone",
+            "email"
+          ]
+        ]
+      }
+    }
+  ]
+}

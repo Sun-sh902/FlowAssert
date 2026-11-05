@@ -1,0 +1,21 @@
+{
+  "name": "sheet-refused-max-bytes",
+  "args": [
+    "--source-sheet",
+    "1SyntheticSpreadsheet-FlowAssert_0001",
+    "--source-range",
+    "Leads!A1:C",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "lead_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--max-bytes",
+    "100"
+  ],
+  "credential": "token",
+  "env": {}
+}

@@ -1,0 +1,14 @@
+{
+  "drive": [
+    {
+      "status": 403,
+      "json": {
+        "error": {
+          "code": 403,
+          "message": "Synthetic error from the local fake.",
+          "status": "PERMISSION_DENIED"
+        }
+      }
+    }
+  ]
+}

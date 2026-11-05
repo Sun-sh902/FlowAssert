@@ -1,0 +1,49 @@
+{
+  "drive": [
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    },
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    }
+  ],
+  "values": [
+    {
+      "status": 200,
+      "json": {
+        "range": "Leads!A1:C3",
+        "majorDimension": "ROWS",
+        "values": [
+          [
+            "lead_id",
+            "phone",
+            "email"
+          ],
+          [
+            "LEAD-001",
+            "+1 555 0100 001",
+            "lead001@example.test"
+          ],
+          [
+            "LEAD-002",
+            "+1 555 0100 002",
+            "lead002@example.test"
+          ],
+          [
+            "LEAD-003",
+            "+1 555 0100 003",
+            "lead003@example.test"
+          ]
+        ]
+      }
+    }
+  ]
+}

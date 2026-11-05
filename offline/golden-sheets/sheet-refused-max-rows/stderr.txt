@@ -1,0 +1,1 @@
+refused: Leads!A1:C: exceeds --max-rows limit of 2

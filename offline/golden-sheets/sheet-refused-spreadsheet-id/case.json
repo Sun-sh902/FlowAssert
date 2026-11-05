@@ -1,0 +1,19 @@
+{
+  "name": "sheet-refused-spreadsheet-id",
+  "args": [
+    "--source-sheet",
+    "../files",
+    "--source-range",
+    "Leads!A1:C",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "lead_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email"
+  ],
+  "credential": "token",
+  "env": {}
+}

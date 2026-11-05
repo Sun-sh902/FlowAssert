@@ -2,6 +2,7 @@
 
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py vitest REPORT.json   (npx vitest run --reporter=json)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py pytest JUNIT.xml     (pytest --junitxml, portable set)
+    /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py offline JUNIT.xml    (pytest --junitxml, the offline checker's files)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py playwright GATE REPORT.json   (--reporter=json; FIX02)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py matrix GATE results.json      (ui/scripts/dev/fix04-product-review.mjs)
 
@@ -86,6 +87,26 @@ def pytest(xml_path):
     return problems, [f"portable backend tests: {len(ids)}; custody tests run separately: {', '.join(inv['deselected'])}"]
 
 
+def offline(xml_path):
+    """The offline checker's tests (0.7.0): every listed file, with its number of tests, each passed."""
+    inv = INVENTORY["pytest"]["offline"]["files"]
+    problems, counts = [], {}
+    for case in ET.parse(xml_path).getroot().iter("testcase"):
+        rel = case.get("classname", "").replace(".", "/") + ".py"
+        counts[rel] = counts.get(rel, 0) + 1
+        for tag in ("skipped", "failure", "error"):
+            if case.find(tag) is not None:
+                problems.append(f"{rel}::{case.get('name')}: {tag}")
+    for rel in sorted(set(inv) - set(counts)):
+        problems.append(f"{rel}: mandatory suite did not run")
+    for rel in sorted(set(counts) - set(inv)):
+        problems.append(f"{rel}: suite is not in scripts/dev/test-inventory.json")
+    for rel in sorted(set(inv) & set(counts)):
+        if counts[rel] != inv[rel]:
+            problems.append(f"{rel}: {counts[rel]} tests, inventory has {inv[rel]}")
+    return problems, [f"offline checker tests: {sum(counts.values())} in {len(counts)} files"]
+
+
 def playwright(gate, report):
     inv = INVENTORY["playwright"].get(gate)
     if inv is None:
@@ -165,7 +186,7 @@ def matrix(gate, rows):
 
 def main():
     args = sys.argv[1:]
-    if not ((len(args) == 2 and args[0] in ("vitest", "pytest")) or (len(args) == 3 and args[0] in ("playwright", "matrix"))):
+    if not ((len(args) == 2 and args[0] in ("vitest", "pytest", "offline")) or (len(args) == 3 and args[0] in ("playwright", "matrix"))):
         print(__doc__, file=sys.stderr)
         return 2
     kind, path = args[0], args[-1]
@@ -183,7 +204,8 @@ def main():
         if report is not None:
             problems, notes = playwright(args[1], report)
     else:
-        problems, notes = vitest(json.loads(Path(path).read_text(encoding="utf-8"))) if kind == "vitest" else pytest(path)
+        problems, notes = (vitest(json.loads(Path(path).read_text(encoding="utf-8"))) if kind == "vitest"
+                           else offline(path) if kind == "offline" else pytest(path))
     for n in notes:
         print(n)
     for p in problems:

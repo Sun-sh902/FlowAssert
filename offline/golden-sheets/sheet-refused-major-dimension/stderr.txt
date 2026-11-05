@@ -1,0 +1,1 @@
+refused: Google Sheets values: the response is not the JSON the API documents (majorDimension is not ROWS)

@@ -1,0 +1,24 @@
+{
+  "drive": [
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    },
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    }
+  ],
+  "values": [
+    {
+      "status": 200,
+      "text": "<html>Synthetic sign-in page</html>"
+    }
+  ]
+}

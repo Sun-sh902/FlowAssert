@@ -128,6 +128,20 @@ def junit(n, extra=""):
     return f'<?xml version="1.0"?><testsuites><testsuite>{cases}{extra}</testsuite></testsuites>'
 
 
+def test_offline_inventory_counts_each_file(tmp_path):
+    files = INVENTORY["pytest"]["offline"]["files"]
+    cases = lambda counts: "".join(f'<testcase classname="{rel[:-3].replace("/", ".")}" name="t{i}"/>' for rel, n in counts.items() for i in range(n))
+    xml = lambda counts, extra="": f'<?xml version="1.0"?><testsuites><testsuite>{cases(counts)}{extra}</testsuite></testsuites>'
+    assert check(tmp_path, "offline", xml(files))[0] == 0
+    first = sorted(files)[0]
+    rc, out = check(tmp_path, "offline", xml({**files, first: files[first] - 1}))
+    assert rc == 1 and f"{first}: {files[first] - 1} tests" in out
+    rc, out = check(tmp_path, "offline", xml({k: v for k, v in files.items() if k != first}))
+    assert rc == 1 and "did not run" in out
+    rc, out = check(tmp_path, "offline", xml(files, '<testcase classname="scripts.dev.tests.test_x" name="s"><skipped/></testcase>'))
+    assert rc == 1 and "not in scripts/dev/test-inventory.json" in out and "skipped" in out
+
+
 def test_pytest_inventory_counts_and_custody_separation(tmp_path):
     n = INVENTORY["pytest"]["portable"]["tests"]
     assert check(tmp_path, "pytest", junit(n))[0] == 0

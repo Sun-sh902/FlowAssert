@@ -1,0 +1,1 @@
+refused: --source-sheet must be a spreadsheet ID: letters, digits, - and _, at most 200 characters

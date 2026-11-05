@@ -1,0 +1,1 @@
+refused: Google Drive revision metadata: access was denied (HTTP 403 PERMISSION_DENIED); the credential may lack the read-only scope, its project may not have the API enabled, or the sheet is not shared with it

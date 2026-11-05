@@ -1,0 +1,19 @@
+{
+  "name": "sheet-refused-range-without-sheet",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--source-range",
+    "Leads!A1:C",
+    "--key",
+    "lead_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email"
+  ],
+  "credential": "token",
+  "env": {}
+}

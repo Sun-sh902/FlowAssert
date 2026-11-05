@@ -1,0 +1,30 @@
+{
+  "drive": [
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    },
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    }
+  ],
+  "values": [
+    {
+      "status": 404,
+      "json": {
+        "error": {
+          "code": 404,
+          "message": "Synthetic error from the local fake.",
+          "status": "NOT_FOUND"
+        }
+      }
+    }
+  ]
+}

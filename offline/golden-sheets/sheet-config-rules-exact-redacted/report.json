@@ -1,0 +1,215 @@
+{
+  "schema_version": 2,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_only": [
+    {
+      "destination_row": 2,
+      "key": "[redacted]",
+      "reason": "key not in the source, and the source population is known",
+      "rows": 1,
+      "state": "Mismatch"
+    }
+  ],
+  "destination_only_counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_rows_without_key": 0,
+  "details": "all",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 3,
+  "inputs": {
+    "config_file_sha256": "a4dbe92d910de143306131c8fd6c98082865f9782e5d63e169aab5e013388a55",
+    "destination_complete_stated": false,
+    "destination_sha256": "35a9938de78db1113e0a6528c8d54cc170ae5518fb3124fa03f2dcf4cbdb2591",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "c4e55e81e6b4afe6d12aebe71b28b4daf9abcf4b55e0bf3c06fd06616d303c6b",
+    "source_sheet": {
+      "canonical_form": "flowassert-sheet-csv-1",
+      "date_time_render_option": "FORMATTED_STRING",
+      "major_dimension": "ROWS",
+      "range_requested": "'Q3 leads'!A2:D9",
+      "range_returned": "'Q3 leads'!A2:D9",
+      "read_at": "2000-01-01T00:00:00Z",
+      "read_by": "FlowAssert",
+      "revision": {
+        "after": {
+          "modified_time": "2026-11-01T09:00:00.000Z",
+          "version": "57"
+        },
+        "available": true,
+        "before": {
+          "modified_time": "2026-11-01T09:00:00.000Z",
+          "version": "57"
+        }
+      },
+      "service": "Google Sheets API v4",
+      "spreadsheet_id": "1SyntheticSpreadsheet-FlowAssert_0001",
+      "value_render_option": "FORMATTED_VALUE"
+    }
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "signed",
+        "signed_on"
+      ],
+      [
+        "tel",
+        "tel"
+      ],
+      [
+        "note",
+        "note"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "rules": [
+      "date:%Y-%m-%d",
+      "digits",
+      "casefold"
+    ],
+    "scope": "exact",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:signed": {
+          "reason": "date comparison with format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "pass"
+        },
+        "field:tel": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:note": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "fail"
+        },
+        "field:signed": {
+          "reason": "value does not match date format '%Y-%m-%d'",
+          "rule": "date:%Y-%m-%d",
+          "status": "unknown"
+        },
+        "field:tel": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 0,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "destination not stated complete; absence not established",
+          "status": "unknown"
+        },
+        "field:note": {
+          "reason": "insufficient evidence",
+          "rule": "casefold",
+          "status": "unknown"
+        },
+        "field:signed": {
+          "reason": "insufficient evidence",
+          "rule": "date:%Y-%m-%d",
+          "status": "unknown"
+        },
+        "field:tel": {
+          "reason": "insufficient evidence",
+          "rule": "digits",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

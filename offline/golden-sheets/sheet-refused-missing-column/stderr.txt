@@ -1,0 +1,1 @@
+refused: Leads!A1:C: missing column phone

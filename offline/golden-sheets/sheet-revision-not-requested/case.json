@@ -1,0 +1,22 @@
+{
+  "name": "sheet-revision-not-requested",
+  "args": [
+    "--source-sheet",
+    "1SyntheticSpreadsheet-FlowAssert_0001",
+    "--source-range",
+    "Leads!A1:C",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "lead_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--source-complete",
+    "--destination-complete",
+    "--skip-source-revision"
+  ],
+  "credential": "token",
+  "env": {}
+}

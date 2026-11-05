@@ -22,9 +22,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install pytest ./offline
-      # The checker, and the GitHub Action's wrapper around it (action.yml runs it with this Python too).
-      - run: python -m pytest -q -p no:cacheprovider scripts/dev/tests/test_offline_verify.py scripts/dev/tests/test_action.py
-      # The browser check is compared with these files byte for byte; here they are only checked, never written.
+      # The checker, the GitHub Action's wrapper around it (action.yml runs it with this Python too), and the Google
+      # Sheets source against a local fake of the two endpoints (it contacts nothing else).
+      - run: python -m pytest -q -p no:cacheprovider scripts/dev/tests/test_offline_verify.py scripts/dev/tests/test_action.py scripts/dev/tests/test_sheets_source.py
+      # The browser check is compared with these files byte for byte; here they are only checked, never written. The
+      # sheet-sourced cases (offline/golden-sheets/) are checked too, against the same local fake.
       - name: Golden outputs are current
         run: python offline/bench/golden.py --check
       # The reports in the shared cases for comparing two reports (ui/src/test/offline/compare.test.ts).

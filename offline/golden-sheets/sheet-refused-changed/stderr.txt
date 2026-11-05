@@ -1,0 +1,1 @@
+refused: the sheet changed while it was read: Drive version 57 modified 2026-11-01T09:00:00.000Z before the values, version 58 modified 2026-11-01T09:00:05.000Z after; run the check again

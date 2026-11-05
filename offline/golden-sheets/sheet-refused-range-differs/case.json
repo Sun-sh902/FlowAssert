@@ -1,0 +1,19 @@
+{
+  "name": "sheet-refused-range-differs",
+  "args": [
+    "--source-sheet",
+    "1SyntheticSpreadsheet-FlowAssert_0001",
+    "--source-range",
+    "Leads!A1:C",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "lead_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email"
+  ],
+  "credential": "token",
+  "env": {}
+}

@@ -1,0 +1,14 @@
+Unverified: 3 rows of unknown total
+Verified 0 · Mismatch 0 · Unverified 3
+Source read by FlowAssert from Google Sheets: spreadsheet 1SyntheticSpreadsheet-FlowAssert_0001, range Leads!A1:C1000, at 2000-01-01T00:00:00Z.
+Drive version 57 before and after the values were read.
+Source and destination files were identical (--allow-identical-content).
+Source population unknown: the batch cannot be Verified.
+Destination coverage not established: absence and uniqueness stay unknown.
+  record 1 LEAD-001: Unverified
+    uniqueness unknown: insufficient evidence
+  record 2 LEAD-002: Unverified
+    uniqueness unknown: insufficient evidence
+  record 3 LEAD-003: Unverified
+    uniqueness unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

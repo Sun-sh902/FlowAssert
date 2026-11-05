@@ -1,0 +1,1 @@
+refused: Leads!A1:C: row 2 has a value beyond the header

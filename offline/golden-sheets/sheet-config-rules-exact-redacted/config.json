@@ -1,0 +1,24 @@
+{
+  "key": [
+    "id",
+    "id"
+  ],
+  "fields": [
+    {
+      "source": "signed",
+      "destination": "signed_on",
+      "rule": "date:%Y-%m-%d"
+    },
+    {
+      "source": "tel",
+      "destination": "tel",
+      "rule": "digits"
+    },
+    {
+      "source": "note",
+      "destination": "note",
+      "rule": "casefold"
+    }
+  ],
+  "scope": "exact"
+}

@@ -1,0 +1,30 @@
+{
+  "drive": [
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    },
+    {
+      "status": 200,
+      "json": {
+        "version": "57",
+        "modifiedTime": "2026-11-01T09:00:00.000Z"
+      }
+    }
+  ],
+  "values": [
+    {
+      "status": 503,
+      "json": {
+        "error": {
+          "code": 503,
+          "message": "Synthetic error from the local fake.",
+          "status": "UNAVAILABLE"
+        }
+      }
+    }
+  ]
+}

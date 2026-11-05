@@ -1,0 +1,12 @@
+Mismatch: 3 rows of 3
+Verified 1 · Mismatch 2 · Unverified 0
+Source read by FlowAssert from Google Sheets: spreadsheet 1SyntheticSpreadsheet-FlowAssert_0001, range Leads!A1:C1000, at 2000-01-01T00:00:00Z.
+Drive version 57 before and after the values were read.
+  record 2 LEAD-002: Mismatch
+    field:phone fail: exact string comparison ('+1 555 0100 002' vs '+1 555 0100 092')
+  record 3 LEAD-003: Mismatch
+    existence fail: key not found in stated complete destination
+    uniqueness unknown: insufficient evidence
+    field:phone unknown: insufficient evidence
+    field:email unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

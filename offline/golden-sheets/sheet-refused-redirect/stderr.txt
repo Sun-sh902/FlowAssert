@@ -1,0 +1,1 @@
+refused: Google Sheets values: redirected (HTTP 302), and FlowAssert does not follow redirects

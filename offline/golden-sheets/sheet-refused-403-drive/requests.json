@@ -1,0 +1,16 @@
+[
+  [
+    "GET",
+    "/drive/v3/files/1SyntheticSpreadsheet-FlowAssert_0001",
+    [
+      [
+        "fields",
+        "version,modifiedTime"
+      ],
+      [
+        "supportsAllDrives",
+        "true"
+      ]
+    ]
+  ]
+]

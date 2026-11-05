@@ -1,0 +1,20 @@
+{
+  "name": "sheet-identical-content-allowed",
+  "args": [
+    "--source-sheet",
+    "1SyntheticSpreadsheet-FlowAssert_0001",
+    "--source-range",
+    "Leads!A1:C",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "lead_id",
+    "--field",
+    "phone",
+    "--field",
+    "email",
+    "--allow-identical-content"
+  ],
+  "credential": "token",
+  "env": {}
+}

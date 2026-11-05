@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowAssert report: Mismatch</title>
+<style>
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;max-width:72rem;padding:1rem;
+color:#1b1f24;background:#fff}
+h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #d0d7de}
+table{border-collapse:collapse;width:100%;margin:.5rem 0}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;
+text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f6f8fa}
+.state{display:inline-block;font-size:1.6rem;font-weight:700;padding:.2rem .8rem;border-radius:.3rem}
+.Verified{background:#dafbe1;color:#116329}.Mismatch{background:#ffebe9;color:#a40e26}
+.Unverified,.Pending{background:#fff8c5;color:#7d4e00}.premises{border:2px solid #7d4e00;padding:.5rem 1rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>FlowAssert report</h1>
+<p><span class="state Mismatch">Mismatch</span></p>
+<p>No claim is made: the result is not Verified.</p>
+<p>Evaluated at 2000-01-01T00:00:00Z by evaluator v2-current-state-1.</p>
+<section class="premises">
+<h2>Stated premises</h2>
+<p>FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>
+<table>
+<tr><th>Premise</th><th>Stated</th><th>Origin</th><th>Rows in file</th><th>Matched</th></tr>
+<tr><td>source_complete</td><td>yes</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>destination_complete</td><td>no</td><td>command-line option</td><td></td><td></td></tr>
+<tr><td>source_count</td><td><i>none</i></td><td>command-line option</td><td>3</td><td><i>none</i></td></tr>
+<tr><td>destination_count</td><td><i>none</i></td><td>command-line option</td><td>3</td><td><i>none</i></td></tr>
+</table>
+</section>
+<h2>Counts</h2>
+<table>
+<tr><th>Source rows observed</th><td>3</td></tr>
+<tr><th>Expected total</th><td>3</td></tr>
+<tr><th>Verified records</th><td>0</td></tr>
+<tr><th>Mismatch records</th><td>1</td></tr>
+<tr><th>Pending records</th><td>0</td></tr>
+<tr><th>Unverified records</th><td>2</td></tr>
+<tr><th>Source population known</th><td>yes</td></tr>
+<tr><th>Destination coverage sufficient</th><td>no</td></tr>
+<tr><th>Destination rows without key</th><td>0</td></tr>
+<tr><th>Destination-only Verified</th><td>0</td></tr>
+<tr><th>Destination-only Mismatch</th><td>1</td></tr>
+<tr><th>Destination-only Pending</th><td>0</td></tr>
+<tr><th>Destination-only Unverified</th><td>0</td></tr>
+</table>
+<h2>Limitations</h2>
+<p>Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.</p>
+<table>
+<tr><th>workflow_execution</th><td>Not assessed</td></tr>
+<tr><th>business_truth</th><td>Not assessed</td></tr>
+<tr><th>existed_by_deadline</th><td>Not assessed</td></tr>
+<tr><th>acquisition_authenticity</th><td>not_authenticated</td></tr>
+</table>
+<h2>Records that are not Verified (3)</h2>
+<table>
+<tr><th>Record</th><th>Key</th><th>State</th><th>Rule</th><th>Status</th><th>Reason</th><th>Expected</th><th>Actual</th><th>Compared as</th></tr>
+<tr><td rowspan="5">1</td><td rowspan="5"><code>&#x27;[redacted]&#x27;</code></td><td rowspan="5" class="Unverified">Unverified</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:signed</td><td>pass</td><td>date comparison with format &#x27;%Y-%m-%d&#x27;</td><td></td><td></td><td></td></tr>
+<tr><td>field:tel</td><td>pass</td><td>comparison of the digits 0-9 only</td><td></td><td></td><td></td></tr>
+<tr><td>field:note</td><td>pass</td><td>comparison after Unicode case folding</td><td></td><td></td><td></td></tr>
+<tr><td rowspan="5">2</td><td rowspan="5"><code>&#x27;[redacted]&#x27;</code></td><td rowspan="5" class="Mismatch">Mismatch</td><td>existence</td><td>pass</td><td>candidate observed</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:signed</td><td>unknown</td><td>value does not match date format &#x27;%Y-%m-%d&#x27;</td><td></td><td></td><td></td></tr>
+<tr><td>field:tel</td><td>pass</td><td>comparison of the digits 0-9 only</td><td></td><td></td><td></td></tr>
+<tr><td>field:note</td><td>fail</td><td>comparison after Unicode case folding</td><td></td><td></td><td></td></tr>
+<tr><td rowspan="5">3</td><td rowspan="5"><code>&#x27;[redacted]&#x27;</code></td><td rowspan="5" class="Unverified">Unverified</td><td>existence</td><td>unknown</td><td>destination not stated complete; absence not established</td><td></td><td></td><td></td></tr>
+<tr><td>uniqueness</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:signed</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:tel</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+<tr><td>field:note</td><td>unknown</td><td>insufficient evidence</td><td></td><td></td><td></td></tr>
+</table>
+<h2>Destination-only records (1)</h2>
+<table>
+<tr><th>Destination row</th><th>Key</th><th>Rows</th><th>State</th><th>Reason</th></tr>
+<tr><td>3</td><td><code>&#x27;[redacted]&#x27;</code></td><td>1</td><td class="Mismatch">Mismatch</td><td>key not in the source, and the source population is known</td></tr>
+</table>
+<h2>Source read from Google Sheets</h2>
+<p>FlowAssert read the source rows itself, read-only, so no export step could cut them short or edit them. This does not show that the range holds every record that should exist: that is the stated premise source_complete.</p>
+<p>Source read by FlowAssert from Google Sheets: spreadsheet 1SyntheticSpreadsheet-FlowAssert_0001, range &#x27;Q3 leads&#x27;!A2:D9, at 2000-01-01T00:00:00Z.</p>
+<p>Drive version 57 before and after the values were read.</p>
+<table>
+<tr><th>read_by</th><td>FlowAssert</td></tr>
+<tr><th>service</th><td>Google Sheets API v4</td></tr>
+<tr><th>spreadsheet_id</th><td>1SyntheticSpreadsheet-FlowAssert_0001</td></tr>
+<tr><th>range_requested</th><td>&#x27;Q3 leads&#x27;!A2:D9</td></tr>
+<tr><th>range_returned</th><td>&#x27;Q3 leads&#x27;!A2:D9</td></tr>
+<tr><th>value_render_option</th><td>FORMATTED_VALUE</td></tr>
+<tr><th>date_time_render_option</th><td>FORMATTED_STRING</td></tr>
+<tr><th>major_dimension</th><td>ROWS</td></tr>
+<tr><th>read_at</th><td>2000-01-01T00:00:00Z</td></tr>
+<tr><th>canonical_form</th><td>flowassert-sheet-csv-1</td></tr>
+<tr><th>revision before version</th><td>57</td></tr>
+<tr><th>revision before modified_time</th><td>2026-11-01T09:00:00.000Z</td></tr>
+<tr><th>revision after version</th><td>57</td></tr>
+<tr><th>revision after modified_time</th><td>2026-11-01T09:00:00.000Z</td></tr>
+</table>
+<h2>Inputs</h2>
+<table>
+<tr><th>source_sha256</th><td>c4e55e81e6b4afe6d12aebe71b28b4daf9abcf4b55e0bf3c06fd06616d303c6b</td></tr>
+<tr><th>destination_sha256</th><td>35a9938de78db1113e0a6528c8d54cc170ae5518fb3124fa03f2dcf4cbdb2591</td></tr>
+<tr><th>source_complete_stated</th><td>yes</td></tr>
+<tr><th>destination_complete_stated</th><td>no</td></tr>
+<tr><th>identical_content</th><td>no</td></tr>
+<tr><th>config_file_sha256</th><td>a4dbe92d910de143306131c8fd6c98082865f9782e5d63e169aab5e013388a55</td></tr>
+<tr><th>obligation type</th><td><code>&quot;current_state&quot;</code></td></tr>
+<tr><th>obligation key</th><td><code>[&quot;id&quot;, &quot;id&quot;]</code></td></tr>
+<tr><th>obligation fields</th><td><code>[[&quot;signed&quot;, &quot;signed_on&quot;], [&quot;tel&quot;, &quot;tel&quot;], [&quot;note&quot;, &quot;note&quot;]]</code></td></tr>
+<tr><th>obligation comparison</th><td><code>&quot;per-field-rule&quot;</code></td></tr>
+<tr><th>obligation rules</th><td><code>[&quot;date:%Y-%m-%d&quot;, &quot;digits&quot;, &quot;casefold&quot;]</code></td></tr>
+<tr><th>obligation scope</th><td><code>&quot;exact&quot;</code></td></tr>
+</table>
+</body>
+</html>

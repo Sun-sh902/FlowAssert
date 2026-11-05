@@ -1,0 +1,200 @@
+{
+  "schema_version": 2,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 3,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_sha256": "0c3522a225645768dca49c7d17e9e707d737d466f64b9ae5f763a9c46057dd32",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "19541451274aa97bd417e7e91216ab56faebc27609a278e35b092c7ef5074906",
+    "source_sheet": {
+      "canonical_form": "flowassert-sheet-csv-1",
+      "date_time_render_option": "FORMATTED_STRING",
+      "major_dimension": "ROWS",
+      "range_requested": "Leads!A1:C500",
+      "range_returned": "Leads!A1:C500",
+      "read_at": "2000-01-01T00:00:00Z",
+      "read_by": "FlowAssert",
+      "revision": {
+        "after": {
+          "modified_time": "2026-11-01T09:00:00.000Z",
+          "version": "57"
+        },
+        "available": true,
+        "before": {
+          "modified_time": "2026-11-01T09:00:00.000Z",
+          "version": "57"
+        }
+      },
+      "service": "Google Sheets API v4",
+      "spreadsheet_id": "1SyntheticSpreadsheet-FlowAssert_0001",
+      "value_render_option": "FORMATTED_VALUE"
+    }
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ],
+      [
+        "email",
+        "hs_email"
+      ]
+    ],
+    "key": [
+      "lead_id",
+      "lead_id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "LEAD-001",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "lead001@example.test",
+          "expected": "",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "actual": "+1 555 0100 001",
+          "expected": "+1 555 0100 001",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 0,
+      "key": null,
+      "rules": {
+        "existence": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "field:email": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "invalid or duplicate source key",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "LEAD-003",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "lead003@example.test",
+          "expected": "lead003@example.test",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "+1 555 0100 003",
+          "expected": "",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 0,
+      "key": "LEAD-004",
+      "rules": {
+        "existence": {
+          "reason": "key not found in stated complete destination",
+          "status": "fail"
+        },
+        "field:email": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 3,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

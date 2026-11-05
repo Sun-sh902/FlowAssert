@@ -1,0 +1,1 @@
+refused: source and destination have identical content, so the check would not be independent; pass --allow-identical-content if they really come from different systems

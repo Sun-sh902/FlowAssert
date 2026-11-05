@@ -1,0 +1,111 @@
+{
+  "schema_version": 2,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 3
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_sha256": "0c3522a225645768dca49c7d17e9e707d737d466f64b9ae5f763a9c46057dd32",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "b33f71626cc55510d7e5f49b6a12e01582d53ac9f571e8bc9d3c9b86dfca4854",
+    "source_sheet": {
+      "canonical_form": "flowassert-sheet-csv-1",
+      "date_time_render_option": "FORMATTED_STRING",
+      "major_dimension": "ROWS",
+      "range_requested": "Leads!A1:C",
+      "range_returned": "Leads!A1:C1000",
+      "read_at": "2000-01-01T00:00:00Z",
+      "read_by": "FlowAssert",
+      "revision": {
+        "after": {
+          "modified_time": "2026-11-01T09:00:00.000Z",
+          "version": "57"
+        },
+        "available": true,
+        "before": {
+          "modified_time": "2026-11-01T09:00:00.000Z",
+          "version": "57"
+        }
+      },
+      "service": "Google Sheets API v4",
+      "spreadsheet_id": "1SyntheticSpreadsheet-FlowAssert_0001",
+      "value_render_option": "FORMATTED_VALUE"
+    }
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ],
+      [
+        "email",
+        "hs_email"
+      ]
+    ],
+    "key": [
+      "lead_id",
+      "lead_id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": true,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": 3
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": false,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": 4
+    }
+  },
+  "records": [
+    {
+      "key": "LEAD-001",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "key": "LEAD-002",
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "key": "LEAD-003",
+      "source_row": 2,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

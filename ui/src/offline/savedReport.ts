@@ -582,6 +582,7 @@ export function viewOf(report: SavedReport): ResultView {
     destinationOnly: report.destination_only ? report.destination_only.slice(0, SHOWN_RECORDS) : null,
     destinationOnlyCount: report.destination_only?.length ?? 0,
     destinationOnlyCounts: report.destination_only_counts ?? null,
-    inputs: Object.entries(report.inputs).filter((e): e is [string, string | boolean] => e[1] !== undefined),
+    // The plain members: inputs.source_sheet (schema_version 2) is an object, shown on its own.
+    inputs: Object.entries(report.inputs).filter((e): e is [string, string | boolean] => typeof e[1] === "string" || typeof e[1] === "boolean"),
   };
 }

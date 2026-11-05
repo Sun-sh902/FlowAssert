@@ -2,7 +2,8 @@
 """Golden outputs of the command-line checker, for the browser check to match byte for byte.
 
     python3 offline/bench/golden.py           write offline/golden/ again
-    python3 offline/bench/golden.py --check   exit 1 if offline/golden/ is not what this script writes now
+    python3 offline/bench/golden.py --check   exit 1 if offline/golden/ or offline/golden-sheets/ is not what this
+                                              script writes now
 
 Each case is a folder under offline/golden/ holding its input files, `case.json` (the arguments, and for a case the
 browser page can also run, the page's choices), and what the checker gave: `exit_status.txt`, `stdout.txt` (the
@@ -13,6 +14,11 @@ the files as `source.csv` and `destination.csv`, the names the browser shows.
 A case marked `page` is also run through the browser page's code (ui/src/test/offline/golden.test.ts) with the
 premises' origin "browser form": its output must be the same apart from that origin. Every case must give the same
 output on every supported Python version; CI checks this one on 3.9, 3.11 and 3.14.
+
+The cases whose source is a Google Sheets range (0.7.0) are written to offline/golden-sheets/ instead, because the
+browser cannot run them: it makes no request to Google. Each holds `sheet-responses.json`, the synthetic responses a
+local fake of the two endpoints serves (fake_sheets_api.py), and `requests.json`, what the checker asked it for, with
+any API key replaced by the variable's name. Nothing contacts Google. `read_at` is fixed like `evaluated_at`.
 """
 import codecs
 import contextlib
@@ -27,13 +33,18 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "offline"))
-from flowassert_offline import cli  # noqa: E402
+from flowassert_offline import cli, sheets  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "offline" / "bench"))
+from fake_sheets_api import FAKE_KEY, FAKE_TOKEN, FakeSheetsApi, drive, error, values  # noqa: E402
 
 GOLDEN = ROOT / "offline" / "golden"
+GOLDEN_SHEETS = ROOT / "offline" / "golden-sheets"
 EVALUATED_AT = datetime(2000, 1, 1, tzinfo=timezone.utc)
 EXAMPLE_SOURCE = (ROOT / "offline/examples/source.csv").read_bytes()
 EXAMPLE_DESTINATION = (ROOT / "offline/examples/destination.csv").read_bytes()
 OUTPUTS = ("exit_status.txt", "stdout.txt", "stderr.txt", "report.json", "report.html")
+SHEET_VARIABLES = ("FLOWASSERT_SHEETS_TOKEN", "FLOWASSERT_SHEETS_API_KEY", "FLOWASSERT_SHEETS_TEST_ENDPOINT")
 
 
 class _FixedDatetime(datetime):
@@ -320,6 +331,183 @@ for _scenario in json.loads((SCENARIOS / "scenarios.json").read_text(encoding="u
             page(_scenario["config"], **_premises))
 
 
+# ---------- Google Sheets source (offline/golden-sheets/) ----------
+
+SHEET_ID = "1SyntheticSpreadsheet-FlowAssert_0001"
+SHEET_RANGE = "Leads!A1:C"
+SHEET_RETURNED = "Leads!A1:C1000"
+LEADS = [["lead_id", "phone", "email"],
+         ["LEAD-001", "+1 555 0100 001", "lead001@example.test"],
+         ["LEAD-002", "+1 555 0100 002", "lead002@example.test"],
+         ["LEAD-003", "+1 555 0100 003", "lead003@example.test"]]
+CRM = utf8("lead_id,phone,hs_email\n"
+           "LEAD-001,+1 555 0100 001,lead001@example.test\n"
+           "LEAD-002,+1 555 0100 002,lead002@example.test\n"
+           "LEAD-003,+1 555 0100 003,lead003@example.test\n")
+CRM_MISMATCH = utf8("lead_id,phone,hs_email\n"
+                    "LEAD-001,+1 555 0100 001,lead001@example.test\n"
+                    "LEAD-002,+1 555 0100 092,lead002@example.test\n")
+LEAD_ARGS = ["--key", "lead_id", "--field", "phone", "--field", "email:hs_email"]
+# The canonical form of LEADS (flowassert-sheet-csv-1): a destination file with these bytes has identical content.
+CANONICAL_LEADS = utf8("".join(",".join(row) + "\n" for row in [["lead_id", "phone", "email"]] + LEADS[1:]))
+CANONICAL_ARGS = ["--key", "lead_id", "--field", "phone", "--field", "email"]
+COMPLETE = ["--source-complete", "--destination-complete"]
+SAME = [drive(57), drive(57)]
+
+
+def sheet(args, rows=LEADS, *, responses=None, destination=CRM, files=None, credential="token", env=None,
+          range_text=SHEET_RANGE, returned=SHEET_RETURNED):
+    """A case whose source is a Google Sheets range, served by the local fake."""
+    if responses is None:
+        responses = {"drive": SAME, "values": [values(returned, rows)]}
+    return {"args": ["--source-sheet", SHEET_ID, "--source-range", range_text, "--destination", "destination.csv"]
+            + args, "responses": responses, "files": {"destination.csv": destination, **(files or {})},
+            "credential": credential, "env": env or {}}
+
+
+def refused_values(response, args=LEAD_ARGS):
+    return sheet(args, responses={"drive": SAME, "values": [response]})
+
+
+RAGGED = [["lead_id", "phone", "email"], ["LEAD-001", "+1 555 0100 001"], [], ["LEAD-003", "", "lead003@example.test"],
+          ["LEAD-004"]]
+RULES_SHEET = [["id", "signed", "tel", "note"], ["R1", "2026-01-02", "+1 (555) 0100-001", "Alpha"],
+               ["R2", "2026-02-30", "555 0100 002", " beta "], ["R3", "2026-03-04", "n/a", "Gamma"]]
+RULES_CRM = utf8("id,signed_on,tel,note\nR1,2026-01-02,15550100001,ALPHA\nR2,2026-02-28,5550100002,beta\n"
+                 "R4,2026-05-06,5550100004,delta\n")
+RULES_SHEET_CONFIG = {"key": ["id", "id"], "fields": [
+    {"source": "signed", "destination": "signed_on", "rule": "date:%Y-%m-%d"},
+    {"source": "tel", "destination": "tel", "rule": "digits"},
+    {"source": "note", "destination": "note", "rule": "casefold"}], "scope": "exact"}
+
+SHEET_CASES = {
+    # Results: Verified, Mismatch and Unverified, as for a file, with the read recorded beside them.
+    "sheet-verified": sheet(LEAD_ARGS + COMPLETE),
+    "sheet-mismatch": sheet(LEAD_ARGS + COMPLETE, destination=CRM_MISMATCH),
+    "sheet-unverified": sheet(LEAD_ARGS),
+    "sheet-api-key": sheet(LEAD_ARGS + COMPLETE, credential="key"),
+    "sheet-count-differs": sheet(LEAD_ARGS + COMPLETE + ["--source-count", "4", "--destination-count", "3"]),
+    "sheet-config-rules-exact-redacted": sheet(["--config", "config.json", "--source-complete", "--details", "all",
+                                                "--redact-values"], RULES_SHEET, destination=RULES_CRM,
+                                               files={"config.json": canonical_config(RULES_SHEET_CONFIG)},
+                                               range_text="'Q3 leads'!A2:D9", returned="'Q3 leads'!A2:D9"),
+    # Rows as the API returns them: cells omitted at the end of a row, an empty row inside the range.
+    "sheet-ragged-rows": sheet(LEAD_ARGS + COMPLETE, RAGGED, range_text="Leads!A1:C500", returned="Leads!A1:C500"),
+    # The revision: not requested, or not given by Drive.
+    "sheet-revision-not-requested": sheet(LEAD_ARGS + COMPLETE + ["--skip-source-revision"],
+                                          responses={"values": [values(SHEET_RETURNED, LEADS)]}),
+    "sheet-revision-not-given": sheet(LEAD_ARGS + COMPLETE, responses={
+        "drive": [drive(None), drive(None)], "values": [values(SHEET_RETURNED, LEADS)]}),
+    # Identical content: the destination file holds the canonical form of the values.
+    "sheet-identical-content-refused": sheet(CANONICAL_ARGS, destination=CANONICAL_LEADS),
+    "sheet-identical-content-allowed": sheet(CANONICAL_ARGS + ["--allow-identical-content"],
+                                             destination=CANONICAL_LEADS),
+    # Refusals before any request.
+    "sheet-refused-no-credential": sheet(LEAD_ARGS, credential=None, responses={}),
+    "sheet-refused-two-credentials": sheet(LEAD_ARGS, credential="both", responses={}),
+    "sheet-refused-malformed-credential": sheet(LEAD_ARGS, credential="token", responses={},
+                                                env={"FLOWASSERT_SHEETS_TOKEN": "two words"}),
+    "sheet-refused-endpoint": sheet(LEAD_ARGS, responses={},
+                                    env={"FLOWASSERT_SHEETS_TEST_ENDPOINT": "https://sheets.googleapis.com"}),
+    "sheet-refused-no-tab": sheet(LEAD_ARGS, responses={}, range_text="A1:C"),
+    "sheet-refused-unbounded-columns": sheet(LEAD_ARGS, responses={}, range_text="Leads!1:500"),
+    "sheet-refused-named-range": sheet(LEAD_ARGS, responses={}, range_text="Leads2026"),
+    "sheet-refused-reversed-range": sheet(LEAD_ARGS, responses={}, range_text="Leads!C1:A"),
+    "sheet-refused-spreadsheet-id": {**sheet(LEAD_ARGS, responses={}),
+                                     "args": ["--source-sheet", "../files", "--source-range", SHEET_RANGE,
+                                              "--destination", "destination.csv"] + LEAD_ARGS},
+    "sheet-refused-with-source": sheet(LEAD_ARGS + ["--source", "destination.csv"], responses={}),
+    "sheet-refused-source-encoding": sheet(LEAD_ARGS + ["--source-encoding", "utf-8"], responses={}),
+    "sheet-refused-range-without-sheet": {**sheet([], responses={}),
+                                          "args": ["--source", "source.csv", "--destination", "destination.csv",
+                                                   "--source-range", SHEET_RANGE] + LEAD_ARGS,
+                                          "files": {"source.csv": CRM, "destination.csv": CRM_MISMATCH}},
+    # Refusals of a read: every error, and every response in doubt.
+    "sheet-refused-401": refused_values(error(401, "UNAUTHENTICATED")),
+    "sheet-refused-403-drive": sheet(LEAD_ARGS, responses={"drive": [error(403, "PERMISSION_DENIED")]}),
+    "sheet-refused-404": refused_values(error(404, "NOT_FOUND")),
+    "sheet-refused-400": refused_values(error(400, "INVALID_ARGUMENT")),
+    "sheet-refused-429": refused_values(error(429, "RESOURCE_EXHAUSTED")),
+    "sheet-refused-503": refused_values(error(503, "UNAVAILABLE")),
+    "sheet-refused-redirect": refused_values({"status": 302, "text": "",
+                                              "headers": {"Location": "https://accounts.example.test/signin"}}),
+    "sheet-refused-not-json": refused_values({"status": 200, "text": "<html>Synthetic sign-in page</html>"}),
+    "sheet-refused-major-dimension": refused_values(values(SHEET_RETURNED, LEADS, major="COLUMNS")),
+    "sheet-refused-range-differs": refused_values(values("Leads!A1:D1000", LEADS)),
+    "sheet-refused-more-rows-than-range": sheet(LEAD_ARGS, range_text="Leads!A1:C3", returned="Leads!A1:C3"),
+    "sheet-refused-cell-not-text": refused_values(values(SHEET_RETURNED, [LEADS[0], ["LEAD-001", 15550100001, "x"]])),
+    "sheet-refused-value-beyond-header": refused_values(values(SHEET_RETURNED, [["lead_id", "phone"],
+                                                                                ["LEAD-001", "1", "x"]]),
+                                                        ["--key", "lead_id", "--field", "phone"]),
+    "sheet-refused-missing-column": refused_values(values(SHEET_RETURNED, [["lead_id", "Phone", "email"]])),
+    "sheet-refused-empty-range": refused_values(values(SHEET_RETURNED, [])),
+    "sheet-refused-max-rows": sheet(LEAD_ARGS + ["--max-rows", "2"]),
+    "sheet-refused-max-bytes": sheet(LEAD_ARGS + ["--max-bytes", "100"], destination=utf8("lead_id,phone,hs_email\n")),
+    "sheet-refused-changed": sheet(LEAD_ARGS, responses={"drive": [drive(57), drive(58, "2026-11-01T09:00:05.000Z")],
+                                                         "values": [values(SHEET_RETURNED, LEADS)]}),
+    "sheet-refused-revision-uneven": sheet(LEAD_ARGS, responses={"drive": [drive(57), drive(None)],
+                                                                 "values": [values(SHEET_RETURNED, LEADS)]}),
+}
+
+
+def _sheet_environ(spec, endpoint):
+    """The sheet variables for one case: the fake's endpoint and a fake credential, then the case's own values."""
+    environ = {"FLOWASSERT_SHEETS_TEST_ENDPOINT": endpoint}
+    if spec["credential"] in ("token", "both"):
+        environ["FLOWASSERT_SHEETS_TOKEN"] = FAKE_TOKEN
+    if spec["credential"] in ("key", "both"):
+        environ["FLOWASSERT_SHEETS_API_KEY"] = FAKE_KEY
+    environ.update(spec["env"])
+    return environ
+
+
+def run_sheet_case(spec, folder):
+    """Run one sheet case in `folder` against the local fake: (exit status, stdout, stderr, requests)."""
+    credential = ("key", FAKE_KEY) if spec["credential"] == "key" else ("token", FAKE_TOKEN)
+    stdout, stderr = io.StringIO(), io.StringIO()
+    saved_env = {name: os.environ.pop(name) for name in SHEET_VARIABLES if name in os.environ}
+    cwd = os.getcwd()
+    with FakeSheetsApi(json.loads(json.dumps(spec["responses"])), credential=credential) as api:
+        os.environ.update(_sheet_environ(spec, api.endpoint))
+        os.chdir(folder)
+        saved = cli.datetime, sheets.datetime
+        cli.datetime = sheets.datetime = _FixedDatetime
+        try:
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                code = cli.main(spec["args"] + ["--json", "report.json", "--html", "report.html"])
+        finally:
+            cli.datetime, sheets.datetime = saved
+            os.chdir(cwd)
+            for name in SHEET_VARIABLES:
+                os.environ.pop(name, None)
+            os.environ.update(saved_env)
+    requests = [[r["method"], r["path"], [[k, "FLOWASSERT_SHEETS_API_KEY" if k == "key" else v] for k, v in r["query"]]]
+                for r in api.requests]
+    return code, stdout.getvalue(), stderr.getvalue(), requests
+
+
+def write_sheet_case(folder, name, spec):
+    """Write one sheet case's inputs, the fake's responses, and the checker's outputs and requests into `folder`."""
+    folder.mkdir(parents=True)
+    for file, data in spec["files"].items():
+        (folder / file).write_bytes(data)
+    case = {"name": name, "args": spec["args"], "credential": spec["credential"], "env": spec["env"]}
+    (folder / "case.json").write_text(json.dumps(case, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (folder / "sheet-responses.json").write_text(json.dumps(spec["responses"], indent=2, ensure_ascii=False) + "\n",
+                                                 encoding="utf-8")
+    with tempfile.TemporaryDirectory() as tmp:
+        for file, data in spec["files"].items():
+            Path(tmp, file).write_bytes(data)
+        code, stdout, stderr, requests = run_sheet_case(spec, tmp)
+        for report in ("report.json", "report.html"):
+            if Path(tmp, report).exists():
+                shutil.copyfile(Path(tmp, report), folder / report)
+    (folder / "exit_status.txt").write_text(f"{code}\n", encoding="utf-8")
+    (folder / "stdout.txt").write_bytes(stdout.encode("utf-8"))
+    (folder / "stderr.txt").write_bytes(stderr.encode("utf-8"))
+    (folder / "requests.json").write_text(json.dumps(requests, indent=2) + "\n", encoding="utf-8")
+
+
 def _files(name, spec):
     files, run = spec
     files = dict(files)
@@ -383,9 +571,12 @@ def write_case(folder, name, spec):
     (folder / "stderr.txt").write_bytes(stderr.getvalue().encode("utf-8"))
 
 
-def write_all(target):
+def write_all(target, sheets_target=None):
     for name, spec in CASES.items():
         write_case(target / name, name, spec)
+    if sheets_target is not None:
+        for name, spec in SHEET_CASES.items():
+            write_sheet_case(sheets_target / name, name, spec)
 
 
 def differences(expected_root, actual_root):
@@ -398,27 +589,29 @@ def differences(expected_root, actual_root):
 
 
 def check():
-    """The paths under offline/golden/ that differ from what write_all writes now."""
+    """The paths under offline/golden/ and offline/golden-sheets/ that differ from what write_all writes now."""
     with tempfile.TemporaryDirectory() as tmp:
-        write_all(Path(tmp))
-        return differences(Path(tmp), GOLDEN)
+        write_all(Path(tmp, "golden"), Path(tmp, "golden-sheets"))
+        return ([f"offline/golden/{n}" for n in differences(Path(tmp, "golden"), GOLDEN)]
+                + [f"offline/golden-sheets/{n}" for n in differences(Path(tmp, "golden-sheets"), GOLDEN_SHEETS)])
 
 
 def main(argv):
     if argv == ["--check"]:
         diff = check()
         for name in diff:
-            print(f"offline/golden/{name} is not current", file=sys.stderr)
+            print(f"{name} is not current", file=sys.stderr)
         if diff:
             print("run python3 offline/bench/golden.py to write it again", file=sys.stderr)
         return 1 if diff else 0
     if argv:
         print(__doc__, file=sys.stderr)
         return 2
-    if GOLDEN.exists():
-        shutil.rmtree(GOLDEN)
-    write_all(GOLDEN)
-    print(f"wrote {len(CASES)} cases to {GOLDEN}")
+    for folder in (GOLDEN, GOLDEN_SHEETS):
+        if folder.exists():
+            shutil.rmtree(folder)
+    write_all(GOLDEN, GOLDEN_SHEETS)
+    print(f"wrote {len(CASES)} cases to {GOLDEN} and {len(SHEET_CASES)} to {GOLDEN_SHEETS}")
     return 0
 
 

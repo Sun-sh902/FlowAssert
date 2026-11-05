@@ -1,0 +1,20 @@
+Mismatch: 4 rows of unknown total
+Verified 0 · Mismatch 1 · Unverified 3
+Source read by FlowAssert from Google Sheets: spreadsheet 1SyntheticSpreadsheet-FlowAssert_0001, range Leads!A1:C500, at 2000-01-01T00:00:00Z.
+Drive version 57 before and after the values were read.
+Source population unknown: the batch cannot be Verified.
+  record 1 LEAD-001: Unverified
+    field:email unknown: empty value; a missing value is not assumed to be a difference ('' vs 'lead001@example.test')
+  record 2 (no key): Unverified
+    existence unknown: invalid or duplicate source key
+    uniqueness unknown: invalid or duplicate source key
+    field:phone unknown: invalid or duplicate source key
+    field:email unknown: invalid or duplicate source key
+  record 3 LEAD-003: Unverified
+    field:phone unknown: empty value; a missing value is not assumed to be a difference ('' vs '+1 555 0100 003')
+  record 4 LEAD-004: Mismatch
+    existence fail: key not found in stated complete destination
+    uniqueness unknown: insufficient evidence
+    field:phone unknown: insufficient evidence
+    field:email unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

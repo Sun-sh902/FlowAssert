@@ -1,0 +1,1 @@
+refused: --source-range 'A1:C' must name a tab and bounded columns, such as Leads!A1:F or Leads!A1:F500

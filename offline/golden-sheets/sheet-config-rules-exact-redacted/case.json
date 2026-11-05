@@ -1,0 +1,19 @@
+{
+  "name": "sheet-config-rules-exact-redacted",
+  "args": [
+    "--source-sheet",
+    "1SyntheticSpreadsheet-FlowAssert_0001",
+    "--source-range",
+    "'Q3 leads'!A2:D9",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--source-complete",
+    "--details",
+    "all",
+    "--redact-values"
+  ],
+  "credential": "token",
+  "env": {}
+}

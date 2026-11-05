@@ -1,0 +1,20 @@
+[
+  [
+    "GET",
+    "/v4/spreadsheets/1SyntheticSpreadsheet-FlowAssert_0001/values/Leads%21A1%3AC",
+    [
+      [
+        "majorDimension",
+        "ROWS"
+      ],
+      [
+        "valueRenderOption",
+        "FORMATTED_VALUE"
+      ],
+      [
+        "dateTimeRenderOption",
+        "FORMATTED_STRING"
+      ]
+    ]
+  ]
+]

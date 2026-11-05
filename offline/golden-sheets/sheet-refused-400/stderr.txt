@@ -1,0 +1,1 @@
+refused: Google Sheets values: the request was not accepted (HTTP 400 INVALID_ARGUMENT); check that the tab exists and the range lies inside it

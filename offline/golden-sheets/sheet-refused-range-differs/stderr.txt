@@ -1,0 +1,1 @@
+refused: Google Sheets returned the range 'Leads!A1:D1000' for 'Leads!A1:C', which is not the range asked for
