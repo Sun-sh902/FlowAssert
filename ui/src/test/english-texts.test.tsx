@@ -205,7 +205,7 @@ describe("every golden summary line and refusal has an explanation", () => {
     const lines = summaryGlosses(readFileSync(join(GOLDEN, "example", "stdout.txt"), "utf-8"));
     // Three record lines share one explanation.
     expect(lines.filter((l) => l.line.startsWith("  record"))).toHaveLength(1);
-    expect(lines[0]!.zh).toBe("批次结果：不一致。来源文件有 4 行，总数 4。");
+    expect(lines[0]!.zh).toBe("批次结果：不一致。来源有 4 行，总数 4。");
   });
 
   test("an unknown text has none", () => {

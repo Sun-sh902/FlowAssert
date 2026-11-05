@@ -294,7 +294,7 @@ const reason = (text: string) => {
 const SUMMARY: readonly Entry[] = [
   ["claim", /^At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows\.$/, () => CLAIM_ZH],
   ["limitations", /^Files and completeness statements are not authenticated\. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline\.$/, () => LIMITS_ZH],
-  ["summary-state", /^(Verified|Mismatch|Unverified|Pending): (\d+) rows of (unknown total|\d+)$/, (s, n, t) => `批次结果：${STATE[s!]}。来源文件有 ${n} 行，${t === "unknown total" ? "总数未知" : `总数 ${t}`}。`],
+  ["summary-state", /^(Verified|Mismatch|Unverified|Pending): (\d+) rows of (unknown total|\d+)$/, (s, n, t) => `批次结果：${STATE[s!]}。来源有 ${n} 行，${t === "unknown total" ? "总数未知" : `总数 ${t}`}。`],
   ["summary-counts", /^Verified (\d+) · Mismatch (\d+) · Unverified (\d+)$/, (v, m, u) => `各状态的记录数：已验证 ${v} · 不一致 ${m} · 未验证 ${u}。`],
   ["summary-identical", /^Source and destination files were identical \(--allow-identical-content\)\.$/, () => "来源文件和目标文件内容完全相同（已用 --allow-identical-content 允许）。"],
   [
