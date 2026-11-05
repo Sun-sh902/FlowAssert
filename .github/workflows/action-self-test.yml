@@ -29,8 +29,8 @@ jobs:
       # The golden files are compared byte for byte, so Windows must not turn their line endings into CR LF.
       - name: Keep line endings as committed
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
 
