@@ -11,7 +11,8 @@ permissions:
 jobs:
   offline:
     name: Offline check (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    # Python 3.9 has no build for Ubuntu 26.04, which ubuntu-latest became in November 2026; it runs on 24.04.
+    runs-on: ${{ matrix.python == '3.9' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:

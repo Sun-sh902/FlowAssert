@@ -22,8 +22,9 @@ jobs:
         os: [ubuntu-latest, macos-15-intel, windows-latest]
         python: ["3.13"]
         include:
-          # The oldest Python the checker supports.
-          - os: ubuntu-latest
+          # The oldest Python the checker supports. It has no build for Ubuntu 26.04, which ubuntu-latest became in
+          # November 2026, so it runs on 24.04.
+          - os: ubuntu-24.04
             python: "3.9"
     steps:
       # The golden files are compared byte for byte, so Windows must not turn their line endings into CR LF.
