@@ -25,6 +25,7 @@ Every check that does not use the new options is unchanged: the same printed sum
 - `flowassert_offline.__version__` and the packaged checker's `VERSION` are `0.7.0`; the n8n example holds that build.
 
 - The trial feedback form is in one language at a time: `.github/ISSUE_TEMPLATE/trial_feedback.yml` is in English only, and its Chinese copy, `trial_feedback_zh-CN.yml`, is the one the Chinese interface and `README.zh-CN.md` link to. The English changelog no longer quotes Chinese interface texts.
+- On the CSV check page, when the last check found a stated total that differs from the rows it read, a note under that total, and under its statement when the box is ticked, says that the check did not apply the statement. The checkbox stays as the person left it; the note is read from that check's report and goes away with the result on any change. Suggested in the first trial feedback ([#2](https://github.com/Sun-sh902/FlowAssert/issues/2)).
 - The CSV check page chooses each file with its own "Choose a file" button, in the interface's language. The browser's file button, which the browser labels in the system's language (Chinese on a Chinese system even in the English interface), is hidden.
 
 ## 0.6.0 (2026-11-04)

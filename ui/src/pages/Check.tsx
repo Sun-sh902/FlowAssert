@@ -396,11 +396,11 @@ function FieldEditor({
 
 /* ---------- Premises ---------- */
 
-function Statement({ checked, onChange, title, body, testId }: { checked: boolean; onChange: (v: boolean) => void; title: string; body: string; testId: string }) {
+function Statement({ checked, onChange, title, body, testId, note }: { checked: boolean; onChange: (v: boolean) => void; title: string; body: string; testId: string; note?: string | null }) {
   const id = useId();
   return (
     <div className="flex items-start gap-3 py-2.5">
-      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-describedby={`${id}-b`} className="mt-1 size-4 shrink-0 accent-(--fa-ink)" data-testid={testId} />
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-describedby={note ? `${id}-b ${id}-n` : `${id}-b`} className="mt-1 size-4 shrink-0 accent-(--fa-ink)" data-testid={testId} />
       <div className="min-w-0">
         <label htmlFor={id} className="text-sm font-medium text-ink">
           {title}
@@ -408,23 +408,52 @@ function Statement({ checked, onChange, title, body, testId }: { checked: boolea
         <p id={`${id}-b`} className="mt-0.5 text-xs leading-[1.5] text-ink-3">
           {body}
         </p>
+        {note && (
+          <p id={`${id}-n`} className="mt-1 text-xs font-medium leading-[1.5] text-ink-2" data-testid={`${testId}-note`}>
+            {note}
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-function CountInput({ label, hint, value, onChange, testId }: { label: string; hint: string; value: string; onChange: (v: string) => void; testId: string }) {
+function CountInput({ label, hint, value, onChange, testId, note }: { label: string; hint: string; value: string; onChange: (v: string) => void; testId: string; note?: string | null }) {
   const id = useId();
   const invalid = value !== "" && !COUNT.test(value);
   return (
-    <label className="fa-field min-w-0" data-invalid={invalid || undefined}>
+    <label className="fa-field min-w-0 self-start" data-invalid={invalid || undefined}>
       <span className="label">{label}</span>
-      <input inputMode="numeric" value={value} onChange={(e) => onChange(e.target.value)} aria-invalid={invalid || undefined} aria-describedby={id} data-testid={testId} autoComplete="off" />
+      <input inputMode="numeric" value={value} onChange={(e) => onChange(e.target.value)} aria-invalid={invalid || undefined} aria-describedby={note ? `${id} ${id}-n` : id} data-testid={testId} autoComplete="off" />
       <span id={id} className={cn("text-xs", invalid ? "text-mismatch-ink" : "text-ink-3")}>
         {invalid ? "Write a whole number, with digits only, or leave it empty." : hint}
       </span>
+      {note && (
+        <span id={`${id}-n`} className="text-xs font-medium text-ink-2" data-testid={`${testId}-note`}>
+          {note}
+        </span>
+      )}
     </label>
   );
+}
+
+/**
+ * Where the last check found a stated total that differs from the rows it read, the notes shown beside that total and
+ * its completeness statement: the checkbox stays ticked, but the check did not apply the statement. Read from that
+ * check's report only; any change removes the result, and these notes with it.
+ */
+function countNotes(view: RunResult["view"] | undefined, side: Side): { statement: string | null; count: string | null } {
+  const premises = new Map(view?.premises ?? []);
+  const count = premises.get(`${side}_count`);
+  if (!count || count.matched !== false) return { statement: null, count: null };
+  const what = side === "source" ? "the file" : "the export";
+  const stated = premises.get(`${side}_complete`)?.stated === true;
+  return {
+    statement: stated ? `Not applied in the last check: the total you entered (${String(count.stated)}) differs from the row count of ${what} (${count.observed}).` : null,
+    count: stated
+      ? `Not applied in the last check: this total differs from the row count of ${what} (${count.observed}), so the ${side} statement was withdrawn.`
+      : `In the last check, this total differed from the row count of ${what} (${count.observed}).`,
+  };
 }
 
 /* ---------- Result ---------- */
@@ -625,6 +654,9 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   /** The number of the check that is running, or 0. */
   const running = useRef(0);
   const runs = useRef(0);
+  const lastView = run.kind === "done" ? run.result.view : null;
+  const sourceNotes = countNotes(lastView, "source");
+  const destinationNotes = countNotes(lastView, "destination");
   const changed = () => {
     if (!running.current) return setRun({ kind: "idle" });
     running.current = 0;
@@ -960,6 +992,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
             title="The source file is the whole batch"
             body="Tick only if this file holds every record that should have reached the destination. Without this statement the batch can never be Verified."
             testId="source-complete"
+            note={sourceNotes.statement}
           />
           <Statement
             checked={destinationComplete}
@@ -967,6 +1000,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
             title="The destination export covers the whole object"
             body="Tick only if the export holds every record of that object in the destination system, not a filtered view or one page of it. Without this statement, missing records and duplicates stay unknown."
             testId="destination-complete"
+            note={destinationNotes.statement}
           />
           <div className="grid gap-x-6 border-t border-line-subtle sm:grid-cols-2">
             <CountInput
@@ -975,6 +1009,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
               value={sourceCount}
               onChange={(v) => (setSourceCount(v), changed())}
               testId="source-count"
+              note={sourceNotes.count}
             />
             <CountInput
               label="Destination total seen in the original system (optional)"
@@ -982,6 +1017,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
               value={destinationCount}
               onChange={(v) => (setDestinationCount(v), changed())}
               testId="destination-count"
+              note={destinationNotes.count}
             />
           </div>
           <div className="border-t border-line-subtle">

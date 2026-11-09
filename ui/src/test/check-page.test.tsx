@@ -125,6 +125,42 @@ describe("CSV check page", () => {
     expect(within(result).getByTestId("summary").textContent).toBe(golden("example-page-no-premises", "stdout.txt"));
   });
 
+  it("says beside a total and its statement when the last check did not apply the statement, and drops that note on any change", async () => {
+    const user = await chooseExample();
+    await chooseColumns(user);
+    await user.click(screen.getByTestId("source-complete"));
+    await user.click(screen.getByTestId("destination-complete"));
+    await user.type(screen.getByTestId("source-count"), "4");
+    await user.type(screen.getByTestId("destination-count"), "5");
+    // Before any check there is nothing to say.
+    expect(screen.queryByTestId("destination-count-note")).toBeNull();
+    await user.click(screen.getByTestId("run-check"));
+    await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
+    // The checkbox stays ticked, so the note says the check did not apply it; the matching source total says nothing.
+    expect((screen.getByTestId("destination-complete") as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByTestId("destination-complete-note").textContent).toBe("Not applied in the last check: the total you entered (5) differs from the row count of the export (4).");
+    expect(screen.getByTestId("destination-count-note").textContent).toBe("Not applied in the last check: this total differs from the row count of the export (4), so the destination statement was withdrawn.");
+    expect(screen.queryByTestId("source-complete-note")).toBeNull();
+    expect(screen.queryByTestId("source-count-note")).toBeNull();
+    // Read by a screen reader with the field it is about.
+    const described = screen.getByTestId("destination-count").getAttribute("aria-describedby")!.split(" ");
+    expect(described).toContain(screen.getByTestId("destination-count-note").id);
+    // Any change removes the result, and the note with it.
+    await user.type(screen.getByTestId("destination-count"), "0");
+    expect(screen.queryByTestId("destination-count-note")).toBeNull();
+    expect(screen.queryByTestId("destination-complete-note")).toBeNull();
+  });
+
+  it("notes a total that differs even without the statement, and says nothing was withdrawn", async () => {
+    const user = await chooseExample();
+    await chooseColumns(user);
+    await user.type(screen.getByTestId("source-count"), "7");
+    await user.click(screen.getByTestId("run-check"));
+    await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
+    expect(screen.getByTestId("source-count-note").textContent).toBe("In the last check, this total differed from the row count of the file (4).");
+    expect(screen.queryByTestId("source-complete-note")).toBeNull();
+  });
+
   it("stores nothing the user chose or stated, and leaves the address alone", async () => {
     const before = window.location.href;
     // Saved reports (v0.5.0) live in IndexedDB: a check without "Keep" must not touch it at all, not even to read.
