@@ -22,6 +22,7 @@ import { PagesOriginNotice, StorageProblem } from "../components/report/Storage"
 import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
 import { canonicalConfig, readConfig, Refused } from "../offline/check";
 import { ENCODINGS, type Encoding } from "../offline/csv";
+import { TimeLeft, timeLeftText } from "../offline/eta";
 import { EvaluatorError, parseRule, type Scope } from "../offline/evaluator";
 import type { ChosenConfig } from "../offline/pageCheck";
 import { SUPPORTED_DIRECTIVES } from "../offline/strptime";
@@ -56,7 +57,7 @@ interface FieldRow {
 
 type RunState =
   | { kind: "idle" }
-  | { kind: "running"; progress: Progress | null }
+  | { kind: "running"; progress: Progress | null; left: number | null }
   | { kind: "done"; result: RunResult }
   | { kind: "failed"; message: string }
   | { kind: "cancelled"; changed?: boolean };
@@ -83,6 +84,8 @@ const PHASE: Record<Progress["phase"], string> = {
 };
 
 const COUNT = /^[0-9]+$/;
+/** A count as the page writes it: 1,000,000. */
+const grouped = (n: number) => n.toLocaleString("en-US");
 
 const ruleText = (row: FieldRow) => (row.rule === "date" ? `date:${row.format}` : row.rule);
 
@@ -648,6 +651,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const configInput = useRef<HTMLInputElement>(null);
+  const eta = useRef<TimeLeft | null>(null);
 
   // Any change makes an earlier result stale: it is removed rather than shown beside choices it was not made with.
   // A change while a check runs stops that check, so its result never appears beside the new choices.
@@ -772,12 +776,16 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       destinationCount: destinationCount || null,
       allowIdenticalContent: allowIdentical,
     };
-    setRun({ kind: "running", progress: null });
+    setRun({ kind: "running", progress: null, left: null });
     const id = ++runs.current;
     running.current = id;
+    const timeLeft = new TimeLeft(performance.now());
+    eta.current = timeLeft;
     // A check that was stopped or replaced delivers nothing, whatever the runner still returns.
     try {
-      const result = await runner.run(input, (progress) => setRun((r) => (r.kind === "running" ? { kind: "running", progress } : r)));
+      const result = await runner.run(input, (progress) =>
+        setRun((r) => (r.kind === "running" && running.current === id ? { kind: "running", progress, left: timeLeft.update(progress.fraction, performance.now()) } : r)),
+      );
       if (running.current === id) setRun({ kind: "done", result });
     } catch (e) {
       if (e instanceof Cancelled || running.current !== id) return;
@@ -792,6 +800,16 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
     runner.cancel();
     setRun({ kind: "cancelled" });
   };
+
+  // Between two progress reports the time left keeps counting down with the clock.
+  const isRunning = run.kind === "running";
+  useEffect(() => {
+    if (!isRunning) return;
+    const tick = setInterval(() => {
+      setRun((r) => (r.kind === "running" && r.progress && eta.current ? { ...r, left: eta.current.update(r.progress.fraction, performance.now()) } : r));
+    }, 250);
+    return () => clearInterval(tick);
+  }, [isRunning]);
 
   // A finished check moves focus to what it produced: the result, or the refusal or failure in its place.
   useEffect(() => {
@@ -814,7 +832,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const sample = (text: string, name: string) => saveBlob(new Blob([text], { type: "text/csv" }), name);
 
   const progress = run.kind === "running" ? run.progress : null;
-  const percent = progress && progress.total ? Math.round((progress.bytes / progress.total) * 100) : 0;
+  const percent = progress ? Math.round(progress.fraction * 100) : 0;
 
   return (
     <div className="grid gap-10">
@@ -1058,14 +1076,15 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
             <div role="progressbar" aria-label="Check progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-1.5 overflow-hidden rounded-full bg-sunken">
               <div className="h-full bg-brand transition-[width]" style={{ width: `${percent}%` }} />
             </div>
-            <p className="mt-1.5 text-xs text-ink-2" aria-live="polite">
-              <span>{progress ? PHASE[progress.phase] : "Starting the check"}</span>
-              {progress && progress.rows > 0 && (
-                <>
-                  {" · "}
-                  <span>{`${progress.rows} rows read`}</span>
-                </>
-              )}
+            <p className="mt-1.5 flex flex-wrap gap-x-1.5 text-xs text-ink-2">
+              <span aria-live="polite">{progress ? PHASE[progress.phase] : "Starting the check"}</span>
+              <span aria-hidden>·</span>
+              <span data-testid="time-left">{timeLeftText(run.left)}</span>
+            </p>
+            <p className="mt-0.5 flex flex-wrap gap-x-1.5 font-mono text-[11.5px] tabular text-ink-3" data-testid="rows-read">
+              <span>{`Source ${grouped(progress?.sourceRows ?? 0)} rows`}</span>
+              <span aria-hidden>·</span>
+              <span>{`Destination ${grouped(progress?.destinationRows ?? 0)} rows`}</span>
             </p>
           </div>
         )}

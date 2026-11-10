@@ -50,7 +50,7 @@ async function watchHeap(page: Page) {
   cdp.on("Target.detachedFromTarget", (event) => void workers.delete(event.sessionId));
   cdp.on("Target.receivedMessageFromTarget", (event) => {
     const usage = (JSON.parse(event.message) as { result?: HeapUsage }).result;
-    if (!usage || typeof usage.usedSize !== "number") return;
+    if (!usage || typeof usage.usedSize !== "number" || (JSON.parse(event.message) as { id: number }).id >= 1_000_000) return;
     const buffers = usage.backingStorageSize ?? 0;
     peak.samples++;
     peak.workerHeap = Math.max(peak.workerHeap, usage.usedSize);
@@ -68,10 +68,30 @@ async function watchHeap(page: Page) {
   const timer = setInterval(() => void sample(), 50);
   return {
     peak,
+    /** Stop sampling; then collect garbage in each worker and read what the result still holds. */
     async stop() {
       clearInterval(timer);
       await sample();
+      const held = { heap: 0, buffers: 0 };
+      const answered = new Promise<void>((resolve) => {
+        let waiting = workers.size;
+        if (!waiting) resolve();
+        cdp.on("Target.receivedMessageFromTarget", (event) => {
+          const message = JSON.parse(event.message) as { id: number; result?: HeapUsage };
+          if (message.id < 1_000_000 || !message.result) return;
+          held.heap = Math.max(held.heap, message.result.usedSize);
+          held.buffers = Math.max(held.buffers, message.result.backingStorageSize ?? 0);
+          if (--waiting === 0) resolve();
+        });
+      });
+      let id = 1_000_000;
+      for (const sessionId of workers) {
+        await cdp.send("Target.sendMessageToTarget", { sessionId, message: JSON.stringify({ id: 1, method: "HeapProfiler.collectGarbage" }) });
+        await cdp.send("Target.sendMessageToTarget", { sessionId, message: JSON.stringify({ id: ++id, method: "Runtime.getHeapUsage" }) });
+      }
+      await Promise.race([answered, new Promise((r) => setTimeout(r, 10_000))]);
       await cdp.detach().catch(() => undefined);
+      return held;
     },
   };
 }
@@ -119,12 +139,27 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
     }, 100);
   });
   const heap = await watchHeap(page);
-  const started = Date.now();
+  // The time is taken in the page: from the click to the moment the result is in the document.
+  await page.evaluate(() => {
+    const timing = { clicked: 0, shown: 0 };
+    (window as unknown as { timing: typeof timing }).timing = timing;
+    const button = document.querySelector('[data-testid="run-check"]')!;
+    button.addEventListener("click", () => (timing.clicked = performance.now()), { capture: true, once: true });
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector("[data-result]")) return;
+      timing.shown = performance.now();
+      observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
   await page.getByTestId("run-check").click();
   await page.locator("[data-result]").waitFor({ timeout: 15 * 60_000 });
-  const seconds = (Date.now() - started) / 1000;
+  const seconds = await page.evaluate(() => {
+    const { clicked, shown } = (window as unknown as { timing: { clicked: number; shown: number } }).timing;
+    return Math.round(shown - clicked) / 1000;
+  });
   const probe = await page.evaluate(() => (window as unknown as { probe: { late: number; ticks: number; progress: number[] } }).probe);
-  await heap.stop();
+  const held = await heap.stop();
 
   await expect(page.locator("[data-result]")).toHaveAttribute("data-result", "Mismatch");
   await expect(page.locator('[data-count="Mismatch"]')).toHaveText("3");
@@ -139,12 +174,16 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   }
   const report = { rows: ROWS, seconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size,
     peakPageHeapMiB: MiB(heap.peak.pageHeap), peakWorkerHeapMiB: MiB(heap.peak.workerHeap), peakWorkerBuffersMiB: MiB(heap.peak.workerBuffers),
-    peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heapSamples: heap.peak.samples };
+    peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heldWorkerHeapMiB: MiB(held.heap), heldWorkerBuffersMiB: MiB(held.buffers), heapSamples: heap.peak.samples };
   writeReport("check-large", report);
   testInfo.annotations.push({ type: "large-file", description: JSON.stringify(report) });
   console.info(`large-file check: ${JSON.stringify(report)}`);
   expect(summary).toBe(cli);
-  // Responsive: the page's timers never waited half a second, and the progress bar moved.
-  expect(probe.late).toBeLessThan(500);
+  // Responsive: the page's timers were never 100 ms late, and the progress bar moved.
+  expect(probe.late).toBeLessThan(100);
+  // Bounded: a file read as a stream is never held whole. The two files are 45 MB each; before 1.0 the worker's
+  // array buffers peaked above 150 MiB and its heap above 500 MiB (docs/design/1.0-streaming.md).
+  expect(report.peakWorkerBuffersMiB).toBeLessThan(90);
+  expect(report.peakWorkerHeapMiB).toBeLessThan(300);
   expect(report.progressSeen).toBeGreaterThan(2);
 });

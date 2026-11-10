@@ -64,7 +64,7 @@ The file has more data rows than `--max-rows` allows (1,000,000 by default). Pas
 
 ### `FILE: file size N bytes exceeds --max-bytes limit of N`
 
-The file is larger than `--max-bytes` allows (209,715,200 bytes, 200 MiB, by default), checked before reading. Pass a higher `--max-bytes`. The browser check uses the default limit; use the command line for a larger file, where the destination is read without holding it in memory.
+The file is larger than `--max-bytes` allows (209,715,200 bytes, 200 MiB, by default), checked before reading. Pass a higher `--max-bytes`. The browser check uses the default limit; use the command line for a larger file.
 
 ### `FILE: unexpected end of data`
 

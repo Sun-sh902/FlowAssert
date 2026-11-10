@@ -249,8 +249,8 @@ export class Evaluation {
   private readonly destinationCount: number | bigint | null;
   /** Per source row: its key, or null. */
   readonly keys: (string | null)[] = [];
-  /** Per source row: its compared field values. */
-  private readonly values: Value[][] = [];
+  /** Per compared field: the value of each source row. One array per field, not one per row, to keep a million rows small. */
+  private readonly values: Value[][];
   /** key -> position of the first source row with it. */
   private readonly first = new Map<string, number>();
   private readonly repeated = new Set<string>();
@@ -271,6 +271,7 @@ export class Evaluation {
   constructor(obligation: Obligation, premises: PremiseInput = {}) {
     [this.sourceKey, this.destinationKey] = obligation.key;
     this.fields = fieldsOf(obligation);
+    this.values = this.fields.map(() => []);
     const scope = obligation.scope === undefined ? "source" : obligation.scope;
     if (scope !== "source" && scope !== "exact") throw new EvaluatorError(`scope must be one of ${SCOPES.join(", ")}`);
     this.scope = scope;
@@ -288,7 +289,7 @@ export class Evaluation {
     else if (!this.first.has(k)) this.first.set(k, position);
     else this.repeated.add(k);
     this.keys.push(k);
-    this.values.push(fieldValues);
+    for (let i = 0; i < this.values.length; i++) this.values[i]!.push(fieldValues[i] ?? null);
   }
 
   /** add_destination, with the row already read as its key and its field values. */
@@ -312,12 +313,18 @@ export class Evaluation {
     this.candidates[position]! += 1;
     if (this.repeated.has(k)) return;
     if (this.candidates[position] === 1) {
-      const expected = this.values[position]!;
-      if (fieldValues.some((v, i) => v !== expected[i])) this.actual.set(position, fieldValues);
+      const values = this.values;
+      for (let i = 0; i < values.length; i++) {
+        if ((fieldValues[i] ?? null) !== values[i]![position]) {
+          this.actual.set(position, fieldValues);
+          break;
+        }
+      }
     } else this.actual.delete(position); // no arbitrary candidate is selected
   }
 
-  finish(details: Details): EvaluationResult {
+  /** `progress`, when given, is called about every 20,000 records with how many have their state. */
+  finish(details: Details, progress?: (done: number, total: number) => void): EvaluationResult {
     this.candidates ??= new Float64Array(this.keys.length);
     const n = this.keys.length;
     this.sourceCountMatches = this.sourceCount === null ? null : sameCount(this.sourceCount, n);
@@ -325,7 +332,10 @@ export class Evaluation {
     // A destination row that cannot be matched could be the record being looked for.
     this.coverage = this.destinationComplete && this.keyless === 0 && this.destinationCountMatches !== false;
     this.states = new Uint8Array(n);
-    for (let p = 0; p < n; p++) this.states[p] = CODE[this.record(p).state];
+    for (let p = 0; p < n; p++) {
+      this.states[p] = CODE[this.record(p).state];
+      if (progress && p % 20_000 === 19_999) progress(p + 1, n);
+    }
     const counts: Counts = { Verified: 0, Mismatch: 0, Pending: 0, Unverified: 0 };
     for (const code of this.states) counts[STATES[code]!]++;
     const populationKnown = this.sourceComplete && this.invalidSourceKeys === 0 && this.repeated.size === 0 && this.sourceCountMatches !== false;
@@ -391,10 +401,10 @@ export class Evaluation {
     } else if (candidates) {
       rules.existence = rule("pass", "candidate observed");
       if (this.coverage) rules.uniqueness = rule("pass", "one row in stated complete destination");
-      const expected = this.values[position]!;
-      const actual = this.actual.get(position) ?? expected;
+      const actual = this.actual.get(position);
       this.fields.forEach(([s, , r], i) => {
-        rules["field:" + s] = compare(expected[i] ?? null, actual[i] ?? null, r);
+        const expected = this.values[i]![position] ?? null;
+        rules["field:" + s] = compare(expected, actual ? (actual[i] ?? null) : expected, r);
       });
     } else if (this.coverage) {
       rules.existence = rule("fail", "key not found in stated complete destination");

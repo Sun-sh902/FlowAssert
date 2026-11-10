@@ -271,7 +271,6 @@ flowassert-verify --source-sheet SPREADSHEET_ID --source-range 'Leads!A1:F' \
 | 列的选择 | 总是使用配置：报告记录 `config_file_sha256`、`obligation.rules`、`obligation.scope` 和两个编码 | `--key`/`--field`、`--mapping` 或 `--config` |
 | 选项 | 默认上限（200 MiB、1,000,000 行）、`--details problems`、不隐去值 | 所有选项 |
 | 两次选择同一个文件 | 两个选择的文件名、大小、修改时间和字节都相同时拒绝；浏览器不提供文件路径 | 路径指向同一文件时拒绝 |
-| 内存 | 读取时整个文件留在内存中 | 来源只保留用到的列，目标逐行读取 |
 
 浏览器核对按同一份规范实现，并与命令行对照测试：全部一致性样例、97 个逐字节比较的黄金样例，以及随机样例（10,000 个中 0 处差异）。它是第二个实现，出现差异就是缺陷，欢迎报告。
 

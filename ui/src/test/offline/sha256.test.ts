@@ -7,7 +7,7 @@ import { webcrypto } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { sha256 } from "../../offline/sha256";
+import { Sha256, sha256 } from "../../offline/sha256";
 import { GOLDEN } from "./golden-cases";
 import { random } from "./random-cases";
 
@@ -63,5 +63,26 @@ describe("pure SHA-256", () => {
       }
     }
     expect(files).toBeGreaterThan(500);
+  });
+
+  test("fed in pieces of every size, the digest is the one of the whole input", async () => {
+    const { next, int } = random(20261109);
+    const bytes = randomBytes(next, 5000);
+    const whole = await subtle(bytes);
+    for (let size = 1; size <= 200; size++) {
+      const h = new Sha256();
+      for (let at = 0; at < bytes.length; at += size) h.update(bytes.subarray(at, at + size));
+      expect(hex(h.digest()), `pieces of ${size} bytes`).toBe(whole);
+    }
+    for (let run = 0; run < 200; run++) {
+      const h = new Sha256();
+      for (let at = 0; at < bytes.length; ) {
+        const size = int(0, 300);
+        h.update(bytes.subarray(at, at + size));
+        at += size;
+      }
+      expect(hex(h.digest()), `random pieces, run ${run}`).toBe(whole);
+    }
+    expect(hex(new Sha256().update(new Uint8Array(0)).update(new Uint8Array(0)).digest())).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
   });
 });

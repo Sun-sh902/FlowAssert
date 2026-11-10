@@ -3,7 +3,8 @@
  * or an evaluator reason stays exactly as supplied. Surrounding whitespace is kept, because React splits a sentence
  * around its expressions and the spaces belong to the neighbouring nodes.
  *
- * Catalogue keys write every number as "#", so one entry covers all its counts. A value takes the numbers back in order
+ * Catalogue keys write every number as "#", so one entry covers all its counts; a number written in groups of three,
+ * such as 1,000,000, is one number. A value takes the numbers back in order
  * through "#", or by position through "{1}", "{2}" when Chinese reorders them.
  */
 import { EXACT, PATTERNS } from "./zh-CN";
@@ -16,9 +17,12 @@ function fill(template: string, numbers: string[]): string {
   return template.replace(/#/g, () => numbers[next++] ?? "#");
 }
 
+/** A number as the interface writes it: digits, or digits in groups of three ("1,000,000"), which are one number. */
+const NUMBER = /\d{1,3}(?:,\d{3})+(?!\d)|\d+/g;
+
 function lookup(text: string): string | null {
-  const numbers = text.match(/\d+/g) ?? [];
-  const key = text.replace(/\d+/g, "#");
+  const numbers = text.match(NUMBER) ?? [];
+  const key = text.replace(NUMBER, "#");
   if (Object.hasOwn(EXACT, key)) return fill(EXACT[key]!, numbers);
   for (const [pattern, build] of PATTERNS) {
     const m = pattern.exec(text);

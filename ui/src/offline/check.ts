@@ -6,7 +6,7 @@
  * Exit status: 0 Verified, 1 Mismatch, 3 Unverified, 2 the input was refused, 4 internal failure. A refused or failed
  * check has no report: nothing partial is ever returned.
  */
-import { ENCODINGS, MAX_BYTES, MAX_ROWS, Refused, readCsv, sha256Hex, type Encoding } from "./csv";
+import { ENCODINGS, MAX_BYTES, MAX_ROWS, Refused, bytesStream, readCsv, sha256Hex, type ByteStream, type Encoding } from "./csv";
 import { DETAILS, Evaluation, EvaluatorError, SCOPES, parseRule, type Details, type Scope } from "./evaluator";
 import { DuplicateMember, JsonError, pyLoads, type PyValue } from "./pyjson";
 import { compareCodePoints, pyRepr, pyStrip } from "./pystr";
@@ -24,7 +24,10 @@ export interface InputFile {
   name: string;
   /** The size before reading, to refuse an oversized file without reading it. */
   size: number;
+  /** The whole file: for a configuration or mapping file, and for a CSV file when `open` is absent. */
   read: () => Uint8Array | Promise<Uint8Array>;
+  /** The file as a stream, so a CSV file is never held whole (csv.ts). */
+  open?: () => ByteStream;
 }
 
 export interface CheckArgs {
@@ -58,8 +61,8 @@ export interface CheckArgs {
   now?: () => string;
   /** Called while files are read: which file, bytes read, rows read. */
   progress?: (side: "source" | "destination", bytes: number, rows: number) => void;
-  /** Called when both files are read and the records are being evaluated. */
-  evaluating?: () => void;
+  /** Called when both files are read and the records are being evaluated, then as records are done, of `total`. */
+  evaluating?: (done: number, total: number) => void;
 }
 
 export interface CheckOutcome {
@@ -283,16 +286,21 @@ async function run(args: CheckArgs): Promise<Report> {
     ...counts,
   });
   const read = async (side: "source" | "destination", file: InputFile, encoding: Encoding, columns: string[], onRow: (values: string[]) => void) => {
-    const bytes = await file.read();
-    readCsv({ name: file.name, bytes, encoding }, columns, onRow, maxRows, args.progress && ((b, r) => args.progress!(side, b, r)));
-    return sha256Hex(bytes);
+    // A file given whole is read through the same stream reader, as one chunk.
+    const open = file.open ?? (() => {
+      const whole = file.read();
+      let stream: ByteStream | null = null;
+      return { read: async () => (stream ??= bytesStream(await whole)).read() };
+    });
+    const read = await readCsv({ name: file.name, open, encoding }, columns, onRow, maxRows, args.progress && ((b, r) => args.progress!(side, b, r)));
+    return read.sha256;
   };
   const sourceSha = await read("source", args.source, sourceEncoding, [key[0], ...fields.map(([s]) => s)], (v) => evaluation.addSource(v[0]!, v.slice(1)));
   const destinationSha = await read("destination", args.destination, destinationEncoding, [key[1], ...fields.map(([, d]) => d)], (v) =>
     evaluation.addDestination(v[0]!, v.slice(1)),
   );
-  args.evaluating?.();
-  const result = evaluation.finish(details);
+  args.evaluating?.(0, evaluation.keys.length);
+  const result = evaluation.finish(details, args.evaluating);
   const identical = sourceSha === destinationSha;
   if (identical && !args.allowIdenticalContent) {
     throw new Refused(

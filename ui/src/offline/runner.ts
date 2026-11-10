@@ -1,12 +1,13 @@
 /**
  * How the CSV check page runs a check: in a Web Worker (./worker.ts), so reading and evaluating large files never
  * blocks the page, or in this thread for the unit tests. Both run the same code (pageCheck, readHeader) and give the
- * same results. Nothing here makes a request: files are read with File.arrayBuffer, reports are built as Blobs.
+ * same results. Nothing here makes a request: files are read as streams (File.stream), never whole, and the reports
+ * are built as Blobs in pieces, so neither a file nor a report is ever one value in memory.
  *
  * A worker is started before any file is chosen, so a check never has to load code. Cancelling ends the worker at
  * once and starts the next one; a cancelled check never delivers a result.
  */
-import { MAX_BYTES, NeedMore, Refused, readHeader, sha256Hex, type Encoding } from "./csv";
+import { ByteFeed, MAX_BYTES, NeedMore, Refused, blobStream, readHeader, type Encoding } from "./csv";
 import type { DestinationOnlyRecord, Premise, SourceRecord, State } from "./evaluator";
 import { explain, type Explanation } from "./explain";
 import { pageCheck, type ChosenConfig } from "./pageCheck";
@@ -19,8 +20,16 @@ export interface Progress {
   /** Bytes of both files read so far, of `total`. */
   bytes: number;
   total: number;
+  /** Rows read from the file being read (as before 1.0), and from each file so far. */
   rows: number;
+  sourceRows: number;
+  destinationRows: number;
+  /** The share of the whole check that is done, from 0 to 1: reading, then evaluating, then writing. */
+  fraction: number;
 }
+
+/** The shares of a check's time, measured on files of a million rows: reading both files, evaluating, writing. */
+const SHARE = { reading: 0.62, evaluating: 0.14, writing: 0.24 } as const;
 
 export type HeaderResult = { ok: true; columns: string[] } | { ok: false; message: string };
 
@@ -128,6 +137,46 @@ function view(report: Report): ResultView {
 
 const same = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
+/** The SHA-256 of a file read as a stream. */
+async function digestOf(file: Blob): Promise<string> {
+  const stream = blobStream(file);
+  const feed = new ByteFeed();
+  for (let chunk = await stream.read(); chunk !== null; chunk = await stream.read()) {
+    feed.push(chunk);
+    while (feed.take() !== undefined);
+    if (stream.reuses) feed.own();
+  }
+  feed.end();
+  while (feed.take()!.length);
+  return feed.sha256();
+}
+
+/** How large the pieces of a report are when it is handed to a Blob. */
+const BLOB_PIECE = 1 << 20;
+
+/** A report as a Blob, from the pieces its writer yields: about 1 MiB of text at a time, never the whole text. */
+function blobOf(pieces: Iterable<string>, type: string, onPiece?: () => void): Blob {
+  const parts: Blob[] = [];
+  let text = "";
+  for (const piece of pieces) {
+    text += piece;
+    if (text.length < BLOB_PIECE) continue;
+    parts.push(new Blob([text]));
+    text = "";
+    onPiece?.();
+  }
+  parts.push(new Blob([text]));
+  return new Blob(parts, { type });
+}
+
+/** Counts the records a report writer has written, from the pieces it yields: one piece per record. */
+function* counted<T>(pieces: Iterable<T>, count: { n: number }): Generator<T> {
+  for (const piece of pieces) {
+    count.n++;
+    yield piece;
+  }
+}
+
 /**
  * Run one check in this thread. The browser does not say where a chosen file is, so two choices count as the same
  * file when their name, size, modification time and bytes are all equal: a copy that equal is refused too.
@@ -135,15 +184,14 @@ const same = (a: File, b: File) => a.name === b.name && a.size === b.size && a.l
 export async function runCheck(input: RunInput, onProgress: (p: Progress) => void): Promise<RunResult> {
   const total = input.source.size + input.destination.size;
   let sameFile = false;
-  if (same(input.source, input.destination)) {
-    const read = async (f: File) => sha256Hex(new Uint8Array(await f.arrayBuffer()));
-    sameFile = (await read(input.source)) === (await read(input.destination));
-  }
-  const file = (f: File) => ({ name: f.name, size: f.size, read: async () => new Uint8Array(await f.arrayBuffer()) });
+  if (same(input.source, input.destination)) sameFile = (await digestOf(input.source)) === (await digestOf(input.destination));
+  const file = (f: File) => ({ name: f.name, size: f.size, read: async () => new Uint8Array(await f.arrayBuffer()), open: () => blobStream(f) });
   const config = "loaded" in input.config
     ? { loaded: { name: input.config.loaded.name, size: input.config.loaded.bytes.length, read: () => (input.config as { loaded: { bytes: Uint8Array } }).loaded.bytes } }
     : input.config;
-  let rows = 0;
+  const rows = { source: 0, destination: 0 };
+  const report_ = (phase: Phase, bytes: number, fraction: number) =>
+    onProgress({ phase, bytes: Math.min(bytes, total), total, rows: phase === "reading-source" ? rows.source : rows.destination, sourceRows: rows.source, destinationRows: rows.destination, fraction: Math.min(1, fraction) });
   const outcome = await pageCheck({
     source: file(input.source),
     destination: file(input.destination),
@@ -157,24 +205,23 @@ export async function runCheck(input: RunInput, onProgress: (p: Progress) => voi
     allowIdenticalContent: input.allowIdenticalContent,
     sameFile,
     progress: (side, bytes, n) => {
-      rows = n;
+      rows[side] = n;
       const done = side === "source" ? bytes : input.source.size + bytes;
-      onProgress({ phase: side === "source" ? "reading-source" : "reading-destination", bytes: Math.min(done, total), total, rows: n });
+      report_(side === "source" ? "reading-source" : "reading-destination", done, total ? (done / total) * SHARE.reading : SHARE.reading);
     },
-    evaluating: () => onProgress({ phase: "evaluating", bytes: total, total, rows }),
+    evaluating: (done, records) => report_("evaluating", total, SHARE.reading + (records ? done / records : 1) * SHARE.evaluating),
   });
   const report = outcome.report;
   if (!report) return { exit: outcome.exit, summary: "", message: outcome.stderr.trimEnd(), view: null, explanation: null, json: null, html: null };
-  onProgress({ phase: "writing-reports", bytes: total, total, rows });
-  return {
-    exit: outcome.exit,
-    summary: outcome.stdout,
-    message: "",
-    view: view(report),
-    explanation: explain(report),
-    json: new Blob([...writeJson(report)], { type: "application/json" }),
-    html: new Blob([...writeHtml(report)], { type: "text/html;charset=utf-8" }),
-  };
+  // The JSON report has one piece per record; the HTML report lists only the records that are not Verified.
+  const written = { n: 0 };
+  const records = report.records.length || 1;
+  const writing = () => report_("writing-reports", total, SHARE.reading + SHARE.evaluating + Math.min(1, written.n / records) * SHARE.writing * 0.9);
+  writing();
+  const json = blobOf(counted(writeJson(report), written), "application/json", writing);
+  const html = blobOf(writeHtml(report), "text/html;charset=utf-8");
+  report_("writing-reports", total, 1);
+  return { exit: outcome.exit, summary: outcome.stdout, message: "", view: view(report), explanation: explain(report), json, html };
 }
 
 /** A runner in this thread, for tests and for a browser without module workers. Cancel only drops the result. */

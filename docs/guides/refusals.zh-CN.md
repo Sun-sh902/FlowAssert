@@ -64,7 +64,7 @@
 
 ### `FILE: file size N bytes exceeds --max-bytes limit of N`
 
-文件大于 `--max-bytes` 允许的大小（默认 209,715,200 字节，即 200 MiB），这在读取前检查。请传入更大的 `--max-bytes`。浏览器核对使用默认上限；更大的文件请使用命令行，命令行读取目标文件时不会把它整个放在内存里。
+文件大于 `--max-bytes` 允许的大小（默认 209,715,200 字节，即 200 MiB），这在读取前检查。请传入更大的 `--max-bytes`。浏览器核对使用默认上限；更大的文件请使用命令行。
 
 ### `FILE: unexpected end of data`
 

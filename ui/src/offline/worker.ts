@@ -1,6 +1,6 @@
 /**
- * The Web Worker of the CSV check page. It reads the chosen files, runs the check and builds both reports, so the page
- * stays responsive with files of a million rows. It answers only the page's messages and makes no request.
+ * The Web Worker of the CSV check page. It reads the chosen files as streams, runs the check and builds both reports,
+ * so the page stays responsive with files of a million rows and never holds a file whole. It answers only the page's messages and makes no request.
  */
 import { header, runCheck, type Reply, type Request } from "./runner";
 

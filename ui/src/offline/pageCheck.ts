@@ -40,7 +40,7 @@ export interface PageCheckInput {
   origin?: Origin;
   now?: () => string;
   progress?: (side: "source" | "destination", bytes: number, rows: number) => void;
-  evaluating?: () => void;
+  evaluating?: (done: number, total: number) => void;
 }
 
 /** The configuration file of the page's choices: its canonical bytes, under the name refusals would use. */

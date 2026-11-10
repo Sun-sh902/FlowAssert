@@ -9,8 +9,9 @@
  * FlowAssert with checkCsv and VERSION. It imports nothing and makes no request. It needs from its host: BigInt,
  * TextEncoder, and TextDecoder with fatal decoding of utf-8, plus utf-16le and utf-16be for a utf-16 file and gb18030
  * for a gb18030 file. Each is checked on known bytes before a check starts; when one is missing or answers
- * differently, the check is refused and says which. crypto.subtle is used when the host has it, and otherwise the
- * SHA-256 of sha256.ts, which the tests compare with crypto.subtle.
+ * differently, the check is refused and says which. The two files are read through the stream reader of csv.ts, as
+ * one chunk each, and hashed with the SHA-256 of sha256.ts, which the tests compare with crypto.subtle; the
+ * configuration is hashed with crypto.subtle when the host has it, and with sha256.ts otherwise.
  */
 import { reportHtml, reportJson } from "./check";
 import { useDigestWithoutSubtle, type Encoding } from "./csv";
@@ -179,7 +180,7 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
     const encodings = [input.source?.encoding ?? "utf-8", input.destination?.encoding ?? "utf-8"].map(String);
     const problem = hostProblem(encodings);
     if (problem) throw new Refusal(`this JavaScript host ${problem}, which the check needs; ${NOT_ANOTHER_WAY}`);
-    // crypto.subtle when the host has it; otherwise the pure SHA-256, which gives the same digests.
+    // For the configuration: crypto.subtle when the host has it; otherwise the pure SHA-256, which gives the same digests.
     useDigestWithoutSubtle(sha256);
     const source = fileBytes(input.source, "source");
     const destination = fileBytes(input.destination, "destination");
