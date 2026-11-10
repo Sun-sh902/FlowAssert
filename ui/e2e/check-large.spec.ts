@@ -4,13 +4,15 @@
  *
  *   FA_LARGE=1 npx playwright test e2e/check-large.spec.ts --project chrome
  *
- * Reports the time from pressing Check to the result, and how late the page's own timers ran meanwhile (the tab is
- * responsive when they stay on time), and compares the summary with the command line's on the same files.
+ * Reports the time from pressing Check to the result, how late the page's own timers ran meanwhile (the tab is
+ * responsive when they stay on time), and the peak memory of the page and of its worker, read through the Chrome
+ * DevTools Protocol every 50 ms (Runtime.getHeapUsage: the JavaScript heap in use, and the backing stores of array
+ * buffers, where a file read whole is held). It compares the summary with the command line's on the same files.
  */
 import { execFileSync } from "node:child_process";
 import { createWriteStream, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { REPO, openCheck } from "./check-helpers.ts";
 import { writeReport } from "./helpers.ts";
 
@@ -27,6 +29,54 @@ async function write(path: string, line: (i: number) => string) {
   }
   await new Promise<void>((r) => out.end(() => r()));
 }
+
+interface HeapUsage {
+  usedSize: number;
+  backingStorageSize?: number;
+}
+
+/**
+ * Peak memory of the page and of every worker it starts, in bytes, sampled until `stop` is called. A worker is its
+ * own DevTools target: it is attached to from the page's session and asked through Target.sendMessageToTarget.
+ */
+async function watchHeap(page: Page) {
+  const cdp = await page.context().newCDPSession(page);
+  const peak = { pageHeap: 0, workerHeap: 0, workerBuffers: 0, workerTotal: 0, samples: 0 };
+  const workers = new Set<string>();
+  let next = 0;
+  cdp.on("Target.attachedToTarget", (event) => {
+    if (event.targetInfo.type === "worker") workers.add(event.sessionId);
+  });
+  cdp.on("Target.detachedFromTarget", (event) => void workers.delete(event.sessionId));
+  cdp.on("Target.receivedMessageFromTarget", (event) => {
+    const usage = (JSON.parse(event.message) as { result?: HeapUsage }).result;
+    if (!usage || typeof usage.usedSize !== "number") return;
+    const buffers = usage.backingStorageSize ?? 0;
+    peak.samples++;
+    peak.workerHeap = Math.max(peak.workerHeap, usage.usedSize);
+    peak.workerBuffers = Math.max(peak.workerBuffers, buffers);
+    peak.workerTotal = Math.max(peak.workerTotal, usage.usedSize + buffers);
+  });
+  await cdp.send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: false });
+  const sample = async () => {
+    for (const sessionId of workers) {
+      cdp.send("Target.sendMessageToTarget", { sessionId, message: JSON.stringify({ id: ++next, method: "Runtime.getHeapUsage" }) }).catch(() => undefined);
+    }
+    const usage = (await cdp.send("Runtime.getHeapUsage").catch(() => null)) as HeapUsage | null;
+    if (usage) peak.pageHeap = Math.max(peak.pageHeap, usage.usedSize);
+  };
+  const timer = setInterval(() => void sample(), 50);
+  return {
+    peak,
+    async stop() {
+      clearInterval(timer);
+      await sample();
+      await cdp.detach().catch(() => undefined);
+    },
+  };
+}
+
+const MiB = (bytes: number) => Math.round((bytes / 1048576) * 10) / 10;
 
 const id = (i: number) => String(i).padStart(7, "0");
 
@@ -68,11 +118,13 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
       if (bar) probe.progress.push(Number(bar.getAttribute("aria-valuenow")));
     }, 100);
   });
+  const heap = await watchHeap(page);
   const started = Date.now();
   await page.getByTestId("run-check").click();
   await page.locator("[data-result]").waitFor({ timeout: 15 * 60_000 });
   const seconds = (Date.now() - started) / 1000;
   const probe = await page.evaluate(() => (window as unknown as { probe: { late: number; ticks: number; progress: number[] } }).probe);
+  await heap.stop();
 
   await expect(page.locator("[data-result]")).toHaveAttribute("data-result", "Mismatch");
   await expect(page.locator('[data-count="Mismatch"]')).toHaveText("3");
@@ -85,7 +137,9 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   } catch (e) {
     cli = (e as { stdout: string; status: number }).stdout; // exit status 1: Mismatch
   }
-  const report = { rows: ROWS, seconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size };
+  const report = { rows: ROWS, seconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size,
+    peakPageHeapMiB: MiB(heap.peak.pageHeap), peakWorkerHeapMiB: MiB(heap.peak.workerHeap), peakWorkerBuffersMiB: MiB(heap.peak.workerBuffers),
+    peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heapSamples: heap.peak.samples };
   writeReport("check-large", report);
   testInfo.annotations.push({ type: "large-file", description: JSON.stringify(report) });
   console.info(`large-file check: ${JSON.stringify(report)}`);
