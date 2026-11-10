@@ -35,6 +35,8 @@ export interface CheckArgs {
   field?: string[];
   /** --config FILE. */
   config?: InputFile;
+  /** --mapping FILE: key and fields as column pairs, every rule exact. */
+  mapping?: InputFile;
   scope?: string;
   sourceComplete?: boolean;
   destinationComplete?: boolean;
@@ -193,6 +195,21 @@ export async function readConfig(file: InputFile, maxBytes: bigint = BigInt(MAX_
   return [{ key, fields, scope }, digest];
 }
 
+/** cli.read_mapping: key and fields as [source, destination] pairs. Returns them and the file's hash. */
+export async function readMapping(file: InputFile, maxBytes: bigint = BigInt(MAX_BYTES)): Promise<[[string, string], [string, string][], string]> {
+  const path = file.name;
+  const [data, digest] = await readJson(file, maxBytes);
+  if (!isObject(data)) throw new Refused(`${path}: mapping must be a JSON object`);
+  const unknown = sortedNames(Object.keys(data).filter((k) => k !== "key" && k !== "fields"));
+  if (unknown.length) throw new Refused(`${path}: unknown member ${unknown.join(", ")}`);
+  const missing = ["key", "fields"].filter((k) => !Object.hasOwn(data, k));
+  if (missing.length) throw new Refused(`${path}: missing member ${missing.join(", ")}`);
+  const key = pairList(data.key, path, "key");
+  const fieldList = data.fields;
+  if (!Array.isArray(fieldList) || !fieldList.length) throw new Refused(`${path}: fields must be a non-empty list`);
+  return [key, fieldList.map((f: PyValue) => pairList(f, path, "field")), digest];
+}
+
 const SHORT_ESCAPES: Record<string, string> = { "\b": "\\b", "\f": "\\f", "\n": "\\n", "\r": "\\r", "\t": "\\t" };
 
 /**
@@ -215,11 +232,12 @@ export function canonicalConfig(selection: { key: readonly [string, string]; fie
   return `{\n  "key": [\n    ${str(selection.key[0])},\n    ${str(selection.key[1])}\n  ],\n  "fields": [\n${fields.join(",\n")}\n  ],\n  "scope": ${str(selection.scope)}\n}\n`;
 }
 
-/** cli._selection, without --mapping, which only the command line offers. */
+/** cli._selection. */
 async function selection(args: CheckArgs, maxBytes: bigint): Promise<[Selection, Record<string, string>]> {
   if (args.config) {
     const conflicts = (
       [
+        ["--mapping", args.mapping !== undefined],
         ["--key", args.key !== undefined],
         ["--field", Boolean(args.field?.length)],
         ["--scope", args.scope !== undefined],
@@ -232,6 +250,11 @@ async function selection(args: CheckArgs, maxBytes: bigint): Promise<[Selection,
     return [chosen, { config_file_sha256: digest }];
   }
   const scope = args.scope === undefined ? null : choice("--scope", args.scope, SCOPES, "source");
+  if (args.mapping) {
+    if (args.key !== undefined || args.field?.length) throw new Refused("--mapping cannot be combined with --key or --field");
+    const [key, pairs, digest] = await readMapping(args.mapping, maxBytes);
+    return [{ key, fields: pairs.map(([s, d]) => [s, d, "exact"] as [string, string, string]), scope }, { mapping_file_sha256: digest }];
+  }
   if (args.key === undefined) throw new Refused("--key or --mapping is required");
   if (!args.field?.length) throw new Refused("at least one --field is required");
   const key = pair(args.key);

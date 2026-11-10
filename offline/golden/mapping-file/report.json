@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 2,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_sha256": "2ee9d4a6b8968ba3077ed818e6da1dd78534bfde4c8625a37181f6b127aab40e",
+    "identical_content": false,
+    "mapping_file_sha256": "670eecd5ad2cf0e45dc815f209d4f1f6a61bce988e67764ab259e60a6d95cde3",
+    "source_complete_stated": true,
+    "source_sha256": "1ae910056a350d5e00ab160abba08ab3dce2af082688e3cc098b07137e1c566d"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone:main",
+        "tel"
+      ]
+    ],
+    "key": [
+      "ext:id",
+      "id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 2,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 2,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "A",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "B",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:phone:main": {
+          "actual": "3",
+          "expected": "2",
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 1,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 2,
+  "workflow_execution": "Not assessed"
+}

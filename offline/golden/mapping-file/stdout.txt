@@ -1,0 +1,5 @@
+Mismatch: 2 rows of 2
+Verified 1 · Mismatch 1 · Unverified 0
+  record 2 B: Mismatch
+    field:phone:main fail: exact string comparison ('2' vs '3')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

@@ -42,6 +42,7 @@ export function parseArgs(argv: readonly string[], folder: string): CheckArgs {
     else if (option === "--source") source = argv[++i]!;
     else if (option === "--destination") destination = argv[++i]!;
     else if (option === "--config") args.config = inputFile(folder, argv[++i]!);
+    else if (option === "--mapping") args.mapping = inputFile(folder, argv[++i]!);
     else if (option === "--json" || option === "--html") i++;
     else if (option in VALUES) args[VALUES[option]!] = argv[++i]!;
     else throw new Error(`unexpected argument ${option}`);

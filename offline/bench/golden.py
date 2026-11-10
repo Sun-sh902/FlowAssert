@@ -301,6 +301,12 @@ CASES = {
         ["--config", "config.json"]),
     "refused-config-bad-scope": ({"config.json": canonical_config({**KP, "scope": None})}, ["--config", "config.json"]),
     "refused-config-with-key": ({"config.json": canonical_config(KP)}, ["--config", "config.json", "--key", "k"]),
+    # A mapping file (command line only): column names with a colon, every rule exact, and the file's hash recorded.
+    "mapping-file": ({"source.csv": utf8("ext:id,phone:main\nA,1\nB,2\n"), "destination.csv": utf8("id,tel\nA,1\nB,3\n"),
+                      "mapping.json": utf8('{"key": ["ext:id", "id"], "fields": [["phone:main", "tel"]]}\n')},
+                     ["--mapping", "mapping.json", "--source-complete", "--destination-complete"]),
+    "refused-mapping-with-key": ({"mapping.json": utf8('{"key": ["k", "k"], "fields": [["p", "p"]]}\n')},
+                                 ["--mapping", "mapping.json", "--key", "k"]),
     # A configuration file loaded in the page keeps its own bytes and hash: here, a byte order mark and no rules.
     "config-loaded-with-bom": ({"config.json": codecs.BOM_UTF8 + utf8(
         '{"fields":[{"source":"phone","destination":"phone"},{"source":"email","destination":"hs_email","rule":"casefold"}],'
@@ -461,14 +467,30 @@ def _sheet_environ(spec, endpoint):
     return environ
 
 
+def fake_for(kind, case, responses):
+    """The local fake a connector case talks to, serving the case's responses (also used by conformance.py)."""
+    credential = ("key", FAKE_KEY) if case["credential"] == "key" else ("token", FAKE_TOKEN)
+    return FakeSheetsApi(json.loads(json.dumps(responses)), credential=credential)
+
+
+def environ_for(kind, case, endpoint):
+    """The environment variables of a connector case: the fake's endpoint and a fake credential."""
+    return _sheet_environ(case, endpoint)
+
+
+def requests_of(kind, api):
+    """What the checker asked the fake for, as requests.json records it: any API key replaced by its variable's name."""
+    return [[r["method"], r["path"], [[k, "FLOWASSERT_SHEETS_API_KEY" if k == "key" else v] for k, v in r["query"]]]
+            for r in api.requests]
+
+
 def run_sheet_case(spec, folder):
     """Run one sheet case in `folder` against the local fake: (exit status, stdout, stderr, requests)."""
-    credential = ("key", FAKE_KEY) if spec["credential"] == "key" else ("token", FAKE_TOKEN)
     stdout, stderr = io.StringIO(), io.StringIO()
     saved_env = {name: os.environ.pop(name) for name in SHEET_VARIABLES if name in os.environ}
     cwd = os.getcwd()
-    with FakeSheetsApi(json.loads(json.dumps(spec["responses"])), credential=credential) as api:
-        os.environ.update(_sheet_environ(spec, api.endpoint))
+    with fake_for("sheets", spec, spec["responses"]) as api:
+        os.environ.update(environ_for("sheets", spec, api.endpoint))
         os.chdir(folder)
         saved = cli.datetime, sheets.datetime
         cli.datetime = sheets.datetime = _FixedDatetime
@@ -481,9 +503,7 @@ def run_sheet_case(spec, folder):
             for name in SHEET_VARIABLES:
                 os.environ.pop(name, None)
             os.environ.update(saved_env)
-    requests = [[r["method"], r["path"], [[k, "FLOWASSERT_SHEETS_API_KEY" if k == "key" else v] for k, v in r["query"]]]
-                for r in api.requests]
-    return code, stdout.getvalue(), stderr.getvalue(), requests
+    return code, stdout.getvalue(), stderr.getvalue(), requests_of("sheets", api)
 
 
 def write_sheet_case(folder, name, spec):

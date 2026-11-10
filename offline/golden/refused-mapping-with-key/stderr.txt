@@ -1,0 +1,1 @@
+refused: --mapping cannot be combined with --key or --field

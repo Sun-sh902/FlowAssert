@@ -1,0 +1,13 @@
+{
+  "name": "mapping-file",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--mapping",
+    "mapping.json",
+    "--source-complete",
+    "--destination-complete"
+  ]
+}
