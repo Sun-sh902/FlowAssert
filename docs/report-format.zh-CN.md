@@ -16,6 +16,8 @@
 
 `schema_version` 是第一个成员。成员被删除或改名，或者某个值的含义改变时，它就会改变。新增成员不改变版本，所以读取方应忽略它不认识的成员。
 
+从 1.0.0 起，格式已经冻结：发布过的 `schema_version` 不再改动。[1.x 的兼容性](compatibility.zh-CN.md)说明以后的版本可以新增什么，以及读取方遇到不认识的版本时必须怎么做。每个版本都有一份 JSON Schema（draft 2020-12），放在 [docs/schema/](schema/)：`report-v1.schema.json` 和 `report-v2.schema.json`；测试会用对应的 Schema 校验每份核对样例的报告。[规范](spec/verification.zh-CN.md)说明每个值是怎样得出的。
+
 来源是 Google 表格范围的报告（`--source-sheet`，0.7.0 及以后）的 `schema_version` 是 2，因为对它来说，版本 1 中有三个成员的含义不同；其他所有报告都是版本 1。只认识版本 1 的读取方会拒绝版本 2 的报告，而不是把表格中的行当作文件显示。
 
 FlowAssert 0.1.x 写出的报告没有 `schema_version`。它们的成员和 0.2.0 用 `--details all` 运行时的报告相同，只是没有 `schema_version`、`details` 和 `premises`，`claim` 的文字也更短。

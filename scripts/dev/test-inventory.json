@@ -11,7 +11,7 @@
    "src/test/contract-drift-runtime.test.ts": 3,
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
-   "src/test/english-texts.test.tsx": 217,
+   "src/test/english-texts.test.tsx": 219,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/fix03.test.tsx": 21,
    "src/test/fixture-identity.test.ts": 5,
@@ -31,13 +31,14 @@
    "src/test/offline/bundle.test.ts": 64,
    "src/test/offline/compare.test.ts": 42,
    "src/test/offline/conformance.test.ts": 40,
-   "src/test/offline/explain.test.ts": 192,
-   "src/test/offline/golden.test.ts": 158,
+   "src/test/offline/explain.test.ts": 195,
+   "src/test/offline/golden.test.ts": 160,
    "src/test/offline/n8n-workflow.test.ts": 6,
    "src/test/offline/python-semantics.test.ts": 55,
    "src/test/offline/random-parity.test.ts": 2,
    "src/test/offline/refusal-hint.test.ts": 17,
-   "src/test/offline/saved-report.test.ts": 109,
+   "src/test/offline/report-schema.test.ts": 136,
+   "src/test/offline/saved-report.test.ts": 110,
    "src/test/offline/scenarios.test.ts": 16,
    "src/test/offline/sha256.test.ts": 5,
    "src/test/offline/sheet-report.test.tsx": 83,
@@ -88,11 +89,12 @@
    ]
   },
   "offline": {
-   "about": "The command-line checker, the GitHub Action's wrapper and the Google Sheets source (CI job offline), per file. Run on every supported Python; the count is the same on each.",
+   "about": "The command-line checker, the GitHub Action's wrapper, the Google Sheets source, and the 1.0 commitment (the specification's cases, the JSON Schemas, the conformance runner) (CI job offline), per file. Run on every supported Python; the count is the same on each.",
    "files": {
     "scripts/dev/tests/test_action.py": 112,
     "scripts/dev/tests/test_offline_verify.py": 385,
-    "scripts/dev/tests/test_sheets_source.py": 208
+    "scripts/dev/tests/test_sheets_source.py": 210,
+    "scripts/dev/tests/test_spec.py": 254
    }
   }
  },
@@ -181,6 +183,9 @@
     "passed": 1
    },
    "chrome › check-pages.spec.ts › the MOCK demo pages stay available": {
+    "passed": 1
+   },
+   "chrome › check-pages.spec.ts › the Pages build serves each report schema at the address its $id names, byte for byte": {
     "passed": 1
    },
    "chrome › check-pages.spec.ts › the Pages build has a Content Security Policy that allows no connection and nothing from elsewhere": {
@@ -611,6 +616,9 @@
     "passed": 1
    },
    "webkit › check-pages.spec.ts › the MOCK demo pages stay available": {
+    "passed": 1
+   },
+   "webkit › check-pages.spec.ts › the Pages build serves each report schema at the address its $id names, byte for byte": {
     "passed": 1
    },
    "webkit › check-pages.spec.ts › the Pages build has a Content Security Policy that allows no connection and nothing from elsewhere": {

@@ -16,6 +16,8 @@ The report never claims more than its evidence. A member that FlowAssert could n
 
 `schema_version` is the first member. It changes when a member is removed or renamed, or when the meaning of a value changes. New members can be added without a change, so a reader should ignore members it does not know.
 
+From 1.0.0 the format is frozen: a released `schema_version` is never changed, and [Compatibility in 1.x](compatibility.md) says what a later release may add and what a reader must do with a version it does not know. Each version has a JSON Schema (draft 2020-12) in [docs/schema/](schema/), `report-v1.schema.json` and `report-v2.schema.json`; every golden report is validated against its schema in the tests. [The specification](spec/verification.md) says how each value comes about.
+
 A report whose source is a Google Sheets range (`--source-sheet`, 0.7.0 and later) has `schema_version` 2, because three members of version 1 mean something else for it; every other report is version 1. A reader that knows only version 1 refuses a version 2 report, rather than show the sheet's rows as a file.
 
 Reports from FlowAssert 0.1.x have no `schema_version`. They have the same members as a 0.2.0 report run with `--details all`, except `schema_version`, `details` and `premises`, and their `claim` text is shorter.
