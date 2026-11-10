@@ -1,0 +1,858 @@
+{
+ "about": "Cases for the JSON Schema validators of the tests: offline/bench/json_schema.py and ui/src/test/offline/json-schema.ts must both accept every valid instance, give at least one error for every invalid one, refuse every unsupported schema, and list the same undeclared members.",
+ "cases": [
+  {
+   "description": "type: each JSON type, integer distinct from boolean, 1.0 an integer",
+   "schema": {
+    "type": "integer"
+   },
+   "valid": [
+    0,
+    -3,
+    1.0,
+    10000000000000000000000
+   ],
+   "invalid": [
+    true,
+    1.5,
+    "1",
+    null,
+    [],
+    {}
+   ]
+  },
+  {
+   "description": "type: a list of types",
+   "schema": {
+    "type": [
+     "string",
+     "null"
+    ]
+   },
+   "valid": [
+    "",
+    null
+   ],
+   "invalid": [
+    0,
+    false,
+    []
+   ]
+  },
+  {
+   "description": "type: number, boolean, array, object, null",
+   "schema": {
+    "properties": {
+     "n": {
+      "type": "number"
+     },
+     "b": {
+      "type": "boolean"
+     },
+     "a": {
+      "type": "array"
+     },
+     "o": {
+      "type": "object"
+     },
+     "z": {
+      "type": "null"
+     }
+    }
+   },
+   "valid": [
+    {
+     "n": 1.5,
+     "b": false,
+     "a": [],
+     "o": {},
+     "z": null
+    },
+    {
+     "n": 2
+    }
+   ],
+   "invalid": [
+    {
+     "n": true
+    },
+    {
+     "b": 0
+    },
+    {
+     "a": {}
+    },
+    {
+     "o": []
+    },
+    {
+     "z": false
+    }
+   ]
+  },
+  {
+   "description": "const: JSON equality, true is not 1",
+   "schema": {
+    "const": true
+   },
+   "valid": [
+    true
+   ],
+   "invalid": [
+    1,
+    "true",
+    false,
+    null
+   ]
+  },
+  {
+   "description": "const: numbers compare by value, and structures deeply",
+   "schema": {
+    "const": {
+     "a": [
+      1,
+      {
+       "b": null
+      }
+     ]
+    }
+   },
+   "valid": [
+    {
+     "a": [
+      1,
+      {
+       "b": null
+      }
+     ]
+    },
+    {
+     "a": [
+      1.0,
+      {
+       "b": null
+      }
+     ]
+    }
+   ],
+   "invalid": [
+    {
+     "a": [
+      1,
+      {
+       "b": 0
+      }
+     ]
+    },
+    {
+     "a": [
+      1
+     ]
+    },
+    {
+     "a": [
+      1,
+      {
+       "b": null
+      }
+     ],
+     "c": 1
+    }
+   ]
+  },
+  {
+   "description": "enum",
+   "schema": {
+    "enum": [
+     "pass",
+     "fail",
+     0,
+     null
+    ]
+   },
+   "valid": [
+    "pass",
+    0,
+    null
+   ],
+   "invalid": [
+    "Pass",
+    false,
+    1
+   ]
+  },
+  {
+   "description": "minimum applies to numbers only",
+   "schema": {
+    "minimum": 0
+   },
+   "valid": [
+    0,
+    5,
+    "x",
+    null
+   ],
+   "invalid": [
+    -1,
+    -0.5
+   ]
+  },
+  {
+   "description": "pattern is unanchored, and $ matches only at the very end",
+   "schema": {
+    "type": "string",
+    "pattern": "^[0-9a-f]{4}$"
+   },
+   "valid": [
+    "00ff"
+   ],
+   "invalid": [
+    "00ff\n",
+    "00fg",
+    "000ff",
+    "00f"
+   ]
+  },
+  {
+   "description": "pattern: a dot matches no line terminator",
+   "schema": {
+    "pattern": "^date:."
+   },
+   "valid": [
+    "date:%Y",
+    5
+   ],
+   "invalid": [
+    "date:",
+    "date:\n%Y",
+    "date:\r",
+    "date:\u2028"
+   ]
+  },
+  {
+   "description": "pattern: alternation and a class holding $ and .",
+   "schema": {
+    "pattern": "^(exact|trim)$|^x[$.]y"
+   },
+   "valid": [
+    "exact",
+    "trim",
+    "x$y",
+    "x.yz"
+   ],
+   "invalid": [
+    "exact ",
+    "xay",
+    "trimmed"
+   ]
+  },
+  {
+   "description": "required and properties",
+   "schema": {
+    "type": "object",
+    "required": [
+     "a"
+    ],
+    "properties": {
+     "a": {
+      "type": "string"
+     },
+     "b": {
+      "type": "integer"
+     }
+    }
+   },
+   "valid": [
+    {
+     "a": "x"
+    },
+    {
+     "a": "x",
+     "b": 1,
+     "c": null
+    }
+   ],
+   "invalid": [
+    {},
+    {
+     "b": 1
+    },
+    {
+     "a": 1
+    },
+    {
+     "a": "x",
+     "b": "1"
+    },
+    []
+   ]
+  },
+  {
+   "description": "additionalProperties false, with patternProperties",
+   "schema": {
+    "properties": {
+     "existence": {
+      "type": "object"
+     }
+    },
+    "patternProperties": {
+     "^field:": {
+      "type": "object"
+     }
+    },
+    "additionalProperties": false
+   },
+   "valid": [
+    {
+     "existence": {},
+     "field:a": {}
+    },
+    {}
+   ],
+   "invalid": [
+    {
+     "other": {}
+    },
+    {
+     "field:a": 1
+    },
+    {
+     "xfield:a": {}
+    }
+   ]
+  },
+  {
+   "description": "additionalProperties as a schema",
+   "schema": {
+    "properties": {
+     "a": {
+      "type": "integer"
+     }
+    },
+    "additionalProperties": {
+     "type": "string"
+    }
+   },
+   "valid": [
+    {
+     "a": 1,
+     "b": "x"
+    }
+   ],
+   "invalid": [
+    {
+     "a": 1,
+     "b": 2
+    },
+    {
+     "a": "x"
+    }
+   ]
+  },
+  {
+   "description": "dependentRequired",
+   "schema": {
+    "dependentRequired": {
+     "a": [
+      "b"
+     ],
+     "b": [
+      "a"
+     ]
+    }
+   },
+   "valid": [
+    {},
+    {
+     "a": 1,
+     "b": 2
+    },
+    {
+     "c": 1
+    }
+   ],
+   "invalid": [
+    {
+     "a": 1
+    },
+    {
+     "b": 1
+    }
+   ]
+  },
+  {
+   "description": "items, minItems, maxItems",
+   "schema": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    },
+    "minItems": 2,
+    "maxItems": 2
+   },
+   "valid": [
+    [
+     "a",
+     "b"
+    ]
+   ],
+   "invalid": [
+    [
+     "a"
+    ],
+    [
+     "a",
+     "b",
+     "c"
+    ],
+    [
+     "a",
+     1
+    ],
+    "ab"
+   ]
+  },
+  {
+   "description": "$ref to a definition",
+   "schema": {
+    "$defs": {
+     "n": {
+      "type": "integer",
+      "minimum": 0
+     }
+    },
+    "properties": {
+     "count": {
+      "$ref": "#/$defs/n"
+     }
+    }
+   },
+   "valid": [
+    {
+     "count": 3
+    },
+    {}
+   ],
+   "invalid": [
+    {
+     "count": -1
+    },
+    {
+     "count": "3"
+    }
+   ]
+  },
+  {
+   "description": "allOf",
+   "schema": {
+    "allOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "minimum": 3
+     }
+    ]
+   },
+   "valid": [
+    3
+   ],
+   "invalid": [
+    2,
+    "3"
+   ]
+  },
+  {
+   "description": "anyOf",
+   "schema": {
+    "anyOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "integer",
+      "minimum": 3
+     }
+    ]
+   },
+   "valid": [
+    "x",
+    3
+   ],
+   "invalid": [
+    2,
+    null
+   ]
+  },
+  {
+   "description": "oneOf: exactly one",
+   "schema": {
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "minimum": 3
+     }
+    ]
+   },
+   "valid": [
+    1,
+    3.5
+   ],
+   "invalid": [
+    3,
+    2.5
+   ]
+  },
+  {
+   "description": "not: a keyword for objects accepts every other value, so not refuses it",
+   "schema": {
+    "not": {
+     "required": [
+      "a"
+     ]
+    }
+   },
+   "valid": [
+    {},
+    {
+     "b": 1
+    }
+   ],
+   "invalid": [
+    {
+     "a": 1
+    },
+    1
+   ]
+  },
+  {
+   "description": "if, then and else",
+   "schema": {
+    "if": {
+     "properties": {
+      "state": {
+       "const": "Verified"
+      }
+     },
+     "required": [
+      "state"
+     ]
+    },
+    "then": {
+     "properties": {
+      "claim": {
+       "type": "string"
+      }
+     }
+    },
+    "else": {
+     "properties": {
+      "claim": {
+       "type": "null"
+      }
+     }
+    }
+   },
+   "valid": [
+    {
+     "state": "Verified",
+     "claim": "c"
+    },
+    {
+     "state": "Mismatch",
+     "claim": null
+    },
+    {
+     "claim": null
+    },
+    {
+     "state": "Verified"
+    }
+   ],
+   "invalid": [
+    {
+     "state": "Verified",
+     "claim": null
+    },
+    {
+     "state": "Mismatch",
+     "claim": "c"
+    },
+    {
+     "claim": "c"
+    }
+   ]
+  },
+  {
+   "description": "if without else: nothing is required of the other branch",
+   "schema": {
+    "if": {
+     "required": [
+      "a"
+     ]
+    },
+    "then": {
+     "required": [
+      "b"
+     ]
+    }
+   },
+   "valid": [
+    {},
+    {
+     "a": 1,
+     "b": 1
+    },
+    {
+     "b": 1
+    }
+   ],
+   "invalid": [
+    {
+     "a": 1
+    }
+   ]
+  },
+  {
+   "description": "boolean schemas",
+   "schema": {
+    "properties": {
+     "never": false,
+     "any": true
+    }
+   },
+   "valid": [
+    {
+     "any": [
+      1
+     ]
+    },
+    {}
+   ],
+   "invalid": [
+    {
+     "never": null
+    }
+   ]
+  },
+  {
+   "description": "annotations are ignored",
+   "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.test/s",
+    "title": "t",
+    "description": "d",
+    "$comment": "c",
+    "type": "null"
+   },
+   "valid": [
+    null
+   ],
+   "invalid": [
+    0
+   ]
+  },
+  {
+   "description": "nested items inside properties, with paths",
+   "schema": {
+    "properties": {
+     "records": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "key"
+       ],
+       "properties": {
+        "key": {
+         "type": [
+          "string",
+          "null"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "valid": [
+    {
+     "records": [
+      {
+       "key": null
+      },
+      {
+       "key": "a"
+      }
+     ]
+    }
+   ],
+   "invalid": [
+    {
+     "records": [
+      {
+       "key": "a"
+      },
+      {}
+     ]
+    },
+    {
+     "records": [
+      {
+       "key": 1
+      }
+     ]
+    },
+    {
+     "records": {}
+    }
+   ]
+  }
+ ],
+ "unsupported": [
+  {
+   "description": "an unknown keyword",
+   "schema": {
+    "type": "string",
+    "format": "date-time"
+   }
+  },
+  {
+   "description": "unevaluatedProperties",
+   "schema": {
+    "unevaluatedProperties": false
+   }
+  },
+  {
+   "description": "prefixItems",
+   "schema": {
+    "prefixItems": [
+     {
+      "type": "string"
+     }
+    ]
+   }
+  },
+  {
+   "description": "a $ref outside $defs",
+   "schema": {
+    "$ref": "other.json#/x"
+   }
+  },
+  {
+   "description": "a $ref to a definition that does not exist",
+   "schema": {
+    "$defs": {},
+    "$ref": "#/$defs/missing"
+   }
+  },
+  {
+   "description": "a type that does not exist",
+   "schema": {
+    "type": "float"
+   }
+  },
+  {
+   "description": "a schema that is neither an object nor a boolean",
+   "schema": {
+    "properties": {
+     "a": 3
+    }
+   },
+   "instance": {
+    "a": 1
+   }
+  }
+ ],
+ "undeclared": [
+  {
+   "description": "members named by properties, patternProperties and a schema for additionalProperties are declared",
+   "schema": {
+    "properties": {
+     "a": {
+      "properties": {
+       "x": true
+      }
+     },
+     "list": {
+      "items": {
+       "properties": {
+        "k": true
+       }
+      }
+     }
+    },
+    "patternProperties": {
+     "^f:": true
+    }
+   },
+   "instance": {
+    "a": {
+     "x": 1,
+     "y": 2
+    },
+    "f:1": {
+     "deep": 1
+    },
+    "list": [
+     {
+      "k": 1
+     },
+     {
+      "k": 1,
+      "other": 2
+     }
+    ],
+    "z": 0
+   },
+   "undeclared": [
+    "a.y",
+    "f:1.deep",
+    "list[1].other",
+    "z"
+   ]
+  },
+  {
+   "description": "a branch of if, then, allOf and $ref declares members too",
+   "schema": {
+    "$defs": {
+     "d": {
+      "properties": {
+       "r": true
+      }
+     }
+    },
+    "allOf": [
+     {
+      "$ref": "#/$defs/d"
+     },
+     {
+      "if": {
+       "required": [
+        "s"
+       ]
+      },
+      "then": {
+       "properties": {
+        "t": true,
+        "s": true
+       }
+      }
+     }
+    ],
+    "additionalProperties": {
+     "type": "integer"
+    }
+   },
+   "instance": {
+    "r": 1,
+    "s": 1,
+    "t": 1,
+    "u": 1
+   },
+   "undeclared": []
+  }
+ ]
+}

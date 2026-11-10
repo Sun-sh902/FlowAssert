@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, searchForWorkspaceRoot, type Plugin } from "vite";
@@ -39,6 +39,22 @@ function pagesContentSecurityPolicy(): Plugin {
 }
 
 /**
+ * The Pages build also serves the report's JSON Schemas (../docs/schema/, written by offline/bench/schemas.py) at
+ * schema/NAME, the address each schema's $id names, with the bytes they have in the repository.
+ */
+function publishReportSchemas(): Plugin {
+  const folder = new URL("../docs/schema/", import.meta.url);
+  return {
+    name: "flowassert-report-schemas",
+    generateBundle() {
+      for (const name of readdirSync(folder).filter((n) => n.endsWith(".schema.json"))) {
+        this.emitFile({ type: "asset", fileName: `schema/${name}`, source: readFileSync(new URL(name, folder)) });
+      }
+    },
+  };
+}
+
+/**
  * LOCAL_RESEARCH: the browser requests relative `/api/v1/...`. On the dev and preview servers an exact
  * gate (server/localApiGate.ts, Phase 3A, P2-AUD-004) forwards only the documented local GET routes —
  * the two accepted Phase 2 verification reads, the three Phase 3A history reads and the two remediation-03
@@ -55,7 +71,7 @@ function pagesContentSecurityPolicy(): Plugin {
  */
 export default defineConfig(({ command, mode }) => ({
   base: command === "build" ? "./" : "/",
-  plugins: [localApiGate(), react(), tailwindcss(), ...(mode === "pages" ? [pagesContentSecurityPolicy()] : [])],
+  plugins: [localApiGate(), react(), tailwindcss(), ...(mode === "pages" ? [pagesContentSecurityPolicy(), publishReportSchemas()] : [])],
   // The CSV check runs in a module worker (src/offline/worker.ts), bundled as one file of the page's own origin.
   worker: { format: "es" },
   // cors: false — the app is same-origin; no cross-origin client is served, and Vite's own CORS middleware would

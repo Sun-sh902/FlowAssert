@@ -4,8 +4,10 @@
  * the notice that the origin is shared, and every page that needs the local Service saying it works only locally
  * without making a request.
  */
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { EXAMPLE, check, expectNoNetwork, golden, openCheck, recordRequests } from "./check-helpers.ts";
+import { EXAMPLE, REPO, check, expectNoNetwork, golden, openCheck, recordRequests } from "./check-helpers.ts";
 
 const BASE = "http://127.0.0.1:4185/FlowAssert/";
 const LOCAL_ROUTES = ["#/overview", "#/verifications", "#/local/verifications/SPEC-001", "#/local/verification-lookup?verification_id=SPEC-001", "#/local/history", "#/capture"];
@@ -87,4 +89,17 @@ test("the MOCK demo pages stay available", async ({ page }) => {
   await page.goto(BASE + "#/demo/verifications");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByText("Works only locally")).toHaveCount(0);
+});
+
+test("the Pages build serves each report schema at the address its $id names, byte for byte", async ({ request }) => {
+  const folder = join(REPO, "docs/schema");
+  const names = readdirSync(folder).filter((n) => n.endsWith(".schema.json"));
+  expect(names.length).toBeGreaterThanOrEqual(2);
+  for (const name of names) {
+    const text = readFileSync(join(folder, name), "utf-8");
+    expect((JSON.parse(text) as { $id: string }).$id).toBe(`https://sun-sh902.github.io/FlowAssert/schema/${name}`);
+    const response = await request.get(`${BASE}schema/${name}`);
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toBe(text);
+  }
 });
