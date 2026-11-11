@@ -8,16 +8,13 @@ import { localApiGate } from "./server/localApiGate.ts";
 /**
  * GitHub Pages build (`vite build --mode pages`): a Content Security Policy in index.html that allows no connection
  * (connect-src 'none') and nothing from another origin — scripts, styles, fonts, images and the worker come from the
- * page's own folder; the one inline script (the theme, before first paint) is allowed by its hash. The tab icon is
- * written into the page, because Chrome requests a linked icon again at every navigation.
+ * page's own folder; the one inline script (the theme, before first paint) is allowed by its hash.
  */
 function pagesContentSecurityPolicy(): Plugin {
   return {
     name: "flowassert-pages-csp",
     enforce: "post",
     transformIndexHtml(html) {
-      const icon = "data:image/svg+xml," + encodeURIComponent(readFileSync(new URL("./public/favicon.svg", import.meta.url), "utf-8").trim());
-      html = html.replace(/<link rel="icon" type="image\/svg\+xml" href="[^"]*" \/>/, `<link rel="icon" type="image/svg+xml" href="${icon}" />`);
       const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => `'sha256-${createHash("sha256").update(m[1]!).digest("base64")}'`);
       const policy = [
         "default-src 'none'",
@@ -34,6 +31,21 @@ function pagesContentSecurityPolicy(): Plugin {
         "frame-src 'none'",
       ].join("; ");
       return html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`);
+    },
+  };
+}
+
+/**
+ * Every build writes the tab icon into the page, because Chrome requests a linked icon again at every navigation, and
+ * the result explorer changes the address as its view changes: no request follows from it.
+ */
+function inlineTabIcon(): Plugin {
+  return {
+    name: "flowassert-inline-tab-icon",
+    enforce: "post",
+    transformIndexHtml(html) {
+      const icon = "data:image/svg+xml," + encodeURIComponent(readFileSync(new URL("./public/favicon.svg", import.meta.url), "utf-8").trim());
+      return html.replace(/<link rel="icon" type="image\/svg\+xml" href="[^"]*" \/>/, `<link rel="icon" type="image/svg+xml" href="${icon}" />`);
     },
   };
 }
@@ -71,7 +83,7 @@ function publishReportSchemas(): Plugin {
  */
 export default defineConfig(({ command, mode }) => ({
   base: command === "build" ? "./" : "/",
-  plugins: [localApiGate(), react(), tailwindcss(), ...(mode === "pages" ? [pagesContentSecurityPolicy(), publishReportSchemas()] : [])],
+  plugins: [localApiGate(), react(), tailwindcss(), inlineTabIcon(), ...(mode === "pages" ? [pagesContentSecurityPolicy(), publishReportSchemas()] : [])],
   // The CSV check runs in a module worker (src/offline/worker.ts), bundled as one file of the page's own origin.
   worker: { format: "es" },
   // cors: false — the app is same-origin; no cross-origin client is served, and Vite's own CORS middleware would

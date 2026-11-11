@@ -9,7 +9,9 @@
  * reasons, and nothing of a comparison is shown.
  */
 import { ArrowLeftRight } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { RecordExplorer } from "../components/report/Explorer";
+import { ANY, EXPLORER_PARAMS } from "../offline/explore";
 import { PREMISE_LABEL, Value, yesNo } from "../components/report/ReportParts";
 import { StorageProblem } from "../components/report/Storage";
 import { PageHead, SectionHead } from "../components/ui/atelier";
@@ -19,9 +21,9 @@ import { CLASSES, DESTINATION_ONLY_CLASSES, compareReports, type Comparison, typ
 import type { Counts, State } from "../offline/evaluator";
 import { pyRepr } from "../offline/pystr";
 import { SHOWN_RECORDS } from "../offline/runner";
-import type { StatedPremise } from "../offline/savedReport";
+import { storeOfSaved, type SavedReport, type StatedPremise } from "../offline/savedReport";
 import { useAllFontFaces } from "../lib/fonts";
-import { href } from "../lib/router";
+import { href, useLocation, useReplaceParams } from "../lib/router";
 import { useReportStore } from "../lib/savedReports";
 import { BackToSaved, Provenance, obtainedText, openEntry, type Opened } from "./SavedReports";
 
@@ -447,6 +449,43 @@ function Classes({ c }: { c: Comparison }) {
   );
 }
 
+/** Either report's records, in the result explorer the saved report page has; the side shown is in the address. */
+function BothExplored({ earlier, later, ids }: { earlier: SavedReport; later: SavedReport; ids: { earlier: string; later: string } }) {
+  const { params } = useLocation();
+  const replace = useReplaceParams("/check/compare", ids);
+  const side = params.get("side") === "later" ? "later" : "earlier";
+  const report = side === "earlier" ? earlier : later;
+  const store = useMemo(() => storeOfSaved(report), [report]);
+  const problems = report.records.filter((r) => r.state !== "Verified").length;
+  const id = useId();
+  const show = (next: "earlier" | "later") => replace({ side: next === "later" ? "later" : null, ...Object.fromEntries(EXPLORER_PARAMS.map((p) => [p, null])) });
+  return (
+    <section aria-labelledby="both-explore-h" data-testid="compare-explorer">
+      <SectionHead id="both-explore-h" title="Explore the records of either report" aside="as each report records them" />
+      <fieldset className="min-w-0">
+        <legend className="text-xs font-medium text-ink-2">Report</legend>
+        <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {(["earlier", "later"] as const).map((r) => (
+            <label key={r} className="inline-flex items-center gap-2">
+              <input type="radio" name={`${id}-side`} checked={side === r} onChange={() => show(r)} className="accent-(--fa-ink)" data-testid={`explore-${r}`} />
+              <span>{r === "earlier" ? "The earlier report" : "The later report"}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <RecordExplorer
+        key={side}
+        store={store}
+        params={params}
+        replace={(p) => replace({ side: side === "later" ? "later" : null, ...p })}
+        start={problems ? { ...ANY, state: "not-verified" } : ANY}
+        label={side === "earlier" ? "Records of the earlier report" : "Records of the later report"}
+        level={3}
+      />
+    </section>
+  );
+}
+
 /* ---------- The page ---------- */
 
 export function CompareReportsPage({ earlier, later }: { earlier: string | null; later: string | null }) {
@@ -575,6 +614,7 @@ export function CompareReportsPage({ earlier, later }: { earlier: string | null;
           <Classes c={result} />
         </>
       )}
+      {"read" in pair.earlier && "read" in pair.later && earlier && later && <BothExplored earlier={pair.earlier.read.report} later={pair.later.read.report} ids={{ earlier, later }} />}
       <BackToSaved />
     </div>
   );

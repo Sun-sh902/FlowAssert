@@ -13,6 +13,7 @@
    "src/test/detail.test.tsx": 15,
    "src/test/english-texts.test.tsx": 219,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
+   "src/test/explorer.test.tsx": 12,
    "src/test/fix03.test.tsx": 21,
    "src/test/fixture-identity.test.ts": 5,
    "src/test/fixtures.test.ts": 8,
@@ -29,10 +30,12 @@
    "src/test/markdown-links.test.ts": 126,
    "src/test/offline/api.test.ts": 100,
    "src/test/offline/bundle.test.ts": 64,
+   "src/test/offline/chardiff.test.ts": 9,
    "src/test/offline/compare.test.ts": 42,
    "src/test/offline/conformance.test.ts": 40,
    "src/test/offline/eta.test.ts": 7,
    "src/test/offline/explain.test.ts": 195,
+   "src/test/offline/explore.test.ts": 58,
    "src/test/offline/golden.test.ts": 160,
    "src/test/offline/n8n-workflow.test.ts": 6,
    "src/test/offline/profile.test.ts": 107,
@@ -203,7 +206,13 @@
    "chrome › check.spec.ts › axe · dark · desktop · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "chrome › check.spec.ts › axe · dark · desktop · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "chrome › check.spec.ts › axe · dark · desktop · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · dark · desktop · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "chrome › check.spec.ts › axe · dark · phone · CSV check with a result": {
@@ -212,7 +221,13 @@
    "chrome › check.spec.ts › axe · dark · phone · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "chrome › check.spec.ts › axe · dark · phone · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "chrome › check.spec.ts › axe · dark · phone · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · dark · phone · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "chrome › check.spec.ts › axe · light · desktop · CSV check with a result": {
@@ -221,7 +236,13 @@
    "chrome › check.spec.ts › axe · light · desktop · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "chrome › check.spec.ts › axe · light · desktop · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "chrome › check.spec.ts › axe · light · desktop · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · light · desktop · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "chrome › check.spec.ts › axe · light · phone · CSV check with a result": {
@@ -230,7 +251,13 @@
    "chrome › check.spec.ts › axe · light · phone · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "chrome › check.spec.ts › axe · light · phone · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "chrome › check.spec.ts › axe · light · phone · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "chrome › check.spec.ts › axe · light · phone · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "chrome › check.spec.ts › cancelling a check shows no result": {
@@ -660,7 +687,13 @@
    "webkit › check.spec.ts › axe · dark · desktop · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "webkit › check.spec.ts › axe · dark · desktop · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "webkit › check.spec.ts › axe · dark · desktop · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · dark · desktop · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "webkit › check.spec.ts › axe · dark · phone · CSV check with a result": {
@@ -669,7 +702,13 @@
    "webkit › check.spec.ts › axe · dark · phone · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "webkit › check.spec.ts › axe · dark · phone · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "webkit › check.spec.ts › axe · dark · phone · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · dark · phone · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "webkit › check.spec.ts › axe · light · desktop · CSV check with a result": {
@@ -678,7 +717,13 @@
    "webkit › check.spec.ts › axe · light · desktop · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "webkit › check.spec.ts › axe · light · desktop · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "webkit › check.spec.ts › axe · light · desktop · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · light · desktop · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "webkit › check.spec.ts › axe · light · phone · CSV check with a result": {
@@ -687,7 +732,13 @@
    "webkit › check.spec.ts › axe · light · phone · en · a dropped file, file profiles, a profile refusal and the lines before a check": {
     "passed": 1
    },
+   "webkit › check.spec.ts › axe · light · phone · en · the result explorer, a record and the character diff": {
+    "passed": 1
+   },
    "webkit › check.spec.ts › axe · light · phone · zh-CN · a dropped file, file profiles, a profile refusal and the lines before a check": {
+    "passed": 1
+   },
+   "webkit › check.spec.ts › axe · light · phone · zh-CN · the result explorer, a record and the character diff": {
     "passed": 1
    },
    "webkit › check.spec.ts › cancelling a check shows no result": {

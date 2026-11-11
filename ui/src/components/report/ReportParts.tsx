@@ -1,17 +1,14 @@
 /**
  * The parts of a result the CSV check page shows, shared with the saved reports pages (#/check/reports): the stated
- * premises with their origins, a record with its rule results, the notices printed beside the counts, and the
- * destination-only records, and what the result means (offline/explain.ts). Values from the files are marked
- * data-no-translate, so the Chinese interface never alters them.
+ * premises with their origins, the notices printed beside the counts, and what the result means (offline/explain.ts).
+ * The records are in the result explorer (./Explorer.tsx). Values from the files are marked data-no-translate, so the
+ * Chinese interface never alters them.
  */
 import { useId, type ReactNode } from "react";
-import type { Premise, RuleResult, SourceRecord } from "../../offline/evaluator";
+import type { Premise } from "../../offline/evaluator";
 import type { Explanation, Part } from "../../offline/explain";
-import { pyRepr } from "../../offline/pystr";
 import type { ResultView } from "../../offline/runner";
 import { cn } from "../../lib/cn";
-import { RuleStatusIcon, RuleStatusLabel, StatusBadge } from "../ui/status";
-import { Gloss } from "./Gloss";
 
 export const PREMISE_LABEL: Record<string, string> = {
   source_complete: "The source file is the whole batch",
@@ -73,58 +70,6 @@ export function Premises({ premises }: { premises: [string, Premise][] }) {
   );
 }
 
-export function RuleLine({ name, rule }: { name: string; rule: RuleResult }) {
-  return (
-    <li className="grid gap-1 border-t border-line-subtle py-2 first:border-t-0">
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <Value className="text-ink-2">{name}</Value>
-        <span className="inline-flex items-center gap-1">
-          <RuleStatusIcon status={rule.status} />
-          <RuleStatusLabel status={rule.status} />
-        </span>
-        <span data-no-translate className="text-xs text-ink-3">
-          {rule.reason}
-        </span>
-      </div>
-      <Gloss text={rule.reason} className="mt-0" />
-      {"expected" in rule && (
-        <div className="grid gap-0.5 text-xs sm:grid-cols-[90px_minmax(0,1fr)]">
-          <span className="text-ink-3">Source value</span>
-          <Value>{pyRepr(rule.expected)}</Value>
-          <span className="text-ink-3">Destination value</span>
-          <Value>{pyRepr(rule.actual)}</Value>
-          {"expected_normalized" in rule && (
-            <>
-              <span className="text-ink-3">Compared as</span>
-              <Value>{`${pyRepr(rule.expected_normalized)} vs ${pyRepr(rule.actual_normalized)}`}</Value>
-            </>
-          )}
-        </div>
-      )}
-    </li>
-  );
-}
-
-export function RecordCard({ record }: { record: SourceRecord }) {
-  return (
-    <li className="surface min-w-0 rounded-md px-4 py-3" data-record={record.source_row + 1}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="min-w-0 text-sm text-ink">
-          <span>{`Record ${record.source_row + 1}`}</span>
-          {" · "}
-          {record.key === null ? <span className="text-ink-3">no key</span> : <Value>{record.key}</Value>}
-        </p>
-        <StatusBadge state={record.state} />
-      </div>
-      <ul className="mt-1.5">
-        {Object.entries(record.rules ?? {}).map(([name, rule]) => (
-          <RuleLine key={name} name={name} rule={rule} />
-        ))}
-      </ul>
-    </li>
-  );
-}
-
 export function Notices({ view }: { view: ResultView }) {
   const lines: string[] = [];
   for (const [name, p] of view.premises) {
@@ -160,38 +105,6 @@ export function Notices({ view }: { view: ResultView }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-/** The destination-only records of a scope exact result, as the CSV check page lists them. */
-export function DestinationOnlyList({ view }: { view: ResultView }) {
-  if (!view.destinationOnly) return null;
-  return (
-    <>
-      <h3 className="serif mt-8 text-xl text-ink">{`Destination-only records (${view.destinationOnlyCount})`}</h3>
-      {view.destinationOnly.length > 0 && (
-        <ul className="mt-2 grid gap-2">
-          {view.destinationOnly.map((r) => (
-            <li key={r.key} className="surface flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm">
-              <span className="min-w-0">
-                <span>{`Destination row ${r.destination_row + 1}`}</span>
-                {" · "}
-                <Value>{r.key}</Value>
-                {" · "}
-                <span className="text-ink-3">{`${r.rows} rows`}</span>
-              </span>
-              <span className="flex flex-wrap items-center gap-2">
-                <StatusBadge state={r.state} />
-                <span data-no-translate className="text-xs text-ink-3">
-                  {r.reason}
-                </span>
-                <Gloss text={r.reason} className="mt-0 basis-full text-right" />
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
   );
 }
 

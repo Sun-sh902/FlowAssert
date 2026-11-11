@@ -168,6 +168,35 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
     return Math.round(shown - clicked) / 1000;
   });
   const probe = await page.evaluate(() => (window as unknown as { probe: { late: number; ticks: number; progress: number[] } }).probe);
+
+  // The result explorer over all 1,000,000 records: listed, scrolled, jumped to the end, and filtered by a rule, while
+  // the page's timers keep running on time.
+  await page.evaluate(() => void ((window as unknown as { probe: { late: number } }).probe.late = 0));
+  const timed = async (act: () => Promise<void>) => {
+    const t = Date.now();
+    await act();
+    return (Date.now() - t) / 1000;
+  };
+  const listAll = await timed(async () => {
+    await page.getByTestId("explorer-state").selectOption("");
+    await expect(page.getByTestId("explorer-count")).toHaveAttribute("data-matches", String(ROWS));
+  });
+  const list = page.getByRole("listbox", { name: "Records of this result" });
+  await list.hover();
+  for (let i = 0; i < 20; i++) await page.mouse.wheel(0, 4000);
+  await expect(list.locator('[role="option"][data-record]').first()).toBeVisible();
+  await list.focus();
+  const toEnd = await timed(async () => {
+    await page.keyboard.press("End");
+    await expect(page.getByTestId("record-panel")).toHaveAttribute("data-record-row", String(ROWS));
+  });
+  await expect(list).toHaveAttribute("data-scaled", "true");
+  const byRule = await timed(async () => {
+    await page.getByTestId("explorer-rule").selectOption("field:phone");
+    await page.getByTestId("explorer-status").selectOption("fail");
+    await expect(page.getByTestId("explorer-count")).toHaveAttribute("data-matches", "3");
+  });
+  const explorerLate = await page.evaluate(() => (window as unknown as { probe: { late: number } }).probe.late);
   const held = await heap.stop();
 
   await expect(page.locator("[data-result]")).toHaveAttribute("data-result", "Mismatch");
@@ -183,13 +212,16 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   }
   const report = { rows: ROWS, seconds, profiledSeconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size,
     peakPageHeapMiB: MiB(heap.peak.pageHeap), peakWorkerHeapMiB: MiB(heap.peak.workerHeap), peakWorkerBuffersMiB: MiB(heap.peak.workerBuffers),
-    peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heldWorkerHeapMiB: MiB(held.heap), heldWorkerBuffersMiB: MiB(held.buffers), heapSamples: heap.peak.samples };
+    peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heldWorkerHeapMiB: MiB(held.heap), heldWorkerBuffersMiB: MiB(held.buffers), heapSamples: heap.peak.samples,
+    explorerListAllSeconds: listAll, explorerEndSeconds: toEnd, explorerRuleFilterSeconds: byRule, explorerLongestTimerDelayMs: Math.round(explorerLate) };
   writeReport("check-large", report);
   testInfo.annotations.push({ type: "large-file", description: JSON.stringify(report) });
   console.info(`large-file check: ${JSON.stringify(report)}`);
   expect(summary).toBe(cli);
   // Responsive: the page's timers were never 100 ms late, and the progress bar moved.
   expect(probe.late).toBeLessThan(100);
+  // The explorer reads its records in the worker: the page stays responsive while it lists, scrolls and filters them.
+  expect(explorerLate).toBeLessThan(100);
   // Bounded: a file read as a stream is never held whole. The two files are 45 MB each; before 1.0 the worker's
   // array buffers peaked above 150 MiB and its heap above 500 MiB (docs/design/1.0-streaming.md).
   expect(report.peakWorkerBuffersMiB).toBeLessThan(90);

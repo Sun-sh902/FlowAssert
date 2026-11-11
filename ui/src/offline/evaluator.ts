@@ -198,6 +198,16 @@ export class Records {
     return new Records(this.e, this.details, true);
   }
 
+  /** A record's state, without building the record. */
+  stateAt(position: number): State {
+    return STATES[this.e.states[position]!]!;
+  }
+
+  /** A record's key as the report records it, without building the record. */
+  keyAt(position: number): string | null {
+    return this.redact ? "[redacted]" : this.e.keys[position]!;
+  }
+
   private build(position: number): SourceRecord {
     const record: SourceRecord =
       this.details === "problems" && this.e.states[position] === VERIFIED

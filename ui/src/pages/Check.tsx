@@ -16,7 +16,8 @@ import type { DragEvent } from "react";
 import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
-import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
+import { Notices, Premises, ResultExplanation, Value } from "../components/report/ReportParts";
+import { RecordExplorer } from "../components/report/Explorer";
 import { FeedbackLink } from "../components/report/Feedback";
 import { Gloss, SummaryGlosses } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
@@ -32,6 +33,8 @@ import { Cancelled, inThreadRunner, workerRunner, type CheckRunner, type HeaderR
 import { HINT_BYTES, refusalHint, type Hint, type HintFile, type HintPart } from "../offline/refusalHint";
 import { readReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
+import { useLocation, useReplaceParams } from "../lib/router";
+import { ANY, EXPLORER_PARAMS, changesAddress, type RecordStore } from "../offline/explore";
 import { saveBlob } from "../lib/download";
 import { useAllFontFaces } from "../lib/fonts";
 import { useReportStore } from "../lib/savedReports";
@@ -747,9 +750,10 @@ function KeepReport({ json }: { json: Blob }) {
   );
 }
 
-function Result({ result, headingRef }: { result: RunResult; headingRef: RefObject<HTMLHeadingElement | null> }) {
+function Result({ result, headingRef, store }: { result: RunResult; headingRef: RefObject<HTMLHeadingElement | null>; store: RecordStore }) {
   const view = result.view!;
-  const [shown, setShown] = useState(100);
+  const { params } = useLocation();
+  const replace = useReplaceParams("/check");
   const total = view.expectedTotal === null ? "unknown total" : String(view.expectedTotal);
   return (
     <section aria-labelledby="result-h" className="fade-in" data-result={view.cohort}>
@@ -808,28 +812,16 @@ function Result({ result, headingRef }: { result: RunResult; headingRef: RefObje
 
       {result.explanation && <ResultExplanation explanation={result.explanation} />}
 
-      <h3 className="serif mt-8 text-xl text-ink">{`Records that are not Verified (${view.problemCount})`}</h3>
-      {view.problemCount === 0 ? (
-        <p className="mt-1 text-sm text-ink-3">Every source record is Verified.</p>
-      ) : (
-        <>
-          <ul className="mt-2 grid gap-2">
-            {view.problems.slice(0, shown).map((r) => (
-              <RecordCard key={r.source_row} record={r} />
-            ))}
-          </ul>
-          {shown < view.problems.length && (
-            <button type="button" className={cn(buttonClass(), "mt-2")} onClick={() => setShown((n) => n + 100)}>
-              Show more records
-            </button>
-          )}
-          {view.problemCount > view.problems.length && shown >= view.problems.length && (
-            <p className="mt-2 text-xs text-ink-3">{`The first ${view.problems.length} are listed here; the reports hold all ${view.problemCount}.`}</p>
-          )}
-        </>
-      )}
-
-      {view.destinationOnly && <DestinationOnlyList view={view} />}
+      <section aria-labelledby="explore-h" className="mt-8">
+        <h3 id="explore-h" className="serif text-xl text-ink">
+          Explore the records
+        </h3>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-2">
+          {view.problemCount === 0 ? "Every source record is Verified." : view.problemCount === 1 ? "1 source record is not Verified." : `${grouped(view.problemCount)} source records are not Verified.`}{" "}
+          <span className="text-ink-3">The filters choose which records of the report are listed; they change nothing in it.</span>
+        </p>
+        <RecordExplorer store={store} params={params} replace={replace} start={view.problemCount ? { ...ANY, state: "not-verified" } : ANY} label="Records of this result" />
+      </section>
 
       <h3 id="summary-h" className="serif mt-8 text-xl text-ink">
         Summary, as the command line prints it
@@ -883,6 +875,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const statusRef = useRef<HTMLParagraphElement>(null);
   const configInput = useRef<HTMLInputElement>(null);
   const eta = useRef<TimeLeft | null>(null);
+  const clearExplorer = useReplaceParams("/check");
 
   // Any change makes an earlier result stale: it is removed rather than shown beside choices it was not made with.
   // A change while a check runs stops that check, so its result never appears beside the new choices.
@@ -1085,6 +1078,9 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       allowIdenticalContent: allowIdentical,
     };
     setRun({ kind: "running", progress: null, left: null });
+    // A new result opens on its own first view: what the address said of the last one does not apply to it.
+    const cleared = Object.fromEntries(EXPLORER_PARAMS.map((p) => [p, null]));
+    if (changesAddress(cleared)) clearExplorer(cleared);
     const id = ++runs.current;
     running.current = id;
     const timeLeft = new TimeLeft(performance.now());
@@ -1139,6 +1135,8 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   };
   const sample = (text: string, name: string) => saveBlob(new Blob([text], { type: "text/csv" }), name);
 
+  // The records of the result, read from the check worker as the explorer asks for them.
+  const store = useMemo(() => (run.kind === "done" && run.result.view ? runner.records(run.result.view.facts) : null), [run, runner]);
   const progress = run.kind === "running" ? run.progress : null;
   const percent = progress ? Math.round(progress.fraction * 100) : 0;
 
@@ -1419,7 +1417,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
         {run.kind === "done" && !run.result.view && run.result.exit === 2 && <RefusalHelp message={run.result.message} sources={hintSources} />}
       </section>
 
-      {run.kind === "done" && run.result.view && <Result result={run.result} headingRef={resultHeading} />}
+      {run.kind === "done" && run.result.view && store && <Result key={runs.current} result={run.result} headingRef={resultHeading} store={store} />}
     </div>
   );
 }

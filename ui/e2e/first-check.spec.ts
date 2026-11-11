@@ -205,8 +205,9 @@ test("in Chinese, each English text stays as written, with its explanation next 
   await check(page, EXAMPLE);
   const region = await result(page);
   await expect(page.getByTestId("explanation").getByRole("heading")).toHaveText("这个结果是什么意思");
-  // A reason: the evaluator's English, then the Chinese explanation.
-  const record = region.locator('[data-record="2"]');
+  // A reason: the evaluator's English, then the Chinese explanation, in the panel of the record chosen.
+  await region.locator('[data-record="2"]').click();
+  const record = region.getByTestId("record-panel");
   await expect(record.getByText("exact string comparison").first()).toBeVisible();
   await expect(record.locator('[data-gloss="reason-exact"]').first()).toHaveText("按原样比较字符串。");
   await expect(region.locator('[data-gloss="limitations"]')).toBeVisible();

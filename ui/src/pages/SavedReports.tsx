@@ -7,8 +7,10 @@
  * the counts or "allow identical content". Imported reports are not authenticated, and every view of one says so.
  */
 import { ArrowLeft, Download, FileUp, GitCompareArrows, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { DestinationOnlyList, Notices, Premises, RecordCard, ResultExplanation, Value } from "../components/report/ReportParts";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { Notices, Premises, ResultExplanation, Value } from "../components/report/ReportParts";
+import { RecordExplorer } from "../components/report/Explorer";
+import { ANY } from "../offline/explore";
 import { FeedbackLink } from "../components/report/Feedback";
 import { Gloss } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
@@ -17,8 +19,9 @@ import { buttonClass } from "../components/ui/primitives";
 import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
 import type { Counts } from "../offline/evaluator";
 import { explain } from "../offline/explain";
-import { NotAReport, instant, readReport, readReportFile, viewOf, type ReadReport } from "../offline/savedReport";
+import { NotAReport, instant, readReport, readReportFile, storeOfSaved, viewOf, type ReadReport, type SavedReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
+import { useLocation, useReplaceParams } from "../lib/router";
 import { saveBlob } from "../lib/download";
 import { useAllFontFaces } from "../lib/fonts";
 import { useReportStore, type Obtained, type SavedEntry } from "../lib/savedReports";
@@ -431,12 +434,30 @@ export function BackToSaved() {
   );
 }
 
+/** Every record of a saved report, in the result explorer; its view is in the address, so it can be linked. */
+function SavedRecords({ report, id, problemCount }: { report: SavedReport; id: string; problemCount: number }) {
+  const store = useMemo(() => storeOfSaved(report), [report]);
+  const { params } = useLocation();
+  const replace = useReplaceParams(`/check/reports/${encodeURIComponent(id)}`);
+  return (
+    <section aria-labelledby="saved-explore-h" className="mt-8">
+      <h3 id="saved-explore-h" className="serif text-xl text-ink">
+        Explore the records
+      </h3>
+      <p className="mt-1 max-w-[70ch] text-sm text-ink-2">
+        {problemCount === 0 ? "Every source record is Verified." : problemCount === 1 ? "1 source record is not Verified." : `${problemCount.toLocaleString("en-US")} source records are not Verified.`}{" "}
+        <span className="text-ink-3">The filters choose which records of the report are listed; they change nothing in it.</span>
+      </p>
+      <RecordExplorer store={store} params={params} replace={replace} start={problemCount ? { ...ANY, state: "not-verified" } : ANY} label="Records of this report" />
+    </section>
+  );
+}
+
 export function SavedReportPage({ id }: { id: string }) {
   useAllFontFaces();
   const store = useReportStore();
   const [opened, setOpened] = useState<Load<Opened>>({ kind: "loading" });
   const [deleted, setDeleted] = useState<{ ok: boolean; error?: unknown } | null>(null);
-  const [shown, setShown] = useState(100);
 
   useEffect(() => {
     let live = true;
@@ -656,27 +677,7 @@ export function SavedReportPage({ id }: { id: string }) {
 
         <ResultExplanation explanation={explain(report, { redacted })} />
 
-        <h3 className="serif mt-8 text-xl text-ink">{`Records that are not Verified (${view.problemCount})`}</h3>
-        {view.problemCount === 0 ? (
-          <p className="mt-1 text-sm text-ink-3">Every source record is Verified.</p>
-        ) : (
-          <>
-            <ul className="mt-2 grid gap-2">
-              {view.problems.slice(0, shown).map((r) => (
-                <RecordCard key={r.source_row} record={r} />
-              ))}
-            </ul>
-            {shown < view.problems.length && (
-              <button type="button" className={cn(buttonClass(), "mt-2")} onClick={() => setShown((n) => n + 100)}>
-                Show more records
-              </button>
-            )}
-            {view.problemCount > view.problems.length && shown >= view.problems.length && (
-              <p className="mt-2 text-xs text-ink-3">{`The first ${view.problems.length} are listed here; the report holds all ${view.problemCount}.`}</p>
-            )}
-          </>
-        )}
-        <DestinationOnlyList view={view} />
+        <SavedRecords report={report} id={id} problemCount={view.problemCount} />
       </section>
       <BackToSaved />
     </div>

@@ -230,8 +230,16 @@ describe("on the page, in the Chinese interface", () => {
     await user.click(screen.getByTestId("run-check"));
     const result = await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
     // A reason: the English as the evaluator wrote it, then the explanation.
-    const record = result.querySelector('[data-record="2"]')!;
-    expect(within(record as HTMLElement).getByText("exact string comparison")).toBeTruthy();
+    // The record, chosen in the result explorer, shows its rule results in the panel.
+    await user.click(
+      await waitFor(() => {
+        const option = result.querySelector<HTMLElement>('[data-record="2"]');
+        if (!option) throw new Error("record 2 is not listed yet");
+        return option;
+      }),
+    );
+    const record = await within(result).findByTestId("record-panel");
+    expect(within(record).getAllByText("exact string comparison").length).toBeGreaterThan(0);
     expect(record.querySelector('[data-gloss="reason-exact"]')!.textContent).toBe("按原样比较字符串。");
     // The limitations, in English, with their explanation.
     expect(within(result).getAllByText(LIMITS).length).toBeGreaterThan(0);

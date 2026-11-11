@@ -4,11 +4,14 @@
  * them: one for checks, one for headers and profiles. It answers only the page's messages and makes no request.
  */
 import { Abandoned } from "./profile";
-import { header, keyProfile, profile, runCheck, type Reply, type Request } from "./runner";
+import { Explorer } from "./explore";
+import { accessOf, answer, factsOf, header, keyProfile, profile, runCheckKeeping, type Reply, type Request } from "./runner";
 
 const post = (reply: Reply) => (self as unknown as Worker).postMessage(reply);
 /** Profile reads the page has given up: each ends at its next look, and answers "abandoned". */
 const abandoned = new Set<number>();
+/** The records of the last check's report, for the result explorer: released when the next check starts. */
+let explorer: Explorer | null = null;
 /**
  * Profiles are read one at a time, in the order asked: a read waits for the one before it to end. A read given up
  * while it waits is never started.
@@ -29,7 +32,13 @@ self.onmessage = async (event: MessageEvent<Request>) => {
     if (request.type === "header") post({ id, type: "header", result: await header(request.file, request.encoding) });
     else if (request.type === "profile") post({ id, type: "profile", result: await inTurn(() => (given() ? Promise.reject(new Abandoned()) : profile(request.file, request.encoding, (rows) => post({ id, type: "rows", rows }), given))) });
     else if (request.type === "key-profile") post({ id, type: "key-profile", result: await inTurn(() => (given() ? Promise.reject(new Abandoned()) : keyProfile(request.file, request.encoding, request.column, given))) });
-    else post({ id, type: "result", result: await runCheck(request.input, (progress) => post({ id, type: "progress", progress })) });
+    else if (request.type === "explore") post({ id, type: "explored", result: answer(explorer, request) });
+    else {
+      explorer = null;
+      const [result, report] = await runCheckKeeping(request.input, (progress) => post({ id, type: "progress", progress }));
+      explorer = report ? new Explorer(accessOf(report), factsOf(report)) : null;
+      post({ id, type: "result", result });
+    }
   } catch (e) {
     if (e instanceof Abandoned) post({ id, type: "abandoned" });
     else post({ id, type: "error", message: e instanceof Error ? `${e.name}: ${e.message}` : String(e) });

@@ -268,7 +268,8 @@ describe("an opened saved report", () => {
     }
     expect(result.querySelector('[data-count="Verified"]')!.textContent).toBe("1");
     expect(within(result).getByText(/^Files and completeness statements are not authenticated\./)).toBeTruthy();
-    expect([...result.querySelectorAll("[data-record]")].map((r) => r.getAttribute("data-record"))).toEqual(["2", "3", "4"]);
+    // The explorer opens on the records that are not Verified.
+    await waitFor(() => expect([...result.querySelectorAll("[data-record]")].map((r) => r.getAttribute("data-record"))).toEqual(["2", "3", "4"]));
     expect(screen.getByText(/^Not authenticated: this report was imported from a file\./)).toBeTruthy();
   });
 

@@ -343,3 +343,20 @@
   .fa-evstatus > dd { font-family: var(--font-mono); font-size: 11px; color: var(--fa-ink-2); min-width: 0; }
   .fa-evstatus > dd[data-i="failed"] { color: var(--fa-ink); font-weight: 600; }
 }
+
+@layer components {
+  /* ---------- The character diff (components/report/Explorer.tsx): a display aid, marked by form as well as colour ---------- */
+  .fa-diff del, del.fa-key {
+    text-decoration: line-through; text-decoration-thickness: 1.5px; text-decoration-color: var(--fa-mismatch-ink);
+    background: var(--fa-mismatch-soft); color: var(--fa-ink); border-radius: 2px; box-shadow: inset 0 -1px 0 var(--fa-mismatch-line);
+  }
+  .fa-diff ins, ins.fa-key {
+    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--fa-brand-ink);
+    background: var(--fa-brand-soft); color: var(--fa-ink); border-radius: 2px;
+  }
+  .fa-tok {
+    display: inline-block; margin: 0 1px; padding: 0 3px; border: 1px dashed var(--fa-border-strong); border-radius: 3px;
+    font-size: 0.82em; line-height: 1.35; color: var(--fa-ink-2); text-decoration: none; vertical-align: baseline;
+  }
+  .fa-diff del .fa-tok, .fa-diff ins .fa-tok { color: var(--fa-ink); }
+}

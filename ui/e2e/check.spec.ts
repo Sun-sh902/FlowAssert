@@ -217,3 +217,44 @@ for (const locale of LOCALES) {
     }
   }
 }
+
+for (const locale of LOCALES) {
+  for (const theme of ["light", "dark"] as const) {
+    for (const [width, viewport] of Object.entries(VIEWPORTS)) {
+      test(`axe · ${theme} · ${width} · ${locale} · the result explorer, a record and the character diff`, async ({ page, context, browserName }) => {
+        await page.addInitScript((t) => localStorage.setItem("flowassert.theme", t), theme);
+        await page.setViewportSize(viewport);
+        await openCheck(page, "/#/check", locale);
+        const requests = recordRequests(context);
+        const folder = join(GOLDEN, "rules-fail");
+        await check(page, { source: join(folder, "source.csv"), destination: join(folder, "destination.csv"), config: join(folder, "config.json"), sourceComplete: true, destinationComplete: true });
+        const region = await result(page);
+        // The explorer opens on the records that are not Verified; the first is chosen by keyboard.
+        await expect(region.getByTestId("explorer-count")).toHaveAttribute("data-matches", /^[1-9]/);
+        const list = region.getByRole("listbox");
+        await list.focus();
+        await page.keyboard.press("ArrowDown");
+        const panel = region.getByTestId("record-panel");
+        await expect(panel).toHaveAttribute("data-record-row", "1");
+        await expect(panel.getByTestId("value-diff")).toHaveCount(6);
+        await page.waitForTimeout(400);
+        let violations = await audit(page);
+        writeReport(`axe-${browserName}-${theme}-${width}-${locale}-explorer`, violations);
+        expect(violations).toEqual([]);
+        expect(await noSideways(page)).toBe(true);
+        // A filter that matches nothing.
+        await region.getByTestId("explorer-state").selectOption("Verified");
+        await region.getByTestId("explorer-rule").selectOption({ index: 3 });
+        await region.getByTestId("explorer-status").selectOption("fail");
+        await expect(region.getByTestId("explorer-empty")).toBeVisible();
+        violations = await audit(page);
+        writeReport(`axe-${browserName}-${theme}-${width}-${locale}-explorer-empty`, violations);
+        expect(violations).toEqual([]);
+        expect(await noSideways(page)).toBe(true);
+        // The address holds the view, never a key or a value.
+        expect(page.url()).toMatch(/#\/check\?state=Verified&rule=f1&result=fail$/);
+        expectNoNetwork(page, requests);
+      });
+    }
+  }
+}

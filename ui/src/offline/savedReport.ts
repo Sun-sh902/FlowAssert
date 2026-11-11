@@ -16,6 +16,7 @@
  * A report read here is not authenticated: its files, statements and numbers are what the file says.
  */
 import { MAX_BYTES } from "./csv";
+import { Explorer, localStore, rulesOf as explorerRules, type Facts, type RecordStore } from "./explore";
 import { EvaluatorError, STATES, VERSION, parseRule, type Counts, type Details, type DestinationOnlyRecord, type Premise, type RuleResult, type SourceRecord, type State } from "./evaluator";
 import { DuplicateMember, JsonError, pyLoads, type PyValue } from "./pyjson";
 import { pyRepr } from "./pystr";
@@ -584,5 +585,19 @@ export function viewOf(report: SavedReport): ResultView {
     destinationOnlyCounts: report.destination_only_counts ?? null,
     // The plain members: inputs.source_sheet (schema_version 2) is an object, shown on its own.
     inputs: Object.entries(report.inputs).filter((e): e is [string, string | boolean] => typeof e[1] === "string" || typeof e[1] === "boolean"),
+    facts: factsOfSaved(report),
   };
 }
+
+/** What the result explorer needs of a report read here. */
+export const factsOfSaved = (report: SavedReport): Facts => ({
+  total: report.records.length,
+  destinationOnlyTotal: report.destination_only ? report.destination_only.length : null,
+  rules: explorerRules(report.obligation.fields),
+  details: report.details,
+  redacted: report.records.some((r) => r.key === REDACTED) || (report.destination_only ?? []).some((r) => r.key === REDACTED),
+});
+
+/** The result explorer over a report read here: its records are in memory already. */
+export const storeOfSaved = (report: SavedReport): RecordStore =>
+  localStore(new Explorer({ length: report.records.length, at: (p) => report.records[p]!, destinationOnly: report.destination_only ?? null }, factsOfSaved(report)));

@@ -11,6 +11,7 @@
 import { ByteFeed, MAX_BYTES, NeedMore, Refused, blobStream, readHeader, type Encoding } from "./csv";
 import type { DestinationOnlyRecord, Premise, SourceRecord, State } from "./evaluator";
 import { explain, type Explanation } from "./explain";
+import { Explorer, rulesOf, type Facts, type Item, type Matched, type Query, type RecordAccess, type RecordStore } from "./explore";
 import { pageCheck, type ChosenConfig } from "./pageCheck";
 import { Abandoned, keyProfileCsv, profileCsv, type KeyProfileResult, type ProfileResult, type ProfileSource } from "./profile";
 import { writeHtml, writeJson, type Report } from "./report";
@@ -67,6 +68,8 @@ export interface ResultView {
   destinationOnlyCount: number;
   destinationOnlyCounts: Record<State, number> | null;
   inputs: [string, string | boolean][];
+  /** What the result explorer needs to know of the report before it lists a record. */
+  facts: Facts;
 }
 
 export interface RunResult {
@@ -95,6 +98,8 @@ export interface CheckRunner {
   /** The key profile of one column. */
   keyProfile(file: File, encoding: Encoding, column: string): Reading<KeyProfileResult>;
   run(input: RunInput, onProgress: (p: Progress) => void): Promise<RunResult>;
+  /** The records of the result the last check gave, for the result explorer; its reads fail once another check starts. */
+  records(facts: Facts): RecordStore;
   /** Abandon the running check: its promise rejects with Cancelled and no result arrives. */
   cancel(): void;
   dispose(): void;
@@ -159,7 +164,36 @@ function view(report: Report): ResultView {
     destinationOnlyCount: report.destination_only?.length ?? 0,
     destinationOnlyCounts: report.destination_only_counts ?? null,
     inputs: Object.entries(report.inputs),
+    facts: factsOf(report),
   };
+}
+
+/** What the explorer needs of a report the check has just written. The page never redacts. */
+export const factsOf = (report: Report): Facts => ({
+  total: report.records.length,
+  destinationOnlyTotal: report.destination_only ? report.destination_only.length : null,
+  rules: rulesOf(report.obligation.fields),
+  details: report.details,
+  redacted: false,
+});
+
+/** The records of a report the check has just written, each built when it is asked for. */
+export const accessOf = (report: Report): RecordAccess => ({
+  length: report.records.length,
+  at: (p) => report.records.at(p),
+  stateAt: (p) => report.records.stateAt(p),
+  keyAt: (p) => report.records.keyAt(p),
+  destinationOnly: report.destination_only ?? null,
+});
+
+/** Calls the explorer of the last result answers, by name. */
+export type ExploreCall = { call: "query"; args: [Query] } | { call: "window"; args: [number, number] } | { call: "indexOf"; args: [number] };
+
+export function answer(explorer: Explorer | null, request: ExploreCall): Matched | Item[] | number {
+  if (!explorer) throw new Error("The records of this result are no longer held: another check was started.");
+  if (request.call === "query") return explorer.query(...request.args);
+  if (request.call === "window") return explorer.window(...request.args);
+  return explorer.indexOf(...request.args);
 }
 
 const same = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
@@ -209,6 +243,11 @@ function* counted<T>(pieces: Iterable<T>, count: { n: number }): Generator<T> {
  * file when their name, size, modification time and bytes are all equal: a copy that equal is refused too.
  */
 export async function runCheck(input: RunInput, onProgress: (p: Progress) => void): Promise<RunResult> {
+  return (await runCheckKeeping(input, onProgress))[0];
+}
+
+/** runCheck, with the report itself, whose records the result explorer reads afterwards. */
+export async function runCheckKeeping(input: RunInput, onProgress: (p: Progress) => void): Promise<[RunResult, Report | null]> {
   const total = input.source.size + input.destination.size;
   let sameFile = false;
   if (same(input.source, input.destination)) sameFile = (await digestOf(input.source)) === (await digestOf(input.destination));
@@ -239,7 +278,7 @@ export async function runCheck(input: RunInput, onProgress: (p: Progress) => voi
     evaluating: (done, records) => report_("evaluating", total, SHARE.reading + (records ? done / records : 1) * SHARE.evaluating),
   });
   const report = outcome.report;
-  if (!report) return { exit: outcome.exit, summary: "", message: outcome.stderr.trimEnd(), view: null, explanation: null, json: null, html: null };
+  if (!report) return [{ exit: outcome.exit, summary: "", message: outcome.stderr.trimEnd(), view: null, explanation: null, json: null, html: null }, null];
   // The JSON report has one piece per record; the HTML report lists only the records that are not Verified.
   const written = { n: 0 };
   const records = report.records.length || 1;
@@ -248,12 +287,13 @@ export async function runCheck(input: RunInput, onProgress: (p: Progress) => voi
   const json = blobOf(counted(writeJson(report), written), "application/json", writing);
   const html = blobOf(writeHtml(report), "text/html;charset=utf-8");
   report_("writing-reports", total, 1);
-  return { exit: outcome.exit, summary: outcome.stdout, message: "", view: view(report), explanation: explain(report), json, html };
+  return [{ exit: outcome.exit, summary: outcome.stdout, message: "", view: view(report), explanation: explain(report), json, html }, report];
 }
 
 /** A runner in this thread, for tests and for a browser without module workers. Cancel only drops the result. */
 export function inThreadRunner(): CheckRunner {
   let generation = 0;
+  let explorer: Explorer | null = null;
   const reading = <T>(start: (abandoned: () => boolean) => Promise<T>): Reading<T> => {
     let given = false;
     return { result: start(() => given), abandon: () => void (given = true) };
@@ -262,9 +302,15 @@ export function inThreadRunner(): CheckRunner {
     header,
     profile: (file, encoding, onRows) => reading((abandoned) => profile(file, encoding, onRows, abandoned)),
     keyProfile: (file, encoding, column) => reading((abandoned) => keyProfile(file, encoding, column, abandoned)),
+    records: (facts) => {
+      const ask = <T>(request: ExploreCall) => Promise.resolve().then(() => answer(explorer, request) as T);
+      return { facts, query: (q) => ask({ call: "query", args: [q] }), window: (start, count) => ask({ call: "window", args: [start, count] }), indexOf: (row) => ask({ call: "indexOf", args: [row] }) };
+    },
     async run(input, onProgress) {
       const mine = ++generation;
-      const result = await runCheck(input, (p) => mine === generation && onProgress(p));
+      explorer = null;
+      const [result, report] = await runCheckKeeping(input, (p) => mine === generation && onProgress(p));
+      if (mine === generation) explorer = report ? new Explorer(accessOf(report), factsOf(report)) : null;
       if (mine !== generation) throw new Cancelled();
       return result;
     },
@@ -279,7 +325,8 @@ export type Request =
   | { id: number; type: "profile"; file: File; encoding: Encoding }
   | { id: number; type: "key-profile"; file: File; encoding: Encoding; column: string }
   | { id: number; type: "abandon" }
-  | { id: number; type: "run"; input: RunInput };
+  | { id: number; type: "run"; input: RunInput }
+  | ({ id: number; type: "explore" } & ExploreCall);
 /** Messages from a worker. */
 export type Reply =
   | { id: number; type: "header"; result: HeaderResult }
@@ -289,6 +336,7 @@ export type Reply =
   | { id: number; type: "abandoned" }
   | { id: number; type: "progress"; progress: Progress }
   | { id: number; type: "result"; result: RunResult }
+  | { id: number; type: "explored"; result: Matched | Item[] | number }
   | { id: number; type: "error"; message: string };
 
 interface Pending {
@@ -363,6 +411,10 @@ export function workerRunner(start: () => Worker): CheckRunner {
     profile: (file, encoding, onRows) => reading<ProfileResult>({ id: ++next, type: "profile", file, encoding }, onRows),
     keyProfile: (file, encoding, column) => reading<KeyProfileResult>({ id: ++next, type: "key-profile", file, encoding, column }),
     run: (input, onProgress) => checks.send<RunResult>({ id: ++next, type: "run", input }, { progress: onProgress }),
+    records: (facts) => {
+      const ask = <T>(request: ExploreCall) => checks.send<T>({ id: ++next, type: "explore", ...request });
+      return { facts, query: (q) => ask({ call: "query", args: [q] }), window: (start, count) => ask({ call: "window", args: [start, count] }), indexOf: (row) => ask({ call: "indexOf", args: [row] }) };
+    },
     cancel: () => checks.restart(() => new Cancelled()),
     dispose() {
       checks.dispose();
