@@ -201,8 +201,14 @@ UTF-8，没有字节顺序标记。先是表头，然后是每个数据行，用
 
 ## HTML 报告
 
-`--html PATH` 写出一个 HTML 文件，和 `--json` 一样，拒绝覆盖已有文件。如果任何一份报告无法写出，两份都不会留下。页面显示批次结果和声明、每项声明的前提、计数、限制、每条不是 Verified 的记录及其规则结果、每条仅在目标中的记录，以及输入。它遵循 `--redact-values`。
+`--html PATH` 写出一个 HTML 文件，和 `--json` 一样，拒绝覆盖已有文件。如果任何一份报告无法写出，两份都不会留下。它遵循 `--redact-values`。从 1.0 起，页面的布局与浏览器核对一致（页面上的文字是英文）：
 
-来自 Google 表格来源的报告，在输入之前多一节“Source read from Google Sheets”：`inputs.source_sheet` 的成员、版本，以及“这次读取不能说明这个范围包含了应有的全部记录”这句话（页面上是英文）。
+1. 结果：印章、声明或“No claim is made: the result is not Verified.”、读到的行数、三项计数，以及评估时间和评估器。
+2. 每项声明的前提及其来源和读到的行数，并用文字说明是否被采用：完整性声明为 “applied”“not applied: the stated total differs from the rows read” 或 “not stated”；总数为 “matches the rows read”“differs from the rows read” 或 “not stated”。
+3. 计数。
+4. 每条不是 Verified 的记录，以卡片显示每条规则的结果、原因和两边的值。对于不通过的字段，比较时所用的两个值逐字符对齐：只在来源值中的字符加删除线，只在目标值中的字符加下划线，看不见的字符画成标记（`·` 表示空格，以及 `NBSP`、`ZWSP`、`→` 表示制表符等）。旁边注明 “This highlights where the two values differ. The rule's result above is the conclusion.”。这只是显示上的辅助；JSON 报告中没有这些标记。
+5. 范围为 `exact` 时，每条仅在目标中的记录。
+6. 来自 Google 表格来源的报告多一节 “Source read from Google Sheets”：`inputs.source_sheet` 的成员、版本，以及“这次读取不能说明这个范围包含了应有的全部记录”这句话。
+7. 限制，以及输入的摘要值和核对要求。
 
-文件中的每个值都经过转义。页面没有脚本，也不加载任何内容：样式写在页面内，内容安全策略阻止其他一切。离线打开也能使用。
+文件中的每个值都经过转义。页面没有脚本，也不加载任何内容：样式写在页面内，内容安全策略阻止其他一切。离线打开也能使用，跟随读者的浅色或深色设置，在手机宽度下可读，可在 A4 和 Letter 纸上打印，记录卡片能放在一页时不会被拆开。Python 和浏览器写出的字节完全相同。

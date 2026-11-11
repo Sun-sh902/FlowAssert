@@ -30,13 +30,14 @@
    "src/test/markdown-links.test.ts": 126,
    "src/test/offline/api.test.ts": 100,
    "src/test/offline/bundle.test.ts": 64,
-   "src/test/offline/chardiff.test.ts": 9,
+   "src/test/offline/chardiff.test.ts": 10,
    "src/test/offline/compare.test.ts": 42,
    "src/test/offline/conformance.test.ts": 40,
    "src/test/offline/eta.test.ts": 7,
    "src/test/offline/explain.test.ts": 195,
    "src/test/offline/explore.test.ts": 58,
    "src/test/offline/golden.test.ts": 160,
+   "src/test/offline/html-report.test.ts": 3,
    "src/test/offline/n8n-workflow.test.ts": 6,
    "src/test/offline/profile.test.ts": 107,
    "src/test/offline/python-semantics.test.ts": 55,
@@ -345,6 +346,27 @@
     "passed": 1
    },
    "chrome › first-check.spec.ts › what the result means › an opened saved report is explained too": {
+    "passed": 1
+   },
+   "chrome › html-report.spec.ts › axe · dark · desktop · the HTML reports": {
+    "passed": 1
+   },
+   "chrome › html-report.spec.ts › axe · dark · phone · the HTML reports": {
+    "passed": 1
+   },
+   "chrome › html-report.spec.ts › axe · light · desktop · the HTML reports": {
+    "passed": 1
+   },
+   "chrome › html-report.spec.ts › axe · light · phone · the HTML reports": {
+    "passed": 1
+   },
+   "chrome › html-report.spec.ts › print · A4 · the HTML reports paginate, and no text is cut off": {
+    "passed": 1
+   },
+   "chrome › html-report.spec.ts › print · Letter · the HTML reports paginate, and no text is cut off": {
+    "passed": 1
+   },
+   "chrome › html-report.spec.ts › the golden reports are the files on disk, and none has a script or a link": {
     "passed": 1
    },
    "chrome › interactions.spec.ts › a simulated read announces loading, then the result, in a live region": {
@@ -826,6 +848,27 @@
     "passed": 1
    },
    "webkit › first-check.spec.ts › what the result means › an opened saved report is explained too": {
+    "passed": 1
+   },
+   "webkit › html-report.spec.ts › axe · dark · desktop · the HTML reports": {
+    "passed": 1
+   },
+   "webkit › html-report.spec.ts › axe · dark · phone · the HTML reports": {
+    "passed": 1
+   },
+   "webkit › html-report.spec.ts › axe · light · desktop · the HTML reports": {
+    "passed": 1
+   },
+   "webkit › html-report.spec.ts › axe · light · phone · the HTML reports": {
+    "passed": 1
+   },
+   "webkit › html-report.spec.ts › print · A4 · the HTML reports paginate, and no text is cut off": {
+    "skipped": 1
+   },
+   "webkit › html-report.spec.ts › print · Letter · the HTML reports paginate, and no text is cut off": {
+    "skipped": 1
+   },
+   "webkit › html-report.spec.ts › the golden reports are the files on disk, and none has a script or a link": {
     "passed": 1
    },
    "webkit › interactions.spec.ts › a simulated read announces loading, then the result, in a live region": {

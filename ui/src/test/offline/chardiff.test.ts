@@ -3,8 +3,11 @@
  * subsequence, with fixed tie-breaking; invisible characters drawn as tokens; code points of what differs; and the
  * notes about normalisation and case.
  */
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { MAX_CELLS, align, codePoints, notes, pieces, token, type Run } from "../../offline/chardiff";
+import { REPO_ROOT } from "../fixtures/sources";
 import { random } from "./random-cases";
 
 const text = (runs: Run[]) => runs.map((r) => r.text).join("");
@@ -106,5 +109,50 @@ describe("invisible characters", () => {
     expect(notes("Ada", "ada")).toEqual(["case"]);
     expect(notes("a", "b")).toEqual([]);
     expect(notes("a", "a")).toEqual([]);
+  });
+});
+
+describe("the same highlighting in Python (offline/flowassert_offline/chardiff.py), for the HTML report", () => {
+  const PYTHON = process.env.FA_PYTHON ?? "python3";
+  let runs = true;
+  try {
+    execFileSync(PYTHON, ["-c", "pass"]);
+  } catch {
+    runs = false;
+  }
+  test.skipIf(!runs && process.env.FA_PARITY_REQUIRED !== "1")("3,000 random pairs: the same runs, the same code points and the same drawn pieces", () => {
+    const { int, pick } = random(20261111);
+    // Characters on every side of every fixed list: tokens, invisible ranges and their neighbours, combining marks,
+    // look-alikes, characters outside the BMP.
+    const alphabet = ["a", "b", "A", " ", "\t", "\n", "\r", " ", "­", "\u0000", "\u001f", "\u007f", "\u009f", "¡", "̀", "ͯ", "Ͱ", "؜", " ", "᠎", " ", " ", "​", "‍", "‎", " ", " ", "‰", " ", "⁠", "⁤", "⁥", "⁦", "　", "︠", "﻿", "￹", "￼", "é", "é", "А", "😀", "\u{e0001}", "\u{e0041}", "\u{e0080}", "中"];
+    const pairs = Array.from({ length: 3000 }, () => {
+      const word = () => Array.from({ length: int(0, 14) }, () => pick(alphabet)).join("");
+      return [word(), word()];
+    });
+    const ts = pairs.map(([a, b]) => {
+      const r = align(a!, b!);
+      return {
+        source: r.source.map((x) => [x.kind, x.text]),
+        destination: r.destination.map((x) => [x.kind, x.text]),
+        tooLong: r.tooLong,
+        points: [codePoints(r.source), codePoints(r.destination)],
+        pieces: [...r.source, ...r.destination].map((x, i) => pieces(x.text, x.kind !== "same", { start: i % 2 === 0, end: i % 3 === 0 }).map((p) => [p.text, p.token ? p.ch : null])),
+      };
+    });
+    const script = `
+import json, sys
+sys.path.insert(0, ${JSON.stringify(join(REPO_ROOT, "offline"))})
+from flowassert_offline import chardiff
+out = []
+for a, b in json.load(sys.stdin):
+    s, d, too_long = chardiff.align(a, b)
+    runs = s + d
+    out.append({"source": [list(x) for x in s], "destination": [list(x) for x in d], "tooLong": too_long,
+                "points": [chardiff.code_points(s), chardiff.code_points(d)],
+                "pieces": [[list(p) for p in chardiff.pieces(t, k != "same", i % 2 == 0, i % 3 == 0)] for i, (k, t) in enumerate(runs)]})
+json.dump(out, sys.stdout, ensure_ascii=True)
+`;
+    const py = JSON.parse(execFileSync(PYTHON, ["-I", "-c", script], { input: JSON.stringify(pairs), encoding: "utf-8", maxBuffer: 1 << 28 })) as unknown;
+    expect(py).toEqual(ts);
   });
 });

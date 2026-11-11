@@ -201,8 +201,14 @@ UTF-8 without a byte order mark. The header row, then every data row padded with
 
 ## HTML report
 
-`--html PATH` writes one HTML file and, like `--json`, refuses to overwrite an existing file. If either report cannot be written, neither is left behind. The page shows the cohort result and claim, every stated premise, the counts, the limitations, every record that is not Verified with its rule results, every destination-only record, and the inputs. It follows `--redact-values`.
+`--html PATH` writes one HTML file and, like `--json`, refuses to overwrite an existing file. If either report cannot be written, neither is left behind. It follows `--redact-values`. From 1.0 the page is laid out like the browser check:
 
-A report from a Google Sheets source has one more section, "Source read from Google Sheets", before the inputs: the members of `inputs.source_sheet`, the revision, and the sentence that the read does not show that the range holds every record that should exist.
+1. The result: its seal, the claim or "No claim is made: the result is not Verified.", the rows read, the three counts, and when and by which evaluator it was evaluated.
+2. Every stated premise with its origin and the rows read, and in words whether it was applied: "applied", "not applied: the stated total differs from the rows read" or "not stated" for a completeness statement; "matches the rows read", "differs from the rows read" or "not stated" for a total.
+3. The counts.
+4. Every record that is not Verified, as a card with every rule result, its reason and both values. For a field that failed, the compared values are aligned character by character: characters only in the source value are struck through, characters only in the destination value underlined, and characters that cannot be seen are drawn as tokens (`·` a space, `NBSP`, `ZWSP`, `→` a tab, and others). It is labelled: "This highlights where the two values differ. The rule's result above is the conclusion." It is a display aid; the JSON report holds no highlighting.
+5. Every destination-only record, for scope `exact`.
+6. For a report from a Google Sheets source, "Source read from Google Sheets": the members of `inputs.source_sheet`, the revision, and the sentence that the read does not show that the range holds every record that should exist.
+7. The limitations, and the inputs with their digests and the obligation.
 
-Every value from a file is escaped. The page has no scripts and loads nothing: its styles are inline, and a Content Security Policy blocks everything else. It works when opened offline.
+Every value from a file is escaped. The page has no scripts and loads nothing: its styles are inline, and a Content Security Policy blocks everything else. It works when opened offline, follows the reader's light or dark setting, is readable at phone width, and prints on A4 and Letter with a record card kept on one page when it fits. Python and the browser write the same bytes.

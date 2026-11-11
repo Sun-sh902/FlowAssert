@@ -58,7 +58,7 @@ const text = (folder: string, file: string) => {
 
 /** A report without its evaluated_at, the one value the caller cannot fix. */
 export const withoutTime = (report: string | null) =>
-  report?.replace(/"evaluated_at": "[^"]*"/, '"evaluated_at": ""').replace(/<p>Evaluated at [^ ]* by/, "<p>Evaluated at by") ?? null;
+  report?.replace(/"evaluated_at": "[^"]*"/, '"evaluated_at": ""').replace(/>Evaluated at [^ ]* by/, ">Evaluated at by") ?? null;
 
 /** What the command line gave for a case, with `origin` in place of "command-line option". */
 export function expectedResult(name: string, origin: string) {
@@ -69,7 +69,7 @@ export function expectedResult(name: string, origin: string) {
     summary: text(folder, "stdout.txt"),
     message: text(folder, "stderr.txt"),
     json: withoutTime(text(folder, "report.json")?.replaceAll('"origin": "command-line option"', `"origin": ${JSON.stringify(origin)}`) ?? null),
-    html: withoutTime(text(folder, "report.html")?.replaceAll("<td>command-line option</td>", `<td>${origin}</td>`) ?? null),
+    html: withoutTime(text(folder, "report.html")?.replaceAll("· origin: command-line option", `· origin: ${origin}`) ?? null),
   };
 }
 

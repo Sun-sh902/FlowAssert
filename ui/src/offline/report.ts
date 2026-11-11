@@ -4,7 +4,8 @@
  * the text in pieces, one record at a time, as the Python writers write it, so a large report is never one string
  * until the caller joins it (a Blob takes the pieces as they are).
  */
-import { STATES, type Details, type EvaluationResult, type Premise, type Records, type State } from "./evaluator";
+import { align, codePoint, codePoints, pieces, type Run } from "./chardiff";
+import { STATES, type Details, type EvaluationResult, type Premise, type Records, type RuleResult, type State } from "./evaluator";
 import { pyDumps, type PyValue } from "./pyjson";
 import { compareCodePoints, htmlEscape, pyRepr } from "./pystr";
 
@@ -100,51 +101,213 @@ export function* writeJson(report: Report): Generator<string> {
   yield "\n}";
 }
 
+/** cli._HTML_STYLE: the Evidence Atelier palette, light and dark, and a print layout; nothing is loaded. */
 const HTML_STYLE = `
-body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;max-width:72rem;padding:1rem;
-color:#1b1f24;background:#fff}
-h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #d0d7de}
-table{border-collapse:collapse;width:100%;margin:.5rem 0}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;
-text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f6f8fa}
-.state{display:inline-block;font-size:1.6rem;font-weight:700;padding:.2rem .8rem;border-radius:.3rem}
-.Verified{background:#dafbe1;color:#116329}.Mismatch{background:#ffebe9;color:#a40e26}
-.Unverified,.Pending{background:#fff8c5;color:#7d4e00}.premises{border:2px solid #7d4e00;padding:.5rem 1rem}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+:root{color-scheme:light dark;--canvas:#f3efe6;--surface:#fbf9f4;--sunken:#ece6d9;--line:#d8d0bf;--line-2:#e6e0d2;
+--line-3:#b9b09c;--ink:#1d1b16;--ink-2:#4b473e;--ink-3:#6d675a;--brand:#2f3590;--brand-soft:#e4e4f1;
+--v:#255a3b;--v-soft:#dfe9df;--v-line:#b7cfba;--m:#a23117;--m-soft:#f5e0d6;--m-line:#e7b7a5;--u:#4b473e;
+--u-soft:#ebe6da;--u-line:#b9b09c;--p:#845a08;
+--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+--sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+@media (prefers-color-scheme:dark){:root{--canvas:#14120e;--surface:#1c1915;--sunken:#110f0c;--line:#34302a;
+--line-2:#29261f;--line-3:#4d473d;--ink:#ece6d8;--ink-2:#bdb5a4;--ink-3:#8f8777;--brand:#b4b9ff;
+--brand-soft:rgb(154 162 255/.14);--v:#7cc597;--v-soft:rgb(75 162 111/.13);--v-line:rgb(75 162 111/.35);--m:#f0937d;
+--m-soft:rgb(226 101 74/.13);--m-line:rgb(226 101 74/.38);--u:#b6ae9d;--u-soft:rgb(138 132 118/.14);--u-line:#4d473d;
+--p:#e3b35c}}
+*{box-sizing:border-box}
+html{background:var(--canvas)}
+body{margin:0 auto;max-width:60rem;padding:2rem 1rem 3rem;font:15px/1.55 var(--sans);color:var(--ink);
+background:var(--canvas);overflow-wrap:anywhere}
+h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.2;margin:0}
+h2{font-size:1.45rem;margin:2.4rem 0 .5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem}
+p{margin:.35rem 0}
+code{font-family:var(--mono);font-size:.86em;white-space:pre-wrap}
+.kicker{margin:0 0 .5rem;font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.verdict{padding:1.4rem 1.5rem 1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.seal{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .9rem .35rem;font-size:2.1rem;border-radius:4px;
+border:1.5px solid}
+.claim{max-width:44rem;margin-top:.9rem;font-size:1.05rem}
+.rows{color:var(--ink-2)}
+.counts{display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;margin:.6rem 0 0;padding:0}
+.counts div{display:flex;gap:.45rem;align-items:baseline}.counts dt{color:var(--ink-2)}
+.counts dd{margin:0;font-family:var(--mono);font-weight:600}
+.meta{margin-top:.8rem;font-size:.82rem;color:var(--ink-3)}
+.s-Verified{color:var(--v);background:var(--v-soft);border-color:var(--v-line)}
+.s-Mismatch{color:var(--m);background:var(--m-soft);border-color:var(--m-line)}
+.s-Unverified{color:var(--u);background:var(--u-soft);border-color:var(--u-line)}
+.s-Pending{color:var(--p);background:var(--u-soft);border-color:var(--u-line)}
+.counts .s-Verified,.counts .s-Mismatch,.counts .s-Unverified{background:none}
+.premises{margin-top:1.4rem;padding:.9rem 1.2rem 1rem;border:2px solid var(--u-line);border-radius:10px}
+.premises h2{margin-top:0;border:0;padding:0;font-size:1.25rem}
+.note{font-size:.86rem;color:var(--ink-3)}
+.premise{padding:.55rem 0;border-top:1px solid var(--line-2)}
+.premise:first-of-type{border-top:0}
+.premise p{margin:.1rem 0}.premise .name{font-weight:600}.premise .name code{font-weight:400;color:var(--ink-3)}
+.applied{font-size:.86rem;font-weight:600}.applied.yes{color:var(--v)}.applied.no{color:var(--m)}
+.applied.none{color:var(--ink-3);font-weight:400}
+table.facts{border-collapse:collapse;width:100%;margin:.4rem 0;font-size:.9rem}
+.facts th,.facts td{padding:.32rem .5rem;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+.facts th{width:38%;font-weight:500;color:var(--ink-2)}
+.record{margin:.8rem 0;padding:.9rem 1.1rem 1rem;background:var(--surface);border:1px solid var(--line);
+border-left:4px solid var(--line-3);border-radius:8px;break-inside:avoid}
+.record.s-Mismatch{border-left-color:var(--m-line);color:inherit;background:var(--surface)}
+.record.s-Unverified{border-left-color:var(--u-line);color:inherit;background:var(--surface)}
+.record h3{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .6rem}
+.badge{display:inline-block;padding:.05rem .5rem;font:600 .74rem/1.6 var(--sans);border:1px solid;border-radius:3px}
+.carries{font-size:.84rem;color:var(--ink-2)}
+.rules{list-style:none;margin:.5rem 0 0;padding:0}
+.rule{padding:.55rem 0;border-top:1px solid var(--line-2)}
+.rule p{margin:.12rem 0}.rule-head{display:flex;flex-wrap:wrap;gap:.2rem .6rem;align-items:baseline}
+.st{font-size:.8rem;font-weight:600}.st-pass{color:var(--v)}.st-fail{color:var(--m)}.st-unknown{color:var(--p)}
+.reason{font-size:.86rem;color:var(--ink-3)}
+.values{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:.15rem .8rem;margin:.35rem 0 0;font-size:.86rem}
+.values dt{color:var(--ink-3)}.values dd{margin:0;min-width:0}
+.v{color:var(--ink)}.none{color:var(--ink-3);font-style:italic}
+.diff{margin:.5rem 0 0;padding:.55rem .75rem;background:var(--sunken);border:1px solid var(--line-2);border-radius:6px}
+.diff figcaption{font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.diff dl{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:.2rem .8rem;margin:.35rem 0 0;font-size:.9rem}
+.diff dt{color:var(--ink-3)}.diff dd{margin:0;min-width:0}
+.cps{display:block;font-family:var(--mono);font-size:.74rem;color:var(--ink-3)}
+del{text-decoration:line-through 1.5px var(--m);background:var(--m-soft);color:var(--ink);border-radius:2px}
+ins{text-decoration:underline 2px var(--brand);text-underline-offset:3px;background:var(--brand-soft);color:var(--ink);
+border-radius:2px}
+.tok{display:inline-block;margin:0 1px;padding:0 3px;border:1px dashed var(--line-3);border-radius:3px;
+font-size:.8em;line-height:1.35;color:var(--ink-2)}
+.aid{font-size:.8rem;color:var(--ink-3)}
+@media (max-width:36rem){body{padding:1.2rem .9rem 2rem}.verdict{padding:1rem}.seal{font-size:1.7rem}
+.values,.diff dl{grid-template-columns:minmax(0,1fr)}.values dd,.diff dd{margin-bottom:.3rem}.facts th{width:45%}}
+@page{margin:16mm 14mm}
+@media print{:root{color-scheme:light;--canvas:#fff;--surface:#fff;--sunken:#f6f3ec}
+body{max-width:none;padding:0;font-size:10.5pt}html,body{background:#fff}
+.verdict,.premises,.record,.diff{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+h2{break-after:avoid}.record,.premise,.facts tr{break-inside:avoid}}
 `;
+
+const GLYPH: Record<string, string> = { Verified: "\u25cf", Mismatch: "\u25c6", Unverified: "\u25cb", Pending: "\u25d4" };
+
+const PREMISE_LABEL: Record<string, string> = {
+  source_complete: "The source is the whole batch",
+  destination_complete: "The destination covers the whole object",
+  source_count: "Source total in the original system",
+  destination_count: "Destination total in the original system",
+};
 
 type Shown = string | number | bigint | boolean | null | undefined;
 /** cli._h */
 const h = (value: Shown) => (value === null || value === undefined ? "<i>none</i>" : typeof value === "boolean" ? (value ? "yes" : "no") : htmlEscape(String(value)));
-/** cli._v */
-const v = (value: string | null | undefined) => (value === null || value === undefined ? "<i>none</i>" : "<code>" + htmlEscape(pyRepr(value)) + "</code>");
-const stateClass = (state: string) => ((STATES as readonly string[]).includes(state) ? state : "");
+/** cli._state_class */
+const stateClass = (state: string) => ((STATES as readonly string[]).includes(state) ? `s-${state}` : "");
+
+/** cli._drawn */
+function drawn(text: string, highlighted: boolean, start: boolean, end: boolean): string {
+  let out = "";
+  for (const p of pieces(text, highlighted, { start, end })) {
+    out += p.token ? `<span class="tok" title="${codePoint(p.ch)}">${htmlEscape(p.text)}</span>` : htmlEscape(p.text);
+  }
+  return out;
+}
+
+/** cli._value */
+function value(v: string | null | undefined): string {
+  if (v === null || v === undefined) return '<span class="none">none</span>';
+  if (v === "") return "<code class=\"v none\">''</code>";
+  return `<code class="v">${drawn(v, false, true, true)}</code>`;
+}
+
+/** cli._runs */
+function runs(list: Run[]): string {
+  let out = "";
+  list.forEach((r, i) => {
+    const inner = drawn(r.text, r.kind !== "same", i === 0, i === list.length - 1);
+    out += r.kind === "deleted" ? `<del>${inner}</del>` : r.kind === "inserted" ? `<ins>${inner}</ins>` : inner;
+  });
+  return out;
+}
+
+/** cli._diff */
+function diff(source: string, destination: string, caption: string): string {
+  const a = align(source, destination);
+  let out = `<figure class="diff">\n<figcaption>${caption}</figcaption>\n<dl>\n`;
+  for (const [label, list] of [
+    ["Source", a.source],
+    ["Destination", a.destination],
+  ] as const) {
+    const points = codePoints(list);
+    const listed = points.length ? `<span class="cps">${htmlEscape(points.join(" · "))}</span>` : "";
+    out += `<dt>${label}</dt><dd><code class="v">${runs(list)}</code>${listed}</dd>\n`;
+  }
+  out += "</dl>\n";
+  if (a.tooLong) out += '<p class="aid">The values are too long to align character by character, so the differing parts are shown as replaced whole.</p>\n';
+  return out + '<p class="aid">This highlights where the two values differ. The rule\u2019s result above is the conclusion.</p>\n</figure>\n';
+}
+
+/** cli._rule */
+function ruleHtml(name: string, rule: RuleResult): string {
+  let out = `<li class="rule">\n<p class="rule-head"><code>${h(name)}</code> <span class="st st-${h(rule.status)}">${h(rule.status)}</span>`;
+  if ("rule" in rule) out += ` <code class="reason">${h(rule.rule)}</code>`;
+  out += `</p>\n<p class="reason">${h(rule.reason)}</p>\n`;
+  if ("expected" in rule) {
+    out += `<dl class="values">\n<dt>Source value</dt><dd>${value(rule.expected)}</dd>\n<dt>Destination value</dt><dd>${value(rule.actual)}</dd>\n`;
+    if ("expected_normalized" in rule) out += `<dt>Compared as</dt><dd>${value(rule.expected_normalized)} and ${value(rule.actual_normalized)}</dd>\n`;
+    out += "</dl>\n";
+  }
+  const normalised = "expected_normalized" in rule;
+  const compared = normalised ? [rule.expected_normalized, rule.actual_normalized] : [rule.expected, rule.actual];
+  if (rule.status === "fail" && typeof compared[0] === "string" && typeof compared[1] === "string") {
+    out += diff(compared[0], compared[1], normalised ? "Where the compared values differ" : "Where the values differ");
+  }
+  return out + "</li>\n";
+}
+
+const carries = (rows: number) => (rows === 1 ? "1 destination row has this key" : `${rows} destination rows have this key`);
+const keyHtml = (key: string | null) => (key === null ? '<span class="none">no key</span>' : `<code>${drawn(key, false, true, true)}</code>`);
+
+/** cli._applied */
+function applied(name: string, premise: Premise, premises: Record<string, Premise>): string {
+  if (name.endsWith("_complete")) {
+    if (premise.stated !== true) return '<p class="applied none">not stated</p>';
+    if (premises[name.replace("_complete", "_count")]?.matched === false) return '<p class="applied no">not applied: the stated total differs from the rows read</p>';
+    return '<p class="applied yes">applied</p>';
+  }
+  if (name.endsWith("_count")) {
+    if (premise.stated === null || premise.stated === undefined) return '<p class="applied none">not stated</p>';
+    if (premise.matched === false) return '<p class="applied no">differs from the rows read</p>';
+    return '<p class="applied yes">matches the rows read</p>';
+  }
+  return "";
+}
 
 /** cli.write_html: one self-contained page with no scripts that loads nothing. */
 export function* writeHtml(report: Report): Generator<string> {
   const state = report.cohort_state;
+  const c = report.counts;
+  const total = report.expected_total;
   yield '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n' +
     "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\">\n" +
     '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
-    `<title>FlowAssert report: ${h(state)}</title>\n<style>${HTML_STYLE}</style>\n</head>\n<body>\n` +
-    "<h1>FlowAssert report</h1>\n" +
-    `<p><span class="state ${stateClass(state)}">${h(state)}</span></p>\n`;
+    '<meta name="color-scheme" content="light dark">\n' +
+    `<title>FlowAssert report: ${h(state)}</title>\n<style>${HTML_STYLE}</style>\n</head>\n<body>\n<main>\n` +
+    '<header class="verdict">\n<p class="kicker">FlowAssert report</p>\n' +
+    `<h1 class="seal ${stateClass(state)}"><span aria-hidden="true">${GLYPH[state] ?? ""}</span> ${h(state)}</h1>\n`;
   const claim = report.claim;
-  yield claim ? `<p>${h(claim)}</p>\n` : "<p>No claim is made: the result is not Verified.</p>\n";
-  yield `<p>Evaluated at ${h(report.evaluated_at)} by evaluator ${h(report.evaluator)}.</p>\n`;
+  let out = claim ? `<p class="claim">${h(claim)}</p>\n` : '<p class="claim">No claim is made: the result is not Verified.</p>\n';
+  out += `<p class="rows">${h(report.source_rows_observed)} rows of ${total === null ? "unknown total" : h(total)}</p>\n<dl class="counts">\n`;
+  for (const name of ["Verified", "Mismatch", "Unverified"] as const) out += `<div class="${stateClass(name)}"><dt>${name}</dt><dd>${h(c[name])}</dd></div>\n`;
+  out += `</dl>\n<p class="meta">Evaluated at ${h(report.evaluated_at)} by evaluator ${h(report.evaluator)}.</p>\n</header>\n`;
+  yield out;
 
-  yield '<section class="premises">\n<h2>Stated premises</h2>\n' +
-    "<p>FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>\n" +
-    "<table>\n<tr><th>Premise</th><th>Stated</th><th>Origin</th><th>Rows in file</th><th>Matched</th></tr>\n";
-  for (const [name, premise] of Object.entries(report.premises ?? {})) {
-    const observed = "observed" in premise ? h(premise.observed) : "";
-    const matched = "matched" in premise ? h(premise.matched) : "";
-    yield `<tr><td>${h(name)}</td><td>${h(premise.stated)}</td><td>${h(premise.origin)}</td><td>${observed}</td><td>${matched}</td></tr>\n`;
+  const premises = (report.premises ?? {}) as Record<string, Premise & { origin?: string }>;
+  out = '<section class="premises">\n<h2>Stated premises</h2>\n<p class="note">FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>\n';
+  for (const [name, premise] of Object.entries(premises)) {
+    out += `<div class="premise">\n<p class="name">${h(PREMISE_LABEL[name] ?? name)} <code>${h(name)}</code></p>\n<p>Stated: ${h(premise.stated)} \u00b7 origin: ${h(premise.origin)}`;
+    if ("observed" in premise) out += ` \u00b7 rows read: ${h(premise.observed)}`;
+    out += `</p>\n${applied(name, premise, premises)}\n</div>\n`;
   }
-  yield "</table>\n</section>\n";
+  yield out + "</section>\n";
 
-  const c = report.counts;
-  const total = report.expected_total;
-  let out = "<h2>Counts</h2>\n<table>\n";
+  out = '<section>\n<h2>Counts</h2>\n<table class="facts">\n';
   const rows: [string, Shown][] = [
     ["Source rows observed", report.source_rows_observed],
     ["Expected total", total === null ? "unknown" : total],
@@ -157,58 +320,46 @@ export function* writeHtml(report: Report): Generator<string> {
     const only = report.destination_only_counts;
     rows.push(...STATES.map((name): [string, Shown] => [`Destination-only ${name}`, only[name]]));
   }
-  for (const [label, value] of rows) out += `<tr><th>${h(label)}</th><td>${h(value)}</td></tr>\n`;
-  yield out + "</table>\n";
-
-  out = `<h2>Limitations</h2>\n<p>${h(report.limitations)}</p>\n<table>\n`;
-  for (const name of ["workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"] as const) {
-    out += `<tr><th>${h(name)}</th><td>${h(report[name])}</td></tr>\n`;
-  }
-  yield out + "</table>\n";
+  for (const [label, v] of rows) out += `<tr><th>${h(label)}</th><td>${h(v)}</td></tr>\n`;
+  yield out + "</table>\n</section>\n";
 
   const problems = report.records.length - c.Verified;
-  yield `<h2>Records that are not Verified (${problems})</h2>\n`;
-  if (problems) {
-    yield "<table>\n<tr><th>Record</th><th>Key</th><th>State</th><th>Rule</th><th>Status</th><th>Reason</th>" +
-      "<th>Expected</th><th>Actual</th><th>Compared as</th></tr>\n";
-    for (const record of report.records.problems()) {
-      const rules = Object.entries(record.rules ?? {});
-      const span = ` rowspan="${rules.length}"`;
-      let lead = `<td${span}>${h(record.source_row + 1)}</td><td${span}>${v(record.key)}</td>` +
-        `<td${span} class="${stateClass(record.state)}">${h(record.state)}</td>`;
-      let text = "";
-      for (const [name, rule] of rules) {
-        const compared = "expected_normalized" in rule ? `${v(rule.expected_normalized)} vs ${v(rule.actual_normalized)}` : "";
-        text += `<tr>${lead}<td>${h(name)}</td><td>${h(rule.status)}</td><td>${h(rule.reason)}</td>` +
-          `<td>${"expected" in rule ? v(rule.expected) : ""}</td>` +
-          `<td>${"actual" in rule ? v(rule.actual) : ""}</td><td>${compared}</td></tr>\n`;
-        lead = "";
-      }
-      yield text;
-    }
-    yield "</table>\n";
+  yield `<section>\n<h2>Records that are not Verified (${problems})</h2>\n` + (problems ? "" : '<p class="note">Every source record is Verified.</p>\n');
+  for (const record of report.records.problems()) {
+    let text = `<article class="record ${stateClass(record.state)}">\n` +
+      `<h3>Record ${record.source_row + 1} <span aria-hidden="true">\u00b7</span> ${keyHtml(record.key)} ` +
+      `<span class="badge ${stateClass(record.state)}">${h(record.state)}</span></h3>\n`;
+    if (record.candidates !== undefined) text += `<p class="carries">${carries(record.candidates)}</p>\n`;
+    text += '<ul class="rules">\n' + Object.entries(record.rules ?? {}).map(([n, r]) => ruleHtml(n, r)).join("") + "</ul>\n</article>\n";
+    yield text;
   }
+  yield "</section>\n";
 
   if (report.destination_only) {
     const only = report.destination_only;
-    yield `<h2>Destination-only records (${only.length})</h2>\n`;
-    if (only.length) {
-      yield "<table>\n<tr><th>Destination row</th><th>Key</th><th>Rows</th><th>State</th><th>Reason</th></tr>\n";
-      for (const record of only) {
-        yield `<tr><td>${h(record.destination_row + 1)}</td><td>${v(record.key)}</td>` +
-          `<td>${h(record.rows)}</td><td class="${stateClass(record.state)}">` +
-          `${h(record.state)}</td><td>${h(record.reason)}</td></tr>\n`;
-      }
-      yield "</table>\n";
+    yield `<section>\n<h2>Destination-only records (${only.length})</h2>\n`;
+    for (const record of only) {
+      yield `<article class="record ${stateClass(record.state)}">\n` +
+        `<h3>Destination row ${record.destination_row + 1} <span aria-hidden="true">\u00b7</span> ` +
+        `${keyHtml(record.key)} <span class="badge ${stateClass(record.state)}">${h(record.state)}` +
+        `</span></h3>\n<p class="carries">${carries(record.rows)}</p>\n` +
+        `<p class="reason">${h(record.reason)}</p>\n</article>\n`;
     }
+    yield "</section>\n";
   }
 
-  out = "<h2>Inputs</h2>\n<table>\n";
-  for (const [name, value] of Object.entries(report.inputs ?? {})) out += `<tr><th>${h(name)}</th><td>${h(value)}</td></tr>\n`;
-  for (const [name, value] of Object.entries(report.obligation ?? {})) {
-    out += `<tr><th>obligation ${h(name)}</th><td><code>${h(pyDumps(value as PyValue))}</code></td></tr>\n`;
+  out = `<section>\n<h2>Limitations</h2>\n<p>${h(report.limitations)}</p>\n<table class="facts">\n`;
+  for (const name of ["workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"] as const) {
+    out += `<tr><th>${h(name)}</th><td>${h(report[name])}</td></tr>\n`;
   }
-  yield out + "</table>\n</body>\n</html>\n";
+  yield out + "</table>\n</section>\n";
+
+  out = '<section>\n<h2>Inputs</h2>\n<table class="facts">\n';
+  for (const [name, v] of Object.entries(report.inputs ?? {})) out += `<tr><th>${h(name)}</th><td>${h(v)}</td></tr>\n`;
+  for (const [name, v] of Object.entries(report.obligation ?? {})) {
+    out += `<tr><th>obligation ${h(name)}</th><td><code>${h(pyDumps(v as PyValue))}</code></td></tr>\n`;
+  }
+  yield out + "</table>\n</section>\n</main>\n</body>\n</html>\n";
 }
 
 /** The records of a report, typed for callers that only read them. */

@@ -17,7 +17,7 @@ import { startLocalizer } from "../i18n/localizer";
 
 const golden = (name: string, file: string) => readFileSync(join(REPO_ROOT, "offline/golden", name, file), "utf-8");
 const example = (file: string) => new File([readFileSync(join(REPO_ROOT, "offline/examples", file))], file, { type: "text/csv" });
-const asBrowser = (text: string) => text.replaceAll('"origin": "command-line option"', '"origin": "browser form"').replaceAll("<td>command-line option</td>", "<td>browser form</td>");
+const asBrowser = (text: string) => text.replaceAll('"origin": "command-line option"', '"origin": "browser form"').replaceAll("· origin: command-line option", "· origin: browser form");
 const anyTime = (text: string) => text.replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?Z/g, "TIME");
 
 let saved: { blob: Blob; name: string }[] = [];

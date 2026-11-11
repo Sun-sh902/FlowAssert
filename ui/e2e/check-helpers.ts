@@ -13,7 +13,7 @@ export const GOLDEN = join(REPO, "offline/golden");
 export const golden = (name: string, file: string) => readFileSync(join(GOLDEN, name, file), "utf-8");
 /** A golden report as the page writes it: the same bytes, the premises' origin "browser form". */
 export const asBrowser = (text: string) =>
-  text.replaceAll('"origin": "command-line option"', '"origin": "browser form"').replaceAll("<td>command-line option</td>", "<td>browser form</td>");
+  text.replaceAll('"origin": "command-line option"', '"origin": "browser form"').replaceAll("· origin: command-line option", "· origin: browser form");
 /** evaluated_at differs at every run. */
 export const anyTime = (text: string) => text.replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?Z/g, "TIME");
 

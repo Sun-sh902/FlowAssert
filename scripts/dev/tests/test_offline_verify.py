@@ -1357,8 +1357,9 @@ def test_html_report_is_self_contained_and_has_no_script(tmp_path, capsys):
     code, text = html_report(tmp_path, capsys, '--source-complete', '--destination-complete', '--scope', 'exact')
     tags = re.findall(r'<([a-zA-Z][a-zA-Z0-9]*)([^>]*)>', text)
     assert {name.lower() for name, _ in tags} <= {
-        'html', 'head', 'meta', 'title', 'style', 'body', 'h1', 'h2', 'p', 'span', 'section', 'table', 'tr', 'th',
-        'td', 'code', 'i'}
+        'html', 'head', 'meta', 'title', 'style', 'body', 'main', 'header', 'h1', 'h2', 'h3', 'p', 'span', 'section', 'div',
+        'article', 'table', 'tr', 'th', 'td', 'ul', 'li', 'dl', 'dt', 'dd', 'figure', 'figcaption', 'del', 'ins',
+        'code', 'i'}
     for _, attributes in tags:
         assert not re.search(r'\b(src|href|on[a-z]+)\s*=', attributes, re.I)
     style = text[text.index('<style>'):text.index('</style>')]
@@ -1371,16 +1372,19 @@ def test_html_report_shows_result_counts_premises_limitations_and_problem_record
     code, text = html_report(tmp_path, capsys, '--source-complete', '--destination-complete', '--scope', 'exact',
                              '--source-count', '3')
     assert code == 1
-    assert '<span class="state Mismatch">Mismatch</span>' in text
+    assert '<h1 class="seal s-Mismatch"><span aria-hidden="true">\u25c6</span> Mismatch</h1>' in text
     for section in ('Stated premises', 'Counts', 'Limitations', 'Records that are not Verified (1)',
                     'Destination-only records (1)'):
         assert f'>{section}</h2>' in text
     for premise in ('source_complete', 'destination_complete', 'source_count', 'destination_count'):
-        assert f'<td>{premise}</td>' in text
-    assert '<tr><td>source_count</td><td>3</td><td>command-line option</td><td>2</td><td>no</td></tr>' in text
+        assert f'<code>{premise}</code></p>' in text
+    assert ('<code>source_count</code></p>\n<p>Stated: 3 \u00b7 origin: command-line option \u00b7 rows read: 2</p>\n'
+            '<p class="applied no">differs from the rows read</p>') in text
+    assert ('<code>source_complete</code></p>\n<p>Stated: yes \u00b7 origin: command-line option</p>\n'
+            '<p class="applied no">not applied: the stated total differs from the rows read</p>') in text
     assert html.escape(verify.LIMITS) in text
     assert '<th>Verified records</th><td>1</td>' in text and '<th>Mismatch records</th><td>1</td>' in text
-    assert html.escape("'K2'") not in text  # a Verified record is not listed
+    assert '<code>K2</code>' not in text  # a Verified record is not listed
 
 
 def test_html_report_names_the_claim_only_when_verified(tmp_path, capsys):
@@ -1398,7 +1402,7 @@ def test_html_report_follows_redaction(tmp_path, capsys):
     code, text = html_report(tmp_path, capsys, '--source-complete', '--destination-complete', '--scope', 'exact',
                              '--redact-values')
     assert code == 1 and 'alert(' not in text and 'bold' not in text and html.escape('<i>only') not in text
-    assert html.escape("'[redacted]'") in text
+    assert '<code>[redacted]</code>' in text
 
 
 def test_html_report_never_overwrites_and_leaves_no_partial_output(tmp_path, capsys):

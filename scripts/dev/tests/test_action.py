@@ -383,7 +383,7 @@ REPORT_CASES = ['example', 'example-details-all', 'example-redacted', 'rules-pas
 
 def without_time(text):
     text = re.sub(r'"evaluated_at": "[^"]*"', '"evaluated_at": ""', text)
-    return re.sub(r'<p>Evaluated at [^ ]* by', '<p>Evaluated at by', text)
+    return re.sub(r'>Evaluated at [^ ]* by', '>Evaluated at by', text)
 
 
 @pytest.mark.parametrize('name', REPORT_CASES)

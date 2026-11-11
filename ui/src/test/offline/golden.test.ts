@@ -105,7 +105,7 @@ describe("golden reports", () => {
     expect(actual(outcome)).toEqual({
       ...golden,
       json: golden.json?.replaceAll('"origin": "command-line option"', '"origin": "browser form"') ?? null,
-      html: golden.html?.replaceAll("<td>command-line option</td>", "<td>browser form</td>") ?? null,
+      html: golden.html?.replaceAll("· origin: command-line option", "· origin: browser form") ?? null,
     });
   });
 });

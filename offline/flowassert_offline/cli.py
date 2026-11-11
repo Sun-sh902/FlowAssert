@@ -17,7 +17,7 @@ import json
 import os
 import sys
 
-from . import __version__, sheets
+from . import __version__, chardiff, sheets
 from .errors import Refused
 from .evaluator_v2 import DETAILS, SCOPES, STATES, evaluate, parse_rule
 
@@ -460,17 +460,99 @@ def write_json(report, f):
     f.write("\n}")
 
 
+# The page's style: the Evidence Atelier palette of the browser check, light and dark, and a print layout. Fonts are
+# the reader's own; nothing is loaded. ui/src/offline/report.ts writes the same style, byte for byte.
 _HTML_STYLE = """
-body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;max-width:72rem;padding:1rem;
-color:#1b1f24;background:#fff}
-h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #d0d7de}
-table{border-collapse:collapse;width:100%;margin:.5rem 0}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;
-text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f6f8fa}
-.state{display:inline-block;font-size:1.6rem;font-weight:700;padding:.2rem .8rem;border-radius:.3rem}
-.Verified{background:#dafbe1;color:#116329}.Mismatch{background:#ffebe9;color:#a40e26}
-.Unverified,.Pending{background:#fff8c5;color:#7d4e00}.premises{border:2px solid #7d4e00;padding:.5rem 1rem}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+:root{color-scheme:light dark;--canvas:#f3efe6;--surface:#fbf9f4;--sunken:#ece6d9;--line:#d8d0bf;--line-2:#e6e0d2;
+--line-3:#b9b09c;--ink:#1d1b16;--ink-2:#4b473e;--ink-3:#6d675a;--brand:#2f3590;--brand-soft:#e4e4f1;
+--v:#255a3b;--v-soft:#dfe9df;--v-line:#b7cfba;--m:#a23117;--m-soft:#f5e0d6;--m-line:#e7b7a5;--u:#4b473e;
+--u-soft:#ebe6da;--u-line:#b9b09c;--p:#845a08;
+--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+--sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+@media (prefers-color-scheme:dark){:root{--canvas:#14120e;--surface:#1c1915;--sunken:#110f0c;--line:#34302a;
+--line-2:#29261f;--line-3:#4d473d;--ink:#ece6d8;--ink-2:#bdb5a4;--ink-3:#8f8777;--brand:#b4b9ff;
+--brand-soft:rgb(154 162 255/.14);--v:#7cc597;--v-soft:rgb(75 162 111/.13);--v-line:rgb(75 162 111/.35);--m:#f0937d;
+--m-soft:rgb(226 101 74/.13);--m-line:rgb(226 101 74/.38);--u:#b6ae9d;--u-soft:rgb(138 132 118/.14);--u-line:#4d473d;
+--p:#e3b35c}}
+*{box-sizing:border-box}
+html{background:var(--canvas)}
+body{margin:0 auto;max-width:60rem;padding:2rem 1rem 3rem;font:15px/1.55 var(--sans);color:var(--ink);
+background:var(--canvas);overflow-wrap:anywhere}
+h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.2;margin:0}
+h2{font-size:1.45rem;margin:2.4rem 0 .5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem}
+p{margin:.35rem 0}
+code{font-family:var(--mono);font-size:.86em;white-space:pre-wrap}
+.kicker{margin:0 0 .5rem;font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.verdict{padding:1.4rem 1.5rem 1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.seal{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .9rem .35rem;font-size:2.1rem;border-radius:4px;
+border:1.5px solid}
+.claim{max-width:44rem;margin-top:.9rem;font-size:1.05rem}
+.rows{color:var(--ink-2)}
+.counts{display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;margin:.6rem 0 0;padding:0}
+.counts div{display:flex;gap:.45rem;align-items:baseline}.counts dt{color:var(--ink-2)}
+.counts dd{margin:0;font-family:var(--mono);font-weight:600}
+.meta{margin-top:.8rem;font-size:.82rem;color:var(--ink-3)}
+.s-Verified{color:var(--v);background:var(--v-soft);border-color:var(--v-line)}
+.s-Mismatch{color:var(--m);background:var(--m-soft);border-color:var(--m-line)}
+.s-Unverified{color:var(--u);background:var(--u-soft);border-color:var(--u-line)}
+.s-Pending{color:var(--p);background:var(--u-soft);border-color:var(--u-line)}
+.counts .s-Verified,.counts .s-Mismatch,.counts .s-Unverified{background:none}
+.premises{margin-top:1.4rem;padding:.9rem 1.2rem 1rem;border:2px solid var(--u-line);border-radius:10px}
+.premises h2{margin-top:0;border:0;padding:0;font-size:1.25rem}
+.note{font-size:.86rem;color:var(--ink-3)}
+.premise{padding:.55rem 0;border-top:1px solid var(--line-2)}
+.premise:first-of-type{border-top:0}
+.premise p{margin:.1rem 0}.premise .name{font-weight:600}.premise .name code{font-weight:400;color:var(--ink-3)}
+.applied{font-size:.86rem;font-weight:600}.applied.yes{color:var(--v)}.applied.no{color:var(--m)}
+.applied.none{color:var(--ink-3);font-weight:400}
+table.facts{border-collapse:collapse;width:100%;margin:.4rem 0;font-size:.9rem}
+.facts th,.facts td{padding:.32rem .5rem;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+.facts th{width:38%;font-weight:500;color:var(--ink-2)}
+.record{margin:.8rem 0;padding:.9rem 1.1rem 1rem;background:var(--surface);border:1px solid var(--line);
+border-left:4px solid var(--line-3);border-radius:8px;break-inside:avoid}
+.record.s-Mismatch{border-left-color:var(--m-line);color:inherit;background:var(--surface)}
+.record.s-Unverified{border-left-color:var(--u-line);color:inherit;background:var(--surface)}
+.record h3{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .6rem}
+.badge{display:inline-block;padding:.05rem .5rem;font:600 .74rem/1.6 var(--sans);border:1px solid;border-radius:3px}
+.carries{font-size:.84rem;color:var(--ink-2)}
+.rules{list-style:none;margin:.5rem 0 0;padding:0}
+.rule{padding:.55rem 0;border-top:1px solid var(--line-2)}
+.rule p{margin:.12rem 0}.rule-head{display:flex;flex-wrap:wrap;gap:.2rem .6rem;align-items:baseline}
+.st{font-size:.8rem;font-weight:600}.st-pass{color:var(--v)}.st-fail{color:var(--m)}.st-unknown{color:var(--p)}
+.reason{font-size:.86rem;color:var(--ink-3)}
+.values{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:.15rem .8rem;margin:.35rem 0 0;font-size:.86rem}
+.values dt{color:var(--ink-3)}.values dd{margin:0;min-width:0}
+.v{color:var(--ink)}.none{color:var(--ink-3);font-style:italic}
+.diff{margin:.5rem 0 0;padding:.55rem .75rem;background:var(--sunken);border:1px solid var(--line-2);border-radius:6px}
+.diff figcaption{font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.diff dl{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:.2rem .8rem;margin:.35rem 0 0;font-size:.9rem}
+.diff dt{color:var(--ink-3)}.diff dd{margin:0;min-width:0}
+.cps{display:block;font-family:var(--mono);font-size:.74rem;color:var(--ink-3)}
+del{text-decoration:line-through 1.5px var(--m);background:var(--m-soft);color:var(--ink);border-radius:2px}
+ins{text-decoration:underline 2px var(--brand);text-underline-offset:3px;background:var(--brand-soft);color:var(--ink);
+border-radius:2px}
+.tok{display:inline-block;margin:0 1px;padding:0 3px;border:1px dashed var(--line-3);border-radius:3px;
+font-size:.8em;line-height:1.35;color:var(--ink-2)}
+.aid{font-size:.8rem;color:var(--ink-3)}
+@media (max-width:36rem){body{padding:1.2rem .9rem 2rem}.verdict{padding:1rem}.seal{font-size:1.7rem}
+.values,.diff dl{grid-template-columns:minmax(0,1fr)}.values dd,.diff dd{margin-bottom:.3rem}.facts th{width:45%}}
+@page{margin:16mm 14mm}
+@media print{:root{color-scheme:light;--canvas:#fff;--surface:#fff;--sunken:#f6f3ec}
+body{max-width:none;padding:0;font-size:10.5pt}html,body{background:#fff}
+.verdict,.premises,.record,.diff{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+h2{break-after:avoid}.record,.premise,.facts tr{break-inside:avoid}}
 """
+
+_GLYPH = {"Verified": "●", "Mismatch": "◆", "Unverified": "○", "Pending": "◔"}
+
+_PREMISE_LABEL = {
+    "source_complete": "The source is the whole batch",
+    "destination_complete": "The destination covers the whole object",
+    "source_count": "Source total in the original system",
+    "destination_count": "Destination total in the original system",
+}
 
 
 def _h(value):
@@ -481,21 +563,106 @@ def _h(value):
     return html.escape(str(value))
 
 
-def _v(value):
-    return "<i>none</i>" if value is None else "<code>" + html.escape(repr(value)) + "</code>"
-
-
 def _state_class(state):
-    return state if state in STATES else ""
+    return f"s-{state}" if state in STATES else ""
+
+
+def _drawn(text, highlighted, start, end):
+    out = ""
+    for shown, ch in chardiff.pieces(text, highlighted, start, end):
+        if ch is None:
+            out += html.escape(shown)
+        else:
+            out += f'<span class="tok" title="{chardiff.code_point(ch)}">{html.escape(shown)}</span>'
+    return out
+
+
+def _value(value):
+    """A value as the report records it: its leading and trailing invisible characters drawn as tokens."""
+    if value is None:
+        return '<span class="none">none</span>'
+    if value == "":
+        return "<code class=\"v none\">''</code>"
+    return f'<code class="v">{_drawn(value, False, True, True)}</code>'
+
+
+def _runs(runs):
+    out = ""
+    for i, (kind, text) in enumerate(runs):
+        inner = _drawn(text, kind != "same", i == 0, i == len(runs) - 1)
+        out += f"<del>{inner}</del>" if kind == "deleted" else f"<ins>{inner}</ins>" if kind == "inserted" else inner
+    return out
+
+
+def _diff(source, destination, caption):
+    source_runs, destination_runs, too_long = chardiff.align(source, destination)
+    out = f'<figure class="diff">\n<figcaption>{caption}</figcaption>\n<dl>\n'
+    for label, runs in (("Source", source_runs), ("Destination", destination_runs)):
+        points = chardiff.code_points(runs)
+        listed = f'<span class="cps">{html.escape(" · ".join(points))}</span>' if points else ""
+        out += f'<dt>{label}</dt><dd><code class="v">{_runs(runs)}</code>{listed}</dd>\n'
+    out += "</dl>\n"
+    if too_long:
+        out += ("<p class=\"aid\">The values are too long to align character by character, so the differing parts "
+                "are shown as replaced whole.</p>\n")
+    return out + ("<p class=\"aid\">This highlights where the two values differ. The rule’s result above is the "
+                  "conclusion.</p>\n</figure>\n")
+
+
+def _rule(name, rule):
+    out = (f'<li class="rule">\n<p class="rule-head"><code>{_h(name)}</code> '
+           f'<span class="st st-{_h(rule["status"])}">{_h(rule["status"])}</span>')
+    if "rule" in rule:
+        out += f' <code class="reason">{_h(rule["rule"])}</code>'
+    out += f'</p>\n<p class="reason">{_h(rule["reason"])}</p>\n'
+    if "expected" in rule:
+        out += (f'<dl class="values">\n<dt>Source value</dt><dd>{_value(rule["expected"])}</dd>\n'
+                f'<dt>Destination value</dt><dd>{_value(rule.get("actual"))}</dd>\n')
+        if "expected_normalized" in rule:
+            out += (f'<dt>Compared as</dt><dd>{_value(rule["expected_normalized"])} and '
+                    f'{_value(rule["actual_normalized"])}</dd>\n')
+        out += "</dl>\n"
+    normalised = "expected_normalized" in rule
+    compared = (rule.get("expected_normalized"), rule.get("actual_normalized")) if normalised else (
+        rule.get("expected"), rule.get("actual"))
+    if rule["status"] == "fail" and isinstance(compared[0], str) and isinstance(compared[1], str):
+        out += _diff(compared[0], compared[1],
+                     "Where the compared values differ" if normalised else "Where the values differ")
+    return out + "</li>\n"
+
+
+def _carries(rows):
+    return "1 destination row has this key" if rows == 1 else f"{rows} destination rows have this key"
+
+
+def _key(key):
+    return '<span class="none">no key</span>' if key is None else f"<code>{_drawn(key, False, True, True)}</code>"
+
+
+def _applied(name, premise, premises):
+    if name.endswith("_complete"):
+        if premise.get("stated") is not True:
+            return '<p class="applied none">not stated</p>'
+        count = premises.get(name.replace("_complete", "_count"), {})
+        if count.get("matched") is False:
+            return '<p class="applied no">not applied: the stated total differs from the rows read</p>'
+        return '<p class="applied yes">applied</p>'
+    if name.endswith("_count"):
+        if premise.get("stated") is None:
+            return '<p class="applied none">not stated</p>'
+        if premise.get("matched") is False:
+            return '<p class="applied no">differs from the rows read</p>'
+        return '<p class="applied yes">matches the rows read</p>'
+    return ""
 
 
 def _write_sheet(sheet, f):
-    f.write("<h2>Source read from Google Sheets</h2>\n"
+    f.write("<section>\n<h2>Source read from Google Sheets</h2>\n"
             "<p>FlowAssert read the source rows itself, read-only, so no export step could cut them short or edit "
             "them. This does not show that the range holds every record that should exist: that is the stated "
             "premise source_complete.</p>\n")
     f.write("".join(f"<p>{_h(line)}</p>\n" for line in sheet_lines(sheet)))
-    f.write("<table>\n")
+    f.write('<table class="facts">\n')
     for name, value in sheet.items():
         if name == "revision":
             continue
@@ -507,35 +674,45 @@ def _write_sheet(sheet, f):
                 f.write(f"<tr><th>revision {moment} {_h(name)}</th><td>{_h(revision[moment][name])}</td></tr>\n")
     else:
         f.write(f"<tr><th>revision</th><td>{_h(revision['reason'])}</td></tr>\n")
-    f.write("</table>\n")
+    f.write("</table>\n</section>\n")
 
 
 def write_html(report, f):
     """Write one self-contained HTML page: no scripts, and no external styles, fonts or images."""
     state = report["cohort_state"]
+    c = report["counts"]
+    total = report["expected_total"]
     f.write('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-            f"<title>FlowAssert report: {_h(state)}</title>\n<style>{_HTML_STYLE}</style>\n</head>\n<body>\n"
-            "<h1>FlowAssert report</h1>\n"
-            f'<p><span class="state {_state_class(state)}">{_h(state)}</span></p>\n')
+            '<meta name="color-scheme" content="light dark">\n'
+            f"<title>FlowAssert report: {_h(state)}</title>\n<style>{_HTML_STYLE}</style>\n</head>\n<body>\n<main>\n"
+            '<header class="verdict">\n<p class="kicker">FlowAssert report</p>\n'
+            f'<h1 class="seal {_state_class(state)}"><span aria-hidden="true">{_GLYPH.get(state, "")}</span> '
+            f"{_h(state)}</h1>\n")
     claim = report.get("claim")
-    f.write(f"<p>{_h(claim)}</p>\n" if claim else "<p>No claim is made: the result is not Verified.</p>\n")
-    f.write(f"<p>Evaluated at {_h(report.get('evaluated_at'))} by evaluator {_h(report.get('evaluator'))}.</p>\n")
+    f.write(f'<p class="claim">{_h(claim)}</p>\n' if claim
+            else '<p class="claim">No claim is made: the result is not Verified.</p>\n')
+    f.write(f'<p class="rows">{_h(report["source_rows_observed"])} rows of '
+            f'{"unknown total" if total is None else _h(total)}</p>\n<dl class="counts">\n')
+    for name in ("Verified", "Mismatch", "Unverified"):
+        f.write(f'<div class="{_state_class(name)}"><dt>{name}</dt><dd>{_h(c[name])}</dd></div>\n')
+    f.write("</dl>\n"
+            f'<p class="meta">Evaluated at {_h(report.get("evaluated_at"))} by evaluator '
+            f'{_h(report.get("evaluator"))}.</p>\n</header>\n')
 
+    premises = report.get("premises", {})
     f.write('<section class="premises">\n<h2>Stated premises</h2>\n'
-            "<p>FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>\n"
-            "<table>\n<tr><th>Premise</th><th>Stated</th><th>Origin</th><th>Rows in file</th><th>Matched</th></tr>\n")
-    for name, premise in report.get("premises", {}).items():
-        observed = _h(premise["observed"]) if "observed" in premise else ""
-        matched = _h(premise["matched"]) if "matched" in premise else ""
-        f.write(f"<tr><td>{_h(name)}</td><td>{_h(premise.get('stated'))}</td><td>{_h(premise.get('origin'))}</td>"
-                f"<td>{observed}</td><td>{matched}</td></tr>\n")
-    f.write("</table>\n</section>\n")
+            '<p class="note">FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>\n')
+    for name, premise in premises.items():
+        f.write(f'<div class="premise">\n<p class="name">{_h(_PREMISE_LABEL.get(name, name))} <code>{_h(name)}</code>'
+                f'</p>\n<p>Stated: {_h(premise.get("stated"))} · origin: {_h(premise.get("origin"))}')
+        if "observed" in premise:
+            f.write(f' · rows read: {_h(premise["observed"])}')
+        f.write(f"</p>\n{_applied(name, premise, premises)}\n</div>\n")
+    f.write("</section>\n")
 
-    c = report["counts"]
-    total = report["expected_total"]
-    f.write("<h2>Counts</h2>\n<table>\n")
+    f.write('<section>\n<h2>Counts</h2>\n<table class="facts">\n')
     rows = [("Source rows observed", report["source_rows_observed"]),
             ("Expected total", "unknown" if total is None else total)]
     rows += [(f"{name} records", c[name]) for name in STATES]
@@ -546,56 +723,49 @@ def write_html(report, f):
         rows += [(f"Destination-only {name}", report["destination_only_counts"][name]) for name in STATES]
     for label, value in rows:
         f.write(f"<tr><th>{_h(label)}</th><td>{_h(value)}</td></tr>\n")
-    f.write("</table>\n")
-
-    f.write(f"<h2>Limitations</h2>\n<p>{_h(report.get('limitations'))}</p>\n<table>\n")
-    for name in ("workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"):
-        f.write(f"<tr><th>{_h(name)}</th><td>{_h(report.get(name))}</td></tr>\n")
-    f.write("</table>\n")
+    f.write("</table>\n</section>\n")
 
     problems = len(report["records"]) - c["Verified"]
-    f.write(f"<h2>Records that are not Verified ({problems})</h2>\n")
-    if problems:
-        f.write("<table>\n<tr><th>Record</th><th>Key</th><th>State</th><th>Rule</th><th>Status</th><th>Reason</th>"
-                "<th>Expected</th><th>Actual</th><th>Compared as</th></tr>\n")
-        for record in report["records"].problems():
-            rules = list(record["rules"].items())
-            span = f' rowspan="{len(rules)}"'
-            lead = (f'<td{span}>{_h(record["source_row"] + 1)}</td><td{span}>{_v(record["key"])}</td>'
-                    f'<td{span} class="{_state_class(record["state"])}">{_h(record["state"])}</td>')
-            for name, rule in rules:
-                compared = ""
-                if "expected_normalized" in rule:
-                    compared = f"{_v(rule['expected_normalized'])} vs {_v(rule['actual_normalized'])}"
-                f.write(f"<tr>{lead}<td>{_h(name)}</td><td>{_h(rule['status'])}</td><td>{_h(rule['reason'])}</td>"
-                        f"<td>{_v(rule['expected']) if 'expected' in rule else ''}</td>"
-                        f"<td>{_v(rule['actual']) if 'actual' in rule else ''}</td><td>{compared}</td></tr>\n")
-                lead = ""
-        f.write("</table>\n")
+    f.write(f"<section>\n<h2>Records that are not Verified ({problems})</h2>\n")
+    if not problems:
+        f.write('<p class="note">Every source record is Verified.</p>\n')
+    for record in report["records"].problems():
+        f.write(f'<article class="record {_state_class(record["state"])}">\n'
+                f'<h3>Record {record["source_row"] + 1} <span aria-hidden="true">·</span> {_key(record["key"])} '
+                f'<span class="badge {_state_class(record["state"])}">{_h(record["state"])}</span></h3>\n')
+        if "candidates" in record:
+            f.write(f'<p class="carries">{_carries(record["candidates"])}</p>\n')
+        f.write('<ul class="rules">\n' + "".join(_rule(n, r) for n, r in record["rules"].items()) + "</ul>\n</article>\n")
+    f.write("</section>\n")
 
     if "destination_only" in report:
         only = report["destination_only"]
-        f.write(f"<h2>Destination-only records ({len(only)})</h2>\n")
-        if only:
-            f.write("<table>\n<tr><th>Destination row</th><th>Key</th><th>Rows</th><th>State</th>"
-                    "<th>Reason</th></tr>\n")
-            for record in only:
-                f.write(f"<tr><td>{_h(record['destination_row'] + 1)}</td><td>{_v(record['key'])}</td>"
-                        f"<td>{_h(record['rows'])}</td><td class=\"{_state_class(record['state'])}\">"
-                        f"{_h(record['state'])}</td><td>{_h(record['reason'])}</td></tr>\n")
-            f.write("</table>\n")
+        f.write(f"<section>\n<h2>Destination-only records ({len(only)})</h2>\n")
+        for record in only:
+            f.write(f'<article class="record {_state_class(record["state"])}">\n'
+                    f'<h3>Destination row {record["destination_row"] + 1} <span aria-hidden="true">·</span> '
+                    f'{_key(record["key"])} <span class="badge {_state_class(record["state"])}">{_h(record["state"])}'
+                    f'</span></h3>\n<p class="carries">{_carries(record["rows"])}</p>\n'
+                    f'<p class="reason">{_h(record["reason"])}</p>\n</article>\n')
+        f.write("</section>\n")
 
     sheet = report.get("inputs", {}).get("source_sheet")
     if sheet is not None:
         _write_sheet(sheet, f)
-    f.write("<h2>Inputs</h2>\n<table>\n")
+
+    f.write(f'<section>\n<h2>Limitations</h2>\n<p>{_h(report.get("limitations"))}</p>\n<table class="facts">\n')
+    for name in ("workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"):
+        f.write(f"<tr><th>{_h(name)}</th><td>{_h(report.get(name))}</td></tr>\n")
+    f.write("</table>\n</section>\n")
+
+    f.write('<section>\n<h2>Inputs</h2>\n<table class="facts">\n')
     for name, value in report.get("inputs", {}).items():
         if name == "source_sheet":
             continue
         f.write(f"<tr><th>{_h(name)}</th><td>{_h(value)}</td></tr>\n")
     for name, value in report.get("obligation", {}).items():
         f.write(f"<tr><th>obligation {_h(name)}</th><td><code>{_h(json.dumps(value))}</code></td></tr>\n")
-    f.write("</table>\n</body>\n</html>\n")
+    f.write("</table>\n</section>\n</main>\n</body>\n</html>\n")
 
 
 def _write_reports(report, targets):
