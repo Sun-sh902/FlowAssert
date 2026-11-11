@@ -27,7 +27,7 @@
    "src/test/lookup-contract-drift.test.ts": 19,
    "src/test/lookup-detail.test.tsx": 10,
    "src/test/lookup-gate.test.ts": 102,
-   "src/test/markdown-links.test.ts": 131,
+   "src/test/markdown-links.test.ts": 132,
    "src/test/offline/api.test.ts": 100,
    "src/test/offline/bundle.test.ts": 64,
    "src/test/offline/chardiff.test.ts": 10,
