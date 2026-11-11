@@ -159,7 +159,8 @@ function fieldsOf(obligation: Obligation): Field[] {
   });
 }
 
-const sameCount = (stated: number | bigint, observed: number) => BigInt(stated) === BigInt(observed);
+/** Whether a stated total equals the rows read: the one comparison, for the check and for the page's warnings before it. */
+export const sameCount = (stated: number | bigint, observed: number) => BigInt(stated) === BigInt(observed);
 
 /** The records of one evaluation in source order, each built when it is read. */
 export class Records {
@@ -290,6 +291,14 @@ export class Evaluation {
     else this.repeated.add(k);
     this.keys.push(k);
     for (let i = 0; i < this.values.length; i++) this.values[i]!.push(fieldValues[i] ?? null);
+  }
+
+  /**
+   * What the keys of the source rows read so far say: how many rows, how many without a key, and how many keys more
+   * than one row has. finish() draws its conclusions from these same counts; the page's key profile reads them.
+   */
+  keyFacts(): { rows: number; withoutKey: number; repeatedKeys: number } {
+    return { rows: this.keys.length, withoutKey: this.invalidSourceKeys, repeatedKeys: this.repeated.size };
   }
 
   /** add_destination, with the row already read as its key and its field values. */

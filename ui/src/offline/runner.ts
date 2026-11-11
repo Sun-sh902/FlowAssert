@@ -4,13 +4,15 @@
  * same results. Nothing here makes a request: files are read as streams (File.stream), never whole, and the reports
  * are built as Blobs in pieces, so neither a file nor a report is ever one value in memory.
  *
- * A worker is started before any file is chosen, so a check never has to load code. Cancelling ends the worker at
- * once and starts the next one; a cancelled check never delivers a result.
+ * Two workers are started before any file is chosen, so nothing has to load code later: one runs checks, the other
+ * reads headers and profiles (./profile.ts). Cancelling a check ends its worker at once and starts the next one; a
+ * cancelled check never delivers a result, and the profiles being read are not disturbed.
  */
 import { ByteFeed, MAX_BYTES, NeedMore, Refused, blobStream, readHeader, type Encoding } from "./csv";
 import type { DestinationOnlyRecord, Premise, SourceRecord, State } from "./evaluator";
 import { explain, type Explanation } from "./explain";
 import { pageCheck, type ChosenConfig } from "./pageCheck";
+import { Abandoned, keyProfileCsv, profileCsv, type KeyProfileResult, type ProfileResult, type ProfileSource } from "./profile";
 import { writeHtml, writeJson, type Report } from "./report";
 
 export type Phase = "reading-source" | "reading-destination" | "evaluating" | "writing-reports";
@@ -80,8 +82,18 @@ export interface RunResult {
   html: Blob | null;
 }
 
+/** A read of a profile that can be given up: `abandon` ends it, and its promise then rejects with Abandoned. */
+export interface Reading<T> {
+  result: Promise<T>;
+  abandon(): void;
+}
+
 export interface CheckRunner {
   header(file: File, encoding: Encoding): Promise<HeaderResult>;
+  /** The file profile, read from the whole file as a stream; `onRows` gets the rows read so far. */
+  profile(file: File, encoding: Encoding, onRows?: (rows: number) => void): Reading<ProfileResult>;
+  /** The key profile of one column. */
+  keyProfile(file: File, encoding: Encoding, column: string): Reading<KeyProfileResult>;
   run(input: RunInput, onProgress: (p: Progress) => void): Promise<RunResult>;
   /** Abandon the running check: its promise rejects with Cancelled and no result arrives. */
   cancel(): void;
@@ -108,6 +120,21 @@ export async function header(file: File, encoding: Encoding): Promise<HeaderResu
     }
   }
 }
+
+const profileSource = (file: File, encoding: Encoding): ProfileSource => ({
+  name: file.name,
+  size: file.size,
+  encoding,
+  open: () => blobStream(file),
+  head: async () => new Uint8Array(await file.slice(0, 4).arrayBuffer()),
+});
+
+/** The file profile of a chosen file, in this thread. */
+export const profile = (file: File, encoding: Encoding, onRows?: (rows: number) => void, abandoned?: () => boolean) =>
+  profileCsv(profileSource(file, encoding), onRows, abandoned);
+
+/** The key profile of one column of a chosen file, in this thread. */
+export const keyProfile = (file: File, encoding: Encoding, column: string, abandoned?: () => boolean) => keyProfileCsv(profileSource(file, encoding), column, abandoned);
 
 function view(report: Report): ResultView {
   const problems: SourceRecord[] = [];
@@ -227,8 +254,14 @@ export async function runCheck(input: RunInput, onProgress: (p: Progress) => voi
 /** A runner in this thread, for tests and for a browser without module workers. Cancel only drops the result. */
 export function inThreadRunner(): CheckRunner {
   let generation = 0;
+  const reading = <T>(start: (abandoned: () => boolean) => Promise<T>): Reading<T> => {
+    let given = false;
+    return { result: start(() => given), abandon: () => void (given = true) };
+  };
   return {
     header,
+    profile: (file, encoding, onRows) => reading((abandoned) => profile(file, encoding, onRows, abandoned)),
+    keyProfile: (file, encoding, column) => reading((abandoned) => keyProfile(file, encoding, column, abandoned)),
     async run(input, onProgress) {
       const mine = ++generation;
       const result = await runCheck(input, (p) => mine === generation && onProgress(p));
@@ -240,59 +273,100 @@ export function inThreadRunner(): CheckRunner {
   };
 }
 
-/** Messages to the worker. */
-export type Request = { id: number; type: "header"; file: File; encoding: Encoding } | { id: number; type: "run"; input: RunInput };
-/** Messages from the worker. */
+/** Messages to a worker. */
+export type Request =
+  | { id: number; type: "header"; file: File; encoding: Encoding }
+  | { id: number; type: "profile"; file: File; encoding: Encoding }
+  | { id: number; type: "key-profile"; file: File; encoding: Encoding; column: string }
+  | { id: number; type: "abandon" }
+  | { id: number; type: "run"; input: RunInput };
+/** Messages from a worker. */
 export type Reply =
   | { id: number; type: "header"; result: HeaderResult }
+  | { id: number; type: "profile"; result: ProfileResult }
+  | { id: number; type: "key-profile"; result: KeyProfileResult }
+  | { id: number; type: "rows"; rows: number }
+  | { id: number; type: "abandoned" }
   | { id: number; type: "progress"; progress: Progress }
   | { id: number; type: "result"; result: RunResult }
   | { id: number; type: "error"; message: string };
 
-/** The runner the page uses: a module worker, replaced by a fresh one when a check is cancelled. */
-export function workerRunner(start: () => Worker): CheckRunner {
-  let worker = start();
-  let next = 0;
-  const pending = new Map<number, { resolve: (r: never) => void; reject: (e: Error) => void; progress?: (p: Progress) => void }>();
+interface Pending {
+  resolve: (r: never) => void;
+  reject: (e: Error) => void;
+  progress?: (p: Progress) => void;
+  rows?: (rows: number) => void;
+}
+
+const WORKER_ENDED = "The check stopped: the browser ended its worker, often for lack of memory.";
+
+/** One worker and the requests it has not answered. */
+function channel(start: () => Worker) {
+  const pending = new Map<number, Pending>();
   const listen = (w: Worker) => {
     w.onmessage = (event: MessageEvent<Reply>) => {
       const reply = event.data;
       const entry = pending.get(reply.id);
       if (!entry) return;
       if (reply.type === "progress") return entry.progress?.(reply.progress);
+      if (reply.type === "rows") return entry.rows?.(reply.rows);
       pending.delete(reply.id);
       if (reply.type === "error") entry.reject(new Error(reply.message));
+      else if (reply.type === "abandoned") entry.reject(new Abandoned());
       else entry.resolve(reply.result as never);
     };
     w.onerror = (event) => {
       event.preventDefault();
       for (const [id, entry] of pending) {
         pending.delete(id);
-        entry.reject(new Error("The check stopped: the browser ended its worker, often for lack of memory."));
+        entry.reject(new Error(WORKER_ENDED));
       }
     };
+    return w;
   };
-  listen(worker);
-  const send = <T>(request: Request, progress?: (p: Progress) => void) =>
-    new Promise<T>((resolve, reject) => {
-      pending.set(request.id, { resolve: resolve as (r: never) => void, reject, progress });
-      worker.postMessage(request);
-    });
+  let worker = listen(start());
   return {
-    header: (file, encoding) => send<HeaderResult>({ id: ++next, type: "header", file, encoding }),
-    run: (input, onProgress) => send<RunResult>({ id: ++next, type: "run", input }, onProgress),
-    cancel() {
+    send<T>(request: Request, handlers: Pick<Pending, "progress" | "rows"> = {}) {
+      return new Promise<T>((resolve, reject) => {
+        pending.set(request.id, { resolve: resolve as (r: never) => void, reject, ...handlers });
+        worker.postMessage(request);
+      });
+    },
+    post: (request: Request) => worker.postMessage(request),
+    /** End the worker now; every request it had not answered is rejected with `error`. A new worker takes its place. */
+    restart(error: () => Error) {
       worker.terminate();
       for (const [id, entry] of pending) {
         pending.delete(id);
-        entry.reject(new Cancelled());
+        entry.reject(error());
       }
-      worker = start();
-      listen(worker);
+      worker = listen(start());
     },
     dispose() {
       worker.terminate();
       pending.clear();
+    },
+  };
+}
+
+/** The runner the page uses: two module workers, the one for checks replaced by a fresh one when a check is cancelled. */
+export function workerRunner(start: () => Worker): CheckRunner {
+  const checks = channel(start);
+  const profiles = channel(start);
+  let next = 0;
+  const reading = <T>(request: Request, rows?: (rows: number) => void): Reading<T> => ({
+    result: profiles.send<T>(request, { rows }),
+    abandon: () => profiles.post({ id: request.id, type: "abandon" }),
+  });
+  return {
+    header: (file, encoding) => profiles.send<HeaderResult>({ id: ++next, type: "header", file, encoding }),
+    profile: (file, encoding, onRows) => reading<ProfileResult>({ id: ++next, type: "profile", file, encoding }, onRows),
+    keyProfile: (file, encoding, column) => reading<KeyProfileResult>({ id: ++next, type: "key-profile", file, encoding, column }),
+    run: (input, onProgress) => checks.send<RunResult>({ id: ++next, type: "run", input }, { progress: onProgress }),
+    cancel: () => checks.restart(() => new Cancelled()),
+    dispose() {
+      checks.dispose();
+      profiles.dispose();
     },
   };
 }

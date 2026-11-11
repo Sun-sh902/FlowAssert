@@ -159,3 +159,61 @@ for (const theme of ["light", "dark"] as const) {
     });
   }
 }
+
+/** Nothing on the page is wider than the window. */
+const noSideways = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+
+for (const locale of LOCALES) {
+  for (const theme of ["light", "dark"] as const) {
+    for (const [width, viewport] of Object.entries(VIEWPORTS)) {
+      test(`axe · ${theme} · ${width} · ${locale} · a dropped file, file profiles, a profile refusal and the lines before a check`, async ({ page, context, browserName }) => {
+        await page.addInitScript((t) => localStorage.setItem("flowassert.theme", t), theme);
+        await page.setViewportSize(viewport);
+        await openCheck(page, "/#/check", locale);
+        const requests = recordRequests(context);
+
+        // A file dragged over a panel, then dropped on it.
+        const dragged = await page.evaluateHandle(() => {
+          const d = new DataTransfer();
+          d.items.add(new File(["external_id,phone\nSYN-901,+1 212 555 0901\n"], "dragged.csv", { type: "text/csv" }));
+          return d;
+        });
+        await page.getByTestId("source-panel").dispatchEvent("dragenter", { dataTransfer: dragged });
+        await expect(page.getByTestId("source-drop-here")).toBeVisible();
+        expect(await audit(page)).toEqual([]);
+        await page.getByTestId("source-panel").dispatchEvent("drop", { dataTransfer: dragged });
+        await expect(page.getByTestId("source-drop-here")).toHaveCount(0);
+        await expect(page.getByTestId("source-profile")).toHaveAttribute("data-rows", "1");
+
+        // The example files, profiled; a stated total that differs from the export (issue #2).
+        await page.getByTestId("source-file").setInputFiles(EXAMPLE.source);
+        await page.getByTestId("destination-file").setInputFiles(EXAMPLE.destination);
+        await expect(page.getByTestId("source-profile")).toHaveAttribute("data-rows", "4");
+        await expect(page.getByTestId("destination-profile")).toHaveAttribute("data-rows", "4");
+        await page.getByTestId("key-source").selectOption("external_id");
+        await page.getByTestId("key-destination").selectOption("external_id");
+        await page.getByTestId("destination-complete").check();
+        await page.getByTestId("destination-count").fill("5");
+        await expect(page.locator('[data-warning="destination-count"]')).toBeVisible();
+        await expect(page.locator('[data-warning="destination-repeated-key"]')).toBeVisible();
+        await page.locator("details").evaluateAll((all) => all.forEach((d) => ((d as HTMLDetailsElement).open = true)));
+        await page.waitForTimeout(400);
+        let violations = await audit(page);
+        writeReport(`axe-${browserName}-${theme}-${width}-${locale}-profiles`, violations);
+        expect(violations).toEqual([]);
+        expect(await noSideways(page)).toBe(true);
+
+        // A destination file the check would refuse: the profile says so, with the hint, before any check.
+        await page.getByTestId("destination-file").setInputFiles({ name: "refused.csv", mimeType: "text/csv", buffer: Buffer.from("external_id,phone\nSYN-001,1,extra\n") });
+        await expect(page.getByTestId("destination-profile-refused")).toContainText("refused.csv: line 2 does not match the header");
+        await expect(page.getByTestId("refusal-hint")).toBeVisible();
+        await page.waitForTimeout(400);
+        violations = await audit(page);
+        writeReport(`axe-${browserName}-${theme}-${width}-${locale}-profile-refused`, violations);
+        expect(violations).toEqual([]);
+        expect(await noSideways(page)).toBe(true);
+        expectNoNetwork(page, requests);
+      });
+    }
+  }
+}

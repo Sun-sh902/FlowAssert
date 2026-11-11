@@ -110,6 +110,7 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   await write(destination, (i) => `SYN-${id(i)},${DIFFERENT.has(i) ? "+1 555 0000000x" : `+1 555 ${id(i)}`},u${id(i)}@ex.test\n`);
 
   await openCheck(page);
+  const chosen = Date.now();
   await page.getByTestId("source-file").setInputFiles(source);
   await page.getByTestId("destination-file").setInputFiles(destination);
   await expect(page.getByTestId("key-source").locator("option").nth(1)).toBeAttached({ timeout: 60_000 });
@@ -123,6 +124,14 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   await page.getByTestId("field-1-destination").selectOption("email");
   await page.getByTestId("source-complete").check();
   await page.getByTestId("destination-complete").check();
+  // The file profiles, read in their own worker as soon as the files are chosen, count what the check counts. A person
+  // takes longer than they do to choose the columns; the check is started once they and the key profiles are read.
+  await expect(page.getByTestId("source-profile")).toHaveAttribute("data-rows", String(ROWS), { timeout: 60_000 });
+  await expect(page.getByTestId("destination-profile")).toHaveAttribute("data-rows", String(ROWS), { timeout: 60_000 });
+  await expect(page.getByTestId("source-panel")).toHaveAttribute("data-key-profile", "ready", { timeout: 60_000 });
+  await expect(page.getByTestId("destination-panel")).toHaveAttribute("data-key-profile", "ready", { timeout: 60_000 });
+  const profiledSeconds = (Date.now() - chosen) / 1000;
+  await expect(page.getByTestId("before-check")).toHaveCount(0);
 
   // A timer every 100 ms on the page's own thread: how late it fires is how long the page could not respond.
   await page.evaluate(() => {
@@ -172,7 +181,7 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   } catch (e) {
     cli = (e as { stdout: string; status: number }).stdout; // exit status 1: Mismatch
   }
-  const report = { rows: ROWS, seconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size,
+  const report = { rows: ROWS, seconds, profiledSeconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size,
     peakPageHeapMiB: MiB(heap.peak.pageHeap), peakWorkerHeapMiB: MiB(heap.peak.workerHeap), peakWorkerBuffersMiB: MiB(heap.peak.workerBuffers),
     peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heldWorkerHeapMiB: MiB(held.heap), heldWorkerBuffersMiB: MiB(held.buffers), heapSamples: heap.peak.samples };
   writeReport("check-large", report);

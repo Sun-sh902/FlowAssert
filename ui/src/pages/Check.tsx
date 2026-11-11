@@ -12,6 +12,7 @@
  * that one report (lib/savedReports.ts); the files are never kept. Nothing from a saved report fills in this page.
  */
 import { Archive, Download, FileUp, Library, Play, Plus, Square, Trash2, Upload } from "lucide-react";
+import type { DragEvent } from "react";
 import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
@@ -21,12 +22,13 @@ import { Gloss, SummaryGlosses } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
 import { canonicalConfig, readConfig, Refused } from "../offline/check";
-import { ENCODINGS, type Encoding } from "../offline/csv";
+import { ENCODINGS, type Encoding, type LineEndings } from "../offline/csv";
+import { Abandoned, beforeYouCheck, type Bom, type FileProfile, type KeyProfileResult, type ProfileResult, type SideFacts, type Warning } from "../offline/profile";
 import { TimeLeft, timeLeftText } from "../offline/eta";
 import { EvaluatorError, parseRule, type Scope } from "../offline/evaluator";
 import type { ChosenConfig } from "../offline/pageCheck";
 import { SUPPORTED_DIRECTIVES } from "../offline/strptime";
-import { Cancelled, inThreadRunner, workerRunner, type CheckRunner, type HeaderResult, type Progress, type RunInput, type RunResult } from "../offline/runner";
+import { Cancelled, inThreadRunner, workerRunner, type CheckRunner, type HeaderResult, type Progress, type Reading, type RunInput, type RunResult } from "../offline/runner";
 import { HINT_BYTES, refusalHint, type Hint, type HintFile, type HintPart } from "../offline/refusalHint";
 import { readReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
@@ -40,11 +42,22 @@ import { SCENARIOS, chosenOf, premisesText, type Scenario } from "./scenarios";
 type Side = "source" | "destination";
 type RuleKind = "exact" | "trim" | "casefold" | "digits" | "date";
 type HeaderState = { kind: "none" } | { kind: "reading" } | { kind: "read"; result: HeaderResult };
+/** The file profile (offline/profile.ts): read from the file as soon as it is chosen, never a result. */
+type ProfileState = { kind: "none" } | { kind: "reading"; rows: number } | { kind: "read"; result: ProfileResult } | { kind: "failed"; message: string };
 
 interface Choice {
   file: File | null;
   encoding: Encoding;
   header: HeaderState;
+  profile: ProfileState;
+}
+
+/** The key profile of the key column chosen for one file, with what it was read for. */
+interface KeyRead {
+  file: File;
+  encoding: Encoding;
+  column: string;
+  result: KeyProfileResult;
 }
 
 interface FieldRow {
@@ -162,27 +175,195 @@ function RefusalHelp({ message, sources }: { message: string; sources: readonly 
 
 /* ---------- Files ---------- */
 
+/** A size as the profile writes it: bytes, and above 1 KiB a rounded unit too. */
+function sizeText(bytes: number): string {
+  const exact = bytes === 1 ? "1 byte" : `${grouped(bytes)} bytes`;
+  if (bytes < 1024) return exact;
+  const [unit, value] = bytes < 1024 ** 2 ? ["KiB", bytes / 1024] : ["MiB", bytes / 1024 ** 2];
+  return `${value.toFixed(1)} ${unit} · ${exact}`;
+}
+
+const BOM_TEXT: Record<Bom, string> = {
+  none: "no byte order mark",
+  "utf-8": "UTF-8 byte order mark",
+  "utf-16-le": "byte order mark: little-endian",
+  "utf-16-be": "byte order mark: big-endian",
+  gb18030: "GB18030 byte order mark, kept in the first column name",
+};
+
+/** The line endings met, as the profile names them; a mix gives the count of each. */
+function endingsText(e: LineEndings): string {
+  const kinds = (
+    [
+      ["LF", e.lf],
+      ["CRLF", e.crlf],
+      ["CR", e.cr],
+    ] as const
+  ).filter(([, n]) => n > 0);
+  if (!kinds.length) return "no line ending";
+  if (kinds.length === 1) return kinds[0]![0];
+  return `mixed: ${kinds.map(([k, n]) => `${k} ${grouped(n)}`).join(", ")}`;
+}
+
+/** How many columns are listed before the list scrolls inside its own box. */
+const OPEN_COLUMNS = 12;
+
+function ProfileView({ profile, testId, columnsLabel }: { profile: FileProfile; testId: string; columnsLabel: string }) {
+  const empty = profile.columns.filter((c) => c.empty > 0).length;
+  return (
+    <div data-testid={testId} data-rows={profile.rows}>
+      <dl className="mt-1 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-xs">
+        <dt className="text-ink-3">Data rows</dt>
+        <dd className="font-mono tabular text-ink" data-profile="rows">
+          {grouped(profile.rows)}
+        </dd>
+        <dt className="text-ink-3">Columns</dt>
+        <dd className="text-ink-2">
+          <span className="font-mono tabular text-ink">{grouped(profile.columns.length)}</span>
+          {empty > 0 && (
+            <>
+              <span aria-hidden> · </span>
+              <span>{`${grouped(empty)} with empty cells`}</span>
+            </>
+          )}
+        </dd>
+        <dt className="text-ink-3">Encoding</dt>
+        <dd className="text-ink-2">
+          <span>{ENCODINGS[profile.encoding]}</span>
+          <span aria-hidden> · </span>
+          <span>{BOM_TEXT[profile.bom]}</span>
+        </dd>
+        <dt className="text-ink-3">Line endings</dt>
+        <dd className="font-mono text-[11.5px] text-ink-2" data-profile="endings">
+          <span>{endingsText(profile.endings)}</span>
+        </dd>
+        <dt className="text-ink-3">Size</dt>
+        <dd className="font-mono text-[11.5px] tabular text-ink-2">
+          <span>{sizeText(profile.size)}</span>
+        </dd>
+      </dl>
+      {profile.columns.length > 0 && (
+        <details className="mt-1.5 text-xs">
+          <summary className="cursor-pointer text-ink-2">Columns and empty cells</summary>
+          <div className={cn("mt-1 rounded-sm border border-line-subtle", profile.columns.length > OPEN_COLUMNS && "max-h-64 overflow-y-auto")} tabIndex={profile.columns.length > OPEN_COLUMNS ? 0 : undefined} role={profile.columns.length > OPEN_COLUMNS ? "region" : undefined} aria-label={profile.columns.length > OPEN_COLUMNS ? columnsLabel : undefined}>
+            <table className="w-full table-fixed text-left">
+              <thead className="sr-only">
+                <tr>
+                  <th scope="col">Column</th>
+                  <th scope="col">Empty cells</th>
+                </tr>
+              </thead>
+              <tbody>
+                {profile.columns.map((c, i) => (
+                  <tr key={i} className="border-t border-line-subtle first:border-t-0">
+                    <td className="px-2 py-0.5">
+                      <Value className="text-[11.5px]">{c.name}</Value>
+                    </td>
+                    <td className={cn("w-28 px-2 py-0.5 text-right font-mono tabular", c.empty ? "text-ink" : "text-ink-3")}>{c.empty === 1 ? "1 empty" : `${grouped(c.empty)} empty`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+/** The profile of a chosen file, under its own label, or the refusal the check would give it. */
+function ProfilePart({ side, profile, sources }: { side: Side; profile: ProfileState; sources: readonly HintSource[] }) {
+  if (profile.kind === "none") return null;
+  const refused = profile.kind === "read" && !profile.result.ok ? profile.result.message : null;
+  return (
+    <section aria-label={side === "source" ? "Profile of the source file" : "Profile of the destination export"} className="mt-3 border-t border-line-subtle pt-2" data-testid={`${side}-profile-part`} data-state={profile.kind === "read" ? (profile.result.ok ? "ready" : "refused") : profile.kind}>
+      <p className="text-2xs font-semibold tracking-wide text-ink-3 uppercase">
+        <span>File profile</span>
+        <span aria-hidden> · </span>
+        <span className="font-normal tracking-normal normal-case">read from the file, before any check</span>
+      </p>
+      <div aria-live="polite" className="min-h-4">
+        {profile.kind === "reading" && <p className="mt-1 text-xs text-ink-2">{profile.rows ? `Reading the file… ${grouped(profile.rows)} rows so far` : "Reading the file…"}</p>}
+        {profile.kind === "failed" && (
+          <p className="mt-1 text-xs text-mismatch-ink">
+            <span>The file could not be read: </span>
+            <Value className="text-mismatch-ink">{profile.message}</Value>
+          </p>
+        )}
+        {refused !== null && (
+          <p className="mt-1 text-xs text-mismatch-ink" data-testid={`${side}-profile-refused`}>
+            <span>A check would refuse this file: </span>
+            <Value className="text-mismatch-ink">{refused}</Value>
+            <Gloss text={refused} />
+          </p>
+        )}
+      </div>
+      {refused !== null && <RefusalHelp message={refused} sources={sources} />}
+      {profile.kind === "read" && profile.result.ok && <ProfileView profile={profile.result.profile} testId={`${side}-profile`} columnsLabel={side === "source" ? "Columns and empty cells of the source file" : "Columns and empty cells of the destination export"} />}
+    </section>
+  );
+}
+
+const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
+
 function FilePicker({
   side,
   choice,
   onFile,
   onEncoding,
+  keyReady,
 }: {
   side: Side;
   choice: Choice;
   onFile: (file: File | null) => void;
   onEncoding: (encoding: Encoding) => void;
+  /** Whether the key profile of the chosen key column is read (for the large-file test). */
+  keyReady: boolean;
 }) {
   const id = useId();
   const fileInput = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [dropNote, setDropNote] = useState<string | null>(null);
+  const over = (e: DragEvent<HTMLFieldSetElement>) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDragging(true);
+  };
+  const leave = (e: DragEvent<HTMLFieldSetElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+  };
+  const drop = (e: DragEvent<HTMLFieldSetElement>) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    setDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length !== 1) return setDropNote(files.length ? "Drop one file: none was taken." : null);
+    setDropNote(null);
+    onFile(files[0]!);
+  };
   const title = side === "source" ? "Source file" : "Destination export";
   const hint =
     side === "source" ? "The records that should have reached the destination." : "An export from the system the records should have reached.";
   const header = choice.header;
   const sources = useMemo(() => [{ file: choice.file, encoding: choice.encoding }], [choice.file, choice.encoding]);
   return (
-    <fieldset className="min-w-0 rounded-md border border-line px-4 pt-2 pb-4">
+    <fieldset
+      className={cn("relative min-w-0 rounded-md border px-4 pt-2 pb-4", dragging ? "border-brand" : "border-line")}
+      onDragEnter={over}
+      onDragOver={over}
+      onDragLeave={leave}
+      onDrop={drop}
+      data-testid={`${side}-panel`}
+      data-dragging={dragging || undefined}
+      data-key-profile={keyReady ? "ready" : undefined}
+    >
       <legend className="px-1 text-sm font-semibold text-ink">{title}</legend>
+      {dragging && (
+        <div aria-hidden className="pointer-events-none absolute inset-1 z-10 grid place-items-center rounded-md border-2 border-dashed border-brand bg-brand-soft/90 text-sm font-medium text-brand-ink" data-testid={`${side}-drop-here`}>
+          Drop the file here
+        </div>
+      )}
       <p className="text-xs text-ink-3">{hint}</p>
       <div className="fa-field">
         <span className="label" id={`${id}-file-label`}>
@@ -203,8 +384,13 @@ function FilePicker({
           <FileUp size={13} aria-hidden />
           Choose a file
         </button>
-        {!choice.file && <span className="text-sm text-ink-3">No file chosen</span>}
+        {!choice.file && <span className="text-sm text-ink-3">No file chosen, or drop one on this panel</span>}
       </div>
+      {dropNote && (
+        <p role="status" className="mt-1 text-xs text-mismatch-ink" data-testid={`${side}-drop-note`}>
+          {dropNote}
+        </p>
+      )}
       <input
         ref={fileInput}
         type="file"
@@ -213,7 +399,10 @@ function FilePicker({
         tabIndex={-1}
         aria-hidden
         data-testid={`${side}-file`}
-        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          setDropNote(null);
+          onFile(e.target.files?.[0] ?? null);
+        }}
       />
       <label className="fa-field mt-2">
         <span className="label">Encoding</span>
@@ -247,6 +436,7 @@ function FilePicker({
           <RefusalHelp message={header.result.message} sources={sources} />
         </>
       )}
+      {choice.file && !(header.kind === "read" && !header.result.ok) && <ProfilePart side={side} profile={choice.profile} sources={sources} />}
     </fieldset>
   );
 }
@@ -459,6 +649,44 @@ function countNotes(view: RunResult["view"] | undefined, side: Side): { statemen
   };
 }
 
+function WarningParts({ parts }: { parts: Warning["parts"] }) {
+  return (
+    <>
+      {parts.map((p, i) => (typeof p === "string" ? <span key={i}>{p}</span> : <Value key={i} className="text-[0.95em]">{p.value}</Value>))}
+    </>
+  );
+}
+
+/** What a check started now would do with the files as profiled. Advisory: it changes nothing and is not a result. */
+function BeforeYouCheck({ lines }: { lines: Warning[] }) {
+  return (
+    <div aria-live="polite">
+      {lines.length > 0 && (
+        <section aria-labelledby="before-check-h" className="my-2 rounded-md border border-dashed border-line-strong px-3 py-2" data-testid="before-check">
+          <h3 id="before-check-h" className="text-2xs font-semibold tracking-wide text-ink-3 uppercase">
+            <span>Before you check</span>
+            <span aria-hidden> · </span>
+            <span className="font-normal tracking-normal normal-case">read from the files</span>
+          </h3>
+          <ul className="mt-1 grid gap-1 text-xs leading-[1.5] text-ink">
+            {lines.map((l) => (
+              <li key={l.id} className="flex gap-2" data-warning={l.id.split(":")[0]}>
+                <span aria-hidden className="text-ink-3">
+                  —
+                </span>
+                <span className="min-w-0">
+                  <WarningParts parts={l.parts} />
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-xs text-ink-3">These lines are read from the files. They change nothing you chose, and they are not a result.</p>
+        </section>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Result ---------- */
 
 type KeepState = { kind: "idle" } | { kind: "keeping" } | { kind: "kept" } | { kind: "refused"; error: unknown };
@@ -622,6 +850,7 @@ function startWorker() {
 }
 
 const noHeader: HeaderState = { kind: "none" };
+const noProfile: ProfileState = { kind: "none" };
 
 export function Check({ runner: given }: { runner?: CheckRunner }) {
   // Without Worker (jsdom) the same code runs in this thread.
@@ -631,9 +860,11 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   useAllFontFaces();
 
   const [choices, setChoices] = useState<Record<Side, Choice>>({
-    source: { file: null, encoding: "utf-8", header: noHeader },
-    destination: { file: null, encoding: "utf-8", header: noHeader },
+    source: { file: null, encoding: "utf-8", header: noHeader, profile: noProfile },
+    destination: { file: null, encoding: "utf-8", header: noHeader, profile: noProfile },
   });
+  const profileReads = useRef<Record<Side, Reading<ProfileResult> | null>>({ source: null, destination: null });
+  const [keyReads, setKeyReads] = useState<Record<Side, KeyRead | null>>({ source: null, destination: null });
   const [key, setKey] = useState<[string, string]>(["", ""]);
   const nextId = useRef(1);
   const [fields, setFields] = useState<FieldRow[]>([{ id: 0, source: "", destination: "", rule: "exact", format: "" }]);
@@ -681,12 +912,75 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       }
       setAllowIdentical(false);
     }
-    setChoices((c) => ({ ...c, [side]: { file, encoding, header: file ? { kind: "reading" } : noHeader } }));
+    setChoices((c) => ({ ...c, [side]: { file, encoding, header: file ? { kind: "reading" } : noHeader, profile: file ? { kind: "reading", rows: 0 } : noProfile } }));
     changed();
+    profileReads.current[side]?.abandon();
+    profileReads.current[side] = null;
     if (!file) return;
-    const settle = (result: HeaderResult) => read === headerReads.current[side] && setChoices((c) => ({ ...c, [side]: { ...c[side], header: { kind: "read", result } } }));
+    const current = () => read === headerReads.current[side];
+    const settle = (result: HeaderResult) => current() && setChoices((c) => ({ ...c, [side]: { ...c[side], header: { kind: "read", result } } }));
     runner.header(file, encoding).then(settle, (e: unknown) => settle({ ok: false, message: e instanceof Error ? e.message : String(e) }));
+    // The profile reads the whole file in the other worker, so the column lists never wait for it.
+    const setProfile = (profile: ProfileState) => current() && setChoices((c) => ({ ...c, [side]: { ...c[side], profile } }));
+    const reading = runner.profile(file, encoding, (rows) => setProfile({ kind: "reading", rows }));
+    profileReads.current[side] = reading;
+    reading.result.then(
+      (result) => setProfile({ kind: "read", result }),
+      (e: unknown) => !(e instanceof Abandoned) && setProfile({ kind: "failed", message: e instanceof Error ? e.message : String(e) }),
+    );
   };
+
+  // The key profile of each key column, once its file's profile is ready; a change of file, encoding or column
+  // gives up the read in progress.
+  const keyFor = (side: Side) => {
+    const c = choices[side];
+    const column = key[side === "source" ? 0 : 1];
+    const ready = c.profile.kind === "read" && c.profile.result.ok && c.profile.result.profile.columns.some((x) => x.name === column);
+    return { file: ready ? c.file : null, encoding: c.encoding, column };
+  };
+  const sourceKeyFor = keyFor("source");
+  const destinationKeyFor = keyFor("destination");
+  const keyRead = (side: Side, want: { file: File | null; encoding: Encoding; column: string }) => {
+    const { file, encoding, column } = want;
+    if (!file) return;
+    let live = true;
+    const reading = runner.keyProfile(file, encoding, column);
+    reading.result.then(
+      (result) => live && setKeyReads((k) => ({ ...k, [side]: { file, encoding, column, result } })),
+      () => undefined, // given up, or the file could no longer be read: no key profile is shown
+    );
+    return () => {
+      live = false;
+      reading.abandon();
+    };
+  };
+  useEffect(() => keyRead("source", sourceKeyFor), [runner, sourceKeyFor.file, sourceKeyFor.encoding, sourceKeyFor.column]);
+  useEffect(() => keyRead("destination", destinationKeyFor), [runner, destinationKeyFor.file, destinationKeyFor.encoding, destinationKeyFor.column]);
+  /** The key profile read for exactly the current choice, or null. */
+  const keyProfileOf = (side: Side) => {
+    const want = side === "source" ? sourceKeyFor : destinationKeyFor;
+    const got = keyReads[side];
+    return got && want.file === got.file && want.encoding === got.encoding && want.column === got.column && got.result.ok ? got.result.key : null;
+  };
+  // A file dropped beside a panel is not opened by the browser in place of this page: only a panel takes a file.
+  useEffect(() => {
+    const guard = (e: globalThis.DragEvent) => {
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files")) e.preventDefault();
+    };
+    window.addEventListener("dragover", guard);
+    window.addEventListener("drop", guard);
+    return () => {
+      window.removeEventListener("dragover", guard);
+      window.removeEventListener("drop", guard);
+    };
+  }, []);
+  useEffect(
+    () => () => {
+      profileReads.current.source?.abandon();
+      profileReads.current.destination?.abandon();
+    },
+    [],
+  );
 
   const columns = (side: Side) => {
     const h = choices[side].header;
@@ -705,6 +999,20 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
     [choices.source.file, choices.source.encoding, choices.destination.file, choices.destination.encoding, selection],
   );
   const fingerprint = selection ? JSON.stringify(selection) : null;
+
+  const factsOf = (side: Side): SideFacts => {
+    const c = choices[side];
+    const at = side === "source" ? 0 : 1;
+    return {
+      fileName: c.file?.name ?? null,
+      profile: c.profile.kind === "read" && c.profile.result.ok ? c.profile.result.profile : null,
+      key: keyProfileOf(side),
+      columns: [key[at], ...fields.map((f) => (at === 0 ? f.source : f.destination))].filter(Boolean),
+      complete: side === "source" ? sourceComplete : destinationComplete,
+      count: side === "source" ? sourceCount : destinationCount,
+    };
+  };
+  const warnings = beforeYouCheck(factsOf("source"), factsOf("destination"));
   const loadedUnchanged = loaded !== null && fingerprint === loaded.fingerprint;
 
   const missing: string[] = [];
@@ -866,10 +1174,11 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       <section aria-labelledby="files-h">
         <SectionHead id="files-h" title="1 · Files" aside="read on this computer" />
         <div className="grid gap-4 md:grid-cols-2">
-          <FilePicker side="source" choice={choices.source} onFile={(f) => (setScenario(null), readColumns("source", f, choices.source.encoding))} onEncoding={(e) => readColumns("source", choices.source.file, e)} />
+          <FilePicker side="source" choice={choices.source} keyReady={keyProfileOf("source") !== null} onFile={(f) => (setScenario(null), readColumns("source", f, choices.source.encoding))} onEncoding={(e) => readColumns("source", choices.source.file, e)} />
           <FilePicker
             side="destination"
             choice={choices.destination}
+            keyReady={keyProfileOf("destination") !== null}
             onFile={(f) => (setScenario(null), readColumns("destination", f, choices.destination.encoding))}
             onEncoding={(e) => readColumns("destination", choices.destination.file, e)}
           />
@@ -1038,6 +1347,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
               note={destinationNotes.count}
             />
           </div>
+          <BeforeYouCheck lines={warnings} />
           <div className="border-t border-line-subtle">
             <Statement
               checked={allowIdentical}

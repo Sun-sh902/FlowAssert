@@ -106,9 +106,12 @@ test.describe("what the result means", () => {
 });
 
 test.describe("help after a refusal", () => {
-  /** The hint shown, or null once the page has had time to show one. */
-  async function hint(page: Page) {
-    const box = page.getByTestId("refusal-hint");
+  /**
+   * The hint shown, or null once the page has had time to show one: under a file, or, with `afterCheck`, under the
+   * check's refusal (a file the check refuses has the same hint in its profile too, before any check).
+   */
+  async function hint(page: Page, afterCheck = false) {
+    const box = (afterCheck ? page.locator('section[aria-labelledby="run-h"]') : page).getByTestId("refusal-hint");
     await box.waitFor({ timeout: 5000 }).catch(() => null);
     return (await box.count()) ? { kinds: await box.getAttribute("data-hint"), text: (await box.textContent()) ?? "" } : null;
   }
@@ -145,19 +148,22 @@ test.describe("help after a refusal", () => {
     await page.getByTestId("config-file").setInputFiles(join(GOLDEN, "empty-values", "config.json"));
     await page.getByTestId("run-check").click();
     await expect(page.getByTestId("refusal")).toContainText("semi.csv: missing column k, p");
-    let h = await hint(page);
+    let h = await hint(page, true);
     expect(h?.kinds).toBe("missing-column separator");
     expect(h?.text).toContain("FlowAssert reads only commas.");
 
     await check(page, { source: csv("s.csv", "k,p\n1,2\n3,4,5\n"), destination: csv("d.csv", "k,p\n1,2\n"), key: ["k", "k"], fields: [["p", "p"]] });
     await expect(page.getByTestId("refusal")).toContainText("s.csv: line 3 does not match the header");
-    expect((await hint(page))?.text).toContain("Line 3 has 3 fields; the header has 2.");
+    // The profile said so before the check, with the same hint.
+    await expect(page.getByTestId("source-profile-refused")).toContainText("s.csv: line 3 does not match the header");
+    await expect(page.getByTestId("source-profile-part").getByTestId("refusal-hint")).toContainText("Line 3 has 3 fields; the header has 2.");
+    expect((await hint(page, true))?.text).toContain("Line 3 has 3 fields; the header has 2.");
 
     await page.getByTestId("source-file").setInputFiles(csv("a.csv", "k,p\n1,2\n"));
     await page.getByTestId("destination-file").setInputFiles(csv("b.csv", "k,p\n1,2\n"));
     await page.getByTestId("run-check").click();
     await expect(page.getByTestId("refusal")).toContainText("identical content");
-    expect((await hint(page))?.kinds).toBe("identical-content");
+    expect((await hint(page, true))?.kinds).toBe("identical-content");
 
     await page.getByTestId("destination-file").setInputFiles(join(REPO, "offline/examples/source.csv"));
     await page.getByTestId("source-file").setInputFiles(join(REPO, "offline/examples/source.csv"));
@@ -167,7 +173,7 @@ test.describe("help after a refusal", () => {
     await page.getByTestId("field-0-destination").selectOption("phone");
     await page.getByTestId("run-check").click();
     await expect(page.getByTestId("refusal")).toContainText("the same file");
-    expect((await hint(page))?.kinds).toBe("same-file");
+    expect((await hint(page, true))?.kinds).toBe("same-file");
 
     const rows = "k,p\n" + "K,1\n".repeat(1_000_001);
     await page.getByTestId("source-file").setInputFiles(csv("many.csv", rows));
@@ -178,7 +184,7 @@ test.describe("help after a refusal", () => {
     await page.getByTestId("field-0-destination").selectOption("p");
     await page.getByTestId("run-check").click();
     await expect(page.getByTestId("refusal")).toContainText("many.csv: exceeds --max-rows limit of 1000000", { timeout: 60_000 });
-    expect((await hint(page))?.kinds).toBe("max-rows");
+    expect((await hint(page, true))?.kinds).toBe("max-rows");
     requests.stop();
     expectNoNetwork(page, requests);
   });
@@ -187,6 +193,7 @@ test.describe("help after a refusal", () => {
     await openCheck(page);
     await check(page, { source: join(GOLDEN, "refused-unexpected-end", "source.csv"), destination: join(GOLDEN, "refused-unexpected-end", "destination.csv"), key: ["k", "k"], fields: [["p", "p"]] });
     await expect(page.getByTestId("refusal")).toContainText("unexpected end of data");
+    expect(await hint(page, true)).toBeNull();
     expect(await hint(page)).toBeNull();
   });
 });
