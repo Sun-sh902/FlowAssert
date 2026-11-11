@@ -1,9 +1,8 @@
 # Live check of the Google Sheets source (for the owner; not run)
 
 > [!IMPORTANT]
-> **Before anything else:** a parent agrees to this check, and to every account or project it needs, **before** any
-> account is created or any Google Cloud project is set up. Read Google's terms of service and the Google Cloud terms
-> first, and check their minimum-age requirements: if they are not met, stop here. No credential is ever pasted into a
+> **Before anything else:** read Google's terms of service and the Google Cloud terms before any account is created
+> or any Google Cloud project is set up, and check who may hold such an account: if you are not eligible, stop here. No credential is ever pasted into a
 > chat, an issue, a commit or a file in this repository. Use synthetic data only.
 
 This plan was written with FlowAssert 0.7.0 and has **not** been run. It answers S1 question T7 of the

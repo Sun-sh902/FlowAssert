@@ -26,7 +26,7 @@ FlowAssert 把来源 CSV（应该到达的记录）与目标系统的导出文�
 
 ## 安装并运行一次核对
 
-只需要 Python 3.9 或更高版本。它只读取本地文件，不发任何网络请求（只有 `--source-sheet` 会读取 Google 的数据，而且只在你使用它时）。
+只需要 Python 3.9 或更高版本。它只读取本地文件，不发任何网络请求（只有 `--source-sheet` 会读取 Google 的数据、`--destination-hubspot` 会读取 HubSpot 的数据，而且只在你使用它们时）。
 
 ```sh
 git clone https://github.com/Sun-sh902/FlowAssert.git

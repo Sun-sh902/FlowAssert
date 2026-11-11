@@ -3,10 +3,9 @@
 English | [简体中文](hubspot_live_check.zh-CN.md)
 
 > [!IMPORTANT]
-> **Before anything else:** a parent agrees to this check, and to every account it needs, **before** any account is
-> created. Read HubSpot's Terms of Service, its developer terms and the terms of any free account first, and check who
-> may hold such an account (minimum age, and whether a person may open one for testing): if you are not eligible,
-> stop here. No token is ever pasted into a chat, an issue, a commit or a file in this repository. Use synthetic data
+> **Before anything else:** read HubSpot's Terms of Service, its developer terms and the terms of any free account
+> before any account is created, and check who may hold such an account and whether a person may open one for
+> testing: if you are not eligible, stop here. No token is ever pasted into a chat, an issue, a commit or a file in this repository. Use synthetic data
 > only.
 
 This plan was written with FlowAssert 1.0.0 and has **not** been run. It confirms or contradicts the statements marked

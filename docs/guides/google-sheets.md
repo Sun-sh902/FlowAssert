@@ -44,7 +44,7 @@ There are two kinds. Choose one:
 
 A token without the Drive scope, or a key in a project without the Drive API, cannot read the version. Then add `--skip-source-revision`: the check goes ahead, and the report says that the read cannot be tied to a revision.
 
-**Steps not tried.** Creating a Google Cloud project, enabling the two APIs, creating and restricting an API key, and issuing a token with chosen scopes were not tried for this guide, and the screens are not described here because they were not seen. Google's terms set a minimum age for accounts; check them, and if you are under 18, ask a parent before creating an account or a project.
+**Steps not tried.** Creating a Google Cloud project, enabling the two APIs, creating and restricting an API key, and issuing a token with chosen scopes were not tried for this guide, and the screens are not described here because they were not seen. Check Google's terms for who may hold an account before creating an account or a project.
 
 Set the variable without it landing in your shell history, for example in zsh or bash:
 

@@ -26,7 +26,7 @@ More in [Check in your browser](#check-in-your-browser).
 
 ## Install and run one check
 
-This needs only Python 3.9 or later. It reads local files and makes no network requests (only `--source-sheet` reads from Google, and only when you use it).
+This needs only Python 3.9 or later. It reads local files and makes no network requests (only `--source-sheet` reads from Google and `--destination-hubspot` from HubSpot, and only when you use them).
 
 ```sh
 git clone https://github.com/Sun-sh902/FlowAssert.git
