@@ -14,6 +14,7 @@
 - [选项](#选项)
 - [两个文件放在一起](#两个文件放在一起)
 - [读取 Google 表格范围](#读取-google-表格范围)
+- [读取 HubSpot 联系人](#读取-hubspot-联系人)
 
 ## 读取 CSV 文件
 
@@ -335,3 +336,47 @@ FlowAssert 请求的是每个单元格在表格中显示的文本，收到的却
 ### `the sheet's revision could not be read the same way before and after the values; run the check again`
 
 两次云端硬盘读取中，一次有版本、另一次没有。再运行一次核对。
+
+## 读取 HubSpot 联系人
+
+这些消息只来自使用 `--destination-hubspot contacts` 的命令行（见[设计说明](../connectors/hubspot.zh-CN.md)）。消息中，`PAGE` 是列表的页码，从 1 开始。状态码后面的大写名称，例如 `MISSING_SCOPES`，是 HubSpot 错误中的类别；错误本身的消息从不转述。消息中从不包含你的令牌。FlowAssert 从不自动重试，也不写报告：改动之后，请再运行一次核对。
+
+### `--destination and --destination-hubspot cannot be combined`、`--destination-hubspot must be contacts`、`--destination-timeout needs --destination-hubspot`
+
+目标要么是一个文件（`--destination`），要么是 HubSpot 联系人（`--destination-hubspot contacts`）；联系人是 FlowAssert 唯一读取的对象。`--destination-timeout` 只适用于 HubSpot。
+
+### `--destination-encoding does not apply to a HubSpot destination`
+
+记录以文本到达，没有文件编码。请去掉这个选项。
+
+### `HubSpot property name 'NAME' must be letters, digits and _, at most 100 characters`
+
+键和每个字段的目标一侧，是属性的内部名称，例如 `email` 或 `hs_object_id`，而不是它显示的标签。HubSpot 在每个属性的设置中显示内部名称。
+
+### `no credential: set FLOWASSERT_HUBSPOT_TOKEN to a private app access token with the scope crm.objects.contacts.read only`、`FLOWASSERT_HUBSPOT_TOKEN does not hold a credential: …`
+
+FlowAssert 只从这个环境变量读取令牌。在运行核对的终端中设置它，并且不要留在终端的历史记录里：`read -rs FLOWASSERT_HUBSPOT_TOKEN && export FLOWASSERT_HUBSPOT_TOKEN`。
+
+### `HubSpot contacts: the credential was not accepted (HTTP 401…)`、`… access was denied (HTTP 403…)`
+
+令牌已经过期、被轮换或被删除，或者没有 `crm.objects.contacts.read` 权限范围。请给私有应用授予这个权限范围，并且只授予这一个。
+
+### `HubSpot contacts: rate limited (HTTP 429…)`、`… server error (HTTP N…)`、`… no complete response within N seconds…`、`… the connection failed`
+
+这一次 HubSpot 没有给出回答。请稍等，再运行一次核对；读取很多联系人时，每 100 个联系人发一个请求。
+
+### `HubSpot contacts: page PAGE has a record without the property 'NAME'; …`
+
+HubSpot 不返回对象中不存在的属性，所以 `NAME` 很可能不是联系人的属性，或者写法不同。这与文件缺少某一列时的拒绝相同。
+
+### `HubSpot contacts: record ID appears twice (pages P and Q): the list changed while it was read; …`、`… repeats an earlier paging cursor`、`… has a next page and no records`
+
+读取期间列表发生了变化，或者页面在重复，所以这些行无法对应到同一个状态。请在没有人导入或合并联系人时再运行一次核对。
+
+### `HubSpot contacts: the response is not the JSON the API documents (DETAIL)`、`… lists an archived record…`、`… has a property value that is not text`、`… has more than 100 records`、`… gives a paging cursor that FlowAssert cannot send back unchanged`、`… redirected…`
+
+某一页不是 HubSpot 文档所描述的样子。FlowAssert 不猜测它的含义；请报告这个问题，不要附带令牌或任何值。
+
+### `HubSpot contacts: exceeds --max-rows limit of N`、`HubSpot contacts: response exceeds --max-bytes limit of N`
+
+列出的联系人超过了 `--max-rows` 允许的数量，或者某一页大于 `--max-bytes`。如果这个数量在预期之内，请提高上限。

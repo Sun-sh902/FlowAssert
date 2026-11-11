@@ -14,6 +14,7 @@ In the messages below, `FILE` is the path you gave (the file's name in the brows
 - [Options](#options)
 - [The two files together](#the-two-files-together)
 - [Reading a Google Sheets range](#reading-a-google-sheets-range)
+- [Reading HubSpot contacts](#reading-hubspot-contacts)
 
 ## Reading the CSV files
 
@@ -335,3 +336,47 @@ Google Drive recorded a change to the file between just before and just after th
 ### `the sheet's revision could not be read the same way before and after the values; run the check again`
 
 One of the two Drive reads gave a version and the other did not. Run the check again.
+
+## Reading HubSpot contacts
+
+These messages come only from the command line with `--destination-hubspot contacts` ([the design note](../connectors/hubspot.md)). In them, `PAGE` is the page of the list, counted from 1. A name in capitals after the status code, such as `MISSING_SCOPES`, is the category HubSpot's error gave; the error's own message is never repeated. No message contains your token. FlowAssert never retries and writes no report: after you change something, run the check again.
+
+### `--destination and --destination-hubspot cannot be combined`, `--destination-hubspot must be contacts`, `--destination-timeout needs --destination-hubspot`
+
+The destination is either a file (`--destination`) or HubSpot's contacts (`--destination-hubspot contacts`); contacts are the only object FlowAssert reads. `--destination-timeout` applies only to HubSpot.
+
+### `--destination-encoding does not apply to a HubSpot destination`
+
+The records arrive as text, with no file encoding. Leave the option out.
+
+### `HubSpot property name 'NAME' must be letters, digits and _, at most 100 characters`
+
+The destination side of the key and of each field is a property's internal name, such as `email` or `hs_object_id`, not its label. HubSpot shows the internal name in each property's settings.
+
+### `no credential: set FLOWASSERT_HUBSPOT_TOKEN to a private app access token with the scope crm.objects.contacts.read only`, `FLOWASSERT_HUBSPOT_TOKEN does not hold a credential: …`
+
+FlowAssert takes the token only from this environment variable. Set it in the shell that runs the check without leaving it in the shell's history: `read -rs FLOWASSERT_HUBSPOT_TOKEN && export FLOWASSERT_HUBSPOT_TOKEN`.
+
+### `HubSpot contacts: the credential was not accepted (HTTP 401…)`, `… access was denied (HTTP 403…)`
+
+The token has expired, been rotated or deleted, or lacks the scope `crm.objects.contacts.read`. Give the private app that scope, and only that one.
+
+### `HubSpot contacts: rate limited (HTTP 429…)`, `… server error (HTTP N…)`, `… no complete response within N seconds…`, `… the connection failed`
+
+HubSpot did not answer this time. Wait, then run the check again; a read of many contacts makes one request per 100 of them.
+
+### `HubSpot contacts: page PAGE has a record without the property 'NAME'; …`
+
+HubSpot leaves out a property the object does not have, so `NAME` is most likely not a contact property, or is written differently. This is the same refusal as a missing column in a file.
+
+### `HubSpot contacts: record ID appears twice (pages P and Q): the list changed while it was read; …`, `… repeats an earlier paging cursor`, `… has a next page and no records`
+
+The list changed, or its pages repeated, while it was read, so the rows cannot be tied to one state. Run the check again when nobody is importing or merging contacts.
+
+### `HubSpot contacts: the response is not the JSON the API documents (DETAIL)`, `… lists an archived record…`, `… has a property value that is not text`, `… has more than 100 records`, `… gives a paging cursor that FlowAssert cannot send back unchanged`, `… redirected…`
+
+A page is not what HubSpot's documentation describes. FlowAssert does not guess what it means; please report it, without the token or any values.
+
+### `HubSpot contacts: exceeds --max-rows limit of N`, `HubSpot contacts: response exceeds --max-bytes limit of N`
+
+More contacts were listed than `--max-rows` allows, or a page was larger than `--max-bytes`. Raise the limit if the number is expected.

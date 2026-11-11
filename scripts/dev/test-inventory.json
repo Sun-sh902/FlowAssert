@@ -402,6 +402,15 @@
    "chrome › perf.spec.ts › DOM size, layout shift and load timing per route": {
     "passed": 1
    },
+   "chrome › readme-screens.spec.ts › README screenshots of the CSV check · en": {
+    "skipped": 1
+   },
+   "chrome › readme-screens.spec.ts › README screenshots of the CSV check · zh-CN": {
+    "skipped": 1
+   },
+   "chrome › readme-screens.spec.ts › README screenshots of the HTML report": {
+    "skipped": 1
+   },
    "chrome › remediation.spec.ts › UIA-001 focus visible · dark · drawer · current-page link": {
     "passed": 1
    },
@@ -903,6 +912,15 @@
    },
    "webkit › perf.spec.ts › DOM size, layout shift and load timing per route": {
     "passed": 1
+   },
+   "webkit › readme-screens.spec.ts › README screenshots of the CSV check · en": {
+    "skipped": 1
+   },
+   "webkit › readme-screens.spec.ts › README screenshots of the CSV check · zh-CN": {
+    "skipped": 1
+   },
+   "webkit › readme-screens.spec.ts › README screenshots of the HTML report": {
+    "skipped": 1
    },
    "webkit › remediation.spec.ts › UIA-001 focus visible · dark · drawer · current-page link": {
     "passed": 1

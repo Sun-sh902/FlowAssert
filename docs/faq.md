@@ -7,6 +7,8 @@ English | [简体中文](faq.zh-CN.md)
 - [Do my files leave my computer?](#do-my-files-leave-my-computer)
 - [Does FlowAssert still need `--source-complete` when it reads my sheet?](#does-flowassert-still-need---source-complete-when-it-reads-my-sheet)
 - [Does FlowAssert change my sheet?](#does-flowassert-change-my-sheet)
+- [Does reading HubSpot show that my contacts are all there?](#does-reading-hubspot-show-that-my-contacts-are-all-there)
+- [Can I trust a download of FlowAssert?](#can-i-trust-a-download-of-flowassert)
 - [How is this different from a diff tool?](#how-is-this-different-from-a-diff-tool)
 - [Can I use it on real data?](#can-i-use-it-on-real-data)
 
@@ -33,8 +35,8 @@ Totals help a little. If you pass the total your system shows (`--source-count`,
 
 No.
 
-- **The command line** reads local files and makes no network request, unless you give it `--source-sheet`: then it reads that one range of your Google Sheets spreadsheet with three read-only `GET` requests to Google, and sends Google nothing of your files ([the Google Sheets guide](guides/google-sheets.md)).
-- **The browser check** reads the files in the browser, in a Web Worker. From choosing the files to downloading the reports it makes no request, and the online demo's Content Security Policy forbids every connection. Nothing you choose or state is stored, unless you press **Keep this report in this browser**, which keeps that one report in this browser profile (see [Saved reports](../README.md#saved-reports-and-comparing-two-results)).
+- **The command line** reads local files and makes no network request, unless you give it `--source-sheet`: then it reads that one range of your Google Sheets spreadsheet with three read-only `GET` requests to Google, and sends Google nothing of your files ([the Google Sheets guide](guides/google-sheets.md)). With `--destination-hubspot contacts` it lists your HubSpot contacts with read-only `GET` requests, asking only for the properties you named, and sends HubSpot nothing of your source file ([the design note](connectors/hubspot.md)).
+- **The browser check** reads the files in the browser, in Web Workers, as streams; the file profile, the result explorer and the character diff run there too. From choosing the files to downloading the reports it makes no request, and the online demo's Content Security Policy forbids every connection. Nothing you choose or state is stored, unless you press **Keep this report in this browser**, which keeps that one report in this browser profile (see [Saved reports](../README.md#saved-reports-and-comparing-two-results)).
 - **The GitHub Action** runs on your workflow's runner and downloads nothing. Its log and job summary show no key or value unless you set `show-records`.
 - **The n8n example** runs in your n8n instance; the Code node makes no request.
 
@@ -55,6 +57,16 @@ No. FlowAssert sends only three HTTPS `GET` requests: two to Google Drive for th
 - The credential stays in the environment variable you set; FlowAssert never writes it anywhere.
 
 Only the command line reads sheets. The browser check, the GitHub Action and the n8n example make no request to Google.
+
+## Does reading HubSpot show that my contacts are all there?
+
+No. With `--destination-hubspot contacts`, FlowAssert lists the contacts itself, page by page, so no export step could filter them or cut them short. That shows which contacts the API listed to your token at that time. It does not show that the object is complete: contacts the token cannot see are not listed, a contact changed during the read may be missed, and archived contacts are not read. Whether the records cover the whole object is still your statement, `--destination-complete`, with the same meaning as for an export, and the report says that the read does not show completeness. The same records give the same result as the same rows in a CSV file.
+
+FlowAssert only reads: `GET` requests to one documented endpoint, with a token that should have the scope `crm.objects.contacts.read` and nothing else. It has been tested against a local fake of that endpoint, not yet against a HubSpot account.
+
+## Can I trust a download of FlowAssert?
+
+From the first release made by the release workflow, you can check where a download came from. Each file comes with `SHA256SUMS` and a GitHub build provenance attestation, and `gh attestation verify` shows that the file was built by this repository's release workflow, from the tagged commit, on a GitHub-hosted runner ([Verify a release](verify-a-release.md)). That does not show that the code is correct or that anyone reviewed it. No release carries an attestation yet.
 
 ## How is this different from a diff tool?
 

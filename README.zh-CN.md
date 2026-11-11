@@ -4,19 +4,23 @@
 
 **工作流显示成功了，但预期的业务数据真的到了吗？**
 
-FlowAssert 把来源 CSV（应该到达的记录）与目标系统的导出文件（现在实际有的记录）对照，把每条记录判定为 **Verified**、**Mismatch** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。它在你的电脑上运行，可以用命令行，也可以用浏览器，读取本地文件；从 0.7.0 起，命令行还可以以只读方式从 Google 表格的一个范围读取来源行（见[从 Google 表格读取来源](#从-google-表格读取来源)）。
+FlowAssert 把来源 CSV（应该到达的记录）与目标系统的导出文件（现在实际有的记录）对照，把每条记录判定为 **Verified**、**Mismatch** 或 **Unverified**。它的核心规则是：证据不足时，绝不说 Verified。它在你的电脑上运行，可以用命令行，也可以用浏览器，读取本地文件；命令行还可以以只读方式从 Google 表格的一个范围读取来源行，从 HubSpot 联系人中读取目标记录（见 [Google 表格](#从-google-表格读取来源)、[HubSpot](#从-hubspot-读取目标)）。
+
+1.0.0 版冻结了报告格式，写出了核对的规范，发布了 JSON Schema 和一致性测试，并让每个发布文件都带有任何人都能核对的构建来源证明（见 [1.0 的承诺](#10-的承诺)）。
 
 > [!IMPORTANT]
 > **这是由一位维护者维护的早期项目。** 它还不是生产软件。
-> Service 和 UI 只处理 5 个审核过的合成样例。它们没有连接真实的 n8n、HubSpot 或 Google Sheets，不接收凭据，也不采集外部数据。哈希和本地回执只能说明内部一致，不能证明任何数据是真实的。
+> Service 和 UI 只处理 5 个审核过的合成样例。它们没有连接真实的 n8n、HubSpot 或 Google Sheets，不接收凭据，也不采集外部数据。命令行的 Google 表格来源和 HubSpot 目标都是只读的，只针对这些服务的本地仿制服务测试过。哈希和本地回执只能说明内部一致，不能证明任何数据是真实的。这里不声称有任何外部用户、评审或采用。
 
 ## 在线试用
 
 <https://sun-sh902.github.io/FlowAssert/> 在浏览器里运行核对。你的文件不会离开电脑：页面不发任何网络请求。
 
-1. 选择你的两个 CSV 文件，或在 **手边没有文件？试试一个场景** 中选一个合成场景（共四个）。
-2. 选择键列和要比较的字段，只声明你确实知道的关于文件的内容。
-3. 点 **检查**。结果下面的 **这个结果是什么意思** 只根据报告来解释结果。
+1. 把两个 CSV 文件拖放到各自的面板上，或者选择它们，或者在 **手边没有文件？试试一个场景** 中选一个合成场景（共四个）。每个文件都会立即生成概况：行数、列和空单元格、编码、换行符和大小，或者核对会给出的拒绝。
+2. 选择键列和要比较的字段，只声明你确实知道的关于文件的内容。**核对之前** 会说明：与文件矛盾的总数、有空键或重复键的键列，核对时会怎样处理。
+3. 点 **检查**。结果下面的 **这个结果是什么意思** 只根据报告来解释结果，**浏览记录** 列出每条记录、每条规则的结果，对于不通过的字段，准确标出哪些字符不同。
+
+一百万行的文件以流的方式读取，显示进度和剩余时间的估计。不上传任何内容。
 
 详见[在浏览器中核对](#在浏览器中核对)。
 
@@ -66,6 +70,20 @@ Verified 1 · Mismatch 3 · Unverified 0
 
 输入被拒绝（退出码 2）或内部故障（4）都没有结果。批次可能比记录更不确定：每条记录都通过，但没有声明来源文件是完整的一批时，批次是 Unverified。FlowAssert 不检查你的声明，所以声明错了，结果也会错。[为什么我的结果是 Unverified？](docs/faq.zh-CN.md#为什么我的结果是-unverified)
 
+## 1.0 的承诺
+
+- **报告格式已经冻结。** `schema_version` 1（两个文件）、2（Google 表格来源）和 3（HubSpot 目标）不再改变：见[报告格式](docs/report-format.zh-CN.md)，每个版本都有一份 [JSON Schema](docs/schema/)（draft 2020-12），每份核对样例报告都用它校验。
+- **核对有规范。** [规范](docs/spec/verification.zh-CN.md)用“必须”“应当”说明每个计数、状态、拒绝和退出码是怎样得出的，每条“必须”都列出一个检验它的核对样例。
+- **1.x 保持不变的内容。** [1.x 的兼容性](docs/compatibility.zh-CN.md)：报告成员及其含义、退出码、选项、拒绝信息和摘要都保持稳定；怎样提前通知并淘汰某项内容；读取方遇到不认识的 `schema_version` 时必须怎么做。
+- **其他实现可以证明自己一致。** [一致性](docs/conformance.zh-CN.md)：一条命令就能对任何程序运行全部核对样例和一致性样例，并说明哪些通过。浏览器核对和命令行就是这样互相对照的。
+- **下载的文件可以核对。** [验证一次发布](docs/verify-a-release.zh-CN.md)：从发布工作流生成的第一次发布起，每个发布文件都附有 `SHA256SUMS` 和 GitHub 构建来源证明；这个页面也说明了它不能证明什么。
+
+## 仍然不能说明的事
+
+- **你的文件是完整的。** “来源是整个批次”和“目标覆盖整个对象”是你的声明，作为前提记录下来，从不被核实。从 Google 表格或 HubSpot 读取省去了导出步骤，但只能说明服务在那时向这个凭据返回了什么。
+- **某个工作流运行过、来源数据是真实的，或某条记录在过去的截止时间前已经存在。** 这些从不评估。
+- **文件或声明是真实可信的。** 报告和导入的文件都未经认证。
+
 **试用过了？告诉我们：** [试用反馈表单](https://github.com/Sun-sh902/FlowAssert/issues/new?template=trial_feedback_zh-CN.yml)会问你是怎么用的、想核对什么、卡在哪里、结果是否清楚。表单内容是公开的，请不要粘贴真实数据、键、值或报告。
 
 界面支持简体中文：在左侧栏底部切换 `EN` 和 `中文` 即可。本文的截图来自中文界面。
@@ -84,11 +102,14 @@ Verified 1 · Mismatch 3 · Unverified 0
 - [在线试用](#在线试用)
 - [安装并运行一次核对](#安装并运行一次核对)
 - [四种结果的意思](#四种结果的意思)
+- [1.0 的承诺](#10-的承诺)
+- [仍然不能说明的事](#仍然不能说明的事)
 - [要解决的问题](#要解决的问题)
 - [截图](#截图)
 - [已有和没有的内容](#已有和没有的内容)
 - [命令行选项](#命令行选项)
 - [从 Google 表格读取来源](#从-google-表格读取来源)
+- [从 HubSpot 读取目标](#从-hubspot-读取目标)
 - [在浏览器中核对](#在浏览器中核对)
 - [在 GitHub Actions 中使用](#在-github-actions-中使用)
 - [在 n8n 中使用](#在-n8n-中使用)
@@ -111,6 +132,33 @@ Verified 1 · Mismatch 3 · Unverified 0
 预期用户是独立自动化开发者和小型工作室。这个用户画像从未得到验证：没有做过用户访谈，也没有测试过真实账号。
 
 ## 截图
+
+最前面是 CSV 核对和 HTML 报告，使用 `offline/examples/` 和 `offline/golden/rules-fail/` 中的合成文件，由 `FA_README_SCREENS=1 npx playwright test e2e/readme-screens.spec.ts --project chrome` 生成。
+
+### CSV 核对
+
+文件一被选择就生成概况；声明的总数与导出文件矛盾时（这里声明 5 行，读到 4 行），“你声明的内容”一节会说明核对将怎样处理：
+
+| 文件概况 | 核对之前 |
+| --- | --- |
+| ![两个文件面板及其概况](docs/readme/zh/check-files.png) | ![“你声明的内容”一节中的核对前提示](docs/readme/zh/check-before.png) |
+
+浏览一个结果：列出不是已验证的记录，打开其中一条，显示每条规则，以及每个不通过字段中不同的字符。
+
+<details>
+<summary>展开结果浏览</summary>
+
+![结果浏览，打开了一条记录及其字符差异](docs/readme/zh/check-explorer.png)
+
+</details>
+
+### HTML 报告
+
+报告中的文字是英文的，与命令行写出的相同。
+
+| 浅色 | 深色 |
+| --- | --- |
+| ![浅色主题下的 HTML 报告](docs/readme/html-report-light.png) | ![深色主题下的 HTML 报告](docs/readme/html-report-dark.png) |
 
 下面的页面都来自本地运行，显示的是审核过的合成数据。日期和时间要么是合成的，要么是那次本地运行的时间。
 
@@ -179,7 +227,8 @@ Verified 1 · Mismatch 3 · Unverified 0
 | Connections、Rules、Settings 页面 | Mock 演示，不连接也不执行任何东西 |
 | Capture runs 页面 | 未实现 |
 | Google 表格来源（`--source-sheet`） | 只在命令行中提供：以只读方式读取表格的一个范围作为来源。针对 Google 接口的本地仿制服务测试过，还没有在 Google 上实际试过 |
-| n8n 或 HubSpot 连接器 | 不存在 |
+| HubSpot 联系人目标（`--destination-hubspot`） | 只在命令行中提供：以只读方式列出联系人作为目标。针对 HubSpot 接口的本地仿制服务测试过，还没有在 HubSpot 上实际试过 |
+| n8n 连接器、HubSpot 来源、其他 HubSpot 对象 | 不存在 |
 | 从 UI 发起验证 | 不存在 |
 | 登录、多用户、部署 | 不存在 |
 | 用户验证 | 从未做过 |
@@ -211,6 +260,8 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | `--source-range RANGE` | 与 `--source-sheet` 一起使用：带工作表名和有界列的范围，例如 `Leads!A1:F` 或 `Leads!A1:F500` |
 | `--source-timeout SECONDS` | 与 `--source-sheet` 一起使用：每个请求最长可用的时间（默认 `60`） |
 | `--skip-source-revision` | 与 `--source-sheet` 一起使用：不从 Google 云端硬盘读取文件版本；报告会写明这次读取无法对应到某个版本 |
+| `--destination-hubspot contacts` | 以只读方式从 HubSpot 联系人中列出目标记录，代替 `--destination`；键和字段的目标一侧是 HubSpot 属性名（[设计说明](docs/connectors/hubspot.zh-CN.md)） |
+| `--destination-timeout SECONDS` | 与 `--destination-hubspot` 一起使用：每个请求最长可用的时间（默认 `60`） |
 | `--destination-encoding NAME` | `utf-8`（默认）、`utf-16` 或 `gb18030` |
 | `--max-bytes N` | 读取前拒绝超过 `N` 字节的文件（默认 `209715200`，即 200 MiB） |
 | `--max-rows N` | 读取时拒绝超过 `N` 行的 CSV 文件（默认 `1000000`） |
@@ -253,6 +304,24 @@ flowassert-verify --source-sheet SPREADSHEET_ID --source-range 'Leads!A1:F' \
 
 [Google 表格指南](docs/guides/google-sheets.zh-CN.md)介绍如何准备范围、获取只读凭据、一个完整的示例以及如何阅读结果；[设计说明](docs/connectors/google-sheets.zh-CN.md)包含所有细节和每一种拒绝。
 
+## 从 HubSpot 读取目标
+
+从 1.0.0 起，`flowassert-verify` 可以自己从 HubSpot 联系人中列出目标记录，而不是读取你导出的文件。
+
+```sh
+read -rs FLOWASSERT_HUBSPOT_TOKEN && export FLOWASSERT_HUBSPOT_TOKEN   # 私有应用令牌，手动输入，不会保存
+flowassert-verify --source leads.csv --destination-hubspot contacts \
+  --key lead_id:external_id --field email --field phone
+```
+
+- **只读。** 只向 `api.hubapi.com` 上的 `/crm/v3/objects/contacts` 逐页发送 HTTPS `GET` 请求，带 `archived=false`，只请求指定的属性；不跟随重定向，不用代理，不重试。任何有疑问的页面（错误、限流、同一条记录出现两次、缺少属性）都会被拒绝，不写报告。
+- **令牌只留在环境变量中。** `FLOWASSERT_HUBSPOT_TOKEN`，一个只授予 `crm.objects.contacts.read` 权限范围的私有应用访问令牌。它从不作为选项传入，从不从文件读取，也从不打印或写进报告。
+- **能说明什么。** 从第一个请求到最后一个请求之间，API 向这个令牌列出了哪些联系人，以及它们的值。报告的 `schema_version` 为 3，记录对象、属性、页数、记录数和读取时间。
+- **不能说明什么。** 对象是完整的：令牌看不到的联系人、读取期间变化的联系人和已归档的联系人都不会被列出。`--destination-complete` 仍然是你的声明。同样的记录，会得到和放在 CSV 文件里的同样的行相同的结果。
+- **还没有在 HubSpot 上实际试过。** 只针对这个接口的本地仿制服务测试过。浏览器核对、Action 和 n8n 示例都不会向 HubSpot 发送任何请求。
+
+[设计说明](docs/connectors/hubspot.zh-CN.md)包含每个选项、请求、拒绝和报告成员。
+
 ## 在浏览器中核对
 
 同样的核对也可以在网页界面里完成，不用命令行：打开 **CSV 核对** 页面，选择两个文件、键列、要比较的字段和每个字段的规则，声明你知道的前提，然后点“检查”。结果、摘要以及 JSON 和 HTML 报告都与命令行逐字节相同，只是每项前提的来源记为 `browser form`（浏览器表单）。
@@ -261,6 +330,12 @@ flowassert-verify --source-sheet SPREADSHEET_ID --source-range 'Leads!A1:F' \
 
 - **在线演示：** <https://sun-sh902.github.io/FlowAssert/>。它的内容安全策略（CSP）禁止任何连接；需要本地 Service 的页面会写明“仅本地可用”。
 - **本地运行：** `cd ui && npm ci && npm run dev`，然后打开 <http://127.0.0.1:5183/#/check>。页面上有示例文件。
+
+页面在命令行的输出之外还提供了以下内容，都读自文件或报告，都不是结论：
+
+- **文件概况**：文件一被选择或拖放就生成；以及 **核对之前**：概况与声明的总数或键列矛盾时，核对会怎样处理。
+- **流式读取。** 文件分块读取，内存有上限：两个 1,000,000 行的文件，Worker 的内存峰值约 175 MiB；显示两边已读的行数和如实的剩余时间估计。
+- **浏览记录**：在结果、已保存的报告和对比页上，按状态、规则和结果筛选，搜索键，打开任何一条记录，查看每条规则的结果；对于不通过的字段，准确标出哪些字符不同。视图写在地址里，所以已保存报告的筛选视图可以分享链接。
 
 与命令行的区别：
 
@@ -272,7 +347,7 @@ flowassert-verify --source-sheet SPREADSHEET_ID --source-range 'Leads!A1:F' \
 | 选项 | 默认上限（200 MiB、1,000,000 行）、`--details problems`、不隐去值 | 所有选项 |
 | 两次选择同一个文件 | 两个选择的文件名、大小、修改时间和字节都相同时拒绝；浏览器不提供文件路径 | 路径指向同一文件时拒绝 |
 
-浏览器核对按同一份规范实现，并与命令行对照测试：全部一致性样例、97 个逐字节比较的黄金样例，以及随机样例（10,000 个中 0 处差异）。它是第二个实现，出现差异就是缺陷，欢迎报告。
+浏览器核对按同一份规范实现，并与命令行对照测试：全部一致性样例、99 个逐字节比较的黄金样例、在每个字节位置切分成块的每个黄金样例输入，以及随机样例（10,000 个中 0 处差异）。它是第二个实现，出现差异就是缺陷，欢迎报告。
 
 ### 已保存的报告和两次结果对比
 
@@ -439,6 +514,9 @@ Service 是为本机单用户设计的。
 | 问题 | 详情 |
 | --- | --- |
 | 完整性声明 | 离线核对不会核实 `--source-complete` 和 `--destination-complete`，声明错了，结果也会错。`--source-count` 和 `--destination-count` 能发现一部分错误声明，但总数相符不能证明文件完整。浏览器核对中的两项声明同样如此。使用 Google 表格来源（`--source-sheet`）时，这项限制变窄了，但没有消失：没有任何导出步骤能截断或改动来源行，但范围是否包含了应有的全部记录，仍然是你的声明 `--source-complete`。目标始终是导出文件 |
+| HubSpot 目标 | 只针对 HubSpot 接口的本地仿制服务测试过，还没有在 HubSpot 账号上运行过。关于 HubSpot 行为的说法依据它的公开文档，文档没有说清楚的标为未确认（见[设计说明](docs/connectors/hubspot.zh-CN.md#资料来源)）。只在命令行中提供，只支持联系人 |
+| 发布的来源证明 | 发布工作流和 Pages 工作流还没有运行过，所以目前还没有任何文件带有来源证明 |
+| 浏览器内存 | 核对之后，Worker 为浏览记录保留那次结果的评估：两个一百万行的文件约 130 MiB，直到下一次核对 |
 | Google 表格来源 | 只针对 Google 两个接口的本地仿制服务测试过，还没有在真实的表格上运行过。关于 Google 行为的部分说法，所依据的文档在编写时无法阅读（见[设计说明](docs/connectors/google-sheets.zh-CN.md#资料来源)）。只在命令行中提供 |
 | 浏览器核对 | 支持的日期指令比命令行少，Python 版本之间有差异的地方按 Python 3.15 处理。见[在浏览器中核对](#在浏览器中核对) |
 | 已保存的报告 | 保存在浏览器配置文件中，使用它的任何人都能读取；在线演示中，同一账号的其他 GitHub Pages 站点也能读取。导入的报告未经认证。见[已保存的报告和两次结果对比](#已保存的报告和两次结果对比) |

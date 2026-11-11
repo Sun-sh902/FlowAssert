@@ -4,19 +4,23 @@ English | [简体中文](README.zh-CN.md)
 
 **The workflow succeeded. Did the expected business data actually arrive?**
 
-FlowAssert compares a source CSV, the records that should have arrived, with an export of the destination system, what is there now, and reports each record as **Verified**, **Mismatch** or **Unverified**. Its central rule: without enough evidence, it never says Verified. It runs on your computer, in a terminal or in your browser, and reads local files; from 0.7.0 the command line can also read the source rows from a Google Sheets range, read-only ([Read the source from Google Sheets](#read-the-source-from-google-sheets)).
+FlowAssert compares a source CSV, the records that should have arrived, with an export of the destination system, what is there now, and reports each record as **Verified**, **Mismatch** or **Unverified**. Its central rule: without enough evidence, it never says Verified. It runs on your computer, in a terminal or in your browser, and reads local files; the command line can also read the source rows from a Google Sheets range and the destination records from HubSpot's contacts, read-only ([Google Sheets](#read-the-source-from-google-sheets), [HubSpot](#read-the-destination-from-hubspot)).
+
+Version 1.0.0 freezes the report format, specifies the check, publishes JSON Schemas and a conformance suite, and builds every release file with a provenance attestation anyone can verify ([What 1.0 promises](#what-10-promises)).
 
 > [!IMPORTANT]
 > **Early-stage project with one maintainer.** It is not production software.
-> The Service and UI work on five reviewed synthetic cases only. They have no live n8n, HubSpot or Google Sheets connection, take no credentials, and capture no external data. Hashes and local receipts show internal consistency, not that any data is authentic.
+> The Service and UI work on five reviewed synthetic cases only. They have no live n8n, HubSpot or Google Sheets connection, take no credentials, and capture no external data. The command line's Google Sheets source and HubSpot destination are read-only and have been tested against local fakes of those services only. Hashes and local receipts show internal consistency, not that any data is authentic. No outside user, review or adoption is claimed.
 
 ## Try it online
 
 <https://sun-sh902.github.io/FlowAssert/> runs the check in your browser. Your files never leave your computer: the page makes no network request.
 
-1. Choose your two CSV files, or one of the four synthetic scenarios under **No files at hand? Try a scenario**.
-2. Choose the key column and the compared fields, and state only what you know about the files.
-3. Press **Check**. Under the result, **What this result means** explains it, from the report alone.
+1. Drop your two CSV files on their panels, or choose them, or use one of the four synthetic scenarios under **No files at hand? Try a scenario**. Each file is profiled at once: its rows, columns and empty cells, encoding, line endings and size, or the refusal a check would give it.
+2. Choose the key column and the compared fields, and state only what you know about the files. **Before you check** says what a check would do with a total that contradicts a file, or a key column with empty or repeated keys.
+3. Press **Check**. Under the result, **What this result means** explains it from the report alone, and **Explore the records** lists every record, with each rule's result and, for a field that failed, exactly which characters differ.
+
+A file of a million rows is read as a stream, with progress and an estimate of the time left. Nothing is uploaded.
 
 More in [Check in your browser](#check-in-your-browser).
 
@@ -66,6 +70,20 @@ The [first-check guide](docs/guides/first-check.md) explains each line, and [Sce
 
 A refused input (exit status 2) or an internal failure (4) has no result at all. A batch can be less certain than its records: when every record passes but the source file is not stated to be the whole batch, the batch is Unverified. FlowAssert does not check what you state, so a wrong statement gives a wrong result. [Why is my result Unverified?](docs/faq.md#why-is-my-result-unverified)
 
+## What 1.0 promises
+
+- **The report format is frozen.** `schema_version` 1 (two files), 2 (a Google Sheets source) and 3 (a HubSpot destination) never change: [the report format](docs/report-format.md), with a [JSON Schema](docs/schema/) (draft 2020-12) for each version, against which every golden report is validated.
+- **The check is specified.** [The specification](docs/spec/verification.md) says, with MUST and SHOULD, how every count, state, refusal and exit status comes about, and every MUST names a golden case that tests it.
+- **What 1.x keeps.** [Compatibility in 1.x](docs/compatibility.md): report members and their meaning, exit statuses, options, refusal texts and the summary are stable; how something is retired, with notice; what a reader must do with a `schema_version` it does not know.
+- **Another implementation can prove it conforms.** [Conformance](docs/conformance.md): one command runs every golden and conformance case against any program and says which pass. The browser check and the command line are held to each other this way.
+- **A download can be checked.** [Verify a release](docs/verify-a-release.md): each release file, from the first release the release workflow makes, comes with `SHA256SUMS` and a GitHub build provenance attestation; the page also says what that does not prove.
+
+## What it still cannot show
+
+- **That your files are complete.** "The source is the whole batch" and "the destination covers the whole object" are your statements, recorded as premises and never verified. A read from Google Sheets or HubSpot removes the export step, but shows only what the service returned to that credential at that time.
+- **That a workflow ran, that the source data is true, or that a record existed by a past deadline.** These are never assessed.
+- **That the files or the statements are authentic.** Reports and imported files are not authenticated.
+
 **Tried it? Tell us:** [the trial feedback form](https://github.com/Sun-sh902/FlowAssert/issues/new?template=trial_feedback.yml) asks how you used it, what you wanted to check, where you got stuck and whether the result was clear. It is public, so do not paste real data, keys, values or reports.
 
 ## Contents
@@ -73,11 +91,14 @@ A refused input (exit status 2) or an internal failure (4) has no result at all.
 - [Try it online](#try-it-online)
 - [Install and run one check](#install-and-run-one-check)
 - [What the four results mean](#what-the-four-results-mean)
+- [What 1.0 promises](#what-10-promises)
+- [What it still cannot show](#what-it-still-cannot-show)
 - [The problem](#the-problem)
 - [Screenshots](#screenshots)
 - [What is and is not here](#what-is-and-is-not-here)
 - [Command-line options](#command-line-options)
 - [Read the source from Google Sheets](#read-the-source-from-google-sheets)
+- [Read the destination from HubSpot](#read-the-destination-from-hubspot)
 - [Check in your browser](#check-in-your-browser)
 - [Use in GitHub Actions](#use-in-github-actions)
 - [Use in n8n](#use-in-n8n)
@@ -101,7 +122,32 @@ The intended users were independent automation developers and small studios. Tha
 
 ## Screenshots
 
-Every screen below shows reviewed synthetic data from a local run. They are the Service's pages, which work only locally, and the demo pages; the CSV check is not among them. Dates and times are synthetic or local to that run.
+The first screens are the CSV check and the HTML report, with the synthetic files of `offline/examples/` and `offline/golden/rules-fail/`. They are written by `FA_README_SCREENS=1 npx playwright test e2e/readme-screens.spec.ts --project chrome`.
+
+### The CSV check
+
+Each file is profiled as soon as it is chosen, and the premises section says what a check would do with a total that contradicts the export (here, 5 stated and 4 rows read):
+
+| The file profiles | Before you check |
+| --- | --- |
+| ![Two file panels with their profiles](docs/readme/check-files.png) | ![The premises section with a line before the check](docs/readme/check-before.png) |
+
+A result explored: the records that are not Verified, and one of them opened, with every rule and the characters that differ in each failed field.
+
+<details>
+<summary>Open the result explorer</summary>
+
+![The result explorer with a record and its character diff](docs/readme/check-explorer.png)
+
+</details>
+
+### The HTML report
+
+| Light | Dark |
+| --- | --- |
+| ![The HTML report in light theme](docs/readme/html-report-light.png) | ![The HTML report in dark theme](docs/readme/html-report-dark.png) |
+
+The screens below show reviewed synthetic data from a local run. They are the Service's pages, which work only locally, and the demo pages. Dates and times are synthetic or local to that run.
 
 ### Overview
 
@@ -168,7 +214,8 @@ The workspace pages are checked across a 200-cell responsive matrix, in both the
 | Connections, Rules, Settings pages | Mock demo. Nothing connects or runs |
 | Capture runs page | Not implemented |
 | Google Sheets source (`--source-sheet`) | Command line only: reads one range of a spreadsheet, read-only, as the source. Tested against a local fake of Google's endpoints; not yet tried against Google |
-| n8n or HubSpot connectors | Do not exist |
+| HubSpot Contacts destination (`--destination-hubspot`) | Command line only: lists the contacts, read-only, as the destination. Tested against a local fake of HubSpot's endpoint; not yet tried against HubSpot |
+| n8n connector, a HubSpot source, other HubSpot objects | Do not exist |
 | Starting a verification from the UI | Does not exist |
 | Login, multi-user, deployment | Do not exist |
 | User validation | Never done |
@@ -200,6 +247,8 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | `--source-range RANGE` | With `--source-sheet`: a tab and bounded columns, such as `Leads!A1:F` or `Leads!A1:F500` |
 | `--source-timeout SECONDS` | With `--source-sheet`: the longest each request may take (default: `60`) |
 | `--skip-source-revision` | With `--source-sheet`: do not read the file's version from Google Drive; the report says the read cannot be tied to a revision |
+| `--destination-hubspot contacts` | List the destination records from HubSpot's contacts, read-only, in place of `--destination`; the destination side of the key and fields names HubSpot properties ([design note](docs/connectors/hubspot.md)) |
+| `--destination-timeout SECONDS` | With `--destination-hubspot`: the longest each request may take (default: `60`) |
 | `--destination-encoding NAME` | `utf-8` (default), `utf-16` or `gb18030` |
 | `--max-bytes N` | Refuse a file larger than `N` bytes before reading (default: `209715200`, 200 MiB) |
 | `--max-rows N` | Refuse a CSV with more than `N` rows while reading (default: `1000000`) |
@@ -242,6 +291,24 @@ flowassert-verify --source-sheet SPREADSHEET_ID --source-range 'Leads!A1:F' \
 
 [The Google Sheets guide](docs/guides/google-sheets.md) covers preparing the range, obtaining a read-only credential, one complete example and reading the result; [the design note](docs/connectors/google-sheets.md) has every detail and refusal.
 
+## Read the destination from HubSpot
+
+From 1.0.0, `flowassert-verify` can list the destination records itself from HubSpot's contacts, instead of from an export you made.
+
+```sh
+read -rs FLOWASSERT_HUBSPOT_TOKEN && export FLOWASSERT_HUBSPOT_TOKEN   # a private app token, typed, not stored
+flowassert-verify --source leads.csv --destination-hubspot contacts \
+  --key lead_id:external_id --field email --field phone
+```
+
+- **Read-only.** HTTPS `GET` requests to `/crm/v3/objects/contacts` on `api.hubapi.com` only, page by page, with `archived=false` and only the properties named; no redirect, no proxy, no retry. Every doubtful page (an error, a rate limit, a record listed twice, a missing property) is a refusal with no report.
+- **The token stays in the environment.** `FLOWASSERT_HUBSPOT_TOKEN`, a private app access token with the scope `crm.objects.contacts.read` only. It is never an option, never read from a file, and never printed or written into a report.
+- **What it shows.** Which contacts the API listed to this token, with which values, between the first request and the last. The report has `schema_version` 3 and records the object, the properties, the pages, the records and the read times.
+- **What it does not show.** That the object is complete: contacts the token cannot see, contacts changed during the read and archived contacts are not listed. `--destination-complete` stays your statement. The same records give the same result as the same rows in a CSV file.
+- **Not yet tried against HubSpot.** It is tested against a local fake of the endpoint only. The browser check, the Action and the n8n example make no request to HubSpot.
+
+[The design note](docs/connectors/hubspot.md) has every option, request, refusal and report member.
+
 ## Check in your browser
 
 The same check runs in the web UI, for people who do not use a terminal: open the **CSV check** page, choose the two
@@ -259,6 +326,12 @@ below).
   forbids every connection, and the pages that need the local Service say that they work only locally.
 - **Locally:** `cd ui && npm ci && npm run dev`, then open <http://127.0.0.1:5183/#/check>. Sample files are on the page.
 
+What the page adds to the command line's output, all read from the files or the report and none of it a conclusion:
+
+- **A file profile** as soon as a file is chosen or dropped, and **Before you check**, the consequences of a stated total or a key column the profile contradicts.
+- **Streaming.** Files are read in pieces with bounded memory: two files of 1,000,000 rows peak at about 175 MiB in the worker, with the rows read on each side and an honest estimate of the time left.
+- **Explore the records**, on a result, a saved report and a comparison: filter by state, rule and result, search keys, and open any record with every rule result and, for a failed field, exactly which characters differ. The view is in the address, so a filtered view of a saved report can be linked.
+
 Differences from the command line:
 
 | | Browser | Command line |
@@ -270,7 +343,7 @@ Differences from the command line:
 | The same file twice | Refused when both choices have the same name, size, modification time and bytes; the browser does not reveal paths | Refused when the paths resolve to the same file |
 
 The browser check is built from the same specification and is tested against the command line: every conformance case,
-97 golden cases compared byte for byte, and random cases (0 differences in 10,000). It is a second implementation, so
+99 golden cases compared byte for byte, every golden input cut into chunks at every byte offset, and random cases (0 differences in 10,000). It is a second implementation, so
 a difference would be a bug; please report one.
 
 ### Saved reports and comparing two results
@@ -458,6 +531,9 @@ Repository history was scanned for common key formats before publication, and no
 | Issue | Detail |
 | --- | --- |
 | Completeness statements | The offline check does not verify `--source-complete` or `--destination-complete`. A wrong statement gives a wrong result. `--source-count` and `--destination-count` catch some wrong statements, but a matching count does not prove completeness. The same holds for the two statements in the browser check. With a Google Sheets source (`--source-sheet`) the limitation is narrower, not gone: no export step can cut the source rows short or edit them, but whether the range holds every record that should exist is still `--source-complete`, your statement. The destination is always an export |
+| HubSpot destination | Tested against a local fake of HubSpot's endpoint only; not yet run against a HubSpot account. Statements about HubSpot's behaviour rest on its public documentation, and those it does not settle are marked unconfirmed ([design note](docs/connectors/hubspot.md#sources)). Command line only, contacts only |
+| Release provenance | The release and Pages workflows have not been run, so no file carries an attestation yet |
+| Browser memory | After a check, the worker keeps that result's evaluation for the explorer: about 130 MiB for two files of a million rows, until the next check |
 | Google Sheets source | Tested against a local fake of Google's two endpoints only; not yet run against a real spreadsheet. Some statements about Google's behaviour rest on documentation that could not be read when it was written ([design note](docs/connectors/google-sheets.md#sources)). Command line only |
 | Browser check | Supports fewer date directives than the command line, and follows Python 3.15 where Python versions differ. See [Check in your browser](#check-in-your-browser) |
 | Saved reports | Kept in the browser profile, readable by anyone using it, and on the online demo by other GitHub Pages sites of the same account. Imported reports are not authenticated. See [Saved reports and comparing two results](#saved-reports-and-comparing-two-results) |
