@@ -1,0 +1,99 @@
+name: Release
+
+# Builds the release files from the tagged commit, writes SHA256SUMS, attests the build provenance of every file with
+# GitHub artifact attestations, and uploads them to a draft release for the owner to review and publish by hand.
+# It runs when a v* tag is pushed, or when someone starts it from the Actions tab (then it builds, attests and keeps the
+# files as a workflow artifact, and makes no release). docs/verify-a-release.md says how anyone checks the files.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, checksum and attest the release files
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # Sign the provenance with a short-lived Sigstore certificate, and store the attestation.
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: The tag names the version in the code (Python and the packaged checker)
+        if: github.event_name == 'push'
+        run: |
+          version=$(python -c 'import re; print(re.search(r"__version__ = \"(.+?)\"", open("offline/flowassert_offline/__init__.py").read()).group(1))')
+          test "v$version" = "$GITHUB_REF_NAME"
+          grep -q "^export const VERSION = \"$version\";$" ui/src/offline/api.ts
+      # PyPA's build front end makes the sdist that pip cannot. It is installed in this job only, at a fixed version;
+      # flowassert-offline itself still has no dependency.
+      - name: The Python wheel and sdist
+        run: |
+          python -m pip install build==1.6.1
+          python -m build --sdist --wheel --outdir release ./offline
+      - name: The packaged checker and the static site
+        working-directory: ui
+        run: |
+          npm ci
+          npm run build:lib
+          npm run build:pages
+          grep -q "connect-src 'none'" dist-pages/index.html
+          cp dist-lib/flowassert-check.js ../release/
+          tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C dist-pages -czf ../release/flowassert-site.tar.gz .
+      - name: SHA256SUMS
+        working-directory: release
+        run: |
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            release/*.whl
+            release/*.tar.gz
+            release/flowassert-check.js
+            release/SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-files
+          path: release/
+          if-no-files-found: error
+
+  draft:
+    name: Upload to a draft release
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      # Create the draft release and upload its files; nothing else.
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-files
+          path: release
+      - name: A draft, never published by this workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "FlowAssert ${TAG#v}" \
+            --notes "Draft. The files below were built from $TAG by this workflow, and each has a build provenance attestation: see docs/verify-a-release.md." \
+            release/*

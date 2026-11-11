@@ -1,7 +1,8 @@
 name: Pages demo
 
-# Builds the GitHub Pages demo (ui, vite build --mode pages) and deploys it. Manual only: it runs when someone
-# starts it from the Actions tab, after Pages is enabled with "GitHub Actions" as the source.
+# Builds the GitHub Pages demo (ui, vite build --mode pages), attests the build provenance of the site artifact it
+# deploys, and deploys it. Manual only: it runs when someone starts it from the Actions tab, after Pages is enabled with
+# "GitHub Actions" as the source. docs/verify-a-release.md says how to check the demo against the attestation.
 on:
   workflow_dispatch:
 
@@ -16,6 +17,11 @@ jobs:
   build:
     name: Build the Pages demo
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Sign the provenance of the site artifact, and store the attestation.
+      id-token: write
+      attestations: write
     defaults:
       run:
         working-directory: ui
@@ -33,6 +39,12 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: ui/dist-pages
+          # Kept for 90 days, so the deployed site can be checked against its attestation (docs/verify-a-release.md).
+          retention-days: 90
+      # The tar archive upload-pages-artifact writes, which is what deploy-pages publishes.
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: ${{ runner.temp }}/artifact.tar
 
   deploy:
     name: Deploy to GitHub Pages
