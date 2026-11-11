@@ -1,12 +1,14 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 1.0.0 (2026-11-11)
 
 The release that turns a careful prototype into a tool a stranger can check. It has four themes: a browser check that knows a file the moment it is chosen and explores any result; a trust commitment, with the report format frozen, specified, given JSON Schemas, a compatibility promise, a runnable conformance suite and build provenance for every release file; large files read as streams; and a read-only HubSpot Contacts destination for the command line.
 
 **Every verdict of every existing case is unchanged**: for every golden case, sheet-sourced golden case, scenario and comparison case, the records, rule results, counts, cohort state, exit status, refusals, printed summary and JSON report are the same bytes as in 0.7.0. The one planned byte change is the HTML report, redesigned in Python and TypeScript alike; every regenerated `report.html` is in a commit of its own. Nothing shown before a check or beside a result is a conclusion, and none of it changes a file, a choice or a report.
 
-Not yet true of this release: no outside user, review or adoption is claimed; the release and Pages workflows have not been run, so no file carries an attestation yet; the HubSpot destination has been tested against a local fake only; and the roadmap's 1.0 conditions of outside users and an external code review are not met by this branch.
+0.7.0 was not released on its own: its changes, in the section below, are part of 1.0.0.
+
+Not true of this release: no outside user, review or adoption is claimed; the Google Sheets source and the HubSpot destination have been tested against local fakes only, not against Google or HubSpot; and the roadmap's former 1.0 conditions of three outside users, a connector verified on a test account and an outside code review are not met. The owner released 1.0.0 without them, and the roadmap now lists them as goals for 1.x.
 
 ### Added
 
@@ -29,7 +31,7 @@ Not yet true of this release: no outside user, review or adoption is claimed; th
 - `ui/package-lock.json` updated within the existing ranges (`npm update`); no range changed, `npm audit` reports no vulnerability, and the `fsevents` install script was not approved.
 - `flowassert_offline.__version__` and the packaged checker's `VERSION` are `1.0.0`; the n8n example holds that build.
 
-## 0.7.0 (unreleased)
+## 0.7.0 (not released on its own; part of 1.0.0)
 
 A read-only Google Sheets source for the command line. `flowassert-verify --source-sheet ID --source-range 'TAB!A1:F'` reads the source rows itself, from one bounded range of one tab, instead of from a CSV file a person exported; the destination is still a CSV export. This is the first step of the roadmap's answer to "the files cannot be shown to be whole", and only a narrow one: reading the sheet shows which rows the range held when FlowAssert read it and removes the export step that could cut them short or edit them, but it does **not** show that the range holds every record that should exist. That stays the person's statement, `--source-complete`, a premise FlowAssert does not verify, with the same meaning and effect as for a file; the same cell values give the same result as the same rows in a CSV file. The source is read by the command line only: the browser check, the packaged JavaScript checker, the GitHub Action and the n8n example make no request to Google. It has been tested against a local fake of Google's two endpoints only, not yet against Google.
 
@@ -48,7 +50,7 @@ Every check that does not use the new options is unchanged: the same printed sum
 
 ### Changed
 
-- `README.md`, `README.zh-CN.md` and the comment in `action.yml` name the Action as `Sun-sh902/FlowAssert@v0.6.0`, the latest release, instead of `@v0.4.0`; a test fails when they disagree or name a version without a dated section here.
+- `README.md`, `README.zh-CN.md` and the comment in `action.yml` name the Action as `Sun-sh902/FlowAssert@v0.6.0` (in 1.0.0, `@v1.0.0`), the latest release, instead of `@v0.4.0`; a test fails when they disagree or name a version without a dated section here.
 - The workflows use `actions/checkout@v7`, `actions/setup-node@v7`, `actions/setup-python@v7`, `actions/upload-artifact@v7`, `actions/upload-pages-artifact@v5` and `actions/deploy-pages@v5`, all on Node.js 24.
 - `ui/package-lock.json` updated within the existing ranges (`npm update`); no range changed and `npm audit` reports no vulnerability.
 - `flowassert_offline.__version__` and the packaged checker's `VERSION` are `0.7.0`; the n8n example holds that build.

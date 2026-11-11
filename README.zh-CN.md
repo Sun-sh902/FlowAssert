@@ -288,7 +288,7 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 
 ## 从 Google 表格读取来源
 
-从 0.7.0 起，`flowassert-verify` 可以自己从 Google 表格的一个范围读取来源行，而不是从你导出的 CSV 文件读取。目标仍是导出的 CSV 文件。
+从 1.0.0 起，`flowassert-verify` 可以自己从 Google 表格的一个范围读取来源行，而不是从你导出的 CSV 文件读取。目标仍是导出的 CSV 文件。
 
 ```sh
 read -rs FLOWASSERT_SHEETS_TOKEN && export FLOWASSERT_SHEETS_TOKEN   # 只读令牌，手动输入，不会保存
@@ -384,7 +384,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - uses: Sun-sh902/FlowAssert@v0.6.0
+      - uses: Sun-sh902/FlowAssert@v1.0.0
         id: flowassert
         with:
           source: exports/source.csv

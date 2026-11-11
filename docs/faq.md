@@ -27,7 +27,7 @@ The statements are yours to make, and only when you know they are true. FlowAsse
 
 No. A CSV file cannot show what was left out when it was exported: a filter, a row limit, one page of results or an interrupted export all give a file that looks whole. FlowAssert has no connection to your systems, so it cannot compare the file with them. That is why completeness is a statement you make, recorded in the report with where it was made.
 
-From 0.7.0 the command line can read the source from a Google Sheets range itself, which removes the export step for the source. It still cannot show that the range holds every record that should exist: see [the next questions](#does-flowassert-still-need---source-complete-when-it-reads-my-sheet).
+From 1.0.0 the command line can read the source from a Google Sheets range itself, which removes the export step for the source. It still cannot show that the range holds every record that should exist: see [the next questions](#does-flowassert-still-need---source-complete-when-it-reads-my-sheet).
 
 Totals help a little. If you pass the total your system shows (`--source-count`, `--destination-count`, or the two totals on the page) and it differs from the rows in the file, the matching statement is withdrawn. A total that matches does not prove that the file is complete.
 

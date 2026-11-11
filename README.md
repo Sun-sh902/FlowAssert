@@ -275,7 +275,7 @@ Comparison is exact by default: spaces, case and phone formatting count as diffe
 
 ## Read the source from Google Sheets
 
-From 0.7.0, `flowassert-verify` can read the source rows itself from one range of a Google Sheets spreadsheet, instead of from a CSV file you exported. The destination is still a CSV export.
+From 1.0.0, `flowassert-verify` can read the source rows itself from one range of a Google Sheets spreadsheet, instead of from a CSV file you exported. The destination is still a CSV export.
 
 ```sh
 read -rs FLOWASSERT_SHEETS_TOKEN && export FLOWASSERT_SHEETS_TOKEN   # a read-only token, typed, not stored
@@ -398,7 +398,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - uses: Sun-sh902/FlowAssert@v0.6.0
+      - uses: Sun-sh902/FlowAssert@v1.0.0
         id: flowassert
         with:
           source: exports/source.csv
