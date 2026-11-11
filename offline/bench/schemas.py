@@ -314,7 +314,7 @@ def schema(version):
             "allOf": rules, "$defs": definitions}
 
 
-VERSIONS = (1, 2)  # 3 is added with the HubSpot destination
+VERSIONS = (1, 2, 3)
 
 
 def text(version):

@@ -1,0 +1,189 @@
+{
+  "schema_version": 3,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 3,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_only": [
+    {
+      "destination_row": 3,
+      "key": "[redacted]",
+      "reason": "key not in the source, and the source population is known",
+      "rows": 1,
+      "state": "Mismatch"
+    }
+  ],
+  "destination_only_counts": {
+    "Mismatch": 1,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_rows_without_key": 0,
+  "details": "all",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 3,
+  "inputs": {
+    "config_file_sha256": "201a2807ef37cb929d3882d7800a907d603abd23f375ebfcfb66314b1107b1df",
+    "destination_complete_stated": false,
+    "destination_hubspot": {
+      "archived_excluded": true,
+      "canonical_form": "flowassert-hubspot-csv-1",
+      "object": "contacts",
+      "page_limit": 100,
+      "pages": 1,
+      "properties": [
+        "external_id",
+        "phone",
+        "email"
+      ],
+      "read_at": "2000-01-01T00:00:00Z",
+      "read_by": "FlowAssert",
+      "read_finished_at": "2000-01-01T00:00:00Z",
+      "rows": 4,
+      "service": "HubSpot CRM API v3"
+    },
+    "destination_sha256": "d70c6094b434396cea19f1afbb038a896fb022f67fd29ecb95e9e4fc2e00a15d",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "1fa06dbc0eb279814ff4a276a0ed5ae811018527e0242051df9596c305232e37"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ],
+      [
+        "email",
+        "email"
+      ]
+    ],
+    "key": [
+      "external_id",
+      "external_id"
+    ],
+    "rules": [
+      "digits",
+      "casefold"
+    ],
+    "scope": "exact",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:phone": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:phone": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "[redacted]",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "reason": "comparison after Unicode case folding",
+          "rule": "casefold",
+          "status": "pass"
+        },
+        "field:phone": {
+          "reason": "comparison of the digits 0-9 only",
+          "rule": "digits",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

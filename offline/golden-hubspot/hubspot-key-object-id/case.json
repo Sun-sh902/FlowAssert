@@ -1,0 +1,17 @@
+{
+  "name": "hubspot-key-object-id",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "contact_id:hs_object_id",
+    "--field",
+    "email",
+    "--source-complete",
+    "--destination-complete"
+  ],
+  "credential": "token",
+  "env": {}
+}

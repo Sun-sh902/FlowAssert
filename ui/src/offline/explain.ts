@@ -12,6 +12,10 @@
  * worded for a range instead of a file, and two more: where the rows were read, and whether the read is tied to a
  * revision. Reading the sheet is never offered as evidence that the range is the whole batch.
  *
+ * A report whose destination was read from HubSpot (inputs.destination_hubspot, schema_version 3) gets one more point:
+ * what the read listed, and the three things it does not show. Reading every page is never offered as evidence that the
+ * object is complete.
+ *
  * The text is English, in parts: a string is interface text, which the Chinese catalogue (i18n/zh-CN.ts) translates
  * as it translates the rest of the page; a { value } is something the report holds, such as a column name or a rule,
  * shown exactly as written.
@@ -55,8 +59,8 @@ export interface Explainable {
   records: readonly SourceRecord[] | { problems(): Iterable<SourceRecord> };
   destination_only?: readonly DestinationOnlyRecord[];
   obligation: { fields: readonly (readonly string[])[]; rules?: readonly string[]; scope?: string };
-  /** Only source_sheet is read: a report from the command line's Google Sheets source has it. */
-  inputs?: { source_sheet?: SheetOrigin };
+  /** Only source_sheet and destination_hubspot are read: reports from the command line's connectors have them. */
+  inputs?: { source_sheet?: SheetOrigin; destination_hubspot?: { rows: number; pages: number } };
   workflow_execution: string;
   business_truth: string;
   existed_by_deadline: string;
@@ -455,6 +459,25 @@ function sheetPoints(sheet: SheetOrigin): Point[] {
   ];
 }
 
+/** What a HubSpot destination read listed, and what it does not show. */
+function hubspotPoint(read: { rows: number; pages: number }): Point {
+  return {
+    id: "destination-hubspot",
+    text: [
+      read.rows === 1 && read.pages === 1
+        ? "The destination record was listed by FlowAssert from HubSpot's contacts, read-only: 1 record in 1 page."
+        : read.rows === 1
+          ? `The destination record was listed by FlowAssert from HubSpot's contacts, read-only: 1 record in ${read.pages} pages.`
+          : read.pages === 1
+            ? `The destination records were listed by FlowAssert from HubSpot's contacts, read-only: ${read.rows} records in 1 page.`
+            : `The destination records were listed by FlowAssert from HubSpot's contacts, read-only: ${read.rows} records in ${read.pages} pages.`,
+    ],
+    detail: [
+      "That shows which contacts the API listed to this token at that time. It does not show that the object is complete: contacts the token cannot see, contacts changed during the read and archived contacts are not listed. That the records cover the whole object is the destination statement, which FlowAssert cannot check.",
+    ],
+  };
+}
+
 /**
  * The points for one report, in the order a reader needs them. `redacted`: the report was written with
  * --redact-values, so its keys are all "[redacted]".
@@ -466,7 +489,8 @@ export function explain(report: Explainable, { redacted = false }: { redacted?: 
   let more = 0;
   const scope = report.obligation.scope ?? "source";
   const sheet = sheetOf(report);
-  const sheetRoom = sheet ? 2 : 0;
+  const crm = report.inputs?.destination_hubspot ?? null;
+  const sheetRoom = (sheet ? 2 : 0) + (crm ? 1 : 0);
 
   if (state === "Verified") {
     points = verified(report);
@@ -508,6 +532,7 @@ export function explain(report: Explainable, { redacted = false }: { redacted?: 
     }
   }
   if (sheet) points.push(...sheetPoints(sheet));
+  if (crm) points.push(hubspotPoint(crm));
   return { state, lead: LEAD[state], points, more };
 }
 

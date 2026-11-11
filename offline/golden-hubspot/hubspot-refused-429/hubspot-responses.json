@@ -1,0 +1,12 @@
+[
+  {
+    "status": 429,
+    "json": {
+      "status": "error",
+      "message": "Synthetic rate limit.",
+      "errorType": "RATE_LIMIT",
+      "correlationId": "00000000-fake",
+      "policyName": "TEN_SECONDLY_ROLLING"
+    }
+  }
+]

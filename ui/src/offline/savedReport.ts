@@ -35,6 +35,8 @@ const SHA256 = /^[0-9a-f]{64}$/;
 const EVALUATED_AT = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d{6})?Z$/;
 /** schema_version 2: the source is a Google Sheets range (offline/flowassert_offline/sheets.py). */
 export const SHEET_SCHEMA_VERSION = 2;
+/** schema_version 3: the destination is HubSpot's contacts (offline/flowassert_offline/hubspot.py). */
+export const HUBSPOT_SCHEMA_VERSION = 3;
 const SPREADSHEET_ID = /^[A-Za-z0-9_-]{1,200}$/;
 const DRIVE_VERSION = /^[0-9]{1,20}$/;
 /** The reasons a sheet read cannot be tied to a revision. */
@@ -97,8 +99,10 @@ export interface ReportInputs {
   config_file_sha256?: string;
   source_encoding?: string;
   destination_encoding?: string;
-  /** schema_version 2 only. */
+  /** schema_version 2, and 3 when the source was also a sheet. */
   source_sheet?: SourceSheet;
+  /** schema_version 3 only. */
+  destination_hubspot?: DestinationHubspot;
 }
 
 export interface ReportObligation {
@@ -114,9 +118,24 @@ export interface StatedPremise extends Premise {
   origin: string;
 }
 
+/** Where the command line read the destination rows of a schema_version 3 report: the contacts HubSpot listed. */
+export interface DestinationHubspot {
+  read_by: "FlowAssert";
+  service: "HubSpot CRM API v3";
+  object: "contacts";
+  properties: string[];
+  archived_excluded: true;
+  page_limit: 100;
+  pages: number;
+  rows: number;
+  read_at: string;
+  read_finished_at: string;
+  canonical_form: "flowassert-hubspot-csv-1";
+}
+
 /** A schema_version 1 report, with the members docs/report-format.md lists and nothing else. */
 export interface SavedReport {
-  schema_version: 1 | 2;
+  schema_version: 1 | 2 | 3;
   cohort_state: (typeof RECORD_STATES)[number];
   claim: string | null;
   counts: Counts;
@@ -312,7 +331,49 @@ function sourceSheet(v: PyValue | undefined): SourceSheet {
   };
 }
 
-function inputs(v: PyValue | undefined, version: 1 | 2): ReportInputs {
+const HUBSPOT_MEMBERS = ["read_by", "service", "object", "properties", "archived_excluded", "page_limit", "pages", "rows", "read_at", "read_finished_at", "canonical_form"];
+const PROPERTY = /^[A-Za-z0-9_]{1,100}$/;
+
+function destinationHubspot(v: PyValue | undefined): DestinationHubspot {
+  const o = obj(v, "inputs.destination_hubspot");
+  const path = "inputs.destination_hubspot.";
+  for (const name of Object.keys(o)) if (!HUBSPOT_MEMBERS.includes(name)) fail("member", `unknown member ${pyRepr(`${path}${name}`)}`);
+  const is = <T extends PyValue>(name: string, value: T): T => {
+    if (member(o, name, path) !== value) fail("inputs", `${path}${name} must be ${pyRepr(value as string)}, not ${describe(o[name])}`);
+    return value;
+  };
+  const time = (name: string) => {
+    const t = str(member(o, name, path), `${path}${name}`);
+    if (!EVALUATED_AT.test(t) || Number.isNaN(Date.parse(t))) fail("inputs", `${path}${name} must be a UTC time such as 2026-11-02T08:15:30.123456Z, not ${pyRepr(t)}`);
+    return t;
+  };
+  const properties = list(member(o, "properties", path), `${path}properties`).map((p, i) => {
+    const name = str(p, `${path}properties[${i}]`);
+    if (!PROPERTY.test(name)) fail("inputs", `${path}properties[${i}] must be letters, digits and _, not ${pyRepr(name)}`);
+    return name;
+  });
+  if (!properties.length) fail("inputs", `${path}properties must name at least one property`);
+  const pages = count(member(o, "pages", path), `${path}pages`);
+  if (pages < 1) fail("inputs", `${path}pages must be at least 1`);
+  const readAt = time("read_at");
+  const finishedAt = time("read_finished_at");
+  if (finishedAt < readAt) fail("inputs", `${path}read_finished_at is before ${path}read_at`);
+  return {
+    read_by: is("read_by", "FlowAssert"),
+    service: is("service", "HubSpot CRM API v3"),
+    object: is("object", "contacts"),
+    properties,
+    archived_excluded: is("archived_excluded", true),
+    page_limit: is("page_limit", 100),
+    pages,
+    rows: count(member(o, "rows", path), `${path}rows`),
+    read_at: readAt,
+    read_finished_at: finishedAt,
+    canonical_form: is("canonical_form", "flowassert-hubspot-csv-1"),
+  };
+}
+
+function inputs(v: PyValue | undefined, version: 1 | 2 | 3): ReportInputs {
   const o = obj(v, "inputs");
   const out: ReportInputs = {
     source_sha256: sha(member(o, "source_sha256", "inputs."), "inputs.source_sha256"),
@@ -330,7 +391,15 @@ function inputs(v: PyValue | undefined, version: 1 | 2): ReportInputs {
   for (const name of ["mapping_file_sha256", "config_file_sha256"] as const) if (Object.hasOwn(o, name)) out[name] = sha(o[name], `inputs.${name}`);
   const encodings = ["source_encoding", "destination_encoding"] as const;
   const given = encodings.filter((n) => Object.hasOwn(o, n));
-  if (version === SHEET_SCHEMA_VERSION) {
+  if (version === HUBSPOT_SCHEMA_VERSION) {
+    // The records HubSpot lists have no encoding: only the source's is recorded, when it was chosen for a file.
+    if (Object.hasOwn(o, "destination_encoding")) fail("inputs", "inputs.destination_encoding is present, but the destination was read from HubSpot, which has no encoding");
+    out.destination_hubspot = destinationHubspot(member(o, "destination_hubspot", "inputs."));
+    if (Object.hasOwn(o, "source_sheet")) {
+      if (Object.hasOwn(o, "source_encoding")) fail("inputs", "inputs.source_encoding is present, but the source is a Google Sheets range, which has no encoding");
+      out.source_sheet = sourceSheet(o.source_sheet);
+    }
+  } else if (version === SHEET_SCHEMA_VERSION) {
     // A sheet has no encoding: only the destination's is recorded, when it was chosen.
     if (Object.hasOwn(o, "source_encoding")) fail("inputs", "inputs.source_encoding is present, but the source is a Google Sheets range, which has no encoding");
     out.source_sheet = sourceSheet(member(o, "source_sheet", "inputs."));
@@ -410,13 +479,14 @@ function destinationOnly(v: PyValue | undefined, populationKnown: boolean): Dest
 export function reportOf(data: PyValue): SavedReport {
   const o = obj(data, "the report");
   const version = member(o, "schema_version", "");
-  if (version !== SCHEMA_VERSION && version !== SHEET_SCHEMA_VERSION) fail("schema-version", `schema_version must be ${SCHEMA_VERSION} or ${SHEET_SCHEMA_VERSION}, not ${describe(version)}`);
+  if (version !== SCHEMA_VERSION && version !== SHEET_SCHEMA_VERSION && version !== HUBSPOT_SCHEMA_VERSION)
+    fail("schema-version", `schema_version must be ${SCHEMA_VERSION}, ${SHEET_SCHEMA_VERSION} or ${HUBSPOT_SCHEMA_VERSION}, not ${describe(version)}`);
 
   const ob = obligation(member(o, "obligation", ""));
   const details = oneOf(member(o, "details", ""), "details", ["problems", "all"] as const);
   const ruleNames = ["existence", "uniqueness", ...ob.fields.map(([s]) => `field:${s}`)];
   const pr = premises(member(o, "premises", ""));
-  const inp = inputs(member(o, "inputs", ""), version as 1 | 2);
+  const inp = inputs(member(o, "inputs", ""), version as 1 | 2 | 3);
 
   const rows = count(member(o, "source_rows_observed", ""), "source_rows_observed");
   const c = counts(member(o, "counts", ""), "counts");
@@ -454,10 +524,12 @@ export function reportOf(data: PyValue): SavedReport {
     fail("premises", `source_population_known is ${populationKnown}, but the source statements${redacted ? "" : " and keys"} give ${!populationKnown}`);
   const coverageGiven = pr.destination_complete!.stated === true && keyless === 0 && destinationCount.matched !== false;
   if (coverage !== coverageGiven) fail("premises", `destination_coverage_sufficient is ${coverage}, but the destination statements and rows without a key give ${coverageGiven}`);
+  if (inp.destination_hubspot && inp.destination_hubspot.rows !== destinationCount.observed)
+    fail("premises", `premises.destination_count.observed is ${destinationCount.observed}, but HubSpot listed ${inp.destination_hubspot.rows} records`);
   if (destinationCount.observed! < keyless) fail("premises", `destination_rows_without_key is ${keyless}, more than the ${destinationCount.observed} destination rows`);
 
   const report: SavedReport = {
-    schema_version: version as 1 | 2,
+    schema_version: version as 1 | 2 | 3,
     cohort_state: "Unverified",
     claim: null,
     counts: c,

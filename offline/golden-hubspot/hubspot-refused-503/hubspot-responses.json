@@ -1,0 +1,11 @@
+[
+  {
+    "status": 503,
+    "json": {
+      "status": "error",
+      "message": "Synthetic error from the local fake.",
+      "correlationId": "00000000-fake",
+      "category": "SERVICE_UNAVAILABLE"
+    }
+  }
+]

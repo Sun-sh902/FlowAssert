@@ -1,0 +1,11 @@
+[
+  {
+    "status": 404,
+    "json": {
+      "status": "error",
+      "message": "Synthetic error from the local fake.",
+      "correlationId": "00000000-fake",
+      "category": "OBJECT_NOT_FOUND"
+    }
+  }
+]

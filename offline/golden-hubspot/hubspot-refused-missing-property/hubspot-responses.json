@@ -1,0 +1,19 @@
+[
+  {
+    "status": 200,
+    "json": {
+      "results": [
+        {
+          "id": "5101",
+          "properties": {
+            "external_id": "C-001",
+            "phone": "+1 555 0100 001"
+          },
+          "createdAt": "2026-11-01T09:00:00.000Z",
+          "updatedAt": "2026-11-01T09:00:00.000Z",
+          "archived": false
+        }
+      ]
+    }
+  }
+]

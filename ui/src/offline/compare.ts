@@ -17,7 +17,7 @@ export type RecordClass = (typeof CLASSES)[number];
 export const DESTINATION_ONLY_CLASSES = ["still-problem", "only-earlier", "only-later"] as const;
 export type DestinationOnlyClass = (typeof DESTINATION_ONLY_CLASSES)[number];
 
-export type NotComparableCode = "different-key" | "different-fields" | "different-rules" | "different-scope" | "different-comparison" | "different-source" | "redacted" | "same-report";
+export type NotComparableCode = "different-key" | "different-fields" | "different-rules" | "different-scope" | "different-comparison" | "different-source" | "different-destination" | "redacted" | "same-report";
 
 export interface NotComparable {
   code: NotComparableCode;
@@ -144,6 +144,12 @@ export function sourceOf(r: SavedReport): string {
   return `Google Sheets range ${sheet.range_requested} of spreadsheet ${sheet.spreadsheet_id} (${sheet.value_render_option}, ${sheet.date_time_render_option})`;
 }
 
+/** Where a report's destination rows came from: a file, or the contacts FlowAssert listed from HubSpot. */
+export function destinationOf(r: SavedReport): string {
+  const crm = r.inputs.destination_hubspot;
+  return crm ? `HubSpot ${crm.object}, listed by FlowAssert` : "a CSV file";
+}
+
 function refusals(earlier: SavedReport, later: SavedReport): NotComparable[] {
   const out: NotComparable[] = [];
   const a = earlier.obligation;
@@ -155,6 +161,8 @@ function refusals(earlier: SavedReport, later: SavedReport): NotComparable[] {
   if (scopeOf(earlier) !== scopeOf(later)) out.push({ code: "different-scope", message: `the scope differs: ${scopeOf(earlier)} in the earlier report, ${scopeOf(later)} in the later one` });
   if (a.comparison !== b.comparison) out.push({ code: "different-comparison", message: `the comparison differs: ${a.comparison} in the earlier report, ${b.comparison} in the later one` });
   if (sourceOf(earlier) !== sourceOf(later)) out.push({ code: "different-source", message: `the source differs: ${sourceOf(earlier)} in the earlier report, ${sourceOf(later)} in the later one` });
+  if (destinationOf(earlier) !== destinationOf(later))
+    out.push({ code: "different-destination", message: `the destination differs: ${destinationOf(earlier)} in the earlier report, ${destinationOf(later)} in the later one` });
   for (const [name, r] of [["earlier", earlier], ["later", later]] as const) {
     if (isRedacted(r)) out.push({ code: "redacted", message: `the ${name} report was written with --redact-values: its keys are ${REDACTED}, so no record can be matched` });
   }

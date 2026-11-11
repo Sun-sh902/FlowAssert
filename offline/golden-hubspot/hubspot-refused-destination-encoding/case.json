@@ -1,0 +1,19 @@
+{
+  "name": "hubspot-refused-destination-encoding",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email",
+    "--destination-encoding",
+    "utf-8"
+  ],
+  "credential": "token",
+  "env": {}
+}

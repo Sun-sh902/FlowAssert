@@ -1,0 +1,1 @@
+refused: HubSpot contacts: the response is not the JSON the API documents (results is not a list)

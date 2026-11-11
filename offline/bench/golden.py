@@ -2,8 +2,8 @@
 """Golden outputs of the command-line checker, for the browser check to match byte for byte.
 
     python3 offline/bench/golden.py           write offline/golden/ again
-    python3 offline/bench/golden.py --check   exit 1 if offline/golden/ or offline/golden-sheets/ is not what this
-                                              script writes now
+    python3 offline/bench/golden.py --check   exit 1 if offline/golden/, offline/golden-sheets/ or
+                                              offline/golden-hubspot/ is not what this script writes now
 
 Each case is a folder under offline/golden/ holding its input files, `case.json` (the arguments, and for a case the
 browser page can also run, the page's choices), and what the checker gave: `exit_status.txt`, `stdout.txt` (the
@@ -19,6 +19,10 @@ The cases whose source is a Google Sheets range (0.7.0) are written to offline/g
 browser cannot run them: it makes no request to Google. Each holds `sheet-responses.json`, the synthetic responses a
 local fake of the two endpoints serves (fake_sheets_api.py), and `requests.json`, what the checker asked it for, with
 any API key replaced by the variable's name. Nothing contacts Google. `read_at` is fixed like `evaluated_at`.
+
+The cases whose destination is HubSpot's contacts (1.0.0) are written to offline/golden-hubspot/ in the same way, with
+`hubspot-responses.json`, the pages a local fake of the list endpoint serves (fake_hubspot_api.py), and
+`requests.json`. Nothing contacts HubSpot, and no credential is real. `read_at` and `read_finished_at` are fixed too.
 """
 import codecs
 import contextlib
@@ -33,18 +37,21 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "offline"))
-from flowassert_offline import cli, sheets  # noqa: E402
+from flowassert_offline import cli, hubspot, sheets  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "offline" / "bench"))
 from fake_sheets_api import FAKE_KEY, FAKE_TOKEN, FakeSheetsApi, drive, error, values  # noqa: E402
+import fake_hubspot_api as hs  # noqa: E402
 
 GOLDEN = ROOT / "offline" / "golden"
 GOLDEN_SHEETS = ROOT / "offline" / "golden-sheets"
+GOLDEN_HUBSPOT = ROOT / "offline" / "golden-hubspot"
 EVALUATED_AT = datetime(2000, 1, 1, tzinfo=timezone.utc)
 EXAMPLE_SOURCE = (ROOT / "offline/examples/source.csv").read_bytes()
 EXAMPLE_DESTINATION = (ROOT / "offline/examples/destination.csv").read_bytes()
 OUTPUTS = ("exit_status.txt", "stdout.txt", "stderr.txt", "report.json", "report.html")
 SHEET_VARIABLES = ("FLOWASSERT_SHEETS_TOKEN", "FLOWASSERT_SHEETS_API_KEY", "FLOWASSERT_SHEETS_TEST_ENDPOINT")
+HUBSPOT_VARIABLES = ("FLOWASSERT_HUBSPOT_TOKEN", "FLOWASSERT_HUBSPOT_TEST_ENDPOINT")
 
 
 class _FixedDatetime(datetime):
@@ -456,6 +463,117 @@ SHEET_CASES = {
 }
 
 
+# ---------- HubSpot contacts destination (offline/golden-hubspot/) ----------
+
+# CR LF line endings: the same rows as the records' canonical form, in other bytes, so the content is not identical.
+CONTACT_SOURCE = utf8("external_id,phone,email\r\n"
+                      "C-001,+1 555 0100 001,c001@example.test\r\n"
+                      "C-002,+1 555 0100 002,c002@example.test\r\n"
+                      "C-003,+1 555 0100 003,c003@example.test\r\n")
+CONTACTS = [hs.contact(5101, {"external_id": "C-001", "phone": "+1 555 0100 001", "email": "c001@example.test"}),
+            hs.contact(5102, {"external_id": "C-002", "phone": "+1 555 0100 002", "email": "c002@example.test"}),
+            hs.contact(5103, {"external_id": "C-003", "phone": "+1 555 0100 003", "email": "c003@example.test"})]
+CONTACT_ARGS = ["--key", "external_id", "--field", "phone", "--field", "email"]
+
+
+def _changed(record_id, **properties):
+    return hs.contact(record_id, {**next(c for c in CONTACTS if c["id"] == str(record_id))["properties"], **properties})
+
+
+def crm(args, responses=None, *, files=None, credential="token", env=None):
+    """A case whose destination is HubSpot's contacts, served by the local fake, two records to a page."""
+    return {"args": ["--source", "source.csv", "--destination-hubspot", "contacts"] + args,
+            "responses": hs.pages_of(CONTACTS, size=2) if responses is None else responses,
+            "files": {"source.csv": CONTACT_SOURCE, **(files or {})}, "credential": credential, "env": env or {}}
+
+
+def refused_page(response, args=CONTACT_ARGS):
+    return crm(args, [response])
+
+
+# The canonical form of CONTACTS (flowassert-hubspot-csv-1): a source file with these bytes has identical content.
+CANONICAL_CONTACTS = utf8("external_id,phone,email\n" + "".join(
+    f"{c['properties']['external_id']},{c['properties']['phone']},{c['properties']['email']}\n" for c in CONTACTS))
+MANY = [hs.contact(7000 + i, {"external_id": f"M-{i:04d}", "email": f"m{i:04d}@example.test"}) for i in range(1, 251)]
+MANY_SOURCE = utf8("external_id,email\r\n" + "".join(f"M-{i:04d},m{i:04d}@example.test\r\n" for i in range(1, 251)))
+NULLS = [hs.contact(5101, {"external_id": "C-001", "phone": None, "email": "c001@example.test"}),
+         hs.contact(5102, {"external_id": "C-002", "phone": "+1 555 0100 002", "email": None}),
+         hs.contact(5103, {"external_id": "C-003", "phone": "+1 555 0100 003", "email": "c003@example.test"})]
+BY_ID_SOURCE = utf8("contact_id,email\n5101,c001@example.test\n5102,c002@example.test\n5103,c003@example.test\n")
+EXTRA = CONTACTS + [hs.contact(5104, {"external_id": "C-004", "phone": "+1 555 0100 004", "email": "c004@example.test"})]
+RULES_CONFIG = {"key": ["external_id", "external_id"], "fields": [
+    {"source": "phone", "destination": "phone", "rule": "digits"},
+    {"source": "email", "destination": "email", "rule": "casefold"}], "scope": "exact"}
+
+HUBSPOT_CASES = {
+    # Results: Verified, Mismatch and Unverified, as for a file, with the read recorded beside them.
+    "hubspot-verified": crm(CONTACT_ARGS + COMPLETE),
+    "hubspot-mismatch": crm(CONTACT_ARGS + COMPLETE, hs.pages_of([CONTACTS[0], _changed(5102, phone="+1 555 0100 092")],
+                                                                 size=2)),
+    "hubspot-unverified": crm(CONTACT_ARGS),
+    "hubspot-null-values": crm(CONTACT_ARGS + COMPLETE, hs.pages_of(NULLS, size=2)),
+    "hubspot-count-differs": crm(CONTACT_ARGS + COMPLETE + ["--destination-count", "4"]),
+    "hubspot-key-object-id": crm(["--key", "contact_id:hs_object_id", "--field", "email"] + COMPLETE, hs.pages_of(
+        [hs.contact(c["id"], {**c["properties"], "hs_object_id": c["id"]}) for c in CONTACTS], size=2),
+        files={"source.csv": BY_ID_SOURCE}),
+    "hubspot-config-rules-exact-redacted": crm(["--config", "config.json", "--source-complete", "--details", "all",
+                                                "--redact-values"], hs.pages_of(
+        [_changed(5101, phone="15550100001", email="C001@EXAMPLE.TEST"), *EXTRA[1:]], size=100),
+        files={"config.json": canonical_config(RULES_CONFIG)}),
+    "hubspot-many-pages": crm(["--key", "external_id", "--field", "email"] + COMPLETE, hs.pages_of(MANY, size=100),
+                              files={"source.csv": MANY_SOURCE}),
+    "hubspot-empty": crm(CONTACT_ARGS + COMPLETE, hs.pages_of([], size=2)),
+    "hubspot-source-encoding": crm(CONTACT_ARGS + COMPLETE + ["--source-encoding", "utf-8"]),
+    # Identical content: the source file holds the canonical form of the records.
+    "hubspot-identical-content-refused": crm(CONTACT_ARGS, files={"source.csv": CANONICAL_CONTACTS}),
+    "hubspot-identical-content-allowed": crm(CONTACT_ARGS + ["--allow-identical-content"],
+                                             files={"source.csv": CANONICAL_CONTACTS}),
+    # Refusals before any request.
+    "hubspot-refused-no-credential": crm(CONTACT_ARGS, [], credential=None),
+    "hubspot-refused-malformed-credential": crm(CONTACT_ARGS, [], env={"FLOWASSERT_HUBSPOT_TOKEN": "pat with spaces"}),
+    "hubspot-refused-endpoint": crm(CONTACT_ARGS, [], env={"FLOWASSERT_HUBSPOT_TEST_ENDPOINT": "https://api.hubapi.com"}),
+    "hubspot-refused-with-destination": crm(CONTACT_ARGS + ["--destination", "source.csv"], []),
+    "hubspot-refused-object": {**crm(CONTACT_ARGS, []), "args": ["--source", "source.csv", "--destination-hubspot",
+                                                                 "companies"] + CONTACT_ARGS},
+    "hubspot-refused-destination-encoding": crm(CONTACT_ARGS + ["--destination-encoding", "utf-8"], []),
+    "hubspot-refused-timeout-without-hubspot": {**crm(CONTACT_ARGS, []), "args": [
+        "--source", "source.csv", "--destination", "source.csv", "--destination-timeout", "5"] + CONTACT_ARGS},
+    "hubspot-refused-property-name": crm(["--key", "external_id", "--field", "phone:phone&archived=true"], []),
+    # Refusals of a read: every error, and every page in doubt.
+    "hubspot-refused-400": refused_page(hs.error(400, "VALIDATION_ERROR")),
+    "hubspot-refused-401": refused_page(hs.error(401, "INVALID_AUTHENTICATION")),
+    "hubspot-refused-403": refused_page(hs.error(403, "MISSING_SCOPES")),
+    "hubspot-refused-404": refused_page(hs.error(404, "OBJECT_NOT_FOUND")),
+    "hubspot-refused-429": refused_page(hs.rate_limited()),
+    "hubspot-refused-503": refused_page(hs.error(503, "SERVICE_UNAVAILABLE")),
+    "hubspot-refused-redirect": refused_page({"status": 301, "text": "",
+                                              "headers": {"Location": "https://api.hubapi.example.test/moved"}}),
+    "hubspot-refused-not-json": refused_page({"status": 200, "text": "<html>Synthetic sign-in page</html>"}),
+    "hubspot-refused-results-not-list": refused_page({"status": 200, "json": {"results": {"id": "5101"}}}),
+    "hubspot-refused-too-many": refused_page(hs.page([hs.contact(9000 + i, CONTACTS[0]["properties"])
+                                                      for i in range(101)])),
+    "hubspot-refused-archived": refused_page(hs.page([hs.contact(5101, CONTACTS[0]["properties"], archived=True)])),
+    "hubspot-refused-missing-property": refused_page(hs.page([hs.contact(5101, {"external_id": "C-001",
+                                                                                "phone": "+1 555 0100 001"})])),
+    "hubspot-refused-value-not-text": refused_page(hs.page([_changed(5101, phone=15550100001)])),
+    "hubspot-refused-repeated-record": crm(CONTACT_ARGS, [hs.page(CONTACTS[:2], "5102"), hs.page([CONTACTS[1]])]),
+    "hubspot-refused-cursor": refused_page(hs.page(CONTACTS[:2], "5103&archived=true")),
+    "hubspot-refused-repeated-cursor": crm(CONTACT_ARGS, [hs.page(CONTACTS[:1], "5102"), hs.page(CONTACTS[1:2], "5102")]),
+    "hubspot-refused-empty-page-with-next": crm(CONTACT_ARGS, [hs.page(CONTACTS[:2], "5103"), hs.page([], "5104")]),
+    "hubspot-refused-max-rows": crm(CONTACT_ARGS + ["--max-rows", "2"], files={"source.csv": utf8(
+        "external_id,phone,email\r\nC-001,+1 555 0100 001,c001@example.test\r\n")}),
+    "hubspot-refused-max-bytes": crm(CONTACT_ARGS + ["--max-bytes", "300"]),
+}
+
+
+def _hubspot_environ(spec, endpoint):
+    environ = {"FLOWASSERT_HUBSPOT_TEST_ENDPOINT": endpoint}
+    if spec["credential"] == "token":
+        environ["FLOWASSERT_HUBSPOT_TOKEN"] = hs.FAKE_TOKEN
+    environ.update(spec["env"])
+    return environ
+
+
 def _sheet_environ(spec, endpoint):
     """The sheet variables for one case: the fake's endpoint and a fake credential, then the case's own values."""
     environ = {"FLOWASSERT_SHEETS_TEST_ENDPOINT": endpoint}
@@ -469,56 +587,64 @@ def _sheet_environ(spec, endpoint):
 
 def fake_for(kind, case, responses):
     """The local fake a connector case talks to, serving the case's responses (also used by conformance.py)."""
+    if kind == "hubspot":
+        return hs.FakeHubSpotApi(json.loads(json.dumps(responses)))
     credential = ("key", FAKE_KEY) if case["credential"] == "key" else ("token", FAKE_TOKEN)
     return FakeSheetsApi(json.loads(json.dumps(responses)), credential=credential)
 
 
 def environ_for(kind, case, endpoint):
     """The environment variables of a connector case: the fake's endpoint and a fake credential."""
-    return _sheet_environ(case, endpoint)
+    return _hubspot_environ(case, endpoint) if kind == "hubspot" else _sheet_environ(case, endpoint)
 
 
 def requests_of(kind, api):
-    """What the checker asked the fake for, as requests.json records it: any API key replaced by its variable's name."""
+    """What the checker asked the fake for, as requests.json records it: any API key replaced by its variable's name.
+    No credential is recorded: a token travels in a header, and headers are not written."""
     return [[r["method"], r["path"], [[k, "FLOWASSERT_SHEETS_API_KEY" if k == "key" else v] for k, v in r["query"]]]
             for r in api.requests]
 
 
-def run_sheet_case(spec, folder):
-    """Run one sheet case in `folder` against the local fake: (exit status, stdout, stderr, requests)."""
+def run_sheet_case(spec, folder, kind="sheets"):
+    """Run one connector case in `folder` against the local fake: (exit status, stdout, stderr, requests)."""
     stdout, stderr = io.StringIO(), io.StringIO()
-    saved_env = {name: os.environ.pop(name) for name in SHEET_VARIABLES if name in os.environ}
+    variables = SHEET_VARIABLES + HUBSPOT_VARIABLES
+    saved_env = {name: os.environ.pop(name) for name in variables if name in os.environ}
     cwd = os.getcwd()
-    with fake_for("sheets", spec, spec["responses"]) as api:
-        os.environ.update(environ_for("sheets", spec, api.endpoint))
+    with fake_for(kind, spec, spec["responses"]) as api:
+        os.environ.update(environ_for(kind, spec, api.endpoint))
         os.chdir(folder)
-        saved = cli.datetime, sheets.datetime
-        cli.datetime = sheets.datetime = _FixedDatetime
+        saved = cli.datetime, sheets.datetime, hubspot.datetime
+        cli.datetime = sheets.datetime = hubspot.datetime = _FixedDatetime
         try:
             with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 code = cli.main(spec["args"] + ["--json", "report.json", "--html", "report.html"])
         finally:
-            cli.datetime, sheets.datetime = saved
+            cli.datetime, sheets.datetime, hubspot.datetime = saved
             os.chdir(cwd)
-            for name in SHEET_VARIABLES:
+            for name in variables:
                 os.environ.pop(name, None)
             os.environ.update(saved_env)
-    return code, stdout.getvalue(), stderr.getvalue(), requests_of("sheets", api)
+    return code, stdout.getvalue(), stderr.getvalue(), requests_of(kind, api)
 
 
-def write_sheet_case(folder, name, spec):
+def write_hubspot_case(folder, name, spec):
+    write_sheet_case(folder, name, spec, kind="hubspot")
+
+
+def write_sheet_case(folder, name, spec, kind="sheets"):
     """Write one sheet case's inputs, the fake's responses, and the checker's outputs and requests into `folder`."""
     folder.mkdir(parents=True)
     for file, data in spec["files"].items():
         (folder / file).write_bytes(data)
     case = {"name": name, "args": spec["args"], "credential": spec["credential"], "env": spec["env"]}
     (folder / "case.json").write_text(json.dumps(case, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (folder / "sheet-responses.json").write_text(json.dumps(spec["responses"], indent=2, ensure_ascii=False) + "\n",
-                                                 encoding="utf-8")
+    responses = "hubspot-responses.json" if kind == "hubspot" else "sheet-responses.json"
+    (folder / responses).write_text(json.dumps(spec["responses"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     with tempfile.TemporaryDirectory() as tmp:
         for file, data in spec["files"].items():
             Path(tmp, file).write_bytes(data)
-        code, stdout, stderr, requests = run_sheet_case(spec, tmp)
+        code, stdout, stderr, requests = run_sheet_case(spec, tmp, kind)
         for report in ("report.json", "report.html"):
             if Path(tmp, report).exists():
                 shutil.copyfile(Path(tmp, report), folder / report)
@@ -591,12 +717,15 @@ def write_case(folder, name, spec):
     (folder / "stderr.txt").write_bytes(stderr.getvalue().encode("utf-8"))
 
 
-def write_all(target, sheets_target=None):
+def write_all(target, sheets_target=None, hubspot_target=None):
     for name, spec in CASES.items():
         write_case(target / name, name, spec)
     if sheets_target is not None:
         for name, spec in SHEET_CASES.items():
             write_sheet_case(sheets_target / name, name, spec)
+    if hubspot_target is not None:
+        for name, spec in HUBSPOT_CASES.items():
+            write_hubspot_case(hubspot_target / name, name, spec)
 
 
 def differences(expected_root, actual_root):
@@ -609,11 +738,13 @@ def differences(expected_root, actual_root):
 
 
 def check():
-    """The paths under offline/golden/ and offline/golden-sheets/ that differ from what write_all writes now."""
+    """The paths under offline/golden/, offline/golden-sheets/ and offline/golden-hubspot/ that differ from what
+    write_all writes now."""
     with tempfile.TemporaryDirectory() as tmp:
-        write_all(Path(tmp, "golden"), Path(tmp, "golden-sheets"))
+        write_all(Path(tmp, "golden"), Path(tmp, "golden-sheets"), Path(tmp, "golden-hubspot"))
         return ([f"offline/golden/{n}" for n in differences(Path(tmp, "golden"), GOLDEN)]
-                + [f"offline/golden-sheets/{n}" for n in differences(Path(tmp, "golden-sheets"), GOLDEN_SHEETS)])
+                + [f"offline/golden-sheets/{n}" for n in differences(Path(tmp, "golden-sheets"), GOLDEN_SHEETS)]
+                + [f"offline/golden-hubspot/{n}" for n in differences(Path(tmp, "golden-hubspot"), GOLDEN_HUBSPOT)])
 
 
 def main(argv):
@@ -627,11 +758,12 @@ def main(argv):
     if argv:
         print(__doc__, file=sys.stderr)
         return 2
-    for folder in (GOLDEN, GOLDEN_SHEETS):
+    for folder in (GOLDEN, GOLDEN_SHEETS, GOLDEN_HUBSPOT):
         if folder.exists():
             shutil.rmtree(folder)
-    write_all(GOLDEN, GOLDEN_SHEETS)
-    print(f"wrote {len(CASES)} cases to {GOLDEN} and {len(SHEET_CASES)} to {GOLDEN_SHEETS}")
+    write_all(GOLDEN, GOLDEN_SHEETS, GOLDEN_HUBSPOT)
+    print(f"wrote {len(CASES)} cases to {GOLDEN}, {len(SHEET_CASES)} to {GOLDEN_SHEETS} and {len(HUBSPOT_CASES)} to "
+          f"{GOLDEN_HUBSPOT}")
     return 0
 
 

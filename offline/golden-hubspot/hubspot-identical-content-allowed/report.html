@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>FlowAssert report: Unverified</title>
+<style>
+:root{color-scheme:light dark;--canvas:#f3efe6;--surface:#fbf9f4;--sunken:#ece6d9;--line:#d8d0bf;--line-2:#e6e0d2;
+--line-3:#b9b09c;--ink:#1d1b16;--ink-2:#4b473e;--ink-3:#6d675a;--brand:#2f3590;--brand-soft:#e4e4f1;
+--v:#255a3b;--v-soft:#dfe9df;--v-line:#b7cfba;--m:#a23117;--m-soft:#f5e0d6;--m-line:#e7b7a5;--u:#4b473e;
+--u-soft:#ebe6da;--u-line:#b9b09c;--p:#845a08;
+--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+--sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+@media (prefers-color-scheme:dark){:root{--canvas:#14120e;--surface:#1c1915;--sunken:#110f0c;--line:#34302a;
+--line-2:#29261f;--line-3:#4d473d;--ink:#ece6d8;--ink-2:#bdb5a4;--ink-3:#8f8777;--brand:#b4b9ff;
+--brand-soft:rgb(154 162 255/.14);--v:#7cc597;--v-soft:rgb(75 162 111/.13);--v-line:rgb(75 162 111/.35);--m:#f0937d;
+--m-soft:rgb(226 101 74/.13);--m-line:rgb(226 101 74/.38);--u:#b6ae9d;--u-soft:rgb(138 132 118/.14);--u-line:#4d473d;
+--p:#e3b35c}}
+*{box-sizing:border-box}
+html{background:var(--canvas)}
+body{margin:0 auto;max-width:60rem;padding:2rem 1rem 3rem;font:15px/1.55 var(--sans);color:var(--ink);
+background:var(--canvas);overflow-wrap:anywhere}
+h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.2;margin:0}
+h2{font-size:1.45rem;margin:2.4rem 0 .5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem}
+p{margin:.35rem 0}
+code{font-family:var(--mono);font-size:.86em;white-space:pre-wrap}
+.kicker{margin:0 0 .5rem;font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.verdict{padding:1.4rem 1.5rem 1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.seal{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .9rem .35rem;font-size:2.1rem;border-radius:4px;
+border:1.5px solid}
+.claim{max-width:44rem;margin-top:.9rem;font-size:1.05rem}
+.rows{color:var(--ink-2)}
+.counts{display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;margin:.6rem 0 0;padding:0}
+.counts div{display:flex;gap:.45rem;align-items:baseline}.counts dt{color:var(--ink-2)}
+.counts dd{margin:0;font-family:var(--mono);font-weight:600}
+.meta{margin-top:.8rem;font-size:.82rem;color:var(--ink-3)}
+.s-Verified{color:var(--v);background:var(--v-soft);border-color:var(--v-line)}
+.s-Mismatch{color:var(--m);background:var(--m-soft);border-color:var(--m-line)}
+.s-Unverified{color:var(--u);background:var(--u-soft);border-color:var(--u-line)}
+.s-Pending{color:var(--p);background:var(--u-soft);border-color:var(--u-line)}
+.counts .s-Verified,.counts .s-Mismatch,.counts .s-Unverified{background:none}
+.premises{margin-top:1.4rem;padding:.9rem 1.2rem 1rem;border:2px solid var(--u-line);border-radius:10px}
+.premises h2{margin-top:0;border:0;padding:0;font-size:1.25rem}
+.note{font-size:.86rem;color:var(--ink-3)}
+.premise{padding:.55rem 0;border-top:1px solid var(--line-2)}
+.premise:first-of-type{border-top:0}
+.premise p{margin:.1rem 0}.premise .name{font-weight:600}.premise .name code{font-weight:400;color:var(--ink-3)}
+.applied{font-size:.86rem;font-weight:600}.applied.yes{color:var(--v)}.applied.no{color:var(--m)}
+.applied.none{color:var(--ink-3);font-weight:400}
+table.facts{border-collapse:collapse;width:100%;margin:.4rem 0;font-size:.9rem}
+.facts th,.facts td{padding:.32rem .5rem;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+.facts th{width:38%;font-weight:500;color:var(--ink-2)}
+.record{margin:.8rem 0;padding:.9rem 1.1rem 1rem;background:var(--surface);border:1px solid var(--line);
+border-left:4px solid var(--line-3);border-radius:8px;break-inside:avoid}
+.record.s-Mismatch{border-left-color:var(--m-line);color:inherit;background:var(--surface)}
+.record.s-Unverified{border-left-color:var(--u-line);color:inherit;background:var(--surface)}
+.record h3{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .6rem}
+.badge{display:inline-block;padding:.05rem .5rem;font:600 .74rem/1.6 var(--sans);border:1px solid;border-radius:3px}
+.carries{font-size:.84rem;color:var(--ink-2)}
+.rules{list-style:none;margin:.5rem 0 0;padding:0}
+.rule{padding:.55rem 0;border-top:1px solid var(--line-2)}
+.rule p{margin:.12rem 0}.rule-head{display:flex;flex-wrap:wrap;gap:.2rem .6rem;align-items:baseline}
+.st{font-size:.8rem;font-weight:600}.st-pass{color:var(--v)}.st-fail{color:var(--m)}.st-unknown{color:var(--p)}
+.reason{font-size:.86rem;color:var(--ink-3)}
+.values{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:.15rem .8rem;margin:.35rem 0 0;font-size:.86rem}
+.values dt{color:var(--ink-3)}.values dd{margin:0;min-width:0}
+.v{color:var(--ink)}.none{color:var(--ink-3);font-style:italic}
+.diff{margin:.5rem 0 0;padding:.55rem .75rem;background:var(--sunken);border:1px solid var(--line-2);border-radius:6px}
+.diff figcaption{font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.diff dl{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:.2rem .8rem;margin:.35rem 0 0;font-size:.9rem}
+.diff dt{color:var(--ink-3)}.diff dd{margin:0;min-width:0}
+.cps{display:block;font-family:var(--mono);font-size:.74rem;color:var(--ink-3)}
+del{text-decoration:line-through 1.5px var(--m);background:var(--m-soft);color:var(--ink);border-radius:2px}
+ins{text-decoration:underline 2px var(--brand);text-underline-offset:3px;background:var(--brand-soft);color:var(--ink);
+border-radius:2px}
+.tok{display:inline-block;margin:0 1px;padding:0 3px;border:1px dashed var(--line-3);border-radius:3px;
+font-size:.8em;line-height:1.35;color:var(--ink-2)}
+.aid{font-size:.8rem;color:var(--ink-3)}
+@media (max-width:36rem){body{padding:1.2rem .9rem 2rem}.verdict{padding:1rem}.seal{font-size:1.7rem}
+.values,.diff dl{grid-template-columns:minmax(0,1fr)}.values dd,.diff dd{margin-bottom:.3rem}.facts th{width:45%}}
+@page{margin:16mm 14mm}
+@media print{:root{color-scheme:light;--canvas:#fff;--surface:#fff;--sunken:#f6f3ec}
+body{max-width:none;padding:0;font-size:10.5pt}html,body{background:#fff}
+.verdict,.premises,.record,.diff{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+h2{break-after:avoid}.record,.premise,.facts tr{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+<header class="verdict">
+<p class="kicker">FlowAssert report</p>
+<h1 class="seal s-Unverified"><span aria-hidden="true">○</span> Unverified</h1>
+<p class="claim">No claim is made: the result is not Verified.</p>
+<p class="rows">3 rows of unknown total</p>
+<dl class="counts">
+<div class="s-Verified"><dt>Verified</dt><dd>0</dd></div>
+<div class="s-Mismatch"><dt>Mismatch</dt><dd>0</dd></div>
+<div class="s-Unverified"><dt>Unverified</dt><dd>3</dd></div>
+</dl>
+<p class="meta">Evaluated at 2000-01-01T00:00:00Z by evaluator v2-current-state-1.</p>
+</header>
+<section class="premises">
+<h2>Stated premises</h2>
+<p class="note">FlowAssert does not verify these statements. A wrong statement gives a wrong result.</p>
+<div class="premise">
+<p class="name">The source is the whole batch <code>source_complete</code></p>
+<p>Stated: no · origin: command-line option</p>
+<p class="applied none">not stated</p>
+</div>
+<div class="premise">
+<p class="name">The destination covers the whole object <code>destination_complete</code></p>
+<p>Stated: no · origin: command-line option</p>
+<p class="applied none">not stated</p>
+</div>
+<div class="premise">
+<p class="name">Source total in the original system <code>source_count</code></p>
+<p>Stated: <i>none</i> · origin: command-line option · rows read: 3</p>
+<p class="applied none">not stated</p>
+</div>
+<div class="premise">
+<p class="name">Destination total in the original system <code>destination_count</code></p>
+<p>Stated: <i>none</i> · origin: command-line option · rows read: 3</p>
+<p class="applied none">not stated</p>
+</div>
+<div class="premise">
+<p class="name">allow_identical_content <code>allow_identical_content</code></p>
+<p>Stated: yes · origin: command-line option</p>
+
+</div>
+</section>
+<section>
+<h2>Counts</h2>
+<table class="facts">
+<tr><th>Source rows observed</th><td>3</td></tr>
+<tr><th>Expected total</th><td>unknown</td></tr>
+<tr><th>Verified records</th><td>0</td></tr>
+<tr><th>Mismatch records</th><td>0</td></tr>
+<tr><th>Pending records</th><td>0</td></tr>
+<tr><th>Unverified records</th><td>3</td></tr>
+<tr><th>Source population known</th><td>no</td></tr>
+<tr><th>Destination coverage sufficient</th><td>no</td></tr>
+<tr><th>Destination rows without key</th><td>0</td></tr>
+</table>
+</section>
+<section>
+<h2>Records that are not Verified (3)</h2>
+<article class="record s-Unverified">
+<h3>Record 1 <span aria-hidden="true">·</span> <code>C-001</code> <span class="badge s-Unverified">Unverified</span></h3>
+<p class="carries">1 destination row has this key</p>
+<ul class="rules">
+<li class="rule">
+<p class="rule-head"><code>existence</code> <span class="st st-pass">pass</span></p>
+<p class="reason">candidate observed</p>
+</li>
+<li class="rule">
+<p class="rule-head"><code>uniqueness</code> <span class="st st-unknown">unknown</span></p>
+<p class="reason">insufficient evidence</p>
+</li>
+<li class="rule">
+<p class="rule-head"><code>field:phone</code> <span class="st st-pass">pass</span></p>
+<p class="reason">exact string comparison</p>
+<dl class="values">
+<dt>Source value</dt><dd><code class="v">+1 555 0100 001</code></dd>
+<dt>Destination value</dt><dd><code class="v">+1 555 0100 001</code></dd>
+</dl>
+</li>
+<li class="rule">
+<p class="rule-head"><code>field:email</code> <span class="st st-pass">pass</span></p>
+<p class="reason">exact string comparison</p>
+<dl class="values">
+<dt>Source value</dt><dd><code class="v">c001@example.test</code></dd>
+<dt>Destination value</dt><dd><code class="v">c001@example.test</code></dd>
+</dl>
+</li>
+</ul>
+</article>
+<article class="record s-Unverified">
+<h3>Record 2 <span aria-hidden="true">·</span> <code>C-002</code> <span class="badge s-Unverified">Unverified</span></h3>
+<p class="carries">1 destination row has this key</p>
+<ul class="rules">
+<li class="rule">
+<p class="rule-head"><code>existence</code> <span class="st st-pass">pass</span></p>
+<p class="reason">candidate observed</p>
+</li>
+<li class="rule">
+<p class="rule-head"><code>uniqueness</code> <span class="st st-unknown">unknown</span></p>
+<p class="reason">insufficient evidence</p>
+</li>
+<li class="rule">
+<p class="rule-head"><code>field:phone</code> <span class="st st-pass">pass</span></p>
+<p class="reason">exact string comparison</p>
+<dl class="values">
+<dt>Source value</dt><dd><code class="v">+1 555 0100 002</code></dd>
+<dt>Destination value</dt><dd><code class="v">+1 555 0100 002</code></dd>
+</dl>
+</li>
+<li class="rule">
+<p class="rule-head"><code>field:email</code> <span class="st st-pass">pass</span></p>
+<p class="reason">exact string comparison</p>
+<dl class="values">
+<dt>Source value</dt><dd><code class="v">c002@example.test</code></dd>
+<dt>Destination value</dt><dd><code class="v">c002@example.test</code></dd>
+</dl>
+</li>
+</ul>
+</article>
+<article class="record s-Unverified">
+<h3>Record 3 <span aria-hidden="true">·</span> <code>C-003</code> <span class="badge s-Unverified">Unverified</span></h3>
+<p class="carries">1 destination row has this key</p>
+<ul class="rules">
+<li class="rule">
+<p class="rule-head"><code>existence</code> <span class="st st-pass">pass</span></p>
+<p class="reason">candidate observed</p>
+</li>
+<li class="rule">
+<p class="rule-head"><code>uniqueness</code> <span class="st st-unknown">unknown</span></p>
+<p class="reason">insufficient evidence</p>
+</li>
+<li class="rule">
+<p class="rule-head"><code>field:phone</code> <span class="st st-pass">pass</span></p>
+<p class="reason">exact string comparison</p>
+<dl class="values">
+<dt>Source value</dt><dd><code class="v">+1 555 0100 003</code></dd>
+<dt>Destination value</dt><dd><code class="v">+1 555 0100 003</code></dd>
+</dl>
+</li>
+<li class="rule">
+<p class="rule-head"><code>field:email</code> <span class="st st-pass">pass</span></p>
+<p class="reason">exact string comparison</p>
+<dl class="values">
+<dt>Source value</dt><dd><code class="v">c003@example.test</code></dd>
+<dt>Destination value</dt><dd><code class="v">c003@example.test</code></dd>
+</dl>
+</li>
+</ul>
+</article>
+</section>
+<section>
+<h2>Destination read from HubSpot</h2>
+<p>FlowAssert listed the records itself, read-only, page by page, so no export step could filter, cut them short or edit them. The read shows which records the API listed to this token at that time. It does not show that the object is complete:</p>
+<ul>
+<li>records the token cannot see are not listed;</li>
+<li>records changed during the read may be missed;</li>
+<li>archived records are not read.</li>
+</ul>
+<p>That the records cover the whole object is the stated premise destination_complete.</p>
+<p>Destination read by FlowAssert from HubSpot: contacts, 3 records in 2 pages, from 2000-01-01T00:00:00Z to 2000-01-01T00:00:00Z; archived records were not read.</p>
+<p>This lists what the token could see at that time; it does not show that the object is complete.</p>
+<table class="facts">
+<tr><th>read_by</th><td>FlowAssert</td></tr>
+<tr><th>service</th><td>HubSpot CRM API v3</td></tr>
+<tr><th>object</th><td>contacts</td></tr>
+<tr><th>properties</th><td>external_id, phone, email</td></tr>
+<tr><th>archived_excluded</th><td>yes</td></tr>
+<tr><th>page_limit</th><td>100</td></tr>
+<tr><th>pages</th><td>2</td></tr>
+<tr><th>rows</th><td>3</td></tr>
+<tr><th>read_at</th><td>2000-01-01T00:00:00Z</td></tr>
+<tr><th>read_finished_at</th><td>2000-01-01T00:00:00Z</td></tr>
+<tr><th>canonical_form</th><td>flowassert-hubspot-csv-1</td></tr>
+</table>
+</section>
+<section>
+<h2>Limitations</h2>
+<p>Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.</p>
+<table class="facts">
+<tr><th>workflow_execution</th><td>Not assessed</td></tr>
+<tr><th>business_truth</th><td>Not assessed</td></tr>
+<tr><th>existed_by_deadline</th><td>Not assessed</td></tr>
+<tr><th>acquisition_authenticity</th><td>not_authenticated</td></tr>
+</table>
+</section>
+<section>
+<h2>Inputs</h2>
+<table class="facts">
+<tr><th>source_sha256</th><td>5a2e6dbf66fdec8fcc66a10c1cff8af2405d221593b773c0bc17323a5a31f0e8</td></tr>
+<tr><th>destination_sha256</th><td>5a2e6dbf66fdec8fcc66a10c1cff8af2405d221593b773c0bc17323a5a31f0e8</td></tr>
+<tr><th>source_complete_stated</th><td>no</td></tr>
+<tr><th>destination_complete_stated</th><td>no</td></tr>
+<tr><th>identical_content</th><td>yes</td></tr>
+<tr><th>identical_content_allowed</th><td>yes</td></tr>
+<tr><th>obligation type</th><td><code>&quot;current_state&quot;</code></td></tr>
+<tr><th>obligation key</th><td><code>[&quot;external_id&quot;, &quot;external_id&quot;]</code></td></tr>
+<tr><th>obligation fields</th><td><code>[[&quot;phone&quot;, &quot;phone&quot;], [&quot;email&quot;, &quot;email&quot;]]</code></td></tr>
+<tr><th>obligation comparison</th><td><code>&quot;exact-string&quot;</code></td></tr>
+</table>
+</section>
+</main>
+</body>
+</html>

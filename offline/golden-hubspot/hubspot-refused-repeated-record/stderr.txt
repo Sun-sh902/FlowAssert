@@ -1,0 +1,1 @@
+refused: HubSpot contacts: record ID appears twice (pages 1 and 2): the list changed while it was read; run the check again

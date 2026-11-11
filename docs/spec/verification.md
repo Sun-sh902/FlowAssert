@@ -28,7 +28,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be read as in RF
 special meaning only in capitals.
 
 Every requirement has a number, and every requirement with MUST names at least one golden case that tests it. A case
-is written as its folder: `golden/NAME` is `offline/golden/NAME`, `golden-sheets/NAME` is `offline/golden-sheets/NAME`, and `conformance/NAME` is `offline/conformance/NAME.json`.
+is written as its folder: `golden/NAME` is `offline/golden/NAME`, `golden-sheets/NAME` is `offline/golden-sheets/NAME`, `golden-hubspot/NAME` is `offline/golden-hubspot/NAME`, and `conformance/NAME` is `offline/conformance/NAME.json`.
 [Conformance](../conformance.md) says how an implementation runs them. A test
 (`scripts/dev/tests/test_spec.py`) fails when a requirement names no case, or a case that does not exist.
 
@@ -162,7 +162,7 @@ the source are reported).
 The report is one JSON object. [Report format](../report-format.md) describes every member, and the
 [JSON Schemas](../schema/) define them for each `schema_version`.
 
-- **R10.1** The report MUST begin with `schema_version`, and a writer MUST use the version whose schema the report satisfies: 1 for two files, 2 when the source was read from Google Sheets. Cases: `golden/example`, `golden-sheets/sheet-verified`.
+- **R10.1** The report MUST begin with `schema_version`, and a writer MUST use the version whose schema the report satisfies: 1 for two files, 2 when the source was read from Google Sheets, 3 when the destination was read from HubSpot. Cases: `golden/example`, `golden-sheets/sheet-verified`, `golden-hubspot/hubspot-verified`.
 - **R10.2** `records` MUST hold one record per source row, in file order, with `source_row` counting from 0. Cases: `golden/example`, `golden/duplicate-source-key`.
 - **R10.3** With details `problems` (the default) a Verified record MUST have only `key`, `source_row` and `state`; with `all`, every record has every member. The details level MUST NOT change any state, count or the summary. Cases: `golden/example`, `golden/example-details-all`.
 - **R10.4** With `--redact-values` every record key and destination-only key MUST be `[redacted]`, and no field result has `expected`, `actual`, `expected_normalized` or `actual_normalized`; states, reasons and counts are unchanged. Cases: `golden/example-redacted`, `golden/rules-redacted`, `golden/scope-exact-cli`, `golden/unsafe-values-details-all`.
@@ -260,14 +260,16 @@ The messages, in the order in which they can arise. `FILE` is a file's name, `N`
 A connector reads one side's rows itself instead of taking a file. It changes where the rows come from and nothing
 else.
 
-- **R14.1** The same rows MUST give the same records, rule results, counts, cohort state and exit status whether a connector read them or a CSV file held them. Cases: `golden-sheets/sheet-mismatch`, `golden-sheets/sheet-config-rules-exact-redacted`.
-- **R14.2** A connector MUST NOT state a premise. Reading every row a service returns does not show that the rows are the whole batch or the whole object: completeness stays the caller's statement, with the same effect as for a file. Cases: `golden-sheets/sheet-unverified`.
-- **R14.3** A connector MUST only read: HTTPS `GET` to the documented hosts, with TLS verified, no redirect followed, no proxy and no retry. Cases: `golden-sheets/sheet-verified` (its `requests.json`), `golden-sheets/sheet-refused-redirect`.
-- **R14.4** A read that fails or is in doubt MUST be a refusal with no report: an error status, a rate limit, a timeout, a redirect, a response that is not the documented shape, or a source that changed while it was read. Cases: `golden-sheets/sheet-refused-429`, `golden-sheets/sheet-refused-not-json`, `golden-sheets/sheet-refused-changed`.
-- **R14.5** The credential MUST come from an environment variable and MUST NOT appear in the summary, a report, a refusal or an error. Cases: `golden-sheets/sheet-refused-401`, `golden-sheets/sheet-api-key`.
-- **R14.6** The report MUST record where and when the rows were read, and the digest of a documented canonical form of them, in place of a file's digest. Cases: `golden-sheets/sheet-verified`.
+- **R14.1** The same rows MUST give the same records, rule results, counts, cohort state and exit status whether a connector read them or a CSV file held them. Cases: `golden-sheets/sheet-mismatch`, `golden-sheets/sheet-config-rules-exact-redacted`, `golden-hubspot/hubspot-mismatch`, `golden-hubspot/hubspot-config-rules-exact-redacted`.
+- **R14.2** A connector MUST NOT state a premise. Reading every row a service returns does not show that the rows are the whole batch or the whole object: completeness stays the caller's statement, with the same effect as for a file. Cases: `golden-sheets/sheet-unverified`, `golden-hubspot/hubspot-unverified`.
+- **R14.3** A connector MUST only read: HTTPS `GET` to the documented hosts, with TLS verified, no redirect followed, no proxy and no retry. Cases: `golden-sheets/sheet-verified` (its `requests.json`), `golden-sheets/sheet-refused-redirect`, `golden-hubspot/hubspot-many-pages` (its `requests.json`), `golden-hubspot/hubspot-refused-redirect`.
+- **R14.4** A read that fails or is in doubt MUST be a refusal with no report: an error status, a rate limit, a timeout, a redirect, a response that is not the documented shape, or a source that changed while it was read. Cases: `golden-sheets/sheet-refused-429`, `golden-sheets/sheet-refused-not-json`, `golden-sheets/sheet-refused-changed`, `golden-hubspot/hubspot-refused-429`, `golden-hubspot/hubspot-refused-repeated-record`, `golden-hubspot/hubspot-refused-archived`.
+- **R14.5** The credential MUST come from an environment variable and MUST NOT appear in the summary, a report, a refusal or an error. Cases: `golden-sheets/sheet-refused-401`, `golden-sheets/sheet-api-key`, `golden-hubspot/hubspot-refused-401`, `golden-hubspot/hubspot-verified`.
+- **R14.6** The report MUST record where and when the rows were read, and the digest of a documented canonical form of them, in place of a file's digest. Cases: `golden-sheets/sheet-verified`, `golden-hubspot/hubspot-verified`.
+- **R14.7** A destination read page by page MUST be refused when a record appears twice, when a page gives a paging cursor it has given before, or when a page names a next page and holds no record: each means the list changed or the pages repeat. Cases: `golden-hubspot/hubspot-refused-repeated-record`, `golden-hubspot/hubspot-refused-repeated-cursor`, `golden-hubspot/hubspot-refused-empty-page-with-next`.
+- **R14.8** A property the destination's records have no value for MUST be an empty value, as an empty cell is; a property they do not have at all MUST be a refusal, as a missing column is. Cases: `golden-hubspot/hubspot-null-values`, `golden-hubspot/hubspot-refused-missing-property`.
 
-The design note is part of this specification for its connector: [Google Sheets source](../connectors/google-sheets.md).
+The design notes are part of this specification for their connectors: [Google Sheets source](../connectors/google-sheets.md) and [HubSpot Contacts destination](../connectors/hubspot.md).
 It gives each option, request, refusal and report member.
 
 ## 15. What this specification leaves open

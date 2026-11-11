@@ -24,7 +24,7 @@
 
 “必须”“不得”“应当”“不应”“可以”分别对应 RFC 2119 和 RFC 8174 里的 MUST、MUST NOT、SHOULD、SHOULD NOT、MAY，只有加粗时才有这层含义。
 
-每条要求都有编号。带**必须**或**不得**的要求，至少列出一个检验它的核对样例。样例写成它所在的文件夹：`golden/NAME` 指 `offline/golden/NAME`，`golden-sheets/NAME` 指 `offline/golden-sheets/NAME`，`conformance/NAME` 指 `offline/conformance/NAME.json`。[一致性](../conformance.zh-CN.md)说明一个实现怎样运行这些样例。如果某条要求没有列出样例，或者列出的样例不存在，测试（`scripts/dev/tests/test_spec.py`）就会失败。
+每条要求都有编号。带**必须**或**不得**的要求，至少列出一个检验它的核对样例。样例写成它所在的文件夹：`golden/NAME` 指 `offline/golden/NAME`，`golden-sheets/NAME` 指 `offline/golden-sheets/NAME`，`golden-hubspot/NAME` 指 `offline/golden-hubspot/NAME`，`conformance/NAME` 指 `offline/conformance/NAME.json`。[一致性](../conformance.zh-CN.md)说明一个实现怎样运行这些样例。如果某条要求没有列出样例，或者列出的样例不存在，测试（`scripts/dev/tests/test_spec.py`）就会失败。
 
 参考实现是 `offline/flowassert_offline/`，运行在 CPython 上。本文和参考实现不一致时，说明其中一方有缺陷，需要报告并解决；任何一方都不会默认为准。
 
@@ -145,7 +145,7 @@
 
 报告是一个 JSON 对象。[报告格式](../report-format.zh-CN.md)说明每个成员，[JSON Schema](../schema/) 按每个 `schema_version` 定义它们。
 
-- **R10.1** 报告**必须**以 `schema_version` 开头，写入方**必须**使用报告所符合的那个版本：两个文件是 1，来源从 Google Sheets 读取是 2。样例：`golden/example`、`golden-sheets/sheet-verified`。
+- **R10.1** 报告**必须**以 `schema_version` 开头，写入方**必须**使用报告所符合的那个版本：两个文件是 1，来源从 Google Sheets 读取是 2，目标从 HubSpot 读取是 3。样例：`golden/example`、`golden-sheets/sheet-verified`、`golden-hubspot/hubspot-verified`。
 - **R10.2** `records` 里**必须**每个来源行有一条记录，按文件顺序排列，`source_row` 从 0 开始。样例：`golden/example`、`golden/duplicate-source-key`。
 - **R10.3** 明细级别是 `problems`（默认）时，已验证的记录**必须**只有 `key`、`source_row` 和 `state`；是 `all` 时，每条记录都有全部成员。明细级别**不得**改变任何状态、计数或摘要。样例：`golden/example`、`golden/example-details-all`。
 - **R10.4** 使用 `--redact-values` 时，每条记录的键和每个只在目标中的键都**必须**是 `[redacted]`，字段结果里没有 `expected`、`actual`、`expected_normalized` 和 `actual_normalized`；状态、原因和计数不变。样例：`golden/example-redacted`、`golden/rules-redacted`、`golden/scope-exact-cli`、`golden/unsafe-values-details-all`。
@@ -237,14 +237,16 @@
 
 连接器自己读取一侧的行，不再接收文件。它只改变行的来处，不改变其他任何东西。
 
-- **R14.1** 同样的行，不论由连接器读取还是放在 CSV 文件里，都**必须**得到同样的记录、规则结果、计数、批次状态和退出码。样例：`golden-sheets/sheet-mismatch`、`golden-sheets/sheet-config-rules-exact-redacted`。
-- **R14.2** 连接器**不得**声明前提。读到服务返回的每一行，并不说明这些行就是整个批次或整个对象：完整性仍然是调用者的声明，作用与文件相同。样例：`golden-sheets/sheet-unverified`。
-- **R14.3** 连接器**必须**只读取：只向文档写明的主机发 HTTPS `GET` 请求，验证 TLS，不跟随重定向，不用代理，不重试。样例：`golden-sheets/sheet-verified`（它的 `requests.json`）、`golden-sheets/sheet-refused-redirect`。
-- **R14.4** 读取失败或有疑问时，**必须**拒绝，不写报告：错误状态、限流、超时、重定向、响应不是文档描述的形状，或者来源在读取期间发生了变化。样例：`golden-sheets/sheet-refused-429`、`golden-sheets/sheet-refused-not-json`、`golden-sheets/sheet-refused-changed`。
-- **R14.5** 凭证**必须**来自环境变量，并且**不得**出现在摘要、报告、拒绝信息或错误信息里。样例：`golden-sheets/sheet-refused-401`、`golden-sheets/sheet-api-key`。
-- **R14.6** 报告**必须**记录这些行在哪里、什么时候读取，并用它们的一种有文档说明的规范形式的摘要值，代替文件的摘要值。样例：`golden-sheets/sheet-verified`。
+- **R14.1** 同样的行，不论由连接器读取还是放在 CSV 文件里，都**必须**得到同样的记录、规则结果、计数、批次状态和退出码。样例：`golden-sheets/sheet-mismatch`、`golden-sheets/sheet-config-rules-exact-redacted`、`golden-hubspot/hubspot-mismatch`、`golden-hubspot/hubspot-config-rules-exact-redacted`。
+- **R14.2** 连接器**不得**声明前提。读到服务返回的每一行，并不说明这些行就是整个批次或整个对象：完整性仍然是调用者的声明，作用与文件相同。样例：`golden-sheets/sheet-unverified`、`golden-hubspot/hubspot-unverified`。
+- **R14.3** 连接器**必须**只读取：只向文档写明的主机发 HTTPS `GET` 请求，验证 TLS，不跟随重定向，不用代理，不重试。样例：`golden-sheets/sheet-verified`（它的 `requests.json`）、`golden-sheets/sheet-refused-redirect`、`golden-hubspot/hubspot-many-pages`（它的 `requests.json`）、`golden-hubspot/hubspot-refused-redirect`。
+- **R14.4** 读取失败或有疑问时，**必须**拒绝，不写报告：错误状态、限流、超时、重定向、响应不是文档描述的形状，或者来源在读取期间发生了变化。样例：`golden-sheets/sheet-refused-429`、`golden-sheets/sheet-refused-not-json`、`golden-sheets/sheet-refused-changed`、`golden-hubspot/hubspot-refused-429`、`golden-hubspot/hubspot-refused-repeated-record`、`golden-hubspot/hubspot-refused-archived`。
+- **R14.5** 凭证**必须**来自环境变量，并且**不得**出现在摘要、报告、拒绝信息或错误信息里。样例：`golden-sheets/sheet-refused-401`、`golden-sheets/sheet-api-key`、`golden-hubspot/hubspot-refused-401`、`golden-hubspot/hubspot-verified`。
+- **R14.6** 报告**必须**记录这些行在哪里、什么时候读取，并用它们的一种有文档说明的规范形式的摘要值，代替文件的摘要值。样例：`golden-sheets/sheet-verified`、`golden-hubspot/hubspot-verified`。
+- **R14.7** 逐页读取的目标，在同一条记录出现两次、某一页给出之前给过的分页游标、或者某一页说有下一页却没有记录时，**必须**拒绝：这些都说明列表在读取期间变了，或者页面在重复。样例：`golden-hubspot/hubspot-refused-repeated-record`、`golden-hubspot/hubspot-refused-repeated-cursor`、`golden-hubspot/hubspot-refused-empty-page-with-next`。
+- **R14.8** 目标记录在某个属性上没有值时，**必须**当作空值，与空单元格相同；记录根本没有这个属性时，**必须**拒绝，与缺少列相同。样例：`golden-hubspot/hubspot-null-values`、`golden-hubspot/hubspot-refused-missing-property`。
 
-连接器的设计说明是本规范中关于该连接器的部分：[Google Sheets 来源](../connectors/google-sheets.zh-CN.md)。它列出每个选项、请求、拒绝信息和报告成员。
+连接器的设计说明是本规范中关于该连接器的部分：[Google Sheets 来源](../connectors/google-sheets.zh-CN.md)和 [HubSpot 联系人目标](../connectors/hubspot.zh-CN.md)。它列出每个选项、请求、拒绝信息和报告成员。
 
 ## 15. 本规范没有定死的地方
 

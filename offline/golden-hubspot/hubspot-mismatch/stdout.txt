@@ -1,0 +1,12 @@
+Mismatch: 3 rows of 3
+Verified 1 · Mismatch 2 · Unverified 0
+Destination read by FlowAssert from HubSpot: contacts, 2 records in 1 pages, from 2000-01-01T00:00:00Z to 2000-01-01T00:00:00Z; archived records were not read.
+This lists what the token could see at that time; it does not show that the object is complete.
+  record 2 C-002: Mismatch
+    field:phone fail: exact string comparison ('+1 555 0100 002' vs '+1 555 0100 092')
+  record 3 C-003: Mismatch
+    existence fail: key not found in stated complete destination
+    uniqueness unknown: insufficient evidence
+    field:phone unknown: insufficient evidence
+    field:email unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

@@ -1,0 +1,1 @@
+refused: HubSpot contacts: page 1 has a record without the property 'email'; HubSpot leaves out a property the object does not have

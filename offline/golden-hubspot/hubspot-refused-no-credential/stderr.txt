@@ -1,0 +1,1 @@
+refused: no credential: set FLOWASSERT_HUBSPOT_TOKEN to a private app access token with the scope crm.objects.contacts.read only

@@ -1,0 +1,19 @@
+{
+  "name": "hubspot-refused-endpoint",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email"
+  ],
+  "credential": "token",
+  "env": {
+    "FLOWASSERT_HUBSPOT_TEST_ENDPOINT": "https://api.hubapi.com"
+  }
+}

@@ -1,0 +1,13 @@
+Mismatch: 3 rows of 3
+Verified 0 · Mismatch 0 · Unverified 3
+Destination read by FlowAssert from HubSpot: contacts, 4 records in 1 pages, from 2000-01-01T00:00:00Z to 2000-01-01T00:00:00Z; archived records were not read.
+This lists what the token could see at that time; it does not show that the object is complete.
+Destination coverage not established: absence and uniqueness stay unknown.
+Destination-only: 1 records not in the source, each a Mismatch.
+  record 1 [redacted]: Unverified
+    uniqueness unknown: insufficient evidence
+  record 2 [redacted]: Unverified
+    uniqueness unknown: insufficient evidence
+  record 3 [redacted]: Unverified
+    uniqueness unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

@@ -434,6 +434,9 @@ export function BackToSaved() {
   );
 }
 
+/** "1 record", "3 records". */
+const countOf = (n: number, noun: string) => (n === 1 ? `1 ${noun}` : `${n.toLocaleString("en-US")} ${noun}s`);
+
 /** Every record of a saved report, in the result explorer; its view is in the address, so it can be linked. */
 function SavedRecords({ report, id, problemCount }: { report: SavedReport; id: string; problemCount: number }) {
   const store = useMemo(() => storeOfSaved(report), [report]);
@@ -660,10 +663,30 @@ export function SavedReportPage({ id }: { id: string }) {
                   </dd>
                 </>
               )}
-              <dt className="text-ink-3">Destination file</dt>
-              <dd className="min-w-0">
-                <Value className="text-ink-2">{report.inputs.destination_sha256}</Value>
-              </dd>
+              {report.inputs.destination_hubspot ? (
+                <>
+                  <dt className="text-ink-3">Destination read</dt>
+                  <dd className="min-w-0" data-testid="saved-destination-hubspot">
+                    <span>{`Listed by FlowAssert from HubSpot's contacts, read-only: ${countOf(report.inputs.destination_hubspot.rows, "record")} in ${countOf(report.inputs.destination_hubspot.pages, "page")}, archived records not read.`}</span>{" "}
+                    <span className="text-ink-3">This does not show that the object is complete.</span>
+                  </dd>
+                  <dt className="text-ink-3">Read</dt>
+                  <dd className="min-w-0">
+                    <Value className="text-ink-2">{`${report.inputs.destination_hubspot.read_at} – ${report.inputs.destination_hubspot.read_finished_at}`}</Value>
+                  </dd>
+                  <dt className="text-ink-3">Destination rows digest</dt>
+                  <dd className="min-w-0">
+                    <Value className="text-ink-2">{report.inputs.destination_sha256}</Value> <span>(canonical form)</span>
+                  </dd>
+                </>
+              ) : (
+                <>
+                  <dt className="text-ink-3">Destination file</dt>
+                  <dd className="min-w-0">
+                    <Value className="text-ink-2">{report.inputs.destination_sha256}</Value>
+                  </dd>
+                </>
+              )}
             </dl>
             <div className="mt-4">{actions}</div>
             {deleted && !deleted.ok && (

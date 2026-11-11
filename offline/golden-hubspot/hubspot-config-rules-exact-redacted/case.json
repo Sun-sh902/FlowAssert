@@ -1,0 +1,17 @@
+{
+  "name": "hubspot-config-rules-exact-redacted",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--config",
+    "config.json",
+    "--source-complete",
+    "--details",
+    "all",
+    "--redact-values"
+  ],
+  "credential": "token",
+  "env": {}
+}

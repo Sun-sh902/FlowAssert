@@ -1,0 +1,19 @@
+{
+  "name": "hubspot-refused-timeout-without-hubspot",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "source.csv",
+    "--destination-timeout",
+    "5",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email"
+  ],
+  "credential": "token",
+  "env": {}
+}

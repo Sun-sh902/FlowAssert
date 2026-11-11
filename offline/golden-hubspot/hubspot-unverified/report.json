@@ -1,0 +1,174 @@
+{
+  "schema_version": 3,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 3,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "destination_complete_stated": false,
+    "destination_hubspot": {
+      "archived_excluded": true,
+      "canonical_form": "flowassert-hubspot-csv-1",
+      "object": "contacts",
+      "page_limit": 100,
+      "pages": 2,
+      "properties": [
+        "external_id",
+        "phone",
+        "email"
+      ],
+      "read_at": "2000-01-01T00:00:00Z",
+      "read_by": "FlowAssert",
+      "read_finished_at": "2000-01-01T00:00:00Z",
+      "rows": 3,
+      "service": "HubSpot CRM API v3"
+    },
+    "destination_sha256": "5a2e6dbf66fdec8fcc66a10c1cff8af2405d221593b773c0bc17323a5a31f0e8",
+    "identical_content": false,
+    "source_complete_stated": false,
+    "source_sha256": "1fa06dbc0eb279814ff4a276a0ed5ae811018527e0242051df9596c305232e37"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ],
+      [
+        "email",
+        "email"
+      ]
+    ],
+    "key": [
+      "external_id",
+      "external_id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "C-001",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "c001@example.test",
+          "expected": "c001@example.test",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "+1 555 0100 001",
+          "expected": "+1 555 0100 001",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "C-002",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "c002@example.test",
+          "expected": "c002@example.test",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "+1 555 0100 002",
+          "expected": "+1 555 0100 002",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "C-003",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "c003@example.test",
+          "expected": "c003@example.test",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "+1 555 0100 003",
+          "expected": "+1 555 0100 003",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

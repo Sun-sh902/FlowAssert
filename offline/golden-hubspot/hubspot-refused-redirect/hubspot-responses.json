@@ -1,0 +1,9 @@
+[
+  {
+    "status": 301,
+    "text": "",
+    "headers": {
+      "Location": "https://api.hubapi.example.test/moved"
+    }
+  }
+]

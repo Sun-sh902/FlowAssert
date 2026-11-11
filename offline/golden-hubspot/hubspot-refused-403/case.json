@@ -1,0 +1,17 @@
+{
+  "name": "hubspot-refused-403",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email"
+  ],
+  "credential": "token",
+  "env": {}
+}

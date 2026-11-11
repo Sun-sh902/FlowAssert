@@ -1,0 +1,151 @@
+{
+  "schema_version": 3,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 3,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_hubspot": {
+      "archived_excluded": true,
+      "canonical_form": "flowassert-hubspot-csv-1",
+      "object": "contacts",
+      "page_limit": 100,
+      "pages": 2,
+      "properties": [
+        "external_id",
+        "phone",
+        "email"
+      ],
+      "read_at": "2000-01-01T00:00:00Z",
+      "read_by": "FlowAssert",
+      "read_finished_at": "2000-01-01T00:00:00Z",
+      "rows": 3,
+      "service": "HubSpot CRM API v3"
+    },
+    "destination_sha256": "300881aebf3466d732bdfaf699c4cf9e421898342431db55106ed8a6e90047d2",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "1fa06dbc0eb279814ff4a276a0ed5ae811018527e0242051df9596c305232e37"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ],
+      [
+        "email",
+        "email"
+      ]
+    ],
+    "key": [
+      "external_id",
+      "external_id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "C-001",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "c001@example.test",
+          "expected": "c001@example.test",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "",
+          "expected": "+1 555 0100 001",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "C-002",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "",
+          "expected": "c002@example.test",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "actual": "+1 555 0100 002",
+          "expected": "+1 555 0100 002",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    },
+    {
+      "key": "C-003",
+      "source_row": 2,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

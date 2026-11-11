@@ -1,0 +1,11 @@
+[
+  {
+    "status": 400,
+    "json": {
+      "status": "error",
+      "message": "Synthetic error from the local fake.",
+      "correlationId": "00000000-fake",
+      "category": "VALIDATION_ERROR"
+    }
+  }
+]

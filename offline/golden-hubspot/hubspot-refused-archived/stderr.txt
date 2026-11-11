@@ -1,0 +1,1 @@
+refused: HubSpot contacts: page 1 lists an archived record, and the read asked for none

@@ -20,6 +20,7 @@ vi.mock("../i18n/locale", () => ({ useLocale: () => "zh-CN", pageLocale: () => "
 const read = (path: string) => readFileSync(join(REPO_ROOT, path), "utf-8");
 const CLI = read("offline/flowassert_offline/cli.py");
 const SHEETS = read("offline/flowassert_offline/sheets.py");
+const HUBSPOT = read("offline/flowassert_offline/hubspot.py");
 const EVALUATOR = read("offline/flowassert_offline/evaluator_v2.py");
 const CSV = read("ui/src/offline/csv.ts");
 
@@ -92,6 +93,13 @@ const SAMPLES: Record<string, string[]> = {
   "{before['modified_time']}": ["2026-11-05T08:00:00.000Z", "None"],
   "{after['version']}": ["58"],
   "{after['modified_time']}": ["2026-11-05T08:00:01.000Z"],
+  // The HubSpot Contacts destination (hubspot.py, and its options in cli.py).
+  "{WHAT}": ["HubSpot contacts"],
+  "{TOKEN_VARIABLE}": ["FLOWASSERT_HUBSPOT_TOKEN"],
+  "{ENDPOINT_VARIABLE}": ["FLOWASSERT_HUBSPOT_TEST_ENDPOINT"],
+  "{page}": ["1", "12"],
+  "{first}": ["3"],
+  "{PAGE_LIMIT}": ["100"],
 };
 
 /** Every message a template can give, or an error naming an expression with no samples. */
@@ -127,7 +135,11 @@ function expand(template: string): string[] {
 
 describe("every message in the sources has an explanation", () => {
   // sheets.py also builds refusals that a caller raises: return Refused(…).
-  const refusals = [...literalsAfter(CLI, /raise Refused\(/g), ...literalsAfter(SHEETS, /(?:raise|return) Refused\(/g)];
+  const refusals = [
+    ...literalsAfter(CLI, /raise Refused\(/g),
+    ...literalsAfter(SHEETS, /(?:raise|return) Refused\(/g),
+    ...literalsAfter(HUBSPOT, /(?:raise|return) Refused\(/g),
+  ];
 
   test("the scan finds the command line's refusals, the reasons and the CSV errors", () => {
     expect(refusals.length).toBeGreaterThan(35);
@@ -186,10 +198,12 @@ describe("every message in the sources has an explanation", () => {
 });
 
 describe("every golden summary line and refusal has an explanation", () => {
-  const GOLDEN = join(REPO_ROOT, "offline/golden");
-  const names = readdirSync(GOLDEN).sort();
+  const ROOTS = ["offline/golden", "offline/golden-sheets", "offline/golden-hubspot"];
+  const names = ROOTS.flatMap((root) => readdirSync(join(REPO_ROOT, root)).sort().map((n) => `${root}/${n}`));
 
-  test.each(names)("%s", (name) => {
+  test.each(names)("%s", (path) => {
+    const GOLDEN = join(REPO_ROOT, path, "..");
+    const name = path.split("/").pop()!;
     const stdout = readFileSync(join(GOLDEN, name, "stdout.txt"), "utf-8");
     for (const line of stdout.split("\n").filter(Boolean)) expect(glossOf(line), line).not.toBeNull();
     const stderr = readFileSync(join(GOLDEN, name, "stderr.txt"), "utf-8").trim();
@@ -202,7 +216,7 @@ describe("every golden summary line and refusal has an explanation", () => {
   });
 
   test("the summary's explanations, one per kind of line", () => {
-    const lines = summaryGlosses(readFileSync(join(GOLDEN, "example", "stdout.txt"), "utf-8"));
+    const lines = summaryGlosses(readFileSync(join(REPO_ROOT, "offline/golden", "example", "stdout.txt"), "utf-8"));
     // Three record lines share one explanation.
     expect(lines.filter((l) => l.line.startsWith("  record"))).toHaveLength(1);
     expect(lines[0]!.zh).toBe("批次结果：不一致。来源有 4 行，总数 4。");

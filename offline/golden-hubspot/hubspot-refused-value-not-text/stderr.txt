@@ -1,0 +1,1 @@
+refused: HubSpot contacts: page 1 has a property value that is not text

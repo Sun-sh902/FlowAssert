@@ -1,0 +1,20 @@
+[
+  {
+    "status": 200,
+    "json": {
+      "results": [
+        {
+          "id": "5101",
+          "properties": {
+            "external_id": "C-001",
+            "phone": 15550100001,
+            "email": "c001@example.test"
+          },
+          "createdAt": "2026-11-01T09:00:00.000Z",
+          "updatedAt": "2026-11-01T09:00:00.000Z",
+          "archived": false
+        }
+      ]
+    }
+  }
+]

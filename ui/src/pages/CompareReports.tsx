@@ -54,6 +54,7 @@ const REFUSAL_TEXT: Record<NotComparableCode, string> = {
   "different-scope": "The scope differs.",
   "different-comparison": "The comparison differs.",
   "different-source": "The source differs: a CSV file in one report and a Google Sheets range in the other, or two different ranges.",
+  "different-destination": "The destination differs: a CSV file in one report and the contacts FlowAssert listed from HubSpot in the other.",
   redacted: "A report is redacted, so its keys cannot be matched.",
   "same-report": "The two are the same report.",
 };

@@ -1,0 +1,1 @@
+refused: HubSpot contacts: page 2 repeats an earlier paging cursor

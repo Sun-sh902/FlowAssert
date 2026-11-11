@@ -4,7 +4,8 @@
  * explanation from this table (components/report/Gloss.tsx). The catalogue in zh-CN.ts translates interface text in
  * place; this table never replaces a text, it only explains it.
  *
- * The table covers every refusal message of offline/flowassert_offline/cli.py, sheets.py (the Google Sheets source of
+ * The table covers every refusal message of offline/flowassert_offline/cli.py, hubspot.py (the HubSpot Contacts
+ * destination of the command line), sheets.py (the Google Sheets source of
  * the command line) and ui/src/offline/csv.ts, every reason of evaluator_v2.py, the claim, the limitations and the lines
  * of the printed summary. A test scans the Python sources (src/test/english-texts.test.ts), so a new message without
  * an explanation fails it.
@@ -201,9 +202,110 @@ const SHEET_REFUSALS: readonly Entry[] = [
   ],
 ];
 
+const HS = "HubSpot contacts";
+const hsNoConclusion = "没有写报告，也没有得出任何结论。";
+
+/**
+ * Refusals of the HubSpot Contacts destination (offline/flowassert_offline/hubspot.py and its options in cli.py). The
+ * read lists the records page by page; anything in doubt is refused rather than partly used.
+ */
+const HUBSPOT_REFUSALS: readonly Entry[] = [
+  ["hubspot-timeout-option", /^--destination-timeout needs --destination-hubspot$/, () => "--destination-timeout 只能和 --destination-hubspot 一起使用。"],
+  ["hubspot-and-destination", /^--destination and --destination-hubspot cannot be combined$/, () => "--destination 和 --destination-hubspot 不能同时使用：目标要么是一个文件，要么从 HubSpot 读取。"],
+  ["hubspot-object", /^--destination-hubspot must be contacts$/, () => "--destination-hubspot 目前只能是 contacts（联系人）。"],
+  ["hubspot-encoding", /^--destination-encoding does not apply to a HubSpot destination$/, () => "--destination-encoding 不适用于 HubSpot 目标：从 API 读到的是文本，没有文件编码。"],
+  [
+    "hubspot-property",
+    /^HubSpot property name (.+) must be letters, digits and _, at most 100 characters$/s,
+    (n) => `HubSpot 属性名 ${n} 只能包含字母、数字和 _，最多 100 个字符，这样它不会改变请求。请使用属性的内部名称，例如 email 或 hs_object_id。`,
+  ],
+  [
+    "hubspot-no-credential",
+    /^no credential: set FLOWASSERT_HUBSPOT_TOKEN to a private app access token with the scope crm\.objects\.contacts\.read only$/,
+    () => "没有凭证：请把 FLOWASSERT_HUBSPOT_TOKEN 设置为一个私有应用的访问令牌，只授予 crm.objects.contacts.read 这一个权限范围。",
+  ],
+  [
+    "hubspot-bad-credential",
+    /^FLOWASSERT_HUBSPOT_TOKEN does not hold a credential: printable ASCII without spaces, at most 4096 characters$/,
+    () => "FLOWASSERT_HUBSPOT_TOKEN 中的内容不像凭证：应当是不含空格的可打印 ASCII 字符，最多 4096 个。这里不会显示它的内容。",
+  ],
+  [
+    "hubspot-test-endpoint",
+    /^FLOWASSERT_HUBSPOT_TEST_ENDPOINT must be http:\/\/127\.0\.0\.1:PORT or http:\/\/\[::1\]:PORT; it is for tests only$/,
+    () => "FLOWASSERT_HUBSPOT_TEST_ENDPOINT 只能是 http://127.0.0.1:端口 或 http://[::1]:端口，它只用于测试。",
+  ],
+  ["hubspot-http-400", new RegExp(`^${HS}: the request was not accepted \\(HTTP 400( [A-Z_]+)?\\)$`), (c) => `读取 HubSpot 联系人时，请求没有被接受（HTTP 400${c ?? ""}）。${hsNoConclusion}`],
+  [
+    "hubspot-http-401",
+    new RegExp(`^${HS}: the credential was not accepted \\(HTTP 401( [A-Z_]+)?\\); it may have expired or been rotated$`),
+    (c) => `读取 HubSpot 联系人时，凭证没有被接受（HTTP 401${c ?? ""}）；它可能已经过期或被轮换。${hsNoConclusion}`,
+  ],
+  [
+    "hubspot-http-403",
+    new RegExp(`^${HS}: access was denied \\(HTTP 403( [A-Z_]+)?\\); the token may lack the scope crm\\.objects\\.contacts\\.read$`),
+    (c) => `读取 HubSpot 联系人时，访问被拒绝（HTTP 403${c ?? ""}）；令牌可能没有 crm.objects.contacts.read 权限范围。${hsNoConclusion}`,
+  ],
+  ["hubspot-http-404", new RegExp(`^${HS}: not found \\(HTTP 404( [A-Z_]+)?\\)$`), (c) => `读取 HubSpot 联系人时，没有找到（HTTP 404${c ?? ""}）。${hsNoConclusion}`],
+  [
+    "hubspot-http-429",
+    new RegExp(`^${HS}: rate limited \\(HTTP 429( [A-Z_]+)?\\); FlowAssert does not retry: wait, then run the check again$`),
+    (c) => `读取 HubSpot 联系人时，请求过于频繁被限流（HTTP 429${c ?? ""}）。FlowAssert 不会自动重试：请稍等，再运行一次核对。${hsNoConclusion}`,
+  ],
+  [
+    "hubspot-http-5xx",
+    new RegExp(`^${HS}: server error \\(HTTP (\\d+)( [A-Z_]+)?\\); FlowAssert does not retry: run the check again later$`),
+    (n, c) => `读取 HubSpot 联系人时，服务器出错（HTTP ${n}${c ?? ""}）。FlowAssert 不会自动重试：请稍后再运行一次核对。${hsNoConclusion}`,
+  ],
+  ["hubspot-http-other", new RegExp(`^${HS}: unexpected response \\(HTTP (\\d+)( [A-Z_]+)?\\)$`), (n, c) => `读取 HubSpot 联系人时，收到了意料之外的响应（HTTP ${n}${c ?? ""}）。${hsNoConclusion}`],
+  [
+    "hubspot-redirect",
+    new RegExp(`^${HS}: redirected \\(HTTP (3\\d\\d)\\), and FlowAssert does not follow redirects$`),
+    (n) => `读取 HubSpot 联系人时被重定向（HTTP ${n}），而 FlowAssert 不跟随重定向。${hsNoConclusion}`,
+  ],
+  ["hubspot-tls", new RegExp(`^${HS}: the server's TLS certificate could not be verified$`), () => `读取 HubSpot 联系人时，无法验证服务器的 TLS 证书。${hsNoConclusion}`],
+  [
+    "hubspot-timeout",
+    new RegExp(`^${HS}: no complete response within (\\d+) seconds; FlowAssert does not retry$`),
+    (n) => `读取 HubSpot 联系人时，${n} 秒内没有收到完整的响应。FlowAssert 不会自动重试。${hsNoConclusion}`,
+  ],
+  ["hubspot-connection", new RegExp(`^${HS}: the connection failed$`), () => `读取 HubSpot 联系人时，连接失败（例如无法解析域名、无法连接或 TLS 出错）。${hsNoConclusion}`],
+  ["hubspot-max-bytes", new RegExp(`^${HS}: response exceeds --max-bytes limit of (\\d+)$`), (n) => `读取 HubSpot 联系人时，一页响应的大小超过了 --max-bytes 上限 ${n}。${hsNoConclusion}`],
+  [
+    "hubspot-not-json",
+    new RegExp(`^${HS}: the response is not the JSON the API documents \\((.+)\\)$`, "s"),
+    (d) => `读取 HubSpot 联系人时，响应不是 API 文档所描述的 JSON（${d}）。${hsNoConclusion}`,
+  ],
+  ["hubspot-too-many", new RegExp(`^${HS}: page (\\d+) has more than (\\d+) records$`), (p, n) => `读取 HubSpot 联系人时，第 ${p} 页的记录超过了请求的 ${n} 条。${hsNoConclusion}`],
+  [
+    "hubspot-archived",
+    new RegExp(`^${HS}: page (\\d+) lists an archived record, and the read asked for none$`),
+    (p) => `读取 HubSpot 联系人时，第 ${p} 页列出了一条已归档的记录，而这次读取要求不包括已归档记录。${hsNoConclusion}`,
+  ],
+  [
+    "hubspot-missing-property",
+    new RegExp(`^${HS}: page (\\d+) has a record without the property (.+); HubSpot leaves out a property the object does not have$`, "s"),
+    (p, n) => `读取 HubSpot 联系人时，第 ${p} 页有一条记录没有属性 ${n}。HubSpot 不返回对象中不存在的属性，所以这个名字很可能不是联系人的属性；这与 CSV 文件缺少列相同。${hsNoConclusion}`,
+  ],
+  ["hubspot-not-text", new RegExp(`^${HS}: page (\\d+) has a property value that is not text$`), (p) => `读取 HubSpot 联系人时，第 ${p} 页有一个属性值不是文本。${hsNoConclusion}`],
+  [
+    "hubspot-repeated-record",
+    new RegExp(`^${HS}: record ID appears twice \\(pages (\\d+) and (\\d+)\\): the list changed while it was read; run the check again$`),
+    (a, b) => `读取 HubSpot 联系人时，同一个记录 ID 出现了两次（第 ${a} 页和第 ${b} 页）：列表在读取期间发生了变化。请再运行一次核对。${hsNoConclusion}`,
+  ],
+  [
+    "hubspot-cursor",
+    new RegExp(`^${HS}: page (\\d+) gives a paging cursor that FlowAssert cannot send back unchanged$`),
+    (p) => `读取 HubSpot 联系人时，第 ${p} 页给出的分页游标含有 FlowAssert 无法原样发回的字符。${hsNoConclusion}`,
+  ],
+  ["hubspot-repeated-cursor", new RegExp(`^${HS}: page (\\d+) repeats an earlier paging cursor$`), (p) => `读取 HubSpot 联系人时，第 ${p} 页重复了之前给过的分页游标，页面会循环。${hsNoConclusion}`],
+  ["hubspot-empty-page", new RegExp(`^${HS}: page (\\d+) has a next page and no records$`), (p) => `读取 HubSpot 联系人时，第 ${p} 页说还有下一页，却没有记录。${hsNoConclusion}`],
+  ["hubspot-max-rows", new RegExp(`^${HS}: exceeds --max-rows limit of (\\d+)$`), (n) => `HubSpot 列出的联系人超过了 --max-rows 上限 ${n}，没有再请求后面的页。${hsNoConclusion}`],
+];
+
 /** Refusals, as the command line prints them after "refused: ". The most specific come first. */
 const REFUSALS: readonly Entry[] = [
   ...SHEET_REFUSALS,
+  ...HUBSPOT_REFUSALS,
   ["same-file", /^source and destination are the same file, so the check would not be independent$/, () => "来源和目标是同一个文件，这样的核对不独立。"],
   [
     "identical-content",
@@ -314,6 +416,21 @@ const SUMMARY: readonly Entry[] = [
     (r) => `这次读取无法对应到某个版本：${r === "not requested (--skip-source-revision)" ? "没有请求版本信息（--skip-source-revision）" : r === "Google Drive returned no version" ? "Google 云端硬盘没有返回版本号" : r}。`,
   ],
   ["summary-destination-count", /^Destination count stated (\d+), file has (\d+) rows: absence and uniqueness stay unknown\.$/, (s, o) => `声明的目标总数是 ${s}，文件中有 ${o} 行：缺失和唯一性保持未知。`],
+  [
+    "summary-hubspot-count",
+    /^Destination count stated (\d+), HubSpot listed (\d+) records: absence and uniqueness stay unknown\.$/,
+    (s, o) => `声明的目标总数是 ${s}，HubSpot 列出了 ${o} 条记录：缺失和唯一性保持未知。`,
+  ],
+  [
+    "summary-hubspot-read",
+    /^Destination read by FlowAssert from HubSpot: (\w+), (\d+) records in (\d+) pages, from (\S+) to (\S+); archived records were not read\.$/,
+    (o, n, p, a, b) => `目标由 FlowAssert 从 HubSpot 读取：${o === "contacts" ? "联系人" : o}，共 ${n} 条记录，分 ${p} 页，从 ${a} 到 ${b}；没有读取已归档的记录。`,
+  ],
+  [
+    "summary-hubspot-not-complete",
+    /^This lists what the token could see at that time; it does not show that the object is complete\.$/,
+    () => "这只列出了令牌在那段时间能看到的记录；它不能说明对象是完整的：令牌看不到的记录、读取期间变化的记录和已归档的记录都不在其中。",
+  ],
   ["summary-population", /^Source population unknown: the batch cannot be Verified\.$/, () => "来源总体未知：这一批不能是已验证。"],
   ["summary-coverage", /^Destination coverage not established: absence and uniqueness stay unknown\.$/, () => "目标覆盖未确立：缺失和唯一性保持未知。"],
   ["summary-only-none", /^Destination-only: 0 records not in the source\.$/, () => "仅在目标中：0 条记录不在来源中。"],

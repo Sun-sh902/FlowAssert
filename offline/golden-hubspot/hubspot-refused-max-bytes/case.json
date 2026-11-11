@@ -1,0 +1,19 @@
+{
+  "name": "hubspot-refused-max-bytes",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email",
+    "--max-bytes",
+    "300"
+  ],
+  "credential": "token",
+  "env": {}
+}

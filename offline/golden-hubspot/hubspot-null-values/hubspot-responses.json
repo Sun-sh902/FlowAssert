@@ -1,0 +1,55 @@
+[
+  {
+    "status": 200,
+    "json": {
+      "results": [
+        {
+          "id": "5101",
+          "properties": {
+            "external_id": "C-001",
+            "phone": null,
+            "email": "c001@example.test"
+          },
+          "createdAt": "2026-11-01T09:00:00.000Z",
+          "updatedAt": "2026-11-01T09:00:00.000Z",
+          "archived": false
+        },
+        {
+          "id": "5102",
+          "properties": {
+            "external_id": "C-002",
+            "phone": "+1 555 0100 002",
+            "email": null
+          },
+          "createdAt": "2026-11-01T09:00:00.000Z",
+          "updatedAt": "2026-11-01T09:00:00.000Z",
+          "archived": false
+        }
+      ],
+      "paging": {
+        "next": {
+          "after": "5103",
+          "link": "https://api.hubapi.example.test/next"
+        }
+      }
+    }
+  },
+  {
+    "status": 200,
+    "json": {
+      "results": [
+        {
+          "id": "5103",
+          "properties": {
+            "external_id": "C-003",
+            "phone": "+1 555 0100 003",
+            "email": "c003@example.test"
+          },
+          "createdAt": "2026-11-01T09:00:00.000Z",
+          "updatedAt": "2026-11-01T09:00:00.000Z",
+          "archived": false
+        }
+      ]
+    }
+  }
+]

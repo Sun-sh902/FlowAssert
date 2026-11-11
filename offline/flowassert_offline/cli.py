@@ -1,5 +1,6 @@
 """Compare a source CSV with a destination CSV export. Local files only, and no network, unless --source-sheet
-reads the source from a Google Sheets range, read-only (docs/connectors/google-sheets.md).
+reads the source from a Google Sheets range, read-only (docs/connectors/google-sheets.md), or --destination-hubspot
+reads the destination from HubSpot's contacts, read-only (docs/connectors/hubspot.md).
 
     flowassert-verify --source leads.csv --destination contacts.csv \\
         --key external_id --field phone --field email:hs_email \\
@@ -17,7 +18,7 @@ import json
 import os
 import sys
 
-from . import __version__, chardiff, sheets
+from . import __version__, chardiff, hubspot, sheets
 from .errors import Refused
 from .evaluator_v2 import DETAILS, SCOPES, STATES, evaluate, parse_rule
 
@@ -28,6 +29,9 @@ MAX_DETAILS = 50
 SCHEMA_VERSION = 1
 # A report whose source is a Google Sheets range: three members of version 1 mean something else for it.
 SHEET_SCHEMA_VERSION = 2
+# A report whose destination was read from HubSpot: its destination digest, row count and completeness statement are
+# about the records the API listed, not about a file.
+HUBSPOT_SCHEMA_VERSION = 3
 CLAIM = ("At this evaluation, under the stated premises, the supplied destination rows satisfy the rules "
          "for the supplied source rows.")
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
@@ -301,6 +305,23 @@ def _sheet_source(args, max_bytes):
                               revision=not args.skip_source_revision)
 
 
+def _hubspot_destination(args, max_bytes):
+    """The HubSpot destination the options name, checked and with the credential read, or None for a file."""
+    if args.destination_hubspot is None:
+        if args.destination_timeout is not None:
+            raise Refused("--destination-timeout needs --destination-hubspot")
+        return None
+    if args.destination is not None:
+        raise Refused("--destination and --destination-hubspot cannot be combined")
+    if args.destination_hubspot not in hubspot.OBJECTS:
+        raise Refused("--destination-hubspot must be contacts")
+    if args.destination_encoding is not None:
+        raise Refused("--destination-encoding does not apply to a HubSpot destination")
+    timeout = (hubspot.TIMEOUT if args.destination_timeout is None
+               else _int_arg("--destination-timeout", args.destination_timeout, 1))
+    return hubspot.HubSpotDestination(args.destination_hubspot, max_bytes=max_bytes, timeout=timeout)
+
+
 def run(args):
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
@@ -311,14 +332,20 @@ def run(args):
     source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
     destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
     sheet = _sheet_source(args, max_bytes)
+    crm = _hubspot_destination(args, max_bytes)
     key, fields, scope, selection_sha = _selection(args, max_bytes)
     if len({s for s, _, _ in fields}) != len(fields):
         raise Refused("a source field is repeated")
-    if sheet is None:
+    destination_columns = [key[1]] + [d for _, d, _ in fields]
+    if crm is not None:
+        crm.select(destination_columns, max_rows)
+    if sheet is None and crm is None:
         if os.path.realpath(args.source) == os.path.realpath(args.destination):
             raise Refused("source and destination are the same file, so the check would not be independent")
+    if sheet is None:
         _check_size(args.source, max_bytes)
-    _check_size(args.destination, max_bytes)
+    if crm is None:
+        _check_size(args.destination, max_bytes)
     source_columns = [key[0]] + [s for s, _, _ in fields]
     if sheet is None:
         source = CsvFile(args.source, source_columns, encoding=source_encoding, max_rows=max_rows)
@@ -326,8 +353,10 @@ def run(args):
         sheet.select(source_columns, max_rows)
         sheet.read()
         source = sheet
-    destination = CsvFile(args.destination, [key[1]] + [d for _, d, _ in fields],
-                          encoding=destination_encoding, max_rows=max_rows)
+    if crm is None:
+        destination = CsvFile(args.destination, destination_columns, encoding=destination_encoding, max_rows=max_rows)
+    else:
+        destination = crm
     obligation = {"key": key, "fields": fields, "scope": scope or "source"}
     report = evaluate(obligation, source, destination, source_complete=args.source_complete,
                       destination_complete=args.destination_complete, details=details, **counts)
@@ -337,7 +366,8 @@ def run(args):
             "source and destination have identical content, so the check would not be independent; "
             "pass --allow-identical-content if they really come from different systems"
         )
-    report["schema_version"] = SCHEMA_VERSION if sheet is None else SHEET_SCHEMA_VERSION
+    report["schema_version"] = (HUBSPOT_SCHEMA_VERSION if crm is not None
+                                else SCHEMA_VERSION if sheet is None else SHEET_SCHEMA_VERSION)
     report["details"] = details
     report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     inputs = {"source_sha256": source.sha256, "destination_sha256": destination.sha256,
@@ -347,7 +377,14 @@ def run(args):
     if identical:
         inputs["identical_content_allowed"] = True
     inputs.update(selection_sha)
-    if sheet is not None:
+    if crm is not None:
+        # No destination encoding: the destination is not a file.
+        if sheet is not None:
+            inputs["source_sheet"] = sheet.member
+        elif args.source_encoding is not None:
+            inputs["source_encoding"] = source_encoding
+        inputs["destination_hubspot"] = crm.member
+    elif sheet is not None:
         inputs["source_sheet"] = sheet.member
         if args.destination_encoding is not None:
             inputs["destination_encoding"] = destination_encoding
@@ -396,6 +433,9 @@ def summary(report, max_details=MAX_DETAILS):
     sheet = report.get("inputs", {}).get("source_sheet")
     if sheet is not None:
         yield from sheet_lines(sheet)
+    crm = report.get("inputs", {}).get("destination_hubspot")
+    if crm is not None:
+        yield from hubspot.summary_lines(crm)
     if report.get("inputs", {}).get("identical_content"):
         yield "Source and destination files were identical (--allow-identical-content)."
     premises = report.get("premises", {})
@@ -403,6 +443,9 @@ def summary(report, max_details=MAX_DETAILS):
                                      ("destination_count", "Destination", "absence and uniqueness stay unknown")):
         count = premises.get(name, {})
         if count.get("matched") is False:
+            if crm is not None and name == "destination_count":
+                yield f"{label} count stated {count['stated']}, HubSpot listed {count['observed']} records: {consequence}."
+                continue
             held = "range has" if sheet is not None and name == "source_count" else "file has"
             yield f"{label} count stated {count['stated']}, {held} {count['observed']} rows: {consequence}."
     if not report["source_population_known"]:
@@ -677,6 +720,21 @@ def _write_sheet(sheet, f):
     f.write("</table>\n</section>\n")
 
 
+def _write_hubspot(crm, f):
+    f.write("<section>\n<h2>Destination read from HubSpot</h2>\n"
+            "<p>FlowAssert listed the records itself, read-only, page by page, so no export step could filter, cut "
+            "them short or edit them. The read shows which records the API listed to this token at that time. It does "
+            "not show that the object is complete:</p>\n<ul>\n<li>records the token cannot see are not listed;</li>\n"
+            "<li>records changed during the read may be missed;</li>\n<li>archived records are not read.</li>\n</ul>\n"
+            "<p>That the records cover the whole object is the stated premise destination_complete.</p>\n")
+    f.write("".join(f"<p>{_h(line)}</p>\n" for line in hubspot.summary_lines(crm)))
+    f.write('<table class="facts">\n')
+    for name, value in crm.items():
+        shown = ", ".join(value) if isinstance(value, list) else value
+        f.write(f"<tr><th>{_h(name)}</th><td>{_h(shown)}</td></tr>\n")
+    f.write("</table>\n</section>\n")
+
+
 def write_html(report, f):
     """Write one self-contained HTML page: no scripts, and no external styles, fonts or images."""
     state = report["cohort_state"]
@@ -752,6 +810,9 @@ def write_html(report, f):
     sheet = report.get("inputs", {}).get("source_sheet")
     if sheet is not None:
         _write_sheet(sheet, f)
+    crm = report.get("inputs", {}).get("destination_hubspot")
+    if crm is not None:
+        _write_hubspot(crm, f)
 
     f.write(f'<section>\n<h2>Limitations</h2>\n<p>{_h(report.get("limitations"))}</p>\n<table class="facts">\n')
     for name in ("workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"):
@@ -760,7 +821,7 @@ def write_html(report, f):
 
     f.write('<section>\n<h2>Inputs</h2>\n<table class="facts">\n')
     for name, value in report.get("inputs", {}).items():
-        if name == "source_sheet":
+        if name in ("source_sheet", "destination_hubspot"):
             continue
         f.write(f"<tr><th>{_h(name)}</th><td>{_h(value)}</td></tr>\n")
     for name, value in report.get("obligation", {}).items():
@@ -807,6 +868,10 @@ def main(argv=None):
                         help=f"with --source-sheet: the longest each request may take (default: {sheets.TIMEOUT})")
     parser.add_argument("--skip-source-revision", action="store_true",
                         help="with --source-sheet: do not read the Drive revision; the report says so")
+    parser.add_argument("--destination-hubspot", metavar="OBJECT",
+                        help="read the destination from HubSpot, read-only, in place of --destination: contacts")
+    parser.add_argument("--destination-timeout", metavar="SECONDS",
+                        help=f"with --destination-hubspot: the longest each request may take (default: {hubspot.TIMEOUT})")
     parser.add_argument("--key", help="source column, or source:destination")
     parser.add_argument("--field", action="append", default=[], help="source column, or source:destination; repeatable")
     parser.add_argument("--mapping", metavar="FILE", help="UTF-8 JSON file with key and fields column pairs")
@@ -836,7 +901,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     # As argparse words it for a required option: --source-sheet stands in for --source.
     missing = [option for option, absent in (("--source", args.source is None and args.source_sheet is None),
-                                             ("--destination", args.destination is None)) if absent]
+                                             ("--destination", args.destination is None
+                                              and args.destination_hubspot is None)) if absent]
     if missing:
         parser.error(f"the following arguments are required: {', '.join(missing)}")
     try:

@@ -1,0 +1,1 @@
+refused: HubSpot contacts: redirected (HTTP 301), and FlowAssert does not follow redirects

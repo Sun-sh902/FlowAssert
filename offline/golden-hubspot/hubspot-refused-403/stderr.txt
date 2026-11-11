@@ -1,0 +1,1 @@
+refused: HubSpot contacts: access was denied (HTTP 403 MISSING_SCOPES); the token may lack the scope crm.objects.contacts.read

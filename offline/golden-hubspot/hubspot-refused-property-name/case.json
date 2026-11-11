@@ -1,0 +1,15 @@
+{
+  "name": "hubspot-refused-property-name",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone:phone&archived=true"
+  ],
+  "credential": "token",
+  "env": {}
+}

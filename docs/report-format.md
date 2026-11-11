@@ -16,9 +16,9 @@ The report never claims more than its evidence. A member that FlowAssert could n
 
 `schema_version` is the first member. It changes when a member is removed or renamed, or when the meaning of a value changes. New members can be added without a change, so a reader should ignore members it does not know.
 
-From 1.0.0 the format is frozen: a released `schema_version` is never changed, and [Compatibility in 1.x](compatibility.md) says what a later release may add and what a reader must do with a version it does not know. Each version has a JSON Schema (draft 2020-12) in [docs/schema/](schema/), `report-v1.schema.json` and `report-v2.schema.json`; every golden report is validated against its schema in the tests. [The specification](spec/verification.md) says how each value comes about.
+From 1.0.0 the format is frozen: a released `schema_version` is never changed, and [Compatibility in 1.x](compatibility.md) says what a later release may add and what a reader must do with a version it does not know. Each version has a JSON Schema (draft 2020-12) in [docs/schema/](schema/), `report-v1.schema.json`, `report-v2.schema.json` and `report-v3.schema.json`; every golden report is validated against its schema in the tests. [The specification](spec/verification.md) says how each value comes about.
 
-A report whose source is a Google Sheets range (`--source-sheet`, 0.7.0 and later) has `schema_version` 2, because three members of version 1 mean something else for it; every other report is version 1. A reader that knows only version 1 refuses a version 2 report, rather than show the sheet's rows as a file.
+A report whose source is a Google Sheets range (`--source-sheet`, 0.7.0 and later) has `schema_version` 2, because three members of version 1 mean something else for it; every other report is version 1. A reader that knows only version 1 refuses a version 2 report, rather than show the sheet's rows as a file. A report whose destination was read from HubSpot (`--destination-hubspot`, 1.0.0 and later) has `schema_version` 3, for the same reason on the destination side; a reader that knows only versions 1 and 2 refuses it.
 
 Reports from FlowAssert 0.1.x have no `schema_version`. They have the same members as a 0.2.0 report run with `--details all`, except `schema_version`, `details` and `premises`, and their `claim` text is shorter.
 
@@ -30,7 +30,8 @@ Reports from FlowAssert 0.1.x have no `schema_version`. They have the same membe
 | `inputs.mapping_file_sha256` | `--mapping` was used |
 | `inputs.config_file_sha256` | `--config` was used |
 | `inputs.source_encoding`, `inputs.destination_encoding` | `--source-encoding` or `--destination-encoding` was passed. Both are recorded; with a sheet source, only `destination_encoding` |
-| `inputs.source_sheet` | The source is a Google Sheets range (`--source-sheet`); `schema_version` is then 2 |
+| `inputs.source_sheet` | The source is a Google Sheets range (`--source-sheet`); `schema_version` is then 2, or 3 with a HubSpot destination |
+| `inputs.destination_hubspot` | The destination was read from HubSpot (`--destination-hubspot`); `schema_version` is then 3 |
 | `obligation.rules` | `--config` was used |
 | `obligation.scope` | `--scope` was passed, or the configuration file has `scope` |
 | `premises.allow_identical_content` | `--allow-identical-content` was passed |
@@ -199,6 +200,43 @@ The report never records the credential, the account or the spreadsheet's title.
 
 UTF-8 without a byte order mark. The header row, then every data row padded with empty strings to the header's width, each followed by a line feed (also the last). Cells are separated by commas. A cell is written in double quotes, with each `"` inside doubled, when it contains `,`, `"`, a carriage return or a line feed, or when it is the only cell of its row and is empty; every other cell is written as it is. `flowassert-verify --source` reads this text as exactly the rows the sheet gave.
 
+## A report from a HubSpot destination
+
+From 1.0.0, `flowassert-verify --destination-hubspot contacts` lists the destination records from HubSpot's contacts, read-only, page by page, in place of a destination file ([the design note](connectors/hubspot.md)). Its report has `schema_version` 3, and every member of version 1 with the same meaning, except:
+
+| Member | In version 3 |
+| --- | --- |
+| `inputs.destination_sha256` | SHA-256 of the canonical form of the records listed (`flowassert-hubspot-csv-1`, below), not of a file's bytes |
+| `premises.destination_count.observed` | The records listed |
+| `premises.destination_complete` | `--destination-complete`: the records listed cover the whole object. Still a statement FlowAssert does not verify |
+| `inputs.destination_encoding` | Never present; `inputs.source_encoding` is present alone when `--source-encoding` was passed for a source file |
+| `inputs.identical_content` | Whether the source and the canonical form have the same SHA-256 |
+| `inputs.destination_hubspot` | What was read, below. Always present |
+| `inputs.source_sheet` | Present when the source was also read from Google Sheets, with its version 2 meaning |
+
+Listing every page shows which records the API listed to this token at that time. It does not show that the object is complete: records the token cannot see, records changed during the read and archived records are not listed. That stays the premise `destination_complete`. The same records give the same rule results, counts and cohort state as a CSV file with the same rows.
+
+### `inputs.destination_hubspot`
+
+| Member | Meaning |
+| --- | --- |
+| `read_by` | Always `FlowAssert`: the records were listed by FlowAssert, not exported by a person. It is not a statement about completeness |
+| `service` | Always `HubSpot CRM API v3` |
+| `object` | Always `contacts` |
+| `properties` | The property names requested, in order: the destination key, then each destination field once |
+| `archived_excluded` | Always `true`: the read asked for `archived=false` |
+| `page_limit` | Always `100` |
+| `pages` | The number of pages read |
+| `rows` | The number of records listed; equal to `premises.destination_count.observed` |
+| `read_at`, `read_finished_at` | When the first request was sent and when the last response had arrived, in UTC ISO 8601 |
+| `canonical_form` | Always `flowassert-hubspot-csv-1` |
+
+The report never records the token, the portal (account) ID, the account's name or a record's URL. `--redact-values` leaves the object and the property names in place: they are not values.
+
+### The canonical form `flowassert-hubspot-csv-1`
+
+The same text as `flowassert-sheet-csv-1`: UTF-8 without a byte order mark; the requested property names as the header, then one row per record in the order listed, a property that is `null` written as an empty cell, each row followed by a line feed (also the last); a cell in double quotes, with each `"` doubled, when it contains `,`, `"`, a carriage return or a line feed, or when it is the only cell of its row and is empty. `flowassert-verify --destination` reads it as exactly the records HubSpot listed.
+
 ## HTML report
 
 `--html PATH` writes one HTML file and, like `--json`, refuses to overwrite an existing file. If either report cannot be written, neither is left behind. It follows `--redact-values`. From 1.0 the page is laid out like the browser check:
@@ -208,7 +246,7 @@ UTF-8 without a byte order mark. The header row, then every data row padded with
 3. The counts.
 4. Every record that is not Verified, as a card with every rule result, its reason and both values. For a field that failed, the compared values are aligned character by character: characters only in the source value are struck through, characters only in the destination value underlined, and characters that cannot be seen are drawn as tokens (`·` a space, `NBSP`, `ZWSP`, `→` a tab, and others). It is labelled: "This highlights where the two values differ. The rule's result above is the conclusion." It is a display aid; the JSON report holds no highlighting.
 5. Every destination-only record, for scope `exact`.
-6. For a report from a Google Sheets source, "Source read from Google Sheets": the members of `inputs.source_sheet`, the revision, and the sentence that the read does not show that the range holds every record that should exist.
+6. For a report from a Google Sheets source, "Source read from Google Sheets", and for one from a HubSpot destination, "Destination read from HubSpot", with the three things the read does not show. For a Google Sheets source: the members of `inputs.source_sheet`, the revision, and the sentence that the read does not show that the range holds every record that should exist.
 7. The limitations, and the inputs with their digests and the obligation.
 
 Every value from a file is escaped. The page has no scripts and loads nothing: its styles are inline, and a Content Security Policy blocks everything else. It works when opened offline, follows the reader's light or dark setting, is readable at phone width, and prints on A4 and Letter with a record card kept on one page when it fits. Python and the browser write the same bytes.

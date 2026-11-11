@@ -1,0 +1,5 @@
+Verified: 3 rows of 3
+Verified 3 · Mismatch 0 · Unverified 0
+Destination read by FlowAssert from HubSpot: contacts, 3 records in 2 pages, from 2000-01-01T00:00:00Z to 2000-01-01T00:00:00Z; archived records were not read.
+This lists what the token could see at that time; it does not show that the object is complete.
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

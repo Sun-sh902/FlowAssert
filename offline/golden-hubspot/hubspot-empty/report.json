@@ -1,0 +1,162 @@
+{
+  "schema_version": 3,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 3,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 3,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_hubspot": {
+      "archived_excluded": true,
+      "canonical_form": "flowassert-hubspot-csv-1",
+      "object": "contacts",
+      "page_limit": 100,
+      "pages": 1,
+      "properties": [
+        "external_id",
+        "phone",
+        "email"
+      ],
+      "read_at": "2000-01-01T00:00:00Z",
+      "read_by": "FlowAssert",
+      "read_finished_at": "2000-01-01T00:00:00Z",
+      "rows": 0,
+      "service": "HubSpot CRM API v3"
+    },
+    "destination_sha256": "6be13bf4e55d8614c77d4ee83458a43811089e30b91f88688be9614dde9e31fd",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "1fa06dbc0eb279814ff4a276a0ed5ae811018527e0242051df9596c305232e37"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ],
+      [
+        "email",
+        "email"
+      ]
+    ],
+    "key": [
+      "external_id",
+      "external_id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 0,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 0,
+      "key": "C-001",
+      "rules": {
+        "existence": {
+          "reason": "key not found in stated complete destination",
+          "status": "fail"
+        },
+        "field:email": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 0,
+      "key": "C-002",
+      "rules": {
+        "existence": {
+          "reason": "key not found in stated complete destination",
+          "status": "fail"
+        },
+        "field:email": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 0,
+      "key": "C-003",
+      "rules": {
+        "existence": {
+          "reason": "key not found in stated complete destination",
+          "status": "fail"
+        },
+        "field:email": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

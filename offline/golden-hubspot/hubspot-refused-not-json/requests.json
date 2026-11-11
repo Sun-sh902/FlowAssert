@@ -1,0 +1,20 @@
+[
+  [
+    "GET",
+    "/crm/v3/objects/contacts",
+    [
+      [
+        "limit",
+        "100"
+      ],
+      [
+        "archived",
+        "false"
+      ],
+      [
+        "properties",
+        "external_id,phone,email"
+      ]
+    ]
+  ]
+]

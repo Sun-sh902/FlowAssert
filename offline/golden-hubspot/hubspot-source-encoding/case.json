@@ -1,0 +1,21 @@
+{
+  "name": "hubspot-source-encoding",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email",
+    "--source-complete",
+    "--destination-complete",
+    "--source-encoding",
+    "utf-8"
+  ],
+  "credential": "token",
+  "env": {}
+}

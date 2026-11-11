@@ -1,0 +1,19 @@
+{
+  "name": "hubspot-refused-with-destination",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination-hubspot",
+    "contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email",
+    "--destination",
+    "source.csv"
+  ],
+  "credential": "token",
+  "env": {}
+}

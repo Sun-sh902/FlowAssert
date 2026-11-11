@@ -1,10 +1,13 @@
 # HubSpot Contacts destination: design note
 
-Status: FlowAssert 1.0.0, command line only. Written before the code, and kept in step with it. Nothing here has been
+English | [简体中文](hubspot.zh-CN.md)
+
+Status: FlowAssert 1.0.0, command line only. Written before the code, and kept in step with it: the code, the golden
+cases in `offline/golden-hubspot/` and `scripts/dev/tests/test_hubspot_destination.py` now follow it. Nothing here has been
 tried against HubSpot: no account was created and no request was sent to HubSpot with a credential. Every statement
 about HubSpot's behaviour comes from HubSpot's public documentation and is marked **[doc]**, with the page in
 [Sources](#sources); a statement the documentation does not settle is marked **[unconfirmed]** and must be confirmed
-by the owner's live check (`scripts/dev/hubspot_live_check.md`). Statements
+by the owner's live check ([scripts/dev/hubspot_live_check.md](../../scripts/dev/hubspot_live_check.md)). Statements
 about what FlowAssert does are about its own code and tests, which run against a local fake of the endpoint.
 
 - [What the read shows, and what it does not](#what-the-read-shows-and-what-it-does-not)
@@ -253,6 +256,11 @@ section, "Destination read from HubSpot", with the same members and the three th
 
 `claim`, `limitations`, `acquisition_authenticity` (`not_authenticated`) and every conclusion are the same as for a
 file.
+
+The browser opens, explains and compares version 3 reports: a saved report's page says that FlowAssert listed the
+records from HubSpot's contacts, read-only, and that this does not show that the object is complete; "What this result
+means" has one more point saying the same; and two reports whose destinations are a file and HubSpot are not compared.
+The browser never sends a request to HubSpot.
 
 ## Sources
 

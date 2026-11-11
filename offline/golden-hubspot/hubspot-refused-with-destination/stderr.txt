@@ -1,0 +1,1 @@
+refused: --destination and --destination-hubspot cannot be combined

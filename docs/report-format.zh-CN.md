@@ -16,9 +16,9 @@
 
 `schema_version` 是第一个成员。成员被删除或改名，或者某个值的含义改变时，它就会改变。新增成员不改变版本，所以读取方应忽略它不认识的成员。
 
-从 1.0.0 起，格式已经冻结：发布过的 `schema_version` 不再改动。[1.x 的兼容性](compatibility.zh-CN.md)说明以后的版本可以新增什么，以及读取方遇到不认识的版本时必须怎么做。每个版本都有一份 JSON Schema（draft 2020-12），放在 [docs/schema/](schema/)：`report-v1.schema.json` 和 `report-v2.schema.json`；测试会用对应的 Schema 校验每份核对样例的报告。[规范](spec/verification.zh-CN.md)说明每个值是怎样得出的。
+从 1.0.0 起，格式已经冻结：发布过的 `schema_version` 不再改动。[1.x 的兼容性](compatibility.zh-CN.md)说明以后的版本可以新增什么，以及读取方遇到不认识的版本时必须怎么做。每个版本都有一份 JSON Schema（draft 2020-12），放在 [docs/schema/](schema/)：`report-v1.schema.json`、`report-v2.schema.json` 和 `report-v3.schema.json`；测试会用对应的 Schema 校验每份核对样例的报告。[规范](spec/verification.zh-CN.md)说明每个值是怎样得出的。
 
-来源是 Google 表格范围的报告（`--source-sheet`，0.7.0 及以后）的 `schema_version` 是 2，因为对它来说，版本 1 中有三个成员的含义不同；其他所有报告都是版本 1。只认识版本 1 的读取方会拒绝版本 2 的报告，而不是把表格中的行当作文件显示。
+来源是 Google 表格范围的报告（`--source-sheet`，0.7.0 及以后）的 `schema_version` 是 2，因为对它来说，版本 1 中有三个成员的含义不同；其他所有报告都是版本 1。只认识版本 1 的读取方会拒绝版本 2 的报告，而不是把表格中的行当作文件显示。目标从 HubSpot 读取的报告（`--destination-hubspot`，1.0.0 及以后）的 `schema_version` 是 3，原因相同，只是发生在目标一侧；只认识版本 1 和 2 的读取方会拒绝它。
 
 FlowAssert 0.1.x 写出的报告没有 `schema_version`。它们的成员和 0.2.0 用 `--details all` 运行时的报告相同，只是没有 `schema_version`、`details` 和 `premises`，`claim` 的文字也更短。
 
@@ -30,7 +30,8 @@ FlowAssert 0.1.x 写出的报告没有 `schema_version`。它们的成员和 0.2
 | `inputs.mapping_file_sha256` | 使用了 `--mapping` |
 | `inputs.config_file_sha256` | 使用了 `--config` |
 | `inputs.source_encoding`、`inputs.destination_encoding` | 使用了 `--source-encoding` 或 `--destination-encoding`。两者都会记录；来源是表格时，只记录 `destination_encoding` |
-| `inputs.source_sheet` | 来源是 Google 表格范围（`--source-sheet`）；这时 `schema_version` 是 2 |
+| `inputs.source_sheet` | 来源是 Google 表格范围（`--source-sheet`）；这时 `schema_version` 是 2，目标为 HubSpot 时是 3 |
+| `inputs.destination_hubspot` | 目标从 HubSpot 读取（`--destination-hubspot`）；这时 `schema_version` 是 3 |
 | `obligation.rules` | 使用了 `--config` |
 | `obligation.scope` | 使用了 `--scope`，或者配置文件中有 `scope` |
 | `premises.allow_identical_content` | 使用了 `--allow-identical-content` |
@@ -199,6 +200,43 @@ FlowAssert 0.1.x 写出的报告没有 `schema_version`。它们的成员和 0.2
 
 UTF-8，没有字节顺序标记。先是表头，然后是每个数据行，用空字符串补齐到表头的宽度，每行后面跟一个换行符（最后一行也是）。单元格之间用逗号分隔。单元格包含 `,`、`"`、回车或换行时，或者它是所在行唯一的单元格并且为空时，写在双引号中，其中每个 `"` 写两次；其他单元格原样写出。`flowassert-verify --source` 读这份文本，得到的正是表格给出的那些行。
 
+## 来自 HubSpot 目标的报告
+
+从 1.0.0 起，`flowassert-verify --destination-hubspot contacts` 从 HubSpot 联系人中只读、逐页列出目标记录，代替目标文件（[设计说明](connectors/hubspot.zh-CN.md)）。它的报告 `schema_version` 是 3，包含版本 1 的每个成员，含义相同，只有以下不同：
+
+| 成员 | 在版本 3 中 |
+| --- | --- |
+| `inputs.destination_sha256` | 所列记录的规范形式（`flowassert-hubspot-csv-1`，见下）的 SHA-256，而不是文件字节的 |
+| `premises.destination_count.observed` | 列出的记录数 |
+| `premises.destination_complete` | `--destination-complete`：列出的记录覆盖了整个对象。仍然是 FlowAssert 不核实的声明 |
+| `inputs.destination_encoding` | 从不出现；对来源文件传了 `--source-encoding` 时，只出现 `inputs.source_encoding` |
+| `inputs.identical_content` | 来源和规范形式的 SHA-256 是否相同 |
+| `inputs.destination_hubspot` | 读取了什么，见下。总是出现 |
+| `inputs.source_sheet` | 来源也从 Google 表格读取时出现，含义与版本 2 相同 |
+
+读完每一页，能说明 API 在那段时间向这个令牌列出了哪些记录。它不能说明对象是完整的：令牌看不到的记录、读取期间变化的记录和已归档的记录都不会被列出。这仍然是前提 `destination_complete`。同样的记录，与含有同样行的 CSV 文件得到同样的规则结果、计数和批次状态。
+
+### `inputs.destination_hubspot`
+
+| 成员 | 含义 |
+| --- | --- |
+| `read_by` | 总是 `FlowAssert`：这些记录是 FlowAssert 列出的，不是人导出的。这不是关于完整性的说法 |
+| `service` | 总是 `HubSpot CRM API v3` |
+| `object` | 总是 `contacts` |
+| `properties` | 所请求的属性名，按顺序：目标键，然后每个目标字段各一次 |
+| `archived_excluded` | 总是 `true`：读取时请求了 `archived=false` |
+| `page_limit` | 总是 `100` |
+| `pages` | 读取的页数 |
+| `rows` | 列出的记录数；等于 `premises.destination_count.observed` |
+| `read_at`、`read_finished_at` | 发送第一个请求的时间和最后一个响应到达的时间，UTC ISO 8601 |
+| `canonical_form` | 总是 `flowassert-hubspot-csv-1` |
+
+报告从不记录令牌、门户（账号）ID、账号名称或记录的网址。`--redact-values` 保留对象和属性名：它们不是值。
+
+### 规范形式 `flowassert-hubspot-csv-1`
+
+与 `flowassert-sheet-csv-1` 是同样的文本：UTF-8，没有字节顺序标记；所请求的属性名作为表头，然后按列出的顺序每条记录一行，值为 `null` 的属性写成空单元格，每行后面跟一个换行符（最后一行也是）；单元格包含 `,`、`"`、回车或换行时，或者它是所在行唯一的单元格并且为空时，写在双引号中，其中每个 `"` 写两次。`flowassert-verify --destination` 读这份文本，得到的正是 HubSpot 列出的那些记录。
+
 ## HTML 报告
 
 `--html PATH` 写出一个 HTML 文件，和 `--json` 一样，拒绝覆盖已有文件。如果任何一份报告无法写出，两份都不会留下。它遵循 `--redact-values`。从 1.0 起，页面的布局与浏览器核对一致（页面上的文字是英文）：
@@ -208,7 +246,7 @@ UTF-8，没有字节顺序标记。先是表头，然后是每个数据行，用
 3. 计数。
 4. 每条不是 Verified 的记录，以卡片显示每条规则的结果、原因和两边的值。对于不通过的字段，比较时所用的两个值逐字符对齐：只在来源值中的字符加删除线，只在目标值中的字符加下划线，看不见的字符画成标记（`·` 表示空格，以及 `NBSP`、`ZWSP`、`→` 表示制表符等）。旁边注明 “This highlights where the two values differ. The rule's result above is the conclusion.”。这只是显示上的辅助；JSON 报告中没有这些标记。
 5. 范围为 `exact` 时，每条仅在目标中的记录。
-6. 来自 Google 表格来源的报告多一节 “Source read from Google Sheets”：`inputs.source_sheet` 的成员、版本，以及“这次读取不能说明这个范围包含了应有的全部记录”这句话。
+6. 来自 HubSpot 目标的报告多一节 “Destination read from HubSpot”，并写明这次读取不能说明的三件事。来自 Google 表格来源的报告多一节 “Source read from Google Sheets”：`inputs.source_sheet` 的成员、版本，以及“这次读取不能说明这个范围包含了应有的全部记录”这句话。
 7. 限制，以及输入的摘要值和核对要求。
 
 文件中的每个值都经过转义。页面没有脚本，也不加载任何内容：样式写在页面内，内容安全策略阻止其他一切。离线打开也能使用，跟随读者的浅色或深色设置，在手机宽度下可读，可在 A4 和 Letter 纸上打印，记录卡片能放在一页时不会被拆开。Python 和浏览器写出的字节完全相同。
