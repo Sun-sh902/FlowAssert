@@ -1,0 +1,55 @@
+name: Orders reached the warehouse
+
+# A FlowAssert check of two Excel workbooks committed to the repository (FlowAssert 1.1.0): the shop's orders, one
+# worksheet of data/orders-shop.xlsx, against the warehouse's export, data/orders-warehouse.xlsx. It runs when either
+# file changes. The reports and the records to resend are kept as an artifact of the run, in a folder of its own.
+# See examples/github-actions/README.md.
+on:
+  push:
+    paths:
+      - "data/orders-*.xlsx"
+  pull_request:
+    paths:
+      - "data/orders-*.xlsx"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Make this run's folder
+        run: mkdir -p "flowassert/$GITHUB_RUN_ID"
+      - name: Check the warehouse's orders against the shop's
+        id: flowassert
+        uses: Sun-sh902/FlowAssert@v1.1.0
+        with:
+          source: data/orders-shop.xlsx
+          source-format: xlsx
+          # Needed when the workbook has more than one sheet: the name exactly as the workbook has it.
+          source-worksheet: Orders
+          destination: data/orders-warehouse.xlsx
+          destination-format: xlsx
+          key: order_id
+          fields: |
+            quantity
+            total
+          # Premises: FlowAssert cannot check them. State each only if it is true for your files.
+          source-complete: "true"
+          destination-complete: "true"
+          json: flowassert/${{ github.run_id }}/report.json
+          html: flowassert/${{ github.run_id }}/report.html
+          export-dir: flowassert/${{ github.run_id }}/records-to-resend
+      - name: Keep the reports and the records to resend
+        if: always() && steps.flowassert.outputs.json != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: flowassert-${{ github.run_id }}
+          path: flowassert/${{ github.run_id }}/
+          retention-days: 30

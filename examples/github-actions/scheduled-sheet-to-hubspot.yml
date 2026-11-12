@@ -1,0 +1,56 @@
+name: Leads reached HubSpot
+
+# A scheduled FlowAssert check (FlowAssert 1.1.0): every weekday morning, are the leads in a Google Sheets range in
+# HubSpot's contacts, with the same email and phone? The credentials come from repository secrets, in the env: of the
+# step that uses the Action, never from an input. The JSON and HTML reports and the records to resend are kept as an
+# artifact of the run. Each run writes new files into its own folder, named after the run: it is a new observation,
+# and nothing edits an earlier report. See examples/github-actions/README.md.
+on:
+  schedule:
+    # 06:17 UTC, Monday to Friday. Not on the hour: jobs at the start of an hour may be delayed or dropped.
+    - cron: "17 6 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Make this run's folder
+        run: mkdir -p "flowassert/$GITHUB_RUN_ID"
+      - name: Check that the sheet's leads reached HubSpot
+        id: flowassert
+        uses: Sun-sh902/FlowAssert@v1.1.0
+        env:
+          # Read by FlowAssert from the environment only. Never put a credential in an input.
+          FLOWASSERT_SHEETS_TOKEN: ${{ secrets.FLOWASSERT_SHEETS_TOKEN }}
+          FLOWASSERT_HUBSPOT_TOKEN: ${{ secrets.FLOWASSERT_HUBSPOT_TOKEN }}
+        with:
+          source-sheet: ${{ vars.LEADS_SPREADSHEET_ID }}
+          source-range: Leads!A1:F
+          destination-hubspot: contacts
+          key: lead_id
+          fields: |
+            email
+            phone
+          # Premises: FlowAssert cannot check them. State each only if it is true for your data.
+          # The range holds every lead of the batch:
+          source-complete: "true"
+          # HubSpot's contacts are the whole destination for these leads (FlowAssert lists every contact that is
+          # not archived):
+          destination-complete: "true"
+          json: flowassert/${{ github.run_id }}/report.json
+          html: flowassert/${{ github.run_id }}/report.html
+          export-dir: flowassert/${{ github.run_id }}/records-to-resend
+      - name: Keep the reports and the records to resend
+        if: always() && steps.flowassert.outputs.json != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: flowassert-${{ github.run_id }}
+          path: flowassert/${{ github.run_id }}/
+          retention-days: 30

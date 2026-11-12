@@ -1,4 +1,4 @@
-# FlowAssert CSV check as a composite GitHub Action:
+# FlowAssert check as a composite GitHub Action:
 #
 #   - uses: actions/setup-python@v5
 #     with:
@@ -15,9 +15,11 @@
 # It runs the offline checker in this Action's own folder (offline/) with the runner's Python 3.9 or later. Nothing is
 # installed or downloaded while it runs. Each input maps to one flowassert-verify option; an empty input means the
 # option is not given, so the checker's own default and its own refusals apply. Inputs reach the check only through
-# environment variables and action/run_action.py, never inside a shell script.
+# environment variables and action/run_action.py, never inside a shell script. Credentials for Google Sheets and
+# HubSpot are never inputs: set FLOWASSERT_SHEETS_TOKEN (or FLOWASSERT_SHEETS_API_KEY) and FLOWASSERT_HUBSPOT_TOKEN
+# from secrets in the env: of the step that uses this Action (docs/design/1.1-action.md).
 name: FlowAssert CSV check
-description: Check that expected CSV records reached a destination export, and never call a result Verified without enough evidence.
+description: Check that expected records reached a destination (CSV, Excel, Google Sheets, HubSpot), and never call a result Verified without enough evidence.
 author: Sun-sh902
 branding:
   icon: check-square
@@ -25,11 +27,13 @@ branding:
 
 inputs:
   source:
-    description: Source CSV file (--source). Required.
-    required: true
+    description: Source CSV file or .xlsx workbook (--source). Required unless source-sheet is given.
+    required: false
+    default: ""
   destination:
-    description: Destination CSV export (--destination). Required.
-    required: true
+    description: Destination CSV export or .xlsx workbook (--destination). Required unless destination-hubspot is given.
+    required: false
+    default: ""
   config:
     description: UTF-8 JSON file with key, fields with a comparison rule each, and scope (--config). Cannot be combined with key, fields, mapping or scope.
     required: false
@@ -112,6 +116,59 @@ inputs:
     description: 'Logs and job summaries are often public. "false" (default): print and summarize the state, the counts, the premises and the limitations only, with no key or field value. "true": also print the record lines the checker prints, keys and values included. Only "true" or "false".'
     required: false
     default: "false"
+  # 1.1.0. A Google Sheets source and a HubSpot destination read their credentials from the step's environment only.
+  source-sheet:
+    description: 'Read the source from this Google Sheets spreadsheet ID (--source-sheet), with source-range. The credential comes from FLOWASSERT_SHEETS_TOKEN or FLOWASSERT_SHEETS_API_KEY in the step''s env:, set from a secret; never an input.'
+    required: false
+    default: ""
+  source-range:
+    description: The sheet range in A1 notation, such as Leads!A1:F (--source-range).
+    required: false
+    default: ""
+  source-timeout:
+    description: Seconds to wait for each Google Sheets request (--source-timeout).
+    required: false
+    default: ""
+  skip-source-revision:
+    description: '"true" does not ask Google Drive for the spreadsheet''s revision (--skip-source-revision); the report then says no revision was read. Only "true" or "false".'
+    required: false
+    default: "false"
+  destination-hubspot:
+    description: 'Read the destination from this HubSpot CRM object, contacts (--destination-hubspot). The credential comes from FLOWASSERT_HUBSPOT_TOKEN in the step''s env:, set from a secret; never an input.'
+    required: false
+    default: ""
+  destination-timeout:
+    description: Seconds to wait for each HubSpot request (--destination-timeout).
+    required: false
+    default: ""
+  source-format:
+    description: csv (the checker's default) or xlsx, to read one worksheet of an .xlsx workbook (--source-format).
+    required: false
+    default: ""
+  source-worksheet:
+    description: The worksheet to read, exactly as the workbook names it; needed when the workbook has several (--source-worksheet).
+    required: false
+    default: ""
+  destination-format:
+    description: csv (the checker's default) or xlsx (--destination-format).
+    required: false
+    default: ""
+  destination-worksheet:
+    description: The destination worksheet to read (--destination-worksheet).
+    required: false
+    default: ""
+  export-dir:
+    description: 'Also write the records to resend, as CSV files, into this new directory (--export-dir): advice from the check, which changes no result. The files hold the rows as read, values included; cannot be combined with redact-values.'
+    required: false
+    default: ""
+  summary:
+    description: '"true" (default): after the job summary, add "What this run shows": the verdict, the claim, the counts, each premise and whether it was applied, the inputs'' digests and the records to resend, with no value. "false": write no job summary at all. Only "true" or "false".'
+    required: false
+    default: "true"
+  summary-keys:
+    description: '"true" also lists in the run summary the keys of the records that are not Verified, up to 50. Keys identify records; job summaries are often public. "false" (default) lists none. Only "true" or "false".'
+    required: false
+    default: "false"
 
 outputs:
   state:
@@ -126,6 +183,9 @@ outputs:
   html:
     description: The HTML report's path, as given, when the check concluded and html was given; otherwise empty.
     value: ${{ steps.check.outputs.html }}
+  export-dir:
+    description: The records to resend's directory, as given, when the check concluded and export-dir was given; otherwise empty.
+    value: ${{ steps.check.outputs.export-dir }}
 
 runs:
   using: composite
@@ -155,6 +215,19 @@ runs:
         FA_REDACT_VALUES: ${{ inputs.redact-values }}
         FA_FAIL_ON: ${{ inputs.fail-on }}
         FA_SHOW_RECORDS: ${{ inputs.show-records }}
+        FA_SOURCE_SHEET: ${{ inputs.source-sheet }}
+        FA_SOURCE_RANGE: ${{ inputs.source-range }}
+        FA_SOURCE_TIMEOUT: ${{ inputs.source-timeout }}
+        FA_SKIP_SOURCE_REVISION: ${{ inputs.skip-source-revision }}
+        FA_DESTINATION_HUBSPOT: ${{ inputs.destination-hubspot }}
+        FA_DESTINATION_TIMEOUT: ${{ inputs.destination-timeout }}
+        FA_SOURCE_FORMAT: ${{ inputs.source-format }}
+        FA_SOURCE_WORKSHEET: ${{ inputs.source-worksheet }}
+        FA_DESTINATION_FORMAT: ${{ inputs.destination-format }}
+        FA_DESTINATION_WORKSHEET: ${{ inputs.destination-worksheet }}
+        FA_EXPORT_DIR: ${{ inputs.export-dir }}
+        FA_SUMMARY: ${{ inputs.summary }}
+        FA_SUMMARY_KEYS: ${{ inputs.summary-keys }}
       # No input appears in this script: they are all in the environment above.
       run: |
         # The checker needs Python 3.9 or later. python3 first, then python (Windows runners name it python).

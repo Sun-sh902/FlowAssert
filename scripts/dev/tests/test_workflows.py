@@ -14,7 +14,8 @@ import subprocess
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-WORKFLOWS = sorted((ROOT / '.github' / 'workflows').glob('*.yml'))
+# The repository's workflows, and from 1.1.0 the example workflows people copy (examples/github-actions/).
+WORKFLOWS = sorted((ROOT / '.github' / 'workflows').glob('*.yml')) + sorted((ROOT / 'examples' / 'github-actions').glob('*.yml'))
 
 
 class Unsupported(ValueError):
@@ -249,8 +250,13 @@ LATEST = {'actions/checkout': 'v7', 'actions/setup-node': 'v7', 'actions/setup-p
 
 @pytest.mark.parametrize('path', WORKFLOWS, ids=[p.name for p in WORKFLOWS])
 def test_every_action_is_a_known_action_at_its_current_major_version(path):
+    # The examples use FlowAssert's own Action at the version the CHANGELOG's latest section names.
+    own = re.search(r'^## (\d+\.\d+\.\d+)', (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8'), re.M).group(1)
     for uses in _uses(parse(path.read_text(encoding='utf-8'))):
         if uses.startswith('./'):
+            continue
+        if uses.startswith('Sun-sh902/FlowAssert@'):
+            assert uses == f'Sun-sh902/FlowAssert@v{own}', uses
             continue
         name, version = uses.split('@')
         assert LATEST.get(name) == version, uses

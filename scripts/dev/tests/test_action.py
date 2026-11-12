@@ -1,5 +1,6 @@
 """The GitHub Action (action.yml and action/run_action.py): inputs to arguments, refusals, the pass or fail decision,
 the step outputs, the job summary, and reports identical to flowassert-verify's."""
+import json
 import os
 from pathlib import Path
 import re
@@ -142,9 +143,8 @@ def test_action_yml_declares_the_inputs_the_wrapper_reads_with_the_same_defaults
     declared = yml_inputs()
     assert set(declared) == set(run_action.DEFAULTS)
     for name, default in declared.items():
-        if name in ('source', 'destination'):
-            assert default is None and f'{name}:\n    description: ' in ACTION_YML
-            continue
+        # From 1.1.0 no input is required: a sheet or HubSpot can stand in for source and destination.
+        assert f'  {name}:\n    description: ' in ACTION_YML and default is not None, name
         assert default == run_action.DEFAULTS[name], name
         assert f'        {run_action.env_name(name)}: ${{{{ inputs.{name} }}}}\n' in ACTION_YML
 
@@ -217,7 +217,8 @@ def test_step_result_for_every_exit_status(tmp_path, capsys, monkeypatch, code, 
     result, printed, out, summary = act(tmp_path, capsys, source='s.csv', destination='d.csv', fail_on=fail_on,
                                         json='r.json')
     assert result == step
-    assert out == {'state': state, 'exit-code': str(code), 'json': 'r.json' if state[0].isupper() else '', 'html': ''}
+    assert out == {'state': state, 'exit-code': str(code), 'json': 'r.json' if state[0].isupper() else '', 'html': '',
+                   'export-dir': ''}
     assert summary.startswith(f'## FlowAssert: {state}\n\nExit status {code}. This step '
                               f'{"passed" if step == 0 else "failed"} (fail-on: {fail_on}).\n')
     assert ('::error title=FlowAssert::' in printed) is (step == 1)
@@ -227,7 +228,7 @@ def test_an_action_refusal_never_runs_the_checker(tmp_path, capsys, monkeypatch)
     monkeypatch.setattr(run_action.subprocess, 'run', lambda *a, **k: pytest.fail('the checker ran'))
     code, printed, out, summary = act(tmp_path, capsys, **EXAMPLE, source_complete='yes')
     assert code == 1
-    assert out == {'state': 'refused', 'exit-code': '2', 'json': '', 'html': ''}
+    assert out == {'state': 'refused', 'exit-code': '2', 'json': '', 'html': '', 'export-dir': ''}
     assert "refused: source-complete must be true or false, not 'yes'" in printed
     assert "::error title=FlowAssert::FlowAssert: refused: source-complete must be true or false, not 'yes'; " \
            "nothing was concluded." in printed
@@ -240,7 +241,7 @@ def test_example_mismatch_shows_no_values_by_default(tmp_path, capsys):
     code, printed, out, summary = act(tmp_path, capsys, **EXAMPLE, source_complete='true',
                                       destination_complete='true')
     assert code == 1
-    assert out == {'state': 'Mismatch', 'exit-code': '1', 'json': '', 'html': ''}
+    assert out == {'state': 'Mismatch', 'exit-code': '1', 'json': '', 'html': '', 'export-dir': ''}
     for text in (printed, summary, (tmp_path / 'output.txt').read_text(encoding='utf-8')):
         for value in VALUES + ('phone', 'hs_email', 'external_id'):
             assert value not in text
@@ -292,7 +293,7 @@ def test_a_checker_refusal_fails_and_leaves_no_report(tmp_path, capsys):
                                       destination=str(folder / 'destination.csv'), config=str(folder / 'config.json'),
                                       fail_on='mismatch', json=str(tmp_path / 'r.json'))
     assert code == 1
-    assert out == {'state': 'refused', 'exit-code': '2', 'json': '', 'html': ''}
+    assert out == {'state': 'refused', 'exit-code': '2', 'json': '', 'html': '', 'export-dir': ''}
     assert f'refused: {folder / "destination.csv"}: missing column k, q' in printed
     assert not (tmp_path / 'r.json').exists()
 
@@ -462,3 +463,204 @@ def test_the_action_is_named_at_one_released_version_everywhere():
     version = versions.pop()
     changelog = (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8')
     assert re.search(rf'^## {re.escape(version)} \(\d{{4}}-\d{{2}}-\d{{2}}\)$', changelog, re.M), version
+
+
+# -- 1.1.0: the run summary, connectors, workbooks and the records to resend ---------------------------------------
+
+sys.path.insert(0, str(ROOT / 'offline' / 'bench'))
+from fake_hubspot_api import FakeHubSpotApi  # noqa: E402
+from fake_sheets_api import FakeSheetsApi  # noqa: E402
+
+GOLDEN_XLSX = ROOT / 'offline' / 'golden-xlsx'
+# Recognisable credentials for the leak test: synthetic, and never real ones.
+SHEET_TOKEN = 'fake-oauth-token-FA11-LEAK-CANARY-not-a-real-credential'
+HUBSPOT_TOKEN = 'pat-na1-fake-FA11-LEAK-CANARY-not-a-real-credential'
+sys.path.insert(0, str(ROOT / 'scripts' / 'dev'))
+import serve_fakes  # noqa: E402
+
+
+def test_the_fake_server_of_the_self_test_serves_one_check_and_writes_only_endpoints(tmp_path):
+    import threading
+    env_file = tmp_path / 'env'
+    ready = tmp_path / 'ready'
+    thread = threading.Thread(target=serve_fakes.main, args=(['--sheets-token', SHEET_TOKEN, '--hubspot-token',
+                                                              HUBSPOT_TOKEN, '--env-file', str(env_file), '--ready',
+                                                              str(ready), '--seconds', '1'],), daemon=True)
+    thread.start()
+    thread.join(5)
+    lines = env_file.read_text(encoding='utf-8').splitlines()
+    assert [line.split('=')[0] for line in lines] == ['FLOWASSERT_SHEETS_TEST_ENDPOINT', 'FLOWASSERT_HUBSPOT_TEST_ENDPOINT']
+    assert all(re.fullmatch(r'[A-Z_]+=http://127\.0\.0\.1:\d+', line) for line in lines)
+    assert ready.read_text(encoding='utf-8') == 'ready\n'
+
+
+def run_part(summary):
+    assert summary.count('### What this run shows\n') == 1
+    return summary.split('### What this run shows\n', 1)[1]
+
+
+def test_the_run_summary_follows_the_job_summary_of_1_0(tmp_path, capsys):
+    code, printed, out, summary = act(tmp_path, capsys, **EXAMPLE, source_complete='true',
+                                      destination_complete='true', destination_count='4')
+    assert code == 1
+    before, part = summary.split('### What this run shows\n')
+    assert before.startswith('## FlowAssert: Mismatch\n\nExit status 1. This step failed (fail-on: not-verified).\n')
+    assert part == (
+        '\n**Mismatch.** No claim is made: the result is not Verified.\n\n'
+        '| Verified | Mismatch | Unverified | Source rows | Expected total |\n| --- | --- | --- | --- | --- |\n'
+        '| 1 | 3 | 0 | 4 | 4 |\n\n'
+        '| Premise | Stated | Applied |\n| --- | --- | --- |\n'
+        '| source_complete | yes | applied |\n| destination_complete | yes | applied |\n'
+        '| source_count | none | not stated |\n| destination_count | 4 | matches the rows read |\n\n'
+        '| Input | Read as | SHA-256 |\n| --- | --- | --- |\n'
+        '| Source | CSV file | `f0ae4524abfc7a500c5ea5bd888848730f650e6ec920ef955198bdc990466fdd` |\n'
+        '| Destination | CSV file | `acf9ad723a89e42df3379eebe5c786b270b3e753345ad59a4e647484d15b5cb5` |\n\n'
+        'This run is a new observation; it does not change any earlier report.\n')
+    for value in VALUES + ('phone', 'hs_email'):
+        assert value not in summary
+
+
+def test_a_verified_run_states_its_claim_and_a_premise_not_applied_says_why(tmp_path, capsys):
+    folder = GOLDEN / 'count-destination-mismatch'
+    _, _, _, summary = act(tmp_path, capsys, source=str(folder / 'source.csv'),
+                           destination=str(folder / 'destination.csv'), config=str(folder / 'config.json'),
+                           source_complete='true', destination_complete='true', destination_count='3')
+    part = run_part(summary)
+    assert '| destination_complete | yes | not applied: the stated total differs from the rows read |\n' in part
+    assert '| destination_count | 3 | differs from the rows read |\n' in part
+    (tmp_path / 'summary.md').unlink()
+    folder = GOLDEN / 'rules-pass'
+    _, _, _, summary = act(tmp_path, capsys, source=str(folder / 'source.csv'),
+                           destination=str(folder / 'destination.csv'), config=str(folder / 'config.json'),
+                           source_complete='true', destination_complete='true')
+    report = json.loads((GOLDEN / 'rules-pass' / 'report.json').read_text(encoding='utf-8'))
+    assert run_part(summary).startswith(f'\n**Verified.** {report["claim"]}\n\n')
+
+
+def test_identical_content_allowed_is_a_premise_of_the_run_summary(tmp_path, capsys):
+    folder = GOLDEN / 'identical-content-allowed'
+    _, _, _, summary = act(tmp_path, capsys, source=str(folder / 'source.csv'), destination=str(folder / 'destination.csv'),
+                           config=str(folder / 'config.json'), allow_identical_content='true')
+    assert '| allow_identical_content | yes | applied: the two inputs were identical |\n' in run_part(summary)
+
+
+def test_summary_false_writes_no_job_summary_and_summary_keys_lists_keys_only(tmp_path, capsys):
+    act_env = env(tmp_path, **EXAMPLE, summary='false')
+    assert run_action.run(act_env) == 1
+    capsys.readouterr()
+    assert not (tmp_path / 'summary.md').exists()
+    _, _, _, summary = act(tmp_path, capsys, **EXAMPLE, source_complete='true', destination_complete='true',
+                           summary_keys='true')
+    part = run_part(summary)
+    assert 'Keys of the records that are not Verified (3):\n\n```text\nSYN-002\nSYN-003\nSYN-004\n```\n' in part
+    for value in ('+1 212 555 0199', '+1 212 555 0102', 'grace@example.test'):
+        assert value not in summary
+    (tmp_path / 'summary.md').unlink()
+    _, _, _, summary = act(tmp_path, capsys, **EXAMPLE, summary_keys='true', redact_values='true')
+    assert 'The keys are not listed: the report was written with redact-values.' in run_part(summary)
+    assert 'SYN-' not in summary
+
+
+def test_summary_inputs_must_be_true_or_false(tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(run_action.subprocess, 'run', lambda *a, **k: pytest.fail('the checker ran'))
+    for name in ('summary', 'summary_keys', 'skip_source_revision'):
+        code, printed, out, _ = act(tmp_path, capsys, **EXAMPLE, **{name: 'yes'})
+        assert code == 1 and out['state'] == 'refused'
+        assert f"refused: {name.replace('_', '-')} must be true or false, not 'yes'" in printed
+
+
+def test_keys_are_cut_and_at_most_50_are_listed(tmp_path, capsys):
+    long = 'K' * 300
+    rows = ['id,v'] + [f'{long if i == 0 else f"K{i:03d}"},a' for i in range(60)]
+    (tmp_path / 's.csv').write_text('\r\n'.join(rows) + '\r\n', encoding='utf-8')
+    (tmp_path / 'd.csv').write_text('id,v\r\n', encoding='utf-8')
+    _, _, _, summary = act(tmp_path, capsys, source=str(tmp_path / 's.csv'), destination=str(tmp_path / 'd.csv'),
+                           key='id', fields='v', summary_keys='true')
+    part = run_part(summary)
+    assert 'Keys of the records that are not Verified (60, the first 50 shown):' in part
+    listed = part.split('```text\n', 1)[1].split('\n```', 1)[0].split('\n')
+    assert len(listed) == 50 and listed[0] == 'K' * 199 + '…' and listed[-1] == 'K049'
+
+
+def test_a_summary_over_the_limit_leaves_out_the_printed_summary_and_the_keys(tmp_path, capsys, monkeypatch):
+    huge = 'Mismatch: 1 rows of 1\n' + 'x' * (run_action.SUMMARY_LIMIT + 10) + '\n'
+    real = subprocess.run
+
+    def fake(argv, **kwargs):
+        real(argv, **kwargs)  # writes the report the run summary reads
+        return subprocess.CompletedProcess(argv, 1, huge.encode(), b'')
+    monkeypatch.setattr(run_action.subprocess, 'run', fake)
+    _, _, _, summary = act(tmp_path, capsys, **EXAMPLE, source_complete='true', destination_complete='true',
+                           summary_keys='true')
+    assert len(summary.encode('utf-8')) < run_action.SUMMARY_LIMIT
+    assert 'xxxxxxxxxx' not in summary and 'SYN-' not in summary
+    assert "The checker's printed summary and the keys are left out here: with them, this summary would pass " \
+           "GitHub's limit of 1 MiB for a step." in summary
+    assert '### What this run shows' in summary
+
+
+def test_the_temporary_report_is_removed(tmp_path, capsys):
+    temp = tmp_path / 'runner-temp'
+    temp.mkdir()
+    environ = env(tmp_path, **EXAMPLE)
+    environ['RUNNER_TEMP'] = str(temp)
+    run_action.run(environ)
+    capsys.readouterr()
+    assert list(temp.iterdir()) == []
+    assert '### What this run shows' in (tmp_path / 'summary.md').read_text(encoding='utf-8')
+
+
+def test_a_workbook_source_and_the_records_to_resend(tmp_path, capsys, monkeypatch):
+    folder = GOLDEN_XLSX / 'xlsx-mismatch'
+    case = json.loads((folder / 'case.json').read_text(encoding='utf-8'))
+    args = case['args']
+    given = {'source': str(folder / args[args.index('--source') + 1]),
+             'destination': str(folder / args[args.index('--destination') + 1]),
+             'source_format': 'xlsx', 'source_complete': 'true', 'destination_complete': 'true',
+             'export_dir': str(tmp_path / 'resend')}
+    if '--key' in args:
+        given['key'] = args[args.index('--key') + 1]
+        given['fields'] = '\n'.join(args[i + 1] for i, a in enumerate(args) if a == '--field')
+    else:
+        given['config'] = str(folder / args[args.index('--config') + 1])
+    if '--source-worksheet' in args:
+        given['source_worksheet'] = args[args.index('--source-worksheet') + 1]
+    code, printed, out, summary = act(tmp_path, capsys, **given)
+    assert code == 1 and out['export-dir'] == str(tmp_path / 'resend')
+    part = run_part(summary)
+    report = json.loads((folder / 'report.json').read_text(encoding='utf-8'))
+    book = report['inputs']['source_workbook']
+    assert (f"| Source | worksheet {book['worksheet']} of an .xlsx workbook | `{report['inputs']['source_sha256']}` "
+            f"(canonical form), file `{book['file_sha256']}` |") in part
+    files = sorted(p.name for p in (tmp_path / 'resend').iterdir())
+    assert files and f'Records to resend, in {tmp_path / "resend"}: ' in part
+    for name in files:
+        assert name in part
+
+
+def test_a_sheet_to_hubspot_check_leaks_no_credential(tmp_path, capsys, monkeypatch):
+    with FakeSheetsApi(serve_fakes.sheet_responses(), credential=('token', SHEET_TOKEN)) as google, \
+            FakeHubSpotApi(serve_fakes.hubspot_responses(), token=HUBSPOT_TOKEN) as crm:
+        environ = env(tmp_path, source_sheet=serve_fakes.SPREADSHEET, source_range=serve_fakes.RANGE,
+                      destination_hubspot='contacts', key='lead_id', fields='phone\nemail', scope='exact',
+                      source_complete='true', destination_complete='true', json=str(tmp_path / 'r.json'),
+                      html=str(tmp_path / 'r.html'), export_dir=str(tmp_path / 'resend'), summary_keys='true',
+                      show_records='true')
+        environ.update({'FLOWASSERT_SHEETS_TEST_ENDPOINT': google.endpoint, 'FLOWASSERT_SHEETS_TOKEN': SHEET_TOKEN,
+                        'FLOWASSERT_HUBSPOT_TEST_ENDPOINT': crm.endpoint, 'FLOWASSERT_HUBSPOT_TOKEN': HUBSPOT_TOKEN})
+        code = run_action.run(environ)
+    printed = capsys.readouterr()
+    assert code == 1
+    part = run_part((tmp_path / 'summary.md').read_text(encoding='utf-8'))
+    assert '| Source | Google Sheets range Leads!A1:C4, revision 7 | `' in part
+    assert '| Destination | HubSpot contacts, 3 records | `' in part
+    assert 'Destination-only records (scope exact): Mismatch 1, Unverified 0.\n' in part
+    assert ('Records to resend, in ' + str(tmp_path / 'resend') + ': missing-from-destination.csv 1 row, '
+            'values-differ.csv 1 row, only-in-destination.csv 1 row.') in part
+    texts = [printed.out, printed.err, (tmp_path / 'output.txt').read_text(encoding='utf-8'),
+             (tmp_path / 'summary.md').read_text(encoding='utf-8')]
+    texts += [p.read_text(encoding='utf-8') for p in (tmp_path / 'r.json', tmp_path / 'r.html')]
+    texts += [p.read_text(encoding='utf-8') for p in (tmp_path / 'resend').iterdir()]
+    for text in texts:
+        for secret in (SHEET_TOKEN, HUBSPOT_TOKEN, 'LEAK-CANARY'):
+            assert secret not in text

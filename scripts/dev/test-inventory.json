@@ -11,7 +11,7 @@
    "src/test/contract-drift-runtime.test.ts": 3,
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
-   "src/test/english-only.test.ts": 49,
+   "src/test/english-only.test.ts": 50,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/explorer.test.tsx": 11,
    "src/test/fix03.test.tsx": 21,
@@ -26,7 +26,7 @@
    "src/test/lookup-contract-drift.test.ts": 19,
    "src/test/lookup-detail.test.tsx": 10,
    "src/test/lookup-gate.test.ts": 102,
-   "src/test/markdown-links.test.ts": 119,
+   "src/test/markdown-links.test.ts": 120,
    "src/test/offline/api.test.ts": 100,
    "src/test/offline/bundle.test.ts": 64,
    "src/test/offline/chardiff.test.ts": 10,
@@ -104,12 +104,12 @@
   "offline": {
    "about": "The command-line checker, the GitHub Action's wrapper, the Google Sheets source, the HubSpot Contacts destination, the 1.0 commitment (the specification's cases, the JSON Schemas, the conformance runner), the workflows and the .xlsx reader (CI job offline), per file. Run on every supported Python; the count is the same on each.",
    "files": {
-    "scripts/dev/tests/test_action.py": 112,
+    "scripts/dev/tests/test_action.py": 123,
     "scripts/dev/tests/test_hubspot_destination.py": 104,
     "scripts/dev/tests/test_offline_verify.py": 385,
     "scripts/dev/tests/test_sheets_source.py": 210,
     "scripts/dev/tests/test_spec.py": 303,
-    "scripts/dev/tests/test_workflows.py": 16,
+    "scripts/dev/tests/test_workflows.py": 22,
     "scripts/dev/tests/test_xlsx.py": 105,
     "scripts/dev/tests/test_exports.py": 331
    }

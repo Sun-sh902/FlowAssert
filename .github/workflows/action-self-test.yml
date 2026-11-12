@@ -4,6 +4,10 @@ name: Action self-test
 # golden cases: one Verified, one Mismatch, one Unverified, and two refusals (one by the checker, one by the Action).
 # It checks the state and exit-code outputs, that a step fails exactly when its fail-on says so (with
 # continue-on-error, then the step's outcome), and that the reports are the golden reports apart from evaluated_at.
+# From 1.1.0 also: a workbook source with the records to resend, whose files must be the command line's, and a check
+# from a Google Sheets range to HubSpot through the local fakes (scripts/dev/serve_fakes.py, on loopback ports),
+# with recognisable fake credentials that must appear in no output, report or exported file. Nothing contacts Google
+# or HubSpot.
 on:
   push:
   pull_request:
@@ -168,3 +172,88 @@ jobs:
           test "$INPUT_OUTCOME" = failure
           test "$INPUT_STATE" = refused
           test "$INPUT_CODE" = 2
+
+      - name: Workbook source with the records to resend (golden xlsx-mismatch)
+        id: workbook
+        continue-on-error: true
+        uses: ./
+        with:
+          source: offline/golden-xlsx/xlsx-mismatch/source.xlsx
+          source-format: xlsx
+          destination: offline/golden-xlsx/xlsx-mismatch/destination.csv
+          key: external_id
+          fields: |
+            phone
+            email:hs_email
+          source-complete: "true"
+          destination-complete: "true"
+          json: workbook.json
+          html: workbook.html
+          export-dir: resend-workbook
+      - name: Check the workbook step and its files
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.workbook.outcome }}
+          STATE: ${{ steps.workbook.outputs.state }}
+          EXPORT_DIR: ${{ steps.workbook.outputs.export-dir }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$STATE" = Mismatch
+          test "$EXPORT_DIR" = resend-workbook
+          python scripts/dev/check_action_report.py offline/golden-xlsx/xlsx-mismatch workbook.json workbook.html
+          python offline/verify.py --source offline/golden-xlsx/xlsx-mismatch/source.xlsx --source-format xlsx \
+            --destination offline/golden-xlsx/xlsx-mismatch/destination.csv --key external_id --field phone \
+            --field email:hs_email --source-complete --destination-complete --export-dir expected-workbook > /dev/null || test $? = 1
+          test "$(ls resend-workbook)" = "$(ls expected-workbook)"
+          test -n "$(ls resend-workbook)"
+          for f in expected-workbook/*; do cmp "$f" "resend-workbook/$(basename "$f")"; done
+
+      - name: Start the local fakes of Google Sheets and HubSpot
+        shell: bash
+        env:
+          FAKE_SHEETS_TOKEN: fake-oauth-token-FA11-LEAK-CANARY-not-a-real-credential
+          FAKE_HUBSPOT_TOKEN: pat-na1-fake-FA11-LEAK-CANARY-not-a-real-credential
+        run: |
+          python scripts/dev/serve_fakes.py --sheets-token "$FAKE_SHEETS_TOKEN" --hubspot-token "$FAKE_HUBSPOT_TOKEN" \
+            --env-file "$GITHUB_ENV" --ready fakes-ready --seconds 900 > fakes.log 2>&1 &
+          for i in $(seq 1 100); do test -e fakes-ready && break; sleep 0.1; done
+          test -e fakes-ready
+      - name: Sheet to HubSpot through the local fakes, with the records to resend
+        id: connectors
+        continue-on-error: true
+        uses: ./
+        env:
+          FLOWASSERT_SHEETS_TOKEN: fake-oauth-token-FA11-LEAK-CANARY-not-a-real-credential
+          FLOWASSERT_HUBSPOT_TOKEN: pat-na1-fake-FA11-LEAK-CANARY-not-a-real-credential
+        with:
+          source-sheet: 1SyntheticSpreadsheet-FlowAssert_0001
+          source-range: Leads!A1:C4
+          destination-hubspot: contacts
+          key: lead_id
+          fields: |
+            phone
+            email
+          scope: exact
+          source-complete: "true"
+          destination-complete: "true"
+          json: connectors.json
+          html: connectors.html
+          export-dir: resend-connectors
+          summary-keys: "true"
+          show-records: "true"
+      - name: Check the connector step, and that no credential was written
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.connectors.outcome }}
+          STATE: ${{ steps.connectors.outputs.state }}
+          CODE: ${{ steps.connectors.outputs.exit-code }}
+          OUTPUTS: ${{ toJSON(steps.connectors.outputs) }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$STATE" = Mismatch
+          test "$CODE" = 1
+          test -e resend-connectors/missing-from-destination.csv
+          test -e resend-connectors/values-differ.csv
+          test -e resend-connectors/only-in-destination.csv
+          if grep -r -l "LEAK-CANARY" connectors.json connectors.html resend-connectors; then exit 1; fi
+          if printf '%s' "$OUTPUTS" | grep -q "LEAK-CANARY"; then exit 1; fi
