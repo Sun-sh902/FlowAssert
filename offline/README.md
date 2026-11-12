@@ -52,6 +52,7 @@ The same check runs in the browser, on the CSV check page of the web UI, for peo
 | `--details problems\|all` | `problems` (default): a Verified record in `--json` keeps only `key`, `source_row` and `state`. `all`: every record in full |
 | `--html PATH` | Write a self-contained HTML report to a new file |
 | `--redact-values` | Leave keys and compared values out of the output |
+| `--export-dir DIR` | Also write the records to resend, as CSV files, into the new directory `DIR` ([below](#records-to-resend)) |
 | `--version` | Show the version |
 
 ## What you state
@@ -113,6 +114,23 @@ A result is never Pending, because this tool has no waiting window.
 A malformed or oversized file, or one that does not decode in its stated encoding, is refused as a whole. FlowAssert never guesses an encoding. Paths resolving to the same file are always refused; two distinct files with identical content are refused by default unless `--allow-identical-content` is passed.
 
 `--json PATH` writes a report with file digests and every stated premise to a new file; its members are described in [docs/report-format.md](../docs/report-format.md). `--html PATH` writes the same result as a page with no scripts that loads nothing, for people who do not read JSON. Neither overwrites a file, and if one cannot be written, neither is left behind. `--max-details` only shortens the printed summary and never removes records from a report. Reports include keys and compared values unless you pass `--redact-values`. Every report records when it was evaluated.
+
+## Records to resend
+
+`--export-dir DIR` writes, after the check, CSV files of the rows that need action into the new directory `DIR`: each row exactly as it was read, with every column, under its file's own header, so it can be imported again. A file is written only when it has rows:
+
+| File | Rows | Meaning |
+| --- | --- | --- |
+| `missing-from-destination.csv` | Source | The destination, stated complete, has no row with this key: these records did not arrive |
+| `values-differ.csv` | Source | The destination has one row with this key, and at least one compared field differs |
+| `duplicated-in-destination.csv` | Source | More than one destination row has this key: resending would add another; the destination needs merging |
+| `unknown-status-resending-may-create-duplicates.csv` | Source | The check could not conclude: the record may already be in the destination, so resending it may create a duplicate |
+| `only-in-destination.csv` | Destination | Scope `exact`, source population known: destination rows whose key is not in the source |
+| `only-in-destination-not-concluded.csv` | Destination | Scope `exact`, source population unknown: listed without a conclusion |
+
+The files are advice from the check. They change no report, no line of the summary before them and no exit status. A destination that was not stated complete never gives `missing-from-destination.csv`: its records without a row are Unverified and go to the unknown file. The files are UTF-8 with a byte order mark and CR LF line endings. `DIR` must not exist. The files are written before the reports, and if any cannot be written, nothing is left behind. A file that changed between the check and the export is refused. `--export-dir` cannot be combined with `--redact-values`.
+
+FlowAssert does not change exported text. A field that begins with `=`, `+`, `-`, `@`, a tab or a carriage return may run as a formula if a spreadsheet program opens the file, so the summary counts such fields: import the files into the system the rows came from rather than opening them in a spreadsheet. [docs/design/1.1-exports.md](../docs/design/1.1-exports.md) has the details.
 
 The source file is kept in memory, only for the columns the check uses. The destination file is read once, row by row, and no destination row is kept. `offline/bench/memory_check.py` checks that two files of 1,000,000 rows and three columns each peak under 500 MB; on macOS with Python 3.14 the peak is about 400 MB.
 

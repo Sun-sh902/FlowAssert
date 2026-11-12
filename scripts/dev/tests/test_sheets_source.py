@@ -606,8 +606,8 @@ def cli_args(args):
         parsed['args'] = a
         raise Capture()
 
-    saved = cli.run
-    cli.run = fake_run
+    saved = cli.check
+    cli.check = fake_run
     try:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             try:
@@ -615,7 +615,7 @@ def cli_args(args):
             except (Capture, SystemExit):
                 pass
     finally:
-        cli.run = saved
+        cli.check = saved
     return parsed.get('args')
 
 

@@ -18,7 +18,7 @@ import json
 import os
 import sys
 
-from . import __version__, chardiff, hubspot, sheets, xlsx
+from . import __version__, chardiff, exports, hubspot, sheets, xlsx
 from .errors import Refused
 from .evaluator_v2 import DETAILS, SCOPES, STATES, evaluate, parse_rule
 
@@ -260,6 +260,60 @@ class CsvFile:
         self.rows = count
         self.sha256 = digest.hexdigest()
 
+    def full_rows(self):
+        """The header, then every data row with all its fields, read again for the records to resend. The file must
+        have the bytes it had when it was checked."""
+        path = self.path
+        codec, _ = ENCODINGS[self.encoding]
+        digest = hashlib.sha256()
+        try:
+            with open(path, "rb") as raw_file:
+                with io.TextIOWrapper(_HashReader(raw_file, digest), encoding=codec, newline="") as text_file:
+                    reader = csv.reader(text_file, strict=True)
+                    yield next(reader, [])
+                    for row in reader:
+                        if row:
+                            yield row
+                for chunk in iter(lambda: raw_file.read(65536), b""):
+                    digest.update(chunk)
+        except (OSError, UnicodeError, csv.Error):
+            raise Refused(f"{path}: changed after it was checked; nothing was exported")
+        if digest.hexdigest() != self.sha256:
+            raise Refused(f"{path}: changed after it was checked; nothing was exported")
+
+
+def _rows_again(side):
+    """A side's rows read again for the records to resend: the header, then every data row in full."""
+    if isinstance(side, CsvFile):
+        yield from side.full_rows()
+    elif isinstance(side, xlsx.XlsxFile):
+        checked = side.sha256
+        try:
+            yield from side.full_rows()
+        except Refused:
+            raise Refused(f"{side.path}: changed after it was checked; nothing was exported")
+        if side.sha256 != checked:
+            raise Refused(f"{side.path}: changed after it was checked; nothing was exported")
+    elif isinstance(side, sheets.SheetSource):
+        width = len(side._header)
+        yield list(side._header)
+        for row in side._data:
+            yield list(row) + [""] * (width - len(row))
+    else:
+        yield list(side.columns)
+        yield from (list(values) for values in side.kept)
+
+
+def _export_dir(args):
+    """The new directory for the records to resend, checked before any input is read, or None."""
+    if args.export_dir is None:
+        return None
+    if args.redact_values:
+        raise Refused("--export-dir cannot be combined with --redact-values: the exported rows hold the values")
+    if os.path.lexists(args.export_dir):
+        raise Refused(f"{args.export_dir}: exists; --export-dir writes to a new directory")
+    return args.export_dir
+
 
 def _selection(args, max_bytes):
     """Return key, fields as (source, destination, rule), scope, and which files chose them."""
@@ -344,6 +398,13 @@ def _formats(args):
 
 
 def run(args):
+    """The report of one check."""
+    return check(args)[0]
+
+
+def check(args):
+    """The report of one check, and with --export-dir the records to resend: {"directory", "files", "formulas"}, or
+    None."""
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
     counts = {name: None if value is None else _int_arg(option, value, 0) for name, option, value in (
@@ -353,6 +414,7 @@ def run(args):
     source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
     destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
     source_book, destination_book = _formats(args)
+    export_dir = _export_dir(args)
     sheet = _sheet_source(args, max_bytes)
     crm = _hubspot_destination(args, max_bytes)
     key, fields, scope, selection_sha = _selection(args, max_bytes)
@@ -385,6 +447,8 @@ def run(args):
         destination = CsvFile(args.destination, destination_columns, encoding=destination_encoding, max_rows=max_rows)
     else:
         destination = crm
+    if export_dir is not None and crm is not None and (scope or "source") == "exact":
+        crm.kept = []  # HubSpot is listed once: its records are kept for the destination-only rows
     obligation = {"key": key, "fields": fields, "scope": scope or "source"}
     report = evaluate(obligation, source, destination, source_complete=args.source_complete,
                       destination_complete=args.destination_complete, details=details, **counts)
@@ -449,7 +513,11 @@ def run(args):
         report["records"] = report["records"].redacted()
         for record in report.get("destination_only", []):
             record["key"] = "[redacted]"
-    return report
+    export = None
+    if export_dir is not None:
+        files, formulas = exports.build(report, _rows_again(source), _rows_again(destination), key[1])
+        export = {"directory": export_dir, "files": files, "formulas": formulas}
+    return report, export
 
 
 def sheet_lines(sheet):
@@ -952,6 +1020,46 @@ def _write_reports(report, targets):
         raise
 
 
+def _write_exports(export):
+    """Write the records to resend into their new directory, all or none. Returns what was written."""
+    directory = export["directory"]
+    try:
+        os.mkdir(directory)
+    except FileExistsError:
+        raise Refused(f"{directory}: exists; --export-dir writes to a new directory")
+    except OSError as e:
+        raise Refused(f"{directory}: {e.strerror}")
+    written = (directory, [])
+    try:
+        for name, _, text in export["files"]:
+            path = os.path.join(directory, name)
+            with open(path, "x", encoding="utf-8", newline="") as f:
+                written[1].append(path)
+                f.write(text)
+    except OSError as e:
+        _remove_exports(written)
+        raise Refused(f"{directory}: {e.strerror}")
+    except BaseException:
+        _remove_exports(written)
+        raise
+    return written
+
+
+def _remove_exports(written):
+    if written is None:
+        return
+    directory, paths = written
+    for path in paths:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    try:
+        os.rmdir(directory)
+    except OSError:
+        pass
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version", version=__version__)
@@ -1003,6 +1111,9 @@ def main(argv=None):
     parser.add_argument("--json", help="write the full report to this new file")
     parser.add_argument("--html", metavar="PATH", help="write a self-contained HTML report to this new file")
     parser.add_argument("--redact-values", action="store_true", help="omit compared values from the report")
+    parser.add_argument("--export-dir", metavar="DIR",
+                        help="also write the records to resend, as CSV files, into this new directory: advice from the "
+                             "check, which changes no report and no exit status")
     args = parser.parse_args(argv)
     # As argparse words it for a required option: --source-sheet stands in for --source.
     missing = [option for option, absent in (("--source", args.source is None and args.source_sheet is None),
@@ -1012,13 +1123,22 @@ def main(argv=None):
         parser.error(f"the following arguments are required: {', '.join(missing)}")
     try:
         max_details = _int_arg("--max-details", args.max_details, 0)
-        report = run(args)
-        _write_reports(report, [(path, writer) for path, writer in ((args.json, write_json), (args.html, write_html))
-                                if path])
+        report, export = check(args)
+        # The records to resend first: if they cannot all be written, nothing is, and no report is either.
+        written = _write_exports(export) if export else None
+        try:
+            _write_reports(report, [(path, writer) for path, writer in ((args.json, write_json),
+                                                                        (args.html, write_html)) if path])
+        except BaseException:
+            _remove_exports(written)
+            raise
         # The reports are written by now: a value the terminal cannot encode is escaped, not a failure.
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(errors="backslashreplace")
-        print("\n".join(summary(report, max_details=max_details)))
+        lines = list(summary(report, max_details=max_details))
+        if export:
+            lines += exports.summary_lines(report, export["files"], export["directory"], export["formulas"])
+        print("\n".join(lines))
         sys.stdout.flush()
     except Refused as e:
         print(f"refused: {e}", file=sys.stderr)

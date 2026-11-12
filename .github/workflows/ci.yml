@@ -28,7 +28,7 @@ jobs:
       # commitment: the specification's cases, the JSON Schemas against every golden report, and the conformance
       # runner; the workflows themselves, read without a YAML library and compared with Ruby's reader; and the .xlsx
       # reader against independent writers and every golden case a worksheet can hold.
-      - run: python -m pytest -q -p no:cacheprovider scripts/dev/tests/test_offline_verify.py scripts/dev/tests/test_action.py scripts/dev/tests/test_sheets_source.py scripts/dev/tests/test_hubspot_destination.py scripts/dev/tests/test_spec.py scripts/dev/tests/test_workflows.py scripts/dev/tests/test_xlsx.py
+      - run: python -m pytest -q -p no:cacheprovider scripts/dev/tests/test_offline_verify.py scripts/dev/tests/test_action.py scripts/dev/tests/test_sheets_source.py scripts/dev/tests/test_hubspot_destination.py scripts/dev/tests/test_spec.py scripts/dev/tests/test_workflows.py scripts/dev/tests/test_xlsx.py scripts/dev/tests/test_exports.py
       # The browser check is compared with these files byte for byte; here they are only checked, never written. The
       # sheet-sourced cases (offline/golden-sheets/) are checked too, against the same local fake.
       - name: Golden outputs are current

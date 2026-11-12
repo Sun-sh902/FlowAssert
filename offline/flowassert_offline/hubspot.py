@@ -130,6 +130,8 @@ class HubSpotDestination:
         self.rows = None
         self.pages = None
         self.member = None
+        # With records to resend and scope exact, the records listed, kept for the destination-only rows.
+        self.kept = None
 
     def select(self, columns, max_rows):
         for name in columns:
@@ -283,6 +285,8 @@ class HubSpotDestination:
                     raise Refused(f"{WHAT}: exceeds --max-rows limit of {self.max_rows}")
                 count += 1
                 digest.update(canonical_row(values).encode("utf-8"))
+                if self.kept is not None:
+                    self.kept.append(values)
                 yield dict(zip(self.columns, values))
             if following is None:
                 break
