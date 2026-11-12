@@ -1,14 +1,14 @@
 /**
  * A first check that a newcomer can finish and understand (v0.6.0), in Chrome on the production build: "What this
  * result means" for a Verified, a Mismatch and an Unverified result and for an opened saved report; the hint under
- * each refusal it is written for, and none where it is not; the Chinese explanations of the English texts; every
+ * each refusal it is written for, and none where it is not; every
  * scenario with the result it names for each set of premises; and the feedback link's address. None of it makes a
  * request or stores anything, and the axe audit of the changed pages passes in both themes at desktop and phone width.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { EXAMPLE, GOLDEN, REPO, audit, check, expectNoNetwork, golden, goldenXlsx, openCheck, recordRequests, storedState, type Locale } from "./check-helpers.ts";
+import { EXAMPLE, GOLDEN, REPO, audit, check, expectNoNetwork, golden, goldenXlsx, openCheck, recordRequests, storedState } from "./check-helpers.ts";
 import { writeReport } from "./helpers.ts";
 
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, phone: { width: 375, height: 812 } } as const;
@@ -198,32 +198,6 @@ test.describe("help after a refusal", () => {
   });
 });
 
-test("in Chinese, each English text stays as written, with its explanation next to it", async ({ page, context }) => {
-  await page.setViewportSize(VIEWPORTS.phone);
-  await openCheck(page, "/#/check", "zh-CN");
-  const requests = recordRequests(context);
-  await check(page, EXAMPLE);
-  const region = await result(page);
-  await expect(page.getByTestId("explanation").getByRole("heading")).toHaveText("这个结果是什么意思");
-  // A reason: the evaluator's English, then the Chinese explanation, in the panel of the record chosen.
-  await region.locator('[data-record="2"]').click();
-  const record = region.getByTestId("record-panel");
-  await expect(record.getByText("exact string comparison").first()).toBeVisible();
-  await expect(record.locator('[data-gloss="reason-exact"]').first()).toHaveText("按原样比较字符串。");
-  await expect(region.locator('[data-gloss="limitations"]')).toBeVisible();
-  // The summary is the command line's, character for character; its lines are explained beside it.
-  expect(await page.getByTestId("summary").textContent()).toBe(golden("example-page", "stdout.txt"));
-  await expect(page.getByTestId("summary-glosses")).toContainText("批次结果：不一致。");
-  // A refusal, in English, with its explanation.
-  await page.getByTestId("source-file").setInputFiles(csv("r.csv", "k,p,p\n1,2,3\n"));
-  await expect(page.getByText("r.csv: repeated column name")).toBeVisible();
-  await expect(page.locator('[data-gloss="repeated-column"]')).toHaveText("r.csv：表头中有列名重复出现。");
-  await expect(page.getByTestId("refusal-hint")).toContainText("可能有帮助的做法");
-  requests.stop();
-  expectNoNetwork(page, requests);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-});
-
 for (const s of SCENARIOS) {
   test(`scenario ${s.id}: the result it names for each set of premises, as its golden case`, async ({ page, context }) => {
     await openCheck(page);
@@ -257,30 +231,28 @@ test("the feedback link opens the trial form on GitHub in a new tab, with only t
 
 for (const theme of ["light", "dark"] as const) {
   for (const [width, viewport] of Object.entries(VIEWPORTS)) {
-    for (const locale of ["en", "zh-CN"] as Locale[]) {
-      test(`axe · ${theme} · ${width} · ${locale} · scenarios, an explained result, a hint and a saved report`, async ({ page, browserName }) => {
-        await page.addInitScript((t) => localStorage.setItem("flowassert.theme", t), theme);
-        await page.setViewportSize(viewport);
-        await openCheck(page, "/#/check", locale);
-        const violations: string[] = [];
-        await useScenario(page, "extra-in-destination", { source_complete: false, destination_complete: false });
-        await result(page);
-        await page.waitForTimeout(400); // let fade-ins finish so contrast is measured at rest
-        violations.push(...(await audit(page)));
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-        await page.getByTestId("source-file").setInputFiles(join(GOLDEN, "decode-wrong-encoding", "source.csv"));
-        await page.getByTestId("refusal-hint").waitFor();
-        violations.push(...(await audit(page)));
-        await page.goto("/#/check/reports");
-        await page.getByTestId("import-file").setInputFiles(join(GOLDEN, "scope-exact-source-unknown", "report.json"));
-        await page.getByTestId("open-entry").click();
-        await page.getByTestId("explanation").waitFor();
-        await page.waitForTimeout(400);
-        violations.push(...(await audit(page)));
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-        writeReport(`axe-${browserName}-${theme}-${width}-${locale}-first-check`, violations);
-        expect(violations).toEqual([]);
-      });
-    }
+    test(`axe · ${theme} · ${width} · scenarios, an explained result, a hint and a saved report`, async ({ page, browserName }) => {
+      await page.addInitScript((t) => localStorage.setItem("flowassert.theme", t), theme);
+      await page.setViewportSize(viewport);
+      await openCheck(page, "/#/check");
+      const violations: string[] = [];
+      await useScenario(page, "extra-in-destination", { source_complete: false, destination_complete: false });
+      await result(page);
+      await page.waitForTimeout(400); // let fade-ins finish so contrast is measured at rest
+      violations.push(...(await audit(page)));
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await page.getByTestId("source-file").setInputFiles(join(GOLDEN, "decode-wrong-encoding", "source.csv"));
+      await page.getByTestId("refusal-hint").waitFor();
+      violations.push(...(await audit(page)));
+      await page.goto("/#/check/reports");
+      await page.getByTestId("import-file").setInputFiles(join(GOLDEN, "scope-exact-source-unknown", "report.json"));
+      await page.getByTestId("open-entry").click();
+      await page.getByTestId("explanation").waitFor();
+      await page.waitForTimeout(400);
+      violations.push(...(await audit(page)));
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      writeReport(`axe-${browserName}-${theme}-${width}-first-check`, violations);
+      expect(violations).toEqual([]);
+    });
   }
 }

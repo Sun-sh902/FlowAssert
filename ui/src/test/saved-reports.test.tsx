@@ -7,11 +7,10 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { startLocalizer } from "../i18n/localizer";
 import { readReport } from "../offline/savedReport";
 import { inThreadRunner } from "../offline/runner";
 import { parseHash } from "../lib/router";
@@ -416,47 +415,3 @@ function cleanupAll() {
   document.body.innerHTML = "";
 }
 
-describe("in Chinese", () => {
-  const ALLOWED = /^(FlowAssert|JSON|IndexedDB|GitHub|CSV|n8n|Action|Pages|problems|sun-sh902\.github\.io)$/;
-
-  /** Words with Latin letters left after the localizer ran, outside values marked as data. */
-  function untranslated(root: HTMLElement): string[] {
-    const out: string[] = [];
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    while (walker.nextNode()) {
-      const node = walker.currentNode as Text;
-      if (node.parentElement?.closest("code, pre, [data-no-translate], [aria-hidden='true'], .fa-seal, [data-ornament]")) continue;
-      // A snake_case word is an identifier (a premise's or a report member's name), kept as written.
-      for (const word of node.nodeValue!.match(/[A-Za-z][\w.-]*/g) ?? []) if (!ALLOWED.test(word) && !word.includes("_")) out.push(`${word} in “${node.nodeValue!.trim()}”`);
-    }
-    return out;
-  }
-
-  async function inChinese(ui: ReactNode, ready: () => void) {
-    const { container } = render(ui);
-    await waitFor(ready);
-    const stop = startLocalizer(container);
-    await act(async () => new Promise((r) => setTimeout(r, 0)));
-    const words = untranslated(container);
-    stop();
-    return words;
-  }
-
-  it("translates every interface string of the saved reports pages", async () => {
-    const store = memoryStore();
-    const a = await stored(store, "x", { kind: "imported", fileName: "a.json" }, caseReport("destination-only", "earlier"));
-    const b = await stored(store, "x", { kind: "checked" }, caseReport("destination-only", "later"));
-    const c = await stored(store, "x", { kind: "checked" }, caseReport("not-matched", "earlier"));
-    const d = await stored(store, "x", { kind: "checked" }, caseReport("not-matched", "later"));
-    const e = await stored(store, "x", { kind: "checked" }, caseReport("classes-details-all", "earlier"));
-    const f = await stored(store, "x", { kind: "checked" }, caseReport("classes-details-all", "later"));
-    expect(await inChinese(withStore(store, <SavedReportsPage />), () => expect(screen.getAllByTestId("saved-entry")).toHaveLength(6))).toEqual([]);
-    cleanupAll();
-    expect(await inChinese(withStore(store, <SavedReportPage id={a.id} />), () => expect(screen.getByRole("region", { name: "Result" })).toBeTruthy())).toEqual([]);
-    cleanupAll();
-    for (const [x, y] of [[a, b], [c, d], [e, f], [a, c]] as const) {
-      expect(await inChinese(withStore(store, <CompareReportsPage earlier={x.id} later={y.id} />), () => expect(document.querySelector('[data-testid="before-counts"], [data-testid="not-comparable"]')).not.toBeNull())).toEqual([]);
-      cleanupAll();
-    }
-  });
-});

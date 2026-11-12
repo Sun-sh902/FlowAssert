@@ -128,31 +128,6 @@ test.describe("archive: dev-main (2 archived evaluations per case)", () => {
     await expect(page.getByRole("link", { name: /current result of SPEC-00\d/ })).toBeVisible();
   });
 
-  test("Language: Chinese relabels the page; verdicts, identifiers and reads stay the Service's", async ({ page }) => {
-    await page.goto("/#/local/verifications/SPEC-002");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("contradict");
-    const digest = "b61779e1";
-    await expect(page.getByText(digest).first()).toBeVisible();
-
-    await page.getByRole("radio", { name: "简体中文" }).first().click();
-    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("矛盾");
-    await expect(page.getByText("不一致").first()).toBeVisible();
-    await expect(page.getByText(digest).first()).toBeVisible();
-    await expect(page.getByText("SPEC-002").first()).toBeVisible();
-    await expect(page).toHaveTitle(/合成线索比较/);
-    await page.evaluate(() => Promise.allSettled(document.getAnimations().map((a) => a.finished)));
-    expect(await axe(page)).toEqual([]);
-
-    await page.goto("/#/");
-    await page.reload();
-    await expect(page.getByRole("link", { name: /总览/ }).first()).toBeVisible();
-
-    await page.getByRole("radio", { name: "English" }).first().click();
-    await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.getByRole("link", { name: /Overview/ }).first()).toBeVisible();
-  });
-
   test("Capture runs offers no action and sends nothing", async ({ page }) => {
     const seen = recordRequests(page);
     await open(page, "#/capture");

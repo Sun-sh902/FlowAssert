@@ -20,8 +20,7 @@
  * schema_version 4) gets one point for each such side: which worksheet was read, and that each cell was read as it is
  * stored, not as a spreadsheet displays it, with what that means for numbers, percentages, dates and formulas.
  *
- * The text is English, in parts: a string is interface text, which the Chinese catalogue (i18n/zh-CN.ts) translates
- * as it translates the rest of the page; a { value } is something the report holds, such as a column name or a rule,
+ * The text is English, in parts: a string is interface text; a { value } is something the report holds, such as a column name or a rule,
  * shown exactly as written.
  */
 import type { Counts, DestinationOnlyRecord, Premise, RuleResult, SourceRecord, State } from "./evaluator";
@@ -573,7 +572,7 @@ export function explain(report: Explainable, { redacted = false }: { redacted?: 
   return { state, lead: LEAD[state], points, more };
 }
 
-/** Every string part of an explanation, for the tests of wording and of the Chinese catalogue. */
+/** Every string part of an explanation, for the tests of its wording. */
 export function textsOf(e: Explanation): string[] {
   const parts = [e.lead, ...e.points.flatMap((p) => [...p.text, ...(p.detail ?? [])])];
   return parts.filter((p): p is string => typeof p === "string" && p.trim() !== "");

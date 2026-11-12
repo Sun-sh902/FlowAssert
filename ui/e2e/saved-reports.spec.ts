@@ -235,15 +235,14 @@ test("with storage blocked, saving is refused with the reason and the check stil
   expectNoRequest(page, requests);
 });
 
-test("the comparison page in Chinese, at phone width, without horizontal scroll", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("flowassert.locale", "zh-CN"));
+test("the comparison page at phone width, without horizontal scroll", async ({ page }) => {
   await page.setViewportSize(VIEWPORTS.phone);
   await page.goto("/#/check/reports");
-  await page.getByRole("heading", { level: 1, name: "已保存的报告" }).waitFor();
+  await page.getByRole("heading", { level: 1, name: "Saved reports" }).waitFor();
   await importFiles(page, [caseFile("classes-details-all", "earlier"), caseFile("classes-details-all", "later")]);
   await compareFirstTwo(page);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("比较两份报告");
-  await expect(page.locator('[data-class="became-problem"] h3')).toHaveText("变成问题（1）");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Comparing two reports");
+  await expect(page.locator('[data-class="became-problem"] h3')).toHaveText("Became a problem (1)");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

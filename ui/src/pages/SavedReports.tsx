@@ -12,7 +12,6 @@ import { Notices, Premises, ResultExplanation, Value } from "../components/repor
 import { RecordExplorer } from "../components/report/Explorer";
 import { ANY } from "../offline/explore";
 import { FeedbackLink } from "../components/report/Feedback";
-import { Gloss } from "../components/report/Gloss";
 import { PagesOriginNotice, StorageProblem } from "../components/report/Storage";
 import { PageHead, SectionHead } from "../components/ui/atelier";
 import { buttonClass } from "../components/ui/primitives";
@@ -170,7 +169,7 @@ function EntryCard({ entry, chosen, canChoose, onChoose, onDelete }: { entry: Sa
         <dt className="text-ink-3">Redacted</dt>
         <dd className="text-ink-2">{s.redacted ? "yes: keys and values are not in the report" : "no: the report holds keys and compared values"}</dd>
         <dt className="text-ink-3">Details</dt>
-        <dd className="font-mono text-ink-2" data-no-translate>
+        <dd className="font-mono text-ink-2">
           {s.details}
         </dd>
       </dl>
@@ -602,10 +601,9 @@ export function SavedReportPage({ id }: { id: string }) {
                 "No claim is made: the result is not Verified."
               ) : (
                 <>
-                  <span data-no-translate lang="en">
+                  <span>
                     {view.claim}
                   </span>
-                  <Gloss text={view.claim} className="text-sm" />
                 </>
               )}
             </p>
@@ -636,10 +634,9 @@ export function SavedReportPage({ id }: { id: string }) {
             </dl>
             <Notices view={view} />
             <p className="mt-4 max-w-[70ch] text-xs leading-[1.55] text-ink-3">
-              <span data-no-translate lang="en">
+              <span>
                 {view.limitations}
               </span>
-              <Gloss text={view.limitations} />
             </p>
             <dl className="mt-3 grid gap-x-3 gap-y-0.5 text-xs sm:grid-cols-[130px_minmax(0,1fr)]">
               <dt className="text-ink-3">Key</dt>

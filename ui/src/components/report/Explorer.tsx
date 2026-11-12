@@ -17,7 +17,6 @@ import { ANY, changesAddress, fromParams, toParams, type Facts, type Item, type 
 import { pyRepr } from "../../offline/pystr";
 import { buttonClass } from "../ui/primitives";
 import { RuleStatusIcon, RuleStatusLabel, StatusBadge } from "../ui/status";
-import { Gloss } from "./Gloss";
 
 /** The height of one row of the list, in CSS pixels; every row has it. */
 const ROW = 40;
@@ -85,7 +84,7 @@ export function PlainValue({ value }: { value: string | null | undefined }) {
   if (typeof value !== "string") return <code className="font-mono text-[12px] text-ink-3">{pyRepr(value ?? null)}</code>;
   if (value === "") return <code className="font-mono text-[12px] text-ink-3">''</code>;
   return (
-    <code data-no-translate className="fa-diff font-mono text-[12px] break-all whitespace-pre-wrap text-ink">
+    <code className="fa-diff font-mono text-[12px] break-all whitespace-pre-wrap text-ink">
       <Drawn text={value} highlighted={false} start end />
     </code>
   );
@@ -108,22 +107,22 @@ export function ValueDiff({ source, destination, label }: { source: string; dest
       <dl className="mt-1 grid gap-x-3 gap-y-1 text-xs sm:grid-cols-[96px_minmax(0,1fr)]">
         <dt className="text-ink-3">Source</dt>
         <dd className="min-w-0">
-          <code data-no-translate className="fa-diff font-mono text-[12.5px] break-all whitespace-pre-wrap text-ink" data-side="source">
+          <code className="fa-diff font-mono text-[12.5px] break-all whitespace-pre-wrap text-ink" data-side="source">
             <Runs runs={a.source} />
           </code>
           {sourcePoints.length > 0 && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-3" data-no-translate>
+            <p className="mt-0.5 font-mono text-[11px] text-ink-3">
               {sourcePoints.join(" · ")}
             </p>
           )}
         </dd>
         <dt className="text-ink-3">Destination</dt>
         <dd className="min-w-0">
-          <code data-no-translate className="fa-diff font-mono text-[12.5px] break-all whitespace-pre-wrap text-ink" data-side="destination">
+          <code className="fa-diff font-mono text-[12.5px] break-all whitespace-pre-wrap text-ink" data-side="destination">
             <Runs runs={a.destination} />
           </code>
           {destinationPoints.length > 0 && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-3" data-no-translate>
+            <p className="mt-0.5 font-mono text-[11px] text-ink-3">
               {destinationPoints.join(" · ")}
             </p>
           )}
@@ -160,7 +159,7 @@ function RuleDetail({ name, rule }: { name: string; rule: RuleResult }) {
   return (
     <li className="grid gap-1 border-t border-line-subtle py-2 first:border-t-0" data-rule={name.startsWith("field:") ? "field" : name}>
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <code data-no-translate className="font-mono text-[12px] text-ink-2">
+        <code className="font-mono text-[12px] text-ink-2">
           {name}
         </code>
         <span className="inline-flex items-center gap-1">
@@ -168,15 +167,14 @@ function RuleDetail({ name, rule }: { name: string; rule: RuleResult }) {
           <RuleStatusLabel status={rule.status} />
         </span>
         {rule.rule && (
-          <code data-no-translate className="font-mono text-[11px] text-ink-3">
+          <code className="font-mono text-[11px] text-ink-3">
             {rule.rule}
           </code>
         )}
       </div>
-      <p data-no-translate className="text-xs text-ink-3">
+      <p className="text-xs text-ink-3">
         {rule.reason}
       </p>
-      <Gloss text={rule.reason} className="mt-0" />
       {"expected" in rule && (
         <dl className="grid gap-x-3 gap-y-0.5 text-xs sm:grid-cols-[96px_minmax(0,1fr)]">
           <dt className="text-ink-3">Source value</dt>
@@ -213,7 +211,7 @@ function RecordPanel({ item, facts, headingId, level }: { item: Item; facts: Fac
         <H id={headingId} className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-ink">
           <span>{`Destination row ${grouped(r.destination_row + 1)}`}</span>
           <span aria-hidden>·</span>
-          <code data-no-translate className="font-mono text-[12.5px] font-normal break-all">
+          <code className="font-mono text-[12.5px] font-normal break-all">
             {r.key}
           </code>
         </H>
@@ -221,10 +219,9 @@ function RecordPanel({ item, facts, headingId, level }: { item: Item; facts: Fac
           <StatusBadge state={r.state} size="sm" />
           <span className="text-xs text-ink-2">{r.rows === 1 ? "1 destination row has this key" : `${grouped(r.rows)} destination rows have this key`}</span>
         </div>
-        <p data-no-translate className="mt-2 text-xs text-ink-3">
+        <p className="mt-2 text-xs text-ink-3">
           {r.reason}
         </p>
-        <Gloss text={r.reason} className="mt-0" />
       </div>
     );
   }
@@ -237,7 +234,7 @@ function RecordPanel({ item, facts, headingId, level }: { item: Item; facts: Fac
         {r.key === null ? (
           <span className="font-normal text-ink-3">no key</span>
         ) : (
-          <code data-no-translate className="font-mono text-[12.5px] font-normal break-all">
+          <code className="font-mono text-[12.5px] font-normal break-all">
             {r.key}
           </code>
         )}
@@ -276,7 +273,7 @@ function ItemRow({ item }: { item: Item | undefined }) {
         {r.key === null ? (
           <span className="text-xs text-ink-3">no key</span>
         ) : (
-          <code data-no-translate className="font-mono text-[12px] text-ink">
+          <code className="font-mono text-[12px] text-ink">
             {r.key}
           </code>
         )}
@@ -486,7 +483,7 @@ export function RecordExplorer({ store, params, replace, start = ANY, label = "R
           <select value={query.rule ?? ""} onChange={(e) => set({ rule: e.target.value === "" ? null : Number(e.target.value) })} disabled={onlyList} data-testid="explorer-rule">
             <option value="">Any rule</option>
             {facts.rules.map((r, i) => (
-              <option key={r} value={i} data-no-translate>
+              <option key={r} value={i}>
                 {r}
               </option>
             ))}

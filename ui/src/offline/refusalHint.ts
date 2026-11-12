@@ -4,7 +4,7 @@
  * never retries, and never changes an encoding, a separator or a column. The refusal itself stays exactly as the
  * command line prints it (docs/guides/refusals.md gives the same help for the command line).
  *
- * The text is English, in parts, as in explain.ts: a string is interface text the Chinese catalogue translates, a
+ * The text is English, in parts, as in explain.ts: a string is interface text, a
  * { value } is something from the file, such as a column name, shown exactly as it is.
  */
 import { CsvError, CsvReader, LineReader, MAX_BYTES, MAX_ROWS, NeedMore, readHeader, type Encoding } from "./csv";

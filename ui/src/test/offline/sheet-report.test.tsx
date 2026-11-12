@@ -1,17 +1,14 @@
 /**
  * Reports whose source the command line read from a Google Sheets range (schema_version 2, 0.7.0): the browser opens
  * and imports them as written by offline/bench/golden.py into offline/golden-sheets/, shows where the rows came from,
- * explains the new members from the report alone in English and Chinese, compares two of them, and refuses to compare
+ * explains the new members from the report alone, compares two of them, and refuses to compare
  * reports whose sources differ. Nothing here, or in the modules it tests, makes a request to Google.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, test } from "vitest";
-import { glossOf } from "../../i18n/englishTexts";
-import { startLocalizer } from "../../i18n/localizer";
-import { translate } from "../../i18n/translate";
 import { ReportStoreContext, memoryStore, type ReportStore } from "../../lib/savedReports";
 import { compareReports, type Comparison } from "../../offline/compare";
 import { explain, textsOf } from "../../offline/explain";
@@ -94,14 +91,13 @@ describe("opening a report from a sheet source", () => {
 });
 
 describe("what a sheet-sourced result means", () => {
-  test.each(withReport)("%s: where the rows were read, and the revision, from the report alone, in both languages", (name) => {
+  test.each(withReport)("%s: where the rows were read, and the revision, from the report alone", (name) => {
     const report = read(name);
     const e = explain(report, { redacted: report.records.some((r) => r.key === "[redacted]") });
     const ids = e.points.map((p) => p.id);
     expect(ids).toContain("source-sheet");
     expect(ids.filter((id) => id.startsWith("source-sheet-")).length).toBe(1);
     for (const text of textsOf(e)) {
-      expect(translate(text), text).not.toBe(text);
       // Reading the sheet is never offered as evidence of completeness, or as making a result more certain.
       expect(text).not.toMatch(/\b(proves?|confirms?|guarantees?) (that )?(the )?(range|sheet|source) (is|holds)/i);
       expect(text).not.toMatch(/more (certain|Verified|reliable)/);
@@ -163,45 +159,11 @@ describe("comparing reports from a sheet source", () => {
   });
 });
 
-describe("every line a sheet check prints has a Chinese explanation", () => {
-  test.each(names)("%s", (name) => {
-    const stdout = readFileSync(join(SHEETS, name, "stdout.txt"), "utf-8");
-    for (const line of stdout.split("\n").filter(Boolean)) expect(glossOf(line), line).not.toBeNull();
-    const stderr = readFileSync(join(SHEETS, name, "stderr.txt"), "utf-8").trim();
-    if (stderr) expect(glossOf(stderr), stderr).not.toBeNull();
-  });
-
-  test("the summary's sheet lines say what the read does not show", () => {
-    expect(glossOf("Source read by FlowAssert from Google Sheets: spreadsheet X1, range Leads!A1:C9, at 2000-01-01T00:00:00Z.")!.zh).toContain("那仍是你的声明");
-    expect(glossOf("Source count stated 4, range has 3 rows: the batch cannot be Verified.")!.zh).toBe("声明的来源总数是 4，表格范围中有 3 行：这一批不能是已验证。");
-    expect(glossOf("Source count stated 4, file has 3 rows: the batch cannot be Verified.")!.zh).toBe("声明的来源总数是 4，文件中有 3 行：这一批不能是已验证。");
-  });
-});
-
 describe("the pages", () => {
   const withStore = (store: ReportStore, ui: ReactNode) => <ReportStoreContext.Provider value={store}>{ui}</ReportStoreContext.Provider>;
   const add = (store: ReportStore, report: Uint8Array) => store.add(readReport(report, "r.json"), { kind: "imported", fileName: "r.json" });
 
-  /** Words with Latin letters the localizer left, outside values (as in saved-reports.test.tsx). The scope name
-   * "source" is written as it is in the Chinese text of a point about the scope. */
-  async function untranslated(ui: ReactNode, ready: () => void) {
-    const { container, unmount } = render(ui);
-    await waitFor(ready);
-    const stop = startLocalizer(container);
-    await act(async () => new Promise((r) => setTimeout(r, 0)));
-    const out: string[] = [];
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-    while (walker.nextNode()) {
-      const node = walker.currentNode as Text;
-      if (node.parentElement?.closest("code, pre, [data-no-translate], [aria-hidden='true'], .fa-seal, [data-ornament]")) continue;
-      for (const word of node.nodeValue!.match(/[A-Za-z][\w.-]*/g) ?? []) if (!/^(FlowAssert|JSON|IndexedDB|GitHub|CSV|n8n|Action|Pages|problems|Google|Sheets|Drive|ID|source)$/.test(word) && !word.includes("_")) out.push(`${word} in “${node.nodeValue!.trim()}”`);
-    }
-    stop();
-    unmount();
-    return out;
-  }
-
-  test("an opened report says where its rows were read and the revision, and every string translates", async () => {
+  test("an opened report says where its rows were read and the revision", async () => {
     const store = memoryStore();
     const entry = await add(store, bytes("sheet-verified"));
     const { unmount } = render(withStore(store, <SavedReportPage id={entry.id} />));
@@ -209,7 +171,6 @@ describe("the pages", () => {
     expect(sheet.textContent).toBe("Read by FlowAssert from Google Sheets, read-only: range Leads!A1:C1000 of spreadsheet 1SyntheticSpreadsheet-FlowAssert_0001");
     expect(screen.getByTestId("saved-source-revision").textContent).toBe("Drive version, the same before and after the values were read: 57");
     unmount();
-    expect(await untranslated(withStore(store, <SavedReportPage id={entry.id} />), () => expect(screen.getByTestId("saved-source-sheet")).toBeTruthy())).toEqual([]);
     const none = await add(store, bytes("sheet-revision-not-requested"));
     render(withStore(store, <SavedReportPage id={none.id} />));
     expect((await screen.findByTestId("saved-source-revision")).textContent).toBe("The read cannot be tied to a revision: not requested (--skip-source-revision)");
@@ -229,7 +190,6 @@ describe("the pages", () => {
     expect(document.querySelector('[data-reason="different-source"]')!.textContent).toContain("The source differs: a CSV file in one report and a Google Sheets range in the other");
     expect(document.querySelector("[data-class-count]")).toBeNull();
     unmount();
-    expect(await untranslated(withStore(store, <CompareReportsPage earlier={earlier.id} later={sheet.id} />), ready)).toEqual([]);
     render(withStore(store, <CompareReportsPage earlier={earlier.id} later={sheet.id} />));
     await waitFor(ready);
     expect(screen.getAllByText("Source rows (Google Sheets range)").length).toBeGreaterThan(0);

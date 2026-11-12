@@ -246,17 +246,3 @@
     scroll-behavior: auto !important;
   }
 }
-
-/* Simplified Chinese. The Latin faces carry no Han glyphs; the system faces supply them, and identifiers stay mono. */
-html[lang="zh-CN"] {
-  --font-sans: "Instrument Sans Variable", "Instrument Sans", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
-  --font-display: "Instrument Serif", "Songti SC", "Noto Serif CJK SC", "STSong", serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", "PingFang SC", "Noto Sans CJK SC", monospace;
-}
-html[lang="zh-CN"] header b {
-  white-space: nowrap; /* a two-character crumb must not stack in the narrow top bar */
-}
-html[lang="zh-CN"] em,
-html[lang="zh-CN"] i {
-  font-style: normal; /* Han text has no italic forms; a browser would only slant it */
-}

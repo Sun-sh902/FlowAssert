@@ -1,22 +1,20 @@
 /**
  * Reports whose destination the command line read from HubSpot's contacts (schema_version 3, 1.0.0): the browser opens
  * them as offline/bench/golden.py writes them into offline/golden-hubspot/, shows that FlowAssert listed the records and
- * what that does not show, explains it in English and Chinese, lists every record in the result explorer, compares two
+ * what that does not show, explains it, lists every record in the result explorer, compares two
  * of them, and refuses to compare a report whose destination was a file with one whose destination was HubSpot.
  * Nothing here, or in the modules it tests, makes a request to HubSpot.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
-import { startLocalizer } from "../../i18n/localizer";
 import { ReportStoreContext, memoryStore } from "../../lib/savedReports";
 import { compareReports } from "../../offline/compare";
 import { explain, textsOf } from "../../offline/explain";
 import { compareCodePoints } from "../../offline/pystr";
 import { NotAReport, readReport, viewOf } from "../../offline/savedReport";
 import { SavedReportPage } from "../../pages/SavedReports";
-import { translate } from "../../i18n/translate";
 import { REPO_ROOT } from "../fixtures/sources";
 
 const HUBSPOT = join(REPO_ROOT, "offline/golden-hubspot");
@@ -96,7 +94,7 @@ describe("opening a report from a HubSpot destination", () => {
 });
 
 describe("the saved report page", () => {
-  test("shows where the destination was read, and every record in the explorer, in English and in Chinese", async () => {
+  test("shows where the destination was read, and every record in the explorer", async () => {
     const store = memoryStore();
     const read_ = readReport(bytes("hubspot-mismatch"), "hubspot-mismatch.json");
     const entry = await store.add(read_, { kind: "imported", fileName: "hubspot-mismatch.json" });
@@ -109,11 +107,6 @@ describe("the saved report page", () => {
     expect(line.textContent).toContain("Listed by FlowAssert from HubSpot's contacts, read-only: 2 records in 1 page, archived records not read.");
     expect(line.textContent).toContain("This does not show that the object is complete.");
     await waitFor(() => expect(container.querySelectorAll("[data-record]").length).toBe(2));
-    const stop = startLocalizer(container);
-    await act(async () => new Promise((r) => setTimeout(r, 0)));
-    expect(line.textContent).toContain("由 FlowAssert 从 HubSpot 联系人中只读列出：2 条记录，1 页");
-    expect(container.querySelector('[data-point="destination-hubspot"]')?.textContent).toContain("目标记录由 FlowAssert 从 HubSpot 联系人中只读列出");
-    stop();
-    expect(translate("The destination differs: a CSV file in one report and the contacts FlowAssert listed from HubSpot in the other.")).toContain("目标不同");
+    expect(container.querySelector('[data-point="destination-hubspot"]')?.textContent).toContain("The destination records were listed by FlowAssert from HubSpot's contacts, read-only");
   });
 });

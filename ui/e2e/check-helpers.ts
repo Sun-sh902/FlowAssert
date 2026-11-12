@@ -20,20 +20,12 @@ export const asBrowser = (text: string) =>
 /** evaluated_at differs at every run. */
 export const anyTime = (text: string) => text.replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?Z/g, "TIME");
 
-export type Locale = "en" | "zh-CN";
 
 /**
  * Open the CSV check. The page starts its worker and loads every font face when it opens; this waits until all of
  * that has arrived, so that what follows can be required to make no request at all.
  */
-export async function openCheck(page: Page, url = "/#/check", locale: Locale = "en") {
-  await page.addInitScript((l) => {
-    try {
-      localStorage.setItem("flowassert.locale", l);
-    } catch {
-      /* storage unavailable */
-    }
-  }, locale);
+export async function openCheck(page: Page, url = "/#/check") {
   await page.goto("about:blank");
   // Chrome fetches the tab icon on its own some time after the page loads; let it, before anything is recorded.
   const icon = page.waitForResponse((r) => r.url().endsWith("/favicon.svg"), { timeout: 5000 }).catch(() => null);
@@ -96,7 +88,7 @@ export async function check(page: Page, c: Choices) {
     await page.getByTestId("key-source").selectOption(c.key![0]);
     await page.getByTestId("key-destination").selectOption(c.key![1]);
     for (const [i, [s, d, rule]] of c.fields!.entries()) {
-      if (i > 0) await page.getByRole("button", { name: /^(Add a field|添加字段)$/ }).click();
+      if (i > 0) await page.getByRole("button", { name: "Add a field" }).click();
       await page.getByTestId(`field-${i}-source`).selectOption(s);
       await page.getByTestId(`field-${i}-destination`).selectOption(d);
       if (rule) await page.getByTestId(`field-${i}-rule`).selectOption(rule);

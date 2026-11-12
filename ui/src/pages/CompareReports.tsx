@@ -147,7 +147,7 @@ function PremiseRow({ name, earlier, later, statedDiffers, originDiffers }: { na
               {p && (
                 <span>
                   <span className="text-ink-3">origin </span>
-                  <span data-no-translate className={originDiffers ? "font-semibold" : undefined}>
+                  <span className={originDiffers ? "font-semibold" : undefined}>
                     {p.origin}
                   </span>
                 </span>

@@ -1,8 +1,7 @@
 /**
  * The parts of a result the CSV check page shows, shared with the saved reports pages (#/check/reports): the stated
  * premises with their origins, the notices printed beside the counts, and what the result means (offline/explain.ts).
- * The records are in the result explorer (./Explorer.tsx). Values from the files are marked data-no-translate, so the
- * Chinese interface never alters them.
+ * The records are in the result explorer (./Explorer.tsx).
  */
 import { useId, type ReactNode } from "react";
 import type { Premise } from "../../offline/evaluator";
@@ -20,7 +19,7 @@ export const PREMISE_LABEL: Record<string, string> = {
 
 export function Value({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <code data-no-translate className={cn("font-mono text-[12px] break-all whitespace-pre-wrap text-ink", className)}>
+    <code className={cn("font-mono text-[12px] break-all whitespace-pre-wrap text-ink", className)}>
       {children}
     </code>
   );
@@ -60,7 +59,7 @@ export function Premises({ premises }: { premises: [string, Premise][] }) {
               )}
               <span>
                 <span className="text-ink-3">origin </span>
-                <span data-no-translate>{p.origin}</span>
+                <span>{p.origin}</span>
               </span>
             </dd>
           </div>

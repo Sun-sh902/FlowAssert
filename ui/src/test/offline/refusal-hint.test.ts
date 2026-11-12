@@ -5,7 +5,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { translate } from "../../i18n/translate";
 import { check } from "../../offline/check";
 import type { Encoding } from "../../offline/csv";
 import { refusalHint, separatorOf, type Hint, type HintFile } from "../../offline/refusalHint";
@@ -169,17 +168,5 @@ describe("the other refusals", () => {
     const { message, hint } = await refusedWithHint({ bytes: enc('k,p\n"1,2\n') }, ok);
     expect(message).toBe("refused: source.csv: unexpected end of data");
     expect(hint).toBeNull();
-  });
-});
-
-describe("Chinese", () => {
-  test("every sentence a hint can write has a Chinese entry", () => {
-    const source = readFileSync(join(REPO_ROOT, "ui/src/offline/refusalHint.ts"), "utf-8");
-    const literals = [...source.matchAll(/"((?:[A-Z#]|\d+ )[^"]*\s[^"]*)"|`((?:[A-Z#$]|\d)[^`]*\s[^`]*)`/g)]
-      .map((m) => (m[1] ?? m[2]!).replace(/\$\{[^}]+\}/g, "1"))
-      .filter((t) => /[a-z]{3}/.test(t));
-    expect(literals.length).toBeGreaterThan(15);
-    expect(literals.filter((t) => translate(t) === t)).toEqual([]);
-    expect(translate("Line 3 has 3 fields; the header has 2.")).not.toBe("Line 3 has 3 fields; the header has 2.");
   });
 });

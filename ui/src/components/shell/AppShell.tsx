@@ -1,6 +1,5 @@
 import { Menu, Monitor, Moon, Sun, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { setLocale, useLocale, type Locale } from "../../i18n/locale";
 import { cn } from "../../lib/cn";
 import { PAGES_BUILD } from "../../lib/build";
 import { DEMO_NOW_MS, formatDateTime } from "../../lib/format";
@@ -183,40 +182,6 @@ function ThemeSwitch() {
   );
 }
 
-function LocaleSwitch() {
-  const locale = useLocale();
-  const options: { value: Locale; label: string; short: string }[] = [
-    { value: "en", label: "English", short: "EN" },
-    { value: "zh-CN", label: "简体中文", short: "中文" },
-  ];
-  const keys = useRadioGroupKeys(options, locale, (value: Locale) => setLocale(value));
-  return (
-    <div ref={keys.ref} role="radiogroup" aria-label="Language" onKeyDown={keys.onKey} className="flex rounded-sm border border-line p-0.5">
-      {options.map((o) => {
-        const active = locale === o.value;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            tabIndex={active ? 0 : -1}
-            aria-label={o.label}
-            title={o.label}
-            onClick={() => setLocale(o.value)}
-            className={cn(
-              "grid h-7 min-w-8 place-items-center rounded-xs px-1.5 font-mono text-[10px] transition-colors duration-(--fa-dur-fast)",
-              active ? "bg-ink text-canvas" : "text-ink-3 hover:text-ink",
-            )}
-          >
-            {o.short}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 type Register = "local" | "demo" | "check";
 
 function RailFooter({ register }: { register: Register }) {
@@ -248,7 +213,6 @@ function RailFooter({ register }: { register: Register }) {
       </div>
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] text-ink-3">v1.0</span>
-        <LocaleSwitch />
       </div>
       <div className="flex justify-end">
         <ThemeSwitch />

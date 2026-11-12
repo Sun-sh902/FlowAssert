@@ -2,8 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { RenderBoundary } from "./components/shell/RenderBoundary";
-import { pageLocale } from "./i18n/locale";
-import { startLocalizer } from "./i18n/localizer";
 import { applyInitialPrefs } from "./lib/prefs";
 import { applyInitialTheme } from "./lib/theme";
 import { DEMO_RUNS } from "./mocks/fixtures";
@@ -12,9 +10,11 @@ import "./styles/index.css";
 
 applyInitialTheme();
 applyInitialPrefs();
-if (pageLocale() === "zh-CN") {
-  document.documentElement.lang = "zh-CN";
-  startLocalizer();
+// 1.0 kept a chosen interface language here; from 1.1.0 the interface is English only, so the choice is cleared.
+try {
+  localStorage.removeItem("flowassert.locale");
+} catch {
+  /* storage unavailable: nothing was kept */
 }
 
 const root = createRoot(document.getElementById("root")!);

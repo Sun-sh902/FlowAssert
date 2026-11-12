@@ -2,16 +2,14 @@
  * The result explorer (components/report/Explorer.tsx) on saved golden reports: it lists what each filter selects, is
  * operated by keyboard with one tab stop, opens a panel with every rule result and both values, says plainly when a
  * report holds no rule results for a Verified record, keeps its view in the address without a key or a value, and
- * highlights where two compared values differ, labelled as a display aid. In Chinese, nothing of it is left in English
- * but values and technical names.
+ * highlights where two compared values differ, labelled as a display aid.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { RecordExplorer, ValueDiff } from "../components/report/Explorer";
-import { startLocalizer } from "../i18n/localizer";
 import { ANY } from "../offline/explore";
 import { readReport, storeOfSaved } from "../offline/savedReport";
 import { REPO_ROOT } from "./fixtures/sources";
@@ -169,21 +167,3 @@ describe("the character diff", () => {
   });
 });
 
-describe("in Chinese", () => {
-  it("translates every interface string of the explorer, the panel and the diff", async () => {
-    explore("rules-fail", "?row=1");
-    await screen.findByTestId("record-panel");
-    const stop = startLocalizer(document.body);
-    await act(async () => new Promise((r) => setTimeout(r, 0)));
-    const ALLOWED = /^(NBSP|BOM|ZWSP|U\+[0-9A-F]+|details|problems|redact-values|NFC|NFKC|abc)$/;
-    const left: string[] = [];
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    while (walker.nextNode()) {
-      const node = walker.currentNode as Text;
-      if (node.parentElement?.closest("code, option[data-no-translate], [data-no-translate], [aria-hidden='true'], .fa-seal")) continue;
-      for (const word of node.nodeValue!.match(/[A-Za-z][\w.+-]*/g) ?? []) if (!ALLOWED.test(word)) left.push(`${word} in “${node.nodeValue!.trim()}”`);
-    }
-    stop();
-    expect(left).toEqual([]);
-  });
-});

@@ -1,12 +1,11 @@
 /**
  * "What this result means" (offline/explain.ts): the points expected for golden reports of every kind, the same points
  * from a check's report and from the saved report of the same JSON, repeated reasons grouped and the list capped, no
- * point that offers a premise as a way to reach Verified, and a Chinese entry for every sentence.
+ * point that offers a premise as a way to reach Verified.
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { translate } from "../../i18n/translate";
 import { check, type CheckArgs } from "../../offline/check";
 import { MAX_POINTS, explain, textsOf, type Explanation, type Part } from "../../offline/explain";
 import { compareCodePoints } from "../../offline/pystr";
@@ -189,21 +188,5 @@ describe("never a way to Verified", () => {
     for (const [, e] of everyExplanation()) {
       for (const p of e.points.filter((x) => x.id.endsWith("-not-stated"))) expect(flat(p.detail!)).toContain("FlowAssert cannot check the statement, and a wrong statement gives a wrong result.");
     }
-  });
-});
-
-describe("Chinese", () => {
-  test.each(everyExplanation())("%s: every sentence has a Chinese entry", (_, e) => {
-    for (const text of textsOf(e)) expect(translate(text), text).not.toBe(text);
-  });
-
-  test("every sentence explain.ts can write has a Chinese entry, including those no golden report gives", () => {
-    const source = readFileSync(join(REPO_ROOT, "ui/src/offline/explain.ts"), "utf-8");
-    // The interface text: string and template literals that start like a sentence, with any ${…} as a number.
-    const literals = [...source.matchAll(/"((?:[A-Z#]|\d+ )[^"]*\s[^"]*)"|`((?:[A-Z#$]|\d)[^`]*\s[^`]*)`/g)]
-      .map((m) => (m[1] ?? m[2]!).replace(/\$\{[^}]+\}/g, "1"))
-      .filter((t) => /[a-z]{3}/.test(t));
-    expect(literals.length).toBeGreaterThan(60);
-    expect(literals.filter((t) => translate(t) === t)).toEqual([]);
   });
 });
