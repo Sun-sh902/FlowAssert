@@ -1,0 +1,4 @@
+Verified: 4 rows of 4
+Verified 4 · Mismatch 0 · Unverified 0
+Source read from worksheet 'Contacts' of an .xlsx workbook: cells as stored, not as displayed.
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

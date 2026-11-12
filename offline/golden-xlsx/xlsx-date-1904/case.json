@@ -1,0 +1,17 @@
+{
+  "name": "xlsx-date-1904",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "id",
+    "--field",
+    "when:date",
+    "--source-complete",
+    "--destination-complete"
+  ]
+}

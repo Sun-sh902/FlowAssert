@@ -1,0 +1,1 @@
+refused: source.xlsx: worksheet 'Contacts': cell D2 has a value beyond the header

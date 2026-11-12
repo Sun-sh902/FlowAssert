@@ -1,0 +1,43 @@
+id,text
+shared,a shared string
+inline,an inline string
+rich,rich text
+formula-string,X
+general-integer,45678
+general-decimal,0.1
+general-long,1.1
+general-big,13800138000
+general-exponent,1.5e-7
+general-huge,1e+21
+negative-zero,0
+format-0.00,1234.5
+format-thousands,1234567
+format-percent,0.125
+format-percent-2,0.5
+format-scientific,12345
+format-zero-padded,123
+format-quoted-text,7
+format-text-@,42
+date-builtin-14,2025-11-12
+date-custom,2025-11-12
+date-with-time,2025-11-12T12:00:00
+date-with-millis,2025-11-12T12:00:00.500
+date-early-1900,1900-02-28
+date-after-60,1900-03-01
+time-only,18:00:00
+time-minutes-seconds,00:01:00
+time-over-a-day,1900-01-01T06:00:00
+duration,1.5
+boolean-true,TRUE
+boolean-false,FALSE
+iso-date,2025-11-12T09:30:00Z
+formula-number,3
+escape-cr,"ab"
+escape-underscore,_x0041_
+spaces,  kept  
+line-break,"two
+lines"
+cjk,名字
+emoji,😀
+empty-string,
+no-value,

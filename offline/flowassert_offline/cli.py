@@ -18,7 +18,7 @@ import json
 import os
 import sys
 
-from . import __version__, chardiff, hubspot, sheets
+from . import __version__, chardiff, hubspot, sheets, xlsx
 from .errors import Refused
 from .evaluator_v2 import DETAILS, SCOPES, STATES, evaluate, parse_rule
 
@@ -32,6 +32,8 @@ SHEET_SCHEMA_VERSION = 2
 # A report whose destination was read from HubSpot: its destination digest, row count and completeness statement are
 # about the records the API listed, not about a file.
 HUBSPOT_SCHEMA_VERSION = 3
+# A report in which either side was read from an .xlsx workbook: that side's digest and rows describe a worksheet.
+WORKBOOK_SCHEMA_VERSION = 4
 CLAIM = ("At this evaluation, under the stated premises, the supplied destination rows satisfy the rules "
          "for the supplied source rows.")
 LIMITS = ("Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, "
@@ -322,6 +324,25 @@ def _hubspot_destination(args, max_bytes):
     return hubspot.HubSpotDestination(args.destination_hubspot, max_bytes=max_bytes, timeout=timeout)
 
 
+def _formats(args):
+    """The format of each side, checked against the other options. Before any file is read (spec R12.3)."""
+    source_format = _choice("--source-format", args.source_format, xlsx.FORMATS, "csv")
+    destination_format = _choice("--destination-format", args.destination_format, xlsx.FORMATS, "csv")
+    if args.source_format is not None and args.source_sheet is not None:
+        raise Refused("--source-format does not apply to a sheet source")
+    if args.destination_format is not None and args.destination_hubspot is not None:
+        raise Refused("--destination-format does not apply to a HubSpot destination")
+    if args.source_worksheet is not None and source_format != "xlsx":
+        raise Refused("--source-worksheet needs --source-format xlsx")
+    if args.destination_worksheet is not None and destination_format != "xlsx":
+        raise Refused("--destination-worksheet needs --destination-format xlsx")
+    if args.source_encoding is not None and source_format == "xlsx":
+        raise Refused("--source-encoding does not apply to a workbook")
+    if args.destination_encoding is not None and destination_format == "xlsx":
+        raise Refused("--destination-encoding does not apply to a workbook")
+    return source_format == "xlsx", destination_format == "xlsx"
+
+
 def run(args):
     max_bytes = _int_arg("--max-bytes", args.max_bytes, 1)
     max_rows = _int_arg("--max-rows", args.max_rows, 1)
@@ -331,6 +352,7 @@ def run(args):
     details = _choice("--details", args.details, DETAILS, "problems")
     source_encoding = _choice("--source-encoding", args.source_encoding, tuple(ENCODINGS), "utf-8")
     destination_encoding = _choice("--destination-encoding", args.destination_encoding, tuple(ENCODINGS), "utf-8")
+    source_book, destination_book = _formats(args)
     sheet = _sheet_source(args, max_bytes)
     crm = _hubspot_destination(args, max_bytes)
     key, fields, scope, selection_sha = _selection(args, max_bytes)
@@ -347,13 +369,19 @@ def run(args):
     if crm is None:
         _check_size(args.destination, max_bytes)
     source_columns = [key[0]] + [s for s, _, _ in fields]
-    if sheet is None:
+    if source_book:
+        source = xlsx.XlsxFile(args.source, source_columns, worksheet=args.source_worksheet, max_rows=max_rows,
+                               max_bytes=max_bytes, option="--source-worksheet")
+    elif sheet is None:
         source = CsvFile(args.source, source_columns, encoding=source_encoding, max_rows=max_rows)
     else:
         sheet.select(source_columns, max_rows)
         sheet.read()
         source = sheet
-    if crm is None:
+    if destination_book:
+        destination = xlsx.XlsxFile(args.destination, destination_columns, worksheet=args.destination_worksheet,
+                                    max_rows=max_rows, max_bytes=max_bytes, option="--destination-worksheet")
+    elif crm is None:
         destination = CsvFile(args.destination, destination_columns, encoding=destination_encoding, max_rows=max_rows)
     else:
         destination = crm
@@ -366,7 +394,8 @@ def run(args):
             "source and destination have identical content, so the check would not be independent; "
             "pass --allow-identical-content if they really come from different systems"
         )
-    report["schema_version"] = (HUBSPOT_SCHEMA_VERSION if crm is not None
+    report["schema_version"] = (WORKBOOK_SCHEMA_VERSION if source_book or destination_book
+                                else HUBSPOT_SCHEMA_VERSION if crm is not None
                                 else SCHEMA_VERSION if sheet is None else SHEET_SCHEMA_VERSION)
     report["details"] = details
     report["evaluated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -388,9 +417,19 @@ def run(args):
         inputs["source_sheet"] = sheet.member
         if args.destination_encoding is not None:
             inputs["destination_encoding"] = destination_encoding
+    elif source_book or destination_book:
+        # Only a CSV side has an encoding; it is recorded alone when it was stated.
+        if args.source_encoding is not None:
+            inputs["source_encoding"] = source_encoding
+        if args.destination_encoding is not None:
+            inputs["destination_encoding"] = destination_encoding
     elif args.source_encoding is not None or args.destination_encoding is not None:
         inputs["source_encoding"] = source_encoding
         inputs["destination_encoding"] = destination_encoding
+    if source_book:
+        inputs["source_workbook"] = source.member
+    if destination_book:
+        inputs["destination_workbook"] = destination.member
     report["inputs"] = inputs
     premises = report["premises"]
     if args.allow_identical_content:
@@ -425,6 +464,36 @@ def sheet_lines(sheet):
         yield f"The read cannot be tied to a revision: {revision['reason']}."
 
 
+def _plural(n, one, many):
+    return f"{n} {one}" if n == 1 else f"{n} {many}"
+
+
+def workbook_lines(label, book):
+    """What the summary says of a side read from a workbook: which worksheet, that cells were read as stored, and
+    what a spreadsheet may display otherwise. docs/design/1.1-excel.md, "The printed summary"."""
+    yield f"{label} read from worksheet {book['worksheet']!r} of an .xlsx workbook: cells as stored, not as displayed."
+    cells = book["cells"]
+    parts = [_plural(cells[name], one, many) for name, one, many in (
+        ("number", "number", "numbers"),
+        ("percentage", "percentage as a fraction", "percentages as fractions"),
+        ("date_time", "date or time in ISO 8601", "dates or times in ISO 8601"),
+        ("duration", "duration in days", "durations in days"),
+        ("boolean", "boolean as TRUE or FALSE", "booleans as TRUE or FALSE"),
+        ("formula", "formula result as last saved", "formula results as last saved")) if cells[name]]
+    if parts:
+        yield f"  Read as stored, where a spreadsheet may display them otherwise: {', '.join(parts)}."
+    sentences = []
+    hidden = [_plural(book[name], one, many) for name, one, many in (
+        ("hidden_rows", "row", "rows"), ("hidden_columns", "column", "columns")) if book[name]]
+    if hidden:
+        sentences.append(f"Hidden: {', '.join(hidden)}, read like any other.")
+    if book["merged_ranges"]:
+        sentences.append(f"Merged ranges: {book['merged_ranges']}, read as stored: only the first cell of each holds "
+                         "the value.")
+    if sentences:
+        yield "  " + " ".join(sentences)
+
+
 def summary(report, max_details=MAX_DETAILS):
     c = report["counts"]
     total = report["expected_total"]
@@ -436,6 +505,10 @@ def summary(report, max_details=MAX_DETAILS):
     crm = report.get("inputs", {}).get("destination_hubspot")
     if crm is not None:
         yield from hubspot.summary_lines(crm)
+    for side, label in (("source_workbook", "Source"), ("destination_workbook", "Destination")):
+        book = report.get("inputs", {}).get(side)
+        if book is not None:
+            yield from workbook_lines(label, book)
     if report.get("inputs", {}).get("identical_content"):
         yield "Source and destination files were identical (--allow-identical-content)."
     premises = report.get("premises", {})
@@ -735,6 +808,26 @@ def _write_hubspot(crm, f):
     f.write("</table>\n</section>\n")
 
 
+_WORKBOOK_FACTS = ("worksheet", "worksheet_state", "sheets", "date_system", "columns", "rows", "hidden_rows",
+                   "hidden_columns", "merged_ranges", "values", "file_sha256", "file_bytes", "inflated_bytes",
+                   "canonical_form")
+
+
+def _write_workbook(label, book, f):
+    f.write(f"<section>\n<h2>{label} read from an .xlsx workbook</h2>\n"
+            "<p>FlowAssert read one worksheet itself, each cell as it is stored in the file. A spreadsheet can display "
+            "a cell otherwise: a number through its format, a date as text, a percentage multiplied by 100, a "
+            "formula's value as calculated again. Dates and times are read in ISO 8601, and a formula's value as the "
+            "file was last saved.</p>\n")
+    f.write("".join(f"<p>{_h(line.strip())}</p>\n" for line in workbook_lines(label, book)))
+    f.write('<table class="facts">\n')
+    for name in _WORKBOOK_FACTS:
+        f.write(f"<tr><th>{_h(name)}</th><td>{_h(book[name])}</td></tr>\n")
+    for name, value in book["cells"].items():
+        f.write(f"<tr><th>cells {_h(name)}</th><td>{_h(value)}</td></tr>\n")
+    f.write("</table>\n</section>\n")
+
+
 def write_html(report, f):
     """Write one self-contained HTML page: no scripts, and no external styles, fonts or images."""
     state = report["cohort_state"]
@@ -813,6 +906,10 @@ def write_html(report, f):
     crm = report.get("inputs", {}).get("destination_hubspot")
     if crm is not None:
         _write_hubspot(crm, f)
+    for side, label in (("source_workbook", "Source"), ("destination_workbook", "Destination")):
+        book = report.get("inputs", {}).get(side)
+        if book is not None:
+            _write_workbook(label, book, f)
 
     f.write(f'<section>\n<h2>Limitations</h2>\n<p>{_h(report.get("limitations"))}</p>\n<table class="facts">\n')
     for name in ("workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"):
@@ -821,7 +918,7 @@ def write_html(report, f):
 
     f.write('<section>\n<h2>Inputs</h2>\n<table class="facts">\n')
     for name, value in report.get("inputs", {}).items():
-        if name in ("source_sheet", "destination_hubspot"):
+        if name in ("source_sheet", "destination_hubspot", "source_workbook", "destination_workbook"):
             continue
         f.write(f"<tr><th>{_h(name)}</th><td>{_h(value)}</td></tr>\n")
     for name, value in report.get("obligation", {}).items():
@@ -884,6 +981,14 @@ def main(argv=None):
                         help="state the destination total seen in the original system")
     parser.add_argument("--allow-identical-content", action="store_true",
                         help="continue when two distinct files have identical content")
+    parser.add_argument("--source-format", metavar="FORMAT",
+                        help="csv (default) or xlsx: read --source as one worksheet of an .xlsx workbook")
+    parser.add_argument("--destination-format", metavar="FORMAT",
+                        help="csv (default) or xlsx: read --destination as one worksheet of an .xlsx workbook")
+    parser.add_argument("--source-worksheet", metavar="NAME",
+                        help="with --source-format xlsx: the worksheet to read; needed when the workbook has several")
+    parser.add_argument("--destination-worksheet", metavar="NAME",
+                        help="with --destination-format xlsx: the worksheet to read")
     parser.add_argument("--source-encoding", metavar="NAME", help="utf-8 (default), utf-16 or gb18030")
     parser.add_argument("--destination-encoding", metavar="NAME", help="utf-8 (default), utf-16 or gb18030")
     parser.add_argument("--max-bytes", default=MAX_BYTES, metavar="N",

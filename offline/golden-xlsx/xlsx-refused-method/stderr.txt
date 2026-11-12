@@ -1,0 +1,1 @@
+refused: source.xlsx: ZIP entry [Content_Types].xml uses compression method 12; only stored and deflated entries are read

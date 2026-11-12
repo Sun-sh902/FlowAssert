@@ -1,0 +1,17 @@
+{
+  "name": "xlsx-bomb-within-bounds",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email"
+  ]
+}

@@ -1,0 +1,1 @@
+refused: source.xlsx: a macro-enabled workbook (.xlsm); FlowAssert reads .xlsx workbooks only: save a copy as an Excel Workbook (.xlsx)

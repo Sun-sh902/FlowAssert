@@ -1,0 +1,997 @@
+{
+  "schema_version": 4,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 39
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "all",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 41,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_sha256": "0cf2859ba1e1651530b1e688d9a2612610051f9ebe2428ab246892507becb737",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "518371d3fcbee4b39d1f4269b5e8c10d056b3fd594304a3e14cd9839a25d653b",
+    "source_workbook": {
+      "canonical_form": "flowassert-xlsx-csv-1",
+      "cells": {
+        "boolean": 2,
+        "date_time": 10,
+        "duration": 1,
+        "formula": 2,
+        "number": 14,
+        "percentage": 2,
+        "text": 51
+      },
+      "columns": 2,
+      "date_system": "1900",
+      "file_bytes": 3666,
+      "file_sha256": "2db28977d9b2d415d916fdf9358e2f9d4b5033b935bb002e1d81fabaeb581389",
+      "format": "xlsx",
+      "hidden_columns": 1,
+      "hidden_rows": 2,
+      "inflated_bytes": 10503,
+      "merged_ranges": 1,
+      "rows": 41,
+      "sheets": 1,
+      "values": "stored",
+      "worksheet": "Forms",
+      "worksheet_state": "visible"
+    }
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "value",
+        "text"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 41,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 41,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "shared",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "a shared string",
+          "expected": "a shared string",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "inline",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "an inline string",
+          "expected": "an inline string",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "rich",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "rich text",
+          "expected": "rich text",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 2,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "formula-string",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "X",
+          "expected": "X",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 3,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "general-integer",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "45678",
+          "expected": "45678",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 4,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "general-decimal",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "0.1",
+          "expected": "0.1",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 5,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "general-long",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1.1",
+          "expected": "1.1",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 6,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "general-big",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "13800138000",
+          "expected": "13800138000",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 7,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "general-exponent",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1.5e-7",
+          "expected": "1.5e-7",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 8,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "general-huge",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1e+21",
+          "expected": "1e+21",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 9,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "negative-zero",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "0",
+          "expected": "0",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 10,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-0.00",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1234.5",
+          "expected": "1234.5",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 11,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-thousands",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1234567",
+          "expected": "1234567",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 12,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-percent",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "0.125",
+          "expected": "0.125",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 13,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-percent-2",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "0.5",
+          "expected": "0.5",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 14,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-scientific",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "12345",
+          "expected": "12345",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 15,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-zero-padded",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "123",
+          "expected": "123",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 16,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-quoted-text",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "7",
+          "expected": "7",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 17,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "format-text-@",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "42",
+          "expected": "42",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 18,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "date-builtin-14",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "2025-11-12",
+          "expected": "2025-11-12",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 19,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "date-custom",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "2025-11-12",
+          "expected": "2025-11-12",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 20,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "date-with-time",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "2025-11-12T12:00:00",
+          "expected": "2025-11-12T12:00:00",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 21,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "date-with-millis",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "2025-11-12T12:00:00.500",
+          "expected": "2025-11-12T12:00:00.500",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 22,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "date-early-1900",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1900-02-28",
+          "expected": "1900-02-28",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 23,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "date-after-60",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1900-03-01",
+          "expected": "1900-03-01",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 24,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "time-only",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "18:00:00",
+          "expected": "18:00:00",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 25,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "time-minutes-seconds",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "00:01:00",
+          "expected": "00:01:00",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 26,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "time-over-a-day",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1900-01-01T06:00:00",
+          "expected": "1900-01-01T06:00:00",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 27,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "duration",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "1.5",
+          "expected": "1.5",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 28,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "boolean-true",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "TRUE",
+          "expected": "TRUE",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 29,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "boolean-false",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "FALSE",
+          "expected": "FALSE",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 30,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "iso-date",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "2025-11-12T09:30:00Z",
+          "expected": "2025-11-12T09:30:00Z",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 31,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "formula-number",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "3",
+          "expected": "3",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 32,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "escape-cr",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "a\rb",
+          "expected": "a\rb",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 33,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "escape-underscore",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "_x0041_",
+          "expected": "_x0041_",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 34,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "spaces",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "  kept  ",
+          "expected": "  kept  ",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 35,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "line-break",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "two\nlines",
+          "expected": "two\nlines",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 36,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "cjk",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "\u540d\u5b57",
+          "expected": "\u540d\u5b57",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 37,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "emoji",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "\ud83d\ude00",
+          "expected": "\ud83d\ude00",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 38,
+      "state": "Verified"
+    },
+    {
+      "candidates": 1,
+      "key": "empty-string",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "",
+          "expected": "",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 39,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "no-value",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:value": {
+          "actual": "",
+          "expected": "",
+          "reason": "empty value; a missing value is not assumed to be a difference",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 40,
+      "state": "Unverified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 41,
+  "workflow_execution": "Not assessed"
+}

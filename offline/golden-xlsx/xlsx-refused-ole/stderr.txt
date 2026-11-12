@@ -1,0 +1,1 @@
+refused: source.xlsx: not an .xlsx workbook: it is an OLE compound file, the format of legacy .xls workbooks and of password-protected workbooks; save it as an Excel Workbook (.xlsx) without a password

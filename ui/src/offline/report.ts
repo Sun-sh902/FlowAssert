@@ -8,8 +8,11 @@ import { align, codePoint, codePoints, pieces, type Run } from "./chardiff";
 import { STATES, type Details, type EvaluationResult, type Premise, type Records, type RuleResult, type State } from "./evaluator";
 import { pyDumps, type PyValue } from "./pyjson";
 import { compareCodePoints, htmlEscape, pyRepr } from "./pystr";
+import type { WorkbookMember } from "./xlsx";
 
 export const SCHEMA_VERSION = 1;
+/** A report in which either side was read from an .xlsx workbook (cli.WORKBOOK_SCHEMA_VERSION). */
+export const WORKBOOK_SCHEMA_VERSION = 4;
 export const MAX_DETAILS = 50;
 export const CLAIM = "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.";
 export const LIMITS =
@@ -25,12 +28,51 @@ export interface Report extends Omit<EvaluationResult, "premises"> {
   schema_version: number;
   details: Details;
   evaluated_at: string;
-  inputs: Record<string, string | boolean>;
+  inputs: Record<string, string | boolean | WorkbookMember>;
   premises: Record<string, Premise>;
   obligation: { type: "current_state"; key: string[]; fields: string[][]; comparison: string; rules?: string[]; scope?: string };
   claim: string | null;
   limitations: string;
 }
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** cli.workbook_lines: what the summary says of a side read from a workbook. */
+export function* workbookLines(label: string, book: WorkbookMember): Generator<string> {
+  yield `${label} read from worksheet ${pyRepr(book.worksheet)} of an .xlsx workbook: cells as stored, not as displayed.`;
+  const cells = book.cells;
+  const parts = (
+    [
+      ["number", "number", "numbers"],
+      ["percentage", "percentage as a fraction", "percentages as fractions"],
+      ["date_time", "date or time in ISO 8601", "dates or times in ISO 8601"],
+      ["duration", "duration in days", "durations in days"],
+      ["boolean", "boolean as TRUE or FALSE", "booleans as TRUE or FALSE"],
+      ["formula", "formula result as last saved", "formula results as last saved"],
+    ] as const
+  )
+    .filter(([name]) => cells[name])
+    .map(([name, one, many]) => plural(cells[name], one, many));
+  if (parts.length) yield `  Read as stored, where a spreadsheet may display them otherwise: ${parts.join(", ")}.`;
+  const sentences: string[] = [];
+  const hidden = (
+    [
+      ["hidden_rows", "row", "rows"],
+      ["hidden_columns", "column", "columns"],
+    ] as const
+  )
+    .filter(([name]) => book[name])
+    .map(([name, one, many]) => plural(book[name], one, many));
+  if (hidden.length) sentences.push(`Hidden: ${hidden.join(", ")}, read like any other.`);
+  if (book.merged_ranges) sentences.push(`Merged ranges: ${book.merged_ranges}, read as stored: only the first cell of each holds the value.`);
+  if (sentences.length) yield "  " + sentences.join(" ");
+}
+
+const WORKBOOK_SIDES = [
+  ["source_workbook", "Source"],
+  ["destination_workbook", "Destination"],
+] as const;
+const workbookOf = (report: Report, side: string) => report.inputs?.[side] as WorkbookMember | undefined;
 
 /** cli.summary: the lines the command-line checker prints. */
 export function* summary(report: Report, maxDetails: number | bigint = MAX_DETAILS): Generator<string> {
@@ -38,6 +80,10 @@ export function* summary(report: Report, maxDetails: number | bigint = MAX_DETAI
   const total = report.expected_total;
   yield `${report.cohort_state}: ${report.source_rows_observed} rows of ${total === null ? "unknown total" : total}`;
   yield `Verified ${c.Verified} · Mismatch ${c.Mismatch} · Unverified ${c.Unverified}`;
+  for (const [side, label] of WORKBOOK_SIDES) {
+    const book = workbookOf(report, side);
+    if (book) yield* workbookLines(label, book);
+  }
   if (report.inputs?.identical_content) yield "Source and destination files were identical (--allow-identical-content).";
   const premises = report.premises ?? {};
   for (const [name, label, consequence] of [
@@ -348,6 +394,11 @@ export function* writeHtml(report: Report): Generator<string> {
     yield "</section>\n";
   }
 
+  for (const [side, label] of WORKBOOK_SIDES) {
+    const book = workbookOf(report, side);
+    if (book) yield workbookHtml(label, book);
+  }
+
   out = `<section>\n<h2>Limitations</h2>\n<p>${h(report.limitations)}</p>\n<table class="facts">\n`;
   for (const name of ["workflow_execution", "business_truth", "existed_by_deadline", "acquisition_authenticity"] as const) {
     out += `<tr><th>${h(name)}</th><td>${h(report[name])}</td></tr>\n`;
@@ -355,11 +406,31 @@ export function* writeHtml(report: Report): Generator<string> {
   yield out + "</table>\n</section>\n";
 
   out = '<section>\n<h2>Inputs</h2>\n<table class="facts">\n';
-  for (const [name, v] of Object.entries(report.inputs ?? {})) out += `<tr><th>${h(name)}</th><td>${h(v)}</td></tr>\n`;
+  for (const [name, v] of Object.entries(report.inputs ?? {})) {
+    if (typeof v === "object") continue; // a workbook's member has its own section
+    out += `<tr><th>${h(name)}</th><td>${h(v)}</td></tr>\n`;
+  }
   for (const [name, v] of Object.entries(report.obligation ?? {})) {
     out += `<tr><th>obligation ${h(name)}</th><td><code>${h(pyDumps(v as PyValue))}</code></td></tr>\n`;
   }
   yield out + "</table>\n</section>\n</main>\n</body>\n</html>\n";
+}
+
+const WORKBOOK_FACTS = [
+  "worksheet", "worksheet_state", "sheets", "date_system", "columns", "rows", "hidden_rows", "hidden_columns", "merged_ranges",
+  "values", "file_sha256", "file_bytes", "inflated_bytes", "canonical_form",
+] as const;
+
+/** cli._write_workbook */
+function workbookHtml(label: string, book: WorkbookMember): string {
+  let out =
+    `<section>\n<h2>${label} read from an .xlsx workbook</h2>\n` +
+    "<p>FlowAssert read one worksheet itself, each cell as it is stored in the file. A spreadsheet can display a cell otherwise: a number through its format, a date as text, a percentage multiplied by 100, a formula's value as calculated again. Dates and times are read in ISO 8601, and a formula's value as the file was last saved.</p>\n";
+  for (const line of workbookLines(label, book)) out += `<p>${h(line.trim())}</p>\n`;
+  out += '<table class="facts">\n';
+  for (const name of WORKBOOK_FACTS) out += `<tr><th>${h(name)}</th><td>${h(book[name])}</td></tr>\n`;
+  for (const [name, value] of Object.entries(book.cells)) out += `<tr><th>cells ${h(name)}</th><td>${h(value)}</td></tr>\n`;
+  return out + "</table>\n</section>\n";
 }
 
 /** The records of a report, typed for callers that only read them. */

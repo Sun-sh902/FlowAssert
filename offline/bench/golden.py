@@ -2,8 +2,9 @@
 """Golden outputs of the command-line checker, for the browser check to match byte for byte.
 
     python3 offline/bench/golden.py           write offline/golden/ again
-    python3 offline/bench/golden.py --check   exit 1 if offline/golden/, offline/golden-sheets/ or
-                                              offline/golden-hubspot/ is not what this script writes now
+    python3 offline/bench/golden.py --check   exit 1 if offline/golden/, offline/golden-sheets/,
+                                              offline/golden-hubspot/ or offline/golden-xlsx/ is not what this
+                                              script writes now
 
 Each case is a folder under offline/golden/ holding its input files, `case.json` (the arguments, and for a case the
 browser page can also run, the page's choices), and what the checker gave: `exit_status.txt`, `stdout.txt` (the
@@ -23,6 +24,10 @@ any API key replaced by the variable's name. Nothing contacts Google. `read_at` 
 The cases whose destination is HubSpot's contacts (1.0.0) are written to offline/golden-hubspot/ in the same way, with
 `hubspot-responses.json`, the pages a local fake of the list endpoint serves (fake_hubspot_api.py), and
 `requests.json`. Nothing contacts HubSpot, and no credential is real. `read_at` and `read_finished_at` are fixed too.
+
+The cases whose source or destination is an .xlsx workbook (1.1.0) are written to offline/golden-xlsx/, from
+offline/bench/xlsx_cases.py: every result state, every cell form and every refusal of docs/design/1.1-excel.md. The
+browser runs them all (ui/src/test/offline/golden-xlsx.test.ts).
 """
 import codecs
 import contextlib
@@ -42,10 +47,12 @@ from flowassert_offline import cli, hubspot, sheets  # noqa: E402
 sys.path.insert(0, str(ROOT / "offline" / "bench"))
 from fake_sheets_api import FAKE_KEY, FAKE_TOKEN, FakeSheetsApi, drive, error, values  # noqa: E402
 import fake_hubspot_api as hs  # noqa: E402
+from xlsx_cases import XLSX_CASES  # noqa: E402
 
 GOLDEN = ROOT / "offline" / "golden"
 GOLDEN_SHEETS = ROOT / "offline" / "golden-sheets"
 GOLDEN_HUBSPOT = ROOT / "offline" / "golden-hubspot"
+GOLDEN_XLSX = ROOT / "offline" / "golden-xlsx"
 EVALUATED_AT = datetime(2000, 1, 1, tzinfo=timezone.utc)
 EXAMPLE_SOURCE = (ROOT / "offline/examples/source.csv").read_bytes()
 EXAMPLE_DESTINATION = (ROOT / "offline/examples/destination.csv").read_bytes()
@@ -687,9 +694,9 @@ def _files(name, spec):
     return files, case
 
 
-def write_case(folder, name, spec):
+def write_case(folder, name, spec, files_and_case=None):
     """Write one case's inputs and the checker's outputs into `folder`."""
-    files, case = _files(name, spec)
+    files, case = files_and_case or _files(name, spec)
     folder.mkdir(parents=True)
     for file, data in files.items():
         (folder / file).write_bytes(data)
@@ -717,9 +724,20 @@ def write_case(folder, name, spec):
     (folder / "stderr.txt").write_bytes(stderr.getvalue().encode("utf-8"))
 
 
-def write_all(target, sheets_target=None, hubspot_target=None):
+def write_xlsx_case(folder, name, spec):
+    """A workbook case: its files are exactly the ones it names (no example CSV files are added)."""
+    files, args = spec
+    if not files:
+        files = {"source.csv": EXAMPLE_SOURCE, "destination.csv": EXAMPLE_DESTINATION}
+    write_case(folder, name, spec, (dict(files), {"name": name, "args": list(args)}))
+
+
+def write_all(target, sheets_target=None, hubspot_target=None, xlsx_target=None):
     for name, spec in CASES.items():
         write_case(target / name, name, spec)
+    if xlsx_target is not None:
+        for name, spec in XLSX_CASES.items():
+            write_xlsx_case(xlsx_target / name, name, spec)
     if sheets_target is not None:
         for name, spec in SHEET_CASES.items():
             write_sheet_case(sheets_target / name, name, spec)
@@ -741,8 +759,9 @@ def check():
     """The paths under offline/golden/, offline/golden-sheets/ and offline/golden-hubspot/ that differ from what
     write_all writes now."""
     with tempfile.TemporaryDirectory() as tmp:
-        write_all(Path(tmp, "golden"), Path(tmp, "golden-sheets"), Path(tmp, "golden-hubspot"))
+        write_all(Path(tmp, "golden"), Path(tmp, "golden-sheets"), Path(tmp, "golden-hubspot"), Path(tmp, "golden-xlsx"))
         return ([f"offline/golden/{n}" for n in differences(Path(tmp, "golden"), GOLDEN)]
+                + [f"offline/golden-xlsx/{n}" for n in differences(Path(tmp, "golden-xlsx"), GOLDEN_XLSX)]
                 + [f"offline/golden-sheets/{n}" for n in differences(Path(tmp, "golden-sheets"), GOLDEN_SHEETS)]
                 + [f"offline/golden-hubspot/{n}" for n in differences(Path(tmp, "golden-hubspot"), GOLDEN_HUBSPOT)])
 
@@ -758,12 +777,12 @@ def main(argv):
     if argv:
         print(__doc__, file=sys.stderr)
         return 2
-    for folder in (GOLDEN, GOLDEN_SHEETS, GOLDEN_HUBSPOT):
+    for folder in (GOLDEN, GOLDEN_SHEETS, GOLDEN_HUBSPOT, GOLDEN_XLSX):
         if folder.exists():
             shutil.rmtree(folder)
-    write_all(GOLDEN, GOLDEN_SHEETS, GOLDEN_HUBSPOT)
-    print(f"wrote {len(CASES)} cases to {GOLDEN}, {len(SHEET_CASES)} to {GOLDEN_SHEETS} and {len(HUBSPOT_CASES)} to "
-          f"{GOLDEN_HUBSPOT}")
+    write_all(GOLDEN, GOLDEN_SHEETS, GOLDEN_HUBSPOT, GOLDEN_XLSX)
+    print(f"wrote {len(CASES)} cases to {GOLDEN}, {len(SHEET_CASES)} to {GOLDEN_SHEETS}, {len(HUBSPOT_CASES)} to "
+          f"{GOLDEN_HUBSPOT} and {len(XLSX_CASES)} to {GOLDEN_XLSX}")
     return 0
 
 

@@ -1,0 +1,10 @@
+Unverified: 41 rows of 41
+Verified 39 · Mismatch 0 · Unverified 2
+Source read from worksheet 'Forms' of an .xlsx workbook: cells as stored, not as displayed.
+  Read as stored, where a spreadsheet may display them otherwise: 14 numbers, 2 percentages as fractions, 10 dates or times in ISO 8601, 1 duration in days, 2 booleans as TRUE or FALSE, 2 formula results as last saved.
+  Hidden: 2 rows, 1 column, read like any other. Merged ranges: 1, read as stored: only the first cell of each holds the value.
+  record 40 empty-string: Unverified
+    field:value unknown: empty value; a missing value is not assumed to be a difference ('' vs '')
+  record 41 no-value: Unverified
+    field:value unknown: empty value; a missing value is not assumed to be a difference ('' vs '')
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

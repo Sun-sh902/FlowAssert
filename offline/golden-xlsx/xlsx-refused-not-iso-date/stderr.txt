@@ -1,0 +1,1 @@
+refused: source.xlsx: worksheet 'Contacts': cell A2 holds '12/11/2025', which is not an ISO 8601 date

@@ -1,0 +1,19 @@
+{
+  "name": "xlsx-refused-row-out-of-order",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--source-complete",
+    "--destination-complete"
+  ]
+}

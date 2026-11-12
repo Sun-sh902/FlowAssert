@@ -10,7 +10,8 @@ import { ENCODINGS, MAX_BYTES, MAX_ROWS, Refused, bytesStream, readCsv, sha256He
 import { DETAILS, Evaluation, EvaluatorError, SCOPES, parseRule, type Details, type Scope } from "./evaluator";
 import { DuplicateMember, JsonError, pyLoads, type PyValue } from "./pyjson";
 import { compareCodePoints, pyRepr, pyStrip } from "./pystr";
-import { CLAIM, LIMITS, MAX_DETAILS, ORIGINS, SCHEMA_VERSION, summaryText, writeHtml, writeJson, type Origin, type Report } from "./report";
+import { CLAIM, LIMITS, MAX_DETAILS, ORIGINS, SCHEMA_VERSION, WORKBOOK_SCHEMA_VERSION, summaryText, writeHtml, writeJson, type Origin, type Report } from "./report";
+import { FORMATS, readXlsx, type Format, type WorkbookMember } from "./xlsx";
 
 export { Refused };
 
@@ -28,6 +29,8 @@ export interface InputFile {
   read: () => Uint8Array | Promise<Uint8Array>;
   /** The file as a stream, so a CSV file is never held whole (csv.ts). */
   open?: () => ByteStream;
+  /** The file as a Blob, for a workbook, whose parts are read where the archive says they are (xlsx.ts). */
+  blob?: () => Blob | Promise<Blob>;
 }
 
 export interface CheckArgs {
@@ -49,6 +52,12 @@ export interface CheckArgs {
   allowIdenticalContent?: boolean;
   sourceEncoding?: string;
   destinationEncoding?: string;
+  /** --source-format and --destination-format: csv (the default) or xlsx. */
+  sourceFormat?: string;
+  destinationFormat?: string;
+  /** --source-worksheet and --destination-worksheet. */
+  sourceWorksheet?: string;
+  destinationWorksheet?: string;
   maxBytes?: string | number;
   maxRows?: string | number;
   maxDetails?: string | number;
@@ -275,6 +284,14 @@ async function run(args: CheckArgs): Promise<Report> {
   const encodings = Object.keys(ENCODINGS) as Encoding[];
   const sourceEncoding = choice("--source-encoding", args.sourceEncoding, encodings, "utf-8");
   const destinationEncoding = choice("--destination-encoding", args.destinationEncoding, encodings, "utf-8");
+  const sourceFormat: Format = choice("--source-format", args.sourceFormat, FORMATS, "csv");
+  const destinationFormat: Format = choice("--destination-format", args.destinationFormat, FORMATS, "csv");
+  for (const [side, chosen, worksheet] of [["source", sourceFormat, args.sourceWorksheet], ["destination", destinationFormat, args.destinationWorksheet]] as const) {
+    if (worksheet !== undefined && chosen !== "xlsx") throw new Refused(`--${side}-worksheet needs --${side}-format xlsx`);
+  }
+  for (const [side, chosen, encoding] of [["source", sourceFormat, args.sourceEncoding], ["destination", destinationFormat, args.destinationEncoding]] as const) {
+    if (encoding !== undefined && chosen === "xlsx") throw new Refused(`--${side}-encoding does not apply to a workbook`);
+  }
   const [{ key, fields, scope }, selectionSha] = await selection(args, maxBytes);
   if (new Set(fields.map(([s]) => s)).size !== fields.length) throw new Refused("a source field is repeated");
   if (args.sameFile) throw new Refused("source and destination are the same file, so the check would not be independent");
@@ -285,7 +302,22 @@ async function run(args: CheckArgs): Promise<Report> {
     destination_complete: args.destinationComplete === true,
     ...counts,
   });
+  const books: Partial<Record<"source" | "destination", WorkbookMember>> = {};
+  const formats = { source: sourceFormat, destination: destinationFormat };
+  const worksheets = { source: args.sourceWorksheet, destination: args.destinationWorksheet };
   const read = async (side: "source" | "destination", file: InputFile, encoding: Encoding, columns: string[], onRow: (values: string[]) => void) => {
+    if (formats[side] === "xlsx") {
+      const blob = file.blob ? await file.blob() : new Blob([(await file.read()) as Uint8Array<ArrayBuffer>]);
+      const result = await readXlsx({ name: file.name, blob }, columns, onRow, {
+        maxRows,
+        maxBytes,
+        worksheet: worksheets[side],
+        option: `--${side}-worksheet`,
+        progress: args.progress && ((b, r) => args.progress!(side, b, r)),
+      });
+      books[side] = result.member;
+      return result.sha256;
+    }
     // A file given whole is read through the same stream reader, as one chunk.
     const open = file.open ?? (() => {
       const whole = file.read();
@@ -308,7 +340,7 @@ async function run(args: CheckArgs): Promise<Report> {
         "pass --allow-identical-content if they really come from different systems",
     );
   }
-  const inputs: Record<string, string | boolean> = {
+  const inputs: Report["inputs"] = {
     source_sha256: sourceSha,
     destination_sha256: destinationSha,
     source_complete_stated: args.sourceComplete === true,
@@ -317,10 +349,16 @@ async function run(args: CheckArgs): Promise<Report> {
   };
   if (identical) inputs.identical_content_allowed = true;
   Object.assign(inputs, selectionSha);
-  if (args.sourceEncoding !== undefined || args.destinationEncoding !== undefined) {
+  if (books.source || books.destination) {
+    // Only a CSV side has an encoding; it is recorded alone when it was stated.
+    if (args.sourceEncoding !== undefined) inputs.source_encoding = sourceEncoding;
+    if (args.destinationEncoding !== undefined) inputs.destination_encoding = destinationEncoding;
+  } else if (args.sourceEncoding !== undefined || args.destinationEncoding !== undefined) {
     inputs.source_encoding = sourceEncoding;
     inputs.destination_encoding = destinationEncoding;
   }
+  if (books.source) inputs.source_workbook = books.source;
+  if (books.destination) inputs.destination_workbook = books.destination;
   const premises = result.premises;
   if (args.allowIdenticalContent) premises.allow_identical_content = { stated: true };
   const origin = args.origin ?? ORIGINS.cli;
@@ -336,7 +374,7 @@ async function run(args: CheckArgs): Promise<Report> {
   if (scope !== null) obligation.scope = scope;
   const report: Report = {
     ...result,
-    schema_version: SCHEMA_VERSION,
+    schema_version: books.source || books.destination ? WORKBOOK_SCHEMA_VERSION : SCHEMA_VERSION,
     details,
     evaluated_at: (args.now ?? utcNow)(),
     inputs,

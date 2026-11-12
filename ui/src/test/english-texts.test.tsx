@@ -198,7 +198,7 @@ describe("every message in the sources has an explanation", () => {
 });
 
 describe("every golden summary line and refusal has an explanation", () => {
-  const ROOTS = ["offline/golden", "offline/golden-sheets", "offline/golden-hubspot"];
+  const ROOTS = ["offline/golden", "offline/golden-sheets", "offline/golden-hubspot", "offline/golden-xlsx"];
   const names = ROOTS.flatMap((root) => readdirSync(join(REPO_ROOT, root)).sort().map((n) => `${root}/${n}`));
 
   test.each(names)("%s", (path) => {

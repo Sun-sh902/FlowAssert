@@ -1,0 +1,1 @@
+refused: source.xlsx: worksheet 'Contacts': cell A2 has number format 27, which the workbook does not define

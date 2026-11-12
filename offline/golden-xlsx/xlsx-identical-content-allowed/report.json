@@ -1,0 +1,120 @@
+{
+  "schema_version": 4,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.",
+  "cohort_state": "Verified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 4
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 4,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_sha256": "f0ae4524abfc7a500c5ea5bd888848730f650e6ec920ef955198bdc990466fdd",
+    "identical_content": true,
+    "identical_content_allowed": true,
+    "source_complete_stated": true,
+    "source_sha256": "f0ae4524abfc7a500c5ea5bd888848730f650e6ec920ef955198bdc990466fdd",
+    "source_workbook": {
+      "canonical_form": "flowassert-xlsx-csv-1",
+      "cells": {
+        "boolean": 0,
+        "date_time": 0,
+        "duration": 0,
+        "formula": 0,
+        "number": 0,
+        "percentage": 0,
+        "text": 12
+      },
+      "columns": 3,
+      "date_system": "1900",
+      "file_bytes": 2497,
+      "file_sha256": "722fbde59b6fc84d4154f974bcb0e9f81093e513b9f1a3e7188278838576feb4",
+      "format": "xlsx",
+      "hidden_columns": 0,
+      "hidden_rows": 0,
+      "inflated_bytes": 4188,
+      "merged_ranges": 0,
+      "rows": 4,
+      "sheets": 1,
+      "values": "stored",
+      "worksheet": "Contacts",
+      "worksheet_state": "visible"
+    }
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ]
+    ],
+    "key": [
+      "external_id",
+      "external_id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "allow_identical_content": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "SYN-001",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "key": "SYN-002",
+      "source_row": 1,
+      "state": "Verified"
+    },
+    {
+      "key": "SYN-003",
+      "source_row": 2,
+      "state": "Verified"
+    },
+    {
+      "key": "SYN-004",
+      "source_row": 3,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

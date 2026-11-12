@@ -1,0 +1,1 @@
+refused: source.xlsx: worksheet 'Contacts': row '0x2' is not a row of a worksheet

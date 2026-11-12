@@ -163,7 +163,7 @@ function view(report: Report): ResultView {
     destinationOnly: report.destination_only ? report.destination_only.slice(0, SHOWN_RECORDS) : null,
     destinationOnlyCount: report.destination_only?.length ?? 0,
     destinationOnlyCounts: report.destination_only_counts ?? null,
-    inputs: Object.entries(report.inputs),
+    inputs: Object.entries(report.inputs).filter((entry): entry is [string, string | boolean] => typeof entry[1] !== "object"),
     facts: factsOf(report),
   };
 }

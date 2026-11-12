@@ -1,0 +1,21 @@
+{
+  "name": "xlsx-destination-workbook-source-encoding",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.xlsx",
+    "--destination-format",
+    "xlsx",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--source-complete",
+    "--destination-complete",
+    "--source-encoding",
+    "utf-8"
+  ]
+}

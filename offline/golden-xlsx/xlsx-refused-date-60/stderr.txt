@@ -1,0 +1,1 @@
+refused: source.xlsx: worksheet 'Contacts': cell A2 holds the serial number 60, which is not a date in the 1900 date system

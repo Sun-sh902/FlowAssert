@@ -1,0 +1,203 @@
+{
+  "schema_version": 4,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Mismatch",
+  "counts": {
+    "Mismatch": 2,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 0
+  },
+  "destination_coverage_sufficient": false,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": null,
+  "inputs": {
+    "destination_complete_stated": false,
+    "destination_sha256": "acf9ad723a89e42df3379eebe5c786b270b3e753345ad59a4e647484d15b5cb5",
+    "identical_content": false,
+    "source_complete_stated": false,
+    "source_sha256": "f0ae4524abfc7a500c5ea5bd888848730f650e6ec920ef955198bdc990466fdd",
+    "source_workbook": {
+      "canonical_form": "flowassert-xlsx-csv-1",
+      "cells": {
+        "boolean": 0,
+        "date_time": 0,
+        "duration": 0,
+        "formula": 0,
+        "number": 0,
+        "percentage": 0,
+        "text": 12
+      },
+      "columns": 3,
+      "date_system": "1900",
+      "file_bytes": 2497,
+      "file_sha256": "722fbde59b6fc84d4154f974bcb0e9f81093e513b9f1a3e7188278838576feb4",
+      "format": "xlsx",
+      "hidden_columns": 0,
+      "hidden_rows": 0,
+      "inflated_bytes": 4188,
+      "merged_ranges": 0,
+      "rows": 4,
+      "sheets": 1,
+      "values": "stored",
+      "worksheet": "Contacts",
+      "worksheet_state": "visible"
+    }
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "phone",
+        "phone"
+      ],
+      [
+        "email",
+        "hs_email"
+      ]
+    ],
+    "key": [
+      "external_id",
+      "external_id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": false
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 4,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "SYN-001",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "ada@example.test",
+          "expected": "ada@example.test",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "+1 212 555 0101",
+          "expected": "+1 212 555 0101",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "SYN-002",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "actual": "grace@example.test",
+          "expected": "grace@example.test",
+          "reason": "exact string comparison",
+          "status": "pass"
+        },
+        "field:phone": {
+          "actual": "+1 212 555 0199",
+          "expected": "+1 212 555 0102",
+          "reason": "exact string comparison",
+          "status": "fail"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 1,
+      "state": "Mismatch"
+    },
+    {
+      "candidates": 0,
+      "key": "SYN-003",
+      "rules": {
+        "existence": {
+          "reason": "destination not stated complete; absence not established",
+          "status": "unknown"
+        },
+        "field:email": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "insufficient evidence",
+          "status": "unknown"
+        }
+      },
+      "source_row": 2,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 2,
+      "key": "SYN-004",
+      "rules": {
+        "existence": {
+          "reason": "candidates observed",
+          "status": "pass"
+        },
+        "field:email": {
+          "reason": "no arbitrary candidate selected",
+          "status": "unknown"
+        },
+        "field:phone": {
+          "reason": "no arbitrary candidate selected",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "more than one destination row carries this key",
+          "status": "fail"
+        }
+      },
+      "source_row": 3,
+      "state": "Mismatch"
+    }
+  ],
+  "source_population_known": false,
+  "source_rows_observed": 4,
+  "workflow_execution": "Not assessed"
+}

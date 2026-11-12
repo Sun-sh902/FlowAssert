@@ -1,0 +1,17 @@
+Mismatch: 4 rows of 4
+Verified 1 · Mismatch 3 · Unverified 0
+Source read from worksheet 'Contacts' of an .xlsx workbook: cells as stored, not as displayed.
+Destination read from worksheet 'Contacts' of an .xlsx workbook: cells as stored, not as displayed.
+Destination-only: 1 records not in the source, each a Mismatch.
+  record 2 SYN-002: Mismatch
+    field:phone fail: exact string comparison ('+1 212 555 0102' vs '+1 212 555 0199')
+  record 3 SYN-003: Mismatch
+    existence fail: key not found in stated complete destination
+    uniqueness unknown: insufficient evidence
+    field:phone unknown: insufficient evidence
+    field:email unknown: insufficient evidence
+  record 4 SYN-004: Mismatch
+    uniqueness fail: more than one destination row carries this key
+    field:phone unknown: no arbitrary candidate selected
+    field:email unknown: no arbitrary candidate selected
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

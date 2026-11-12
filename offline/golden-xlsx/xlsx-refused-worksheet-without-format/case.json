@@ -1,0 +1,17 @@
+{
+  "name": "xlsx-refused-worksheet-without-format",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--source-worksheet",
+    "Contacts",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email"
+  ]
+}

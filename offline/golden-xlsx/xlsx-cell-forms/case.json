@@ -1,0 +1,19 @@
+{
+  "name": "xlsx-cell-forms",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "id",
+    "--field",
+    "value:text",
+    "--source-complete",
+    "--destination-complete",
+    "--details",
+    "all"
+  ]
+}

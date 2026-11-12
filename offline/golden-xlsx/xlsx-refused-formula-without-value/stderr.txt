@@ -1,0 +1,1 @@
+refused: source.xlsx: worksheet 'Contacts': cell B2 has a formula without a cached value; open and save the workbook in a spreadsheet program, which stores the values

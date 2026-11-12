@@ -1,0 +1,18 @@
+{
+  "name": "xlsx-identical-content-allowed",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--source-complete",
+    "--destination-complete",
+    "--allow-identical-content"
+  ]
+}

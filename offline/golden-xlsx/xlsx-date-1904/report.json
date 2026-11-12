@@ -1,0 +1,105 @@
+{
+  "schema_version": 4,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.",
+  "cohort_state": "Verified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 0,
+    "Verified": 2
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 2,
+  "inputs": {
+    "destination_complete_stated": true,
+    "destination_sha256": "c643792ec6de50e5a9ca4a4405b2bac82c2d1808766c3d347471e3aaa0f35b78",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_sha256": "ba4aa45f452bd0c5db7047ca101c0ed55b911315a7cbea1a6a9cffa59b0dd0c0",
+    "source_workbook": {
+      "canonical_form": "flowassert-xlsx-csv-1",
+      "cells": {
+        "boolean": 0,
+        "date_time": 2,
+        "duration": 0,
+        "formula": 0,
+        "number": 0,
+        "percentage": 0,
+        "text": 2
+      },
+      "columns": 2,
+      "date_system": "1904",
+      "file_bytes": 2411,
+      "file_sha256": "9776e453c4a50f0c842f4c325604609fcf72125a0d90ad358536eb74ec01f03b",
+      "format": "xlsx",
+      "hidden_columns": 0,
+      "hidden_rows": 0,
+      "inflated_bytes": 3420,
+      "merged_ranges": 0,
+      "rows": 2,
+      "sheets": 1,
+      "values": "stored",
+      "worksheet": "Dates",
+      "worksheet_state": "visible"
+    }
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "exact-string",
+    "fields": [
+      [
+        "when",
+        "date"
+      ]
+    ],
+    "key": [
+      "id",
+      "id"
+    ],
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 2,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 2,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "key": "d-1",
+      "source_row": 0,
+      "state": "Verified"
+    },
+    {
+      "key": "d-2",
+      "source_row": 1,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 2,
+  "workflow_execution": "Not assessed"
+}

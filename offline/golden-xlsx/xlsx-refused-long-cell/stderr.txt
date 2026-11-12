@@ -1,0 +1,1 @@
+refused: source.xlsx: worksheet 'Contacts': cell B2 is longer than 131072 characters

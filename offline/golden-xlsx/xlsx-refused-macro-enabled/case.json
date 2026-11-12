@@ -1,0 +1,19 @@
+{
+  "name": "xlsx-refused-macro-enabled",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--source-complete",
+    "--destination-complete"
+  ]
+}

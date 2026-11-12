@@ -1,0 +1,1 @@
+refused: source.xlsx: the workbook part has content type application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml, not that of an .xlsx workbook

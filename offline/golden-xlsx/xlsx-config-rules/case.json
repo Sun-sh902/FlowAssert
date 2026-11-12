@@ -1,0 +1,15 @@
+{
+  "name": "xlsx-config-rules",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--source-complete",
+    "--destination-complete"
+  ]
+}

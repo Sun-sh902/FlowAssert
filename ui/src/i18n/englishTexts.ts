@@ -303,7 +303,90 @@ const HUBSPOT_REFUSALS: readonly Entry[] = [
 ];
 
 /** Refusals, as the command line prints them after "refused: ". The most specific come first. */
+const wbNo = "没有写报告，也没有得出任何结论。";
+const resave = "请在电子表格程序里打开这个工作簿，另存为“Excel 工作簿 (.xlsx)”，再选择一次。";
+
+/**
+ * Refusals of a side read from an .xlsx workbook (offline/flowassert_offline/xlsx.py and its options in cli.py,
+ * docs/design/1.1-excel.md). FlowAssert refuses a workbook it cannot read with certainty rather than read part of it.
+ */
+const WORKBOOK_REFUSALS: readonly Entry[] = [
+  ["xlsx-format-sheet", /^--source-format does not apply to a sheet source$/, () => "--source-format 不适用于表格来源：Google Sheets 的数据不是文件。"],
+  ["xlsx-format-hubspot", /^--destination-format does not apply to a HubSpot destination$/, () => "--destination-format 不适用于 HubSpot 目标：从 API 读到的数据不是文件。"],
+  ["xlsx-worksheet-option", /^(--source-worksheet|--destination-worksheet) needs (--source-format|--destination-format) xlsx$/, (o, f) => `${o} 只能和 ${f} xlsx 一起使用：只有工作簿才有工作表。`],
+  ["xlsx-encoding", /^(--source-encoding|--destination-encoding) does not apply to a workbook$/, (o) => `${o} 不适用于工作簿：.xlsx 的各部分都是 UTF-8 的 XML，没有可选的编码。`],
+  [
+    "xlsx-ole",
+    /^(.+?): not an \.xlsx workbook: it is an OLE compound file, the format of legacy \.xls workbooks and of password-protected workbooks; save it as an Excel Workbook \(\.xlsx\) without a password$/s,
+    (f) => `${f} 不是 .xlsx 工作簿，而是 OLE 复合文件：旧的 .xls 工作簿和设置了密码的工作簿都是这种格式，FlowAssert 都不读取。请另存为不带密码的“Excel 工作簿 (.xlsx)”。${wbNo}`,
+  ],
+  ["xlsx-not-zip", /^(.+?): not an \.xlsx workbook \(not a ZIP archive\)$/s, (f) => `${f} 不是 .xlsx 工作簿：它不是 ZIP 压缩包。如果它其实是 CSV 文件，请不要选择 xlsx 格式。${wbNo}`],
+  ["xlsx-damaged", /^(.+?): damaged ZIP archive \((.+)\)$/s, (f, d) => `${f} 这个 ZIP 压缩包已损坏（${d}）。请重新导出或重新下载这个文件。${wbNo}`],
+  ["xlsx-zip64", /^(.+?): a ZIP64 archive, which FlowAssert does not read$/s, (f) => `${f} 使用 ZIP64 格式，FlowAssert 不读取；在大小上限以内的工作簿不需要它。${resave}`],
+  ["xlsx-entries", /^(.+?): more than 10000 ZIP entries$/s, (f) => `${f} 里的文件超过 10000 个，超出了读取的上限。${wbNo}`],
+  ["xlsx-repeated-entry", /^(.+?): repeated ZIP entry (.+)$/s, (f, e) => `${f} 里有两个同名（不区分大小写）的部分 ${e}，无法确定该读哪一个。${wbNo}`],
+  ["xlsx-encrypted-entry", /^(.+?): encrypted ZIP entry (.+)$/s, (f, e) => `${f} 里的 ${e} 已加密，FlowAssert 不读取加密的内容。${wbNo}`],
+  ["xlsx-method", /^(.+?): ZIP entry (.+) uses compression method (\d+); only stored and deflated entries are read$/s, (f, e, m) => `${f} 里的 ${e} 使用压缩方法 ${m}；FlowAssert 只读取不压缩和 deflate 压缩的内容。${resave}`],
+  ["xlsx-inflated", /^(.+?): inflated parts exceed --max-bytes limit of (\d+)$/s, (f, n) => `${f} 解压后要读取的内容超过了 --max-bytes 上限 ${n} 字节。这个上限也限制解压后的大小，防止压缩炸弹占满内存。${wbNo}`],
+  ["xlsx-missing-part", /^(.+?): missing part (.+)$/s, (f, p) => `${f} 缺少 ${p} 这一部分，无法完整读取。${resave}`],
+  ["xlsx-no-workbook", /^(.+?): no workbook part \(_rels\/\.rels names no office document\)$/s, (f) => `${f} 里找不到工作簿本身（_rels/.rels 没有指向任何文档）。${wbNo}`],
+  ["xlsx-macro", /^(.+?): a macro-enabled workbook \(\.xlsm\); FlowAssert reads \.xlsx workbooks only: save a copy as an Excel Workbook \(\.xlsx\)$/s, (f) => `${f} 是启用宏的工作簿（.xlsm）。FlowAssert 只读取 .xlsx；请另存一份“Excel 工作簿 (.xlsx)”。${wbNo}`],
+  ["xlsx-content-type", /^(.+?): the workbook part has content type (.+), not that of an \.xlsx workbook$/s, (f, c) => `${f} 的工作簿部分的类型是 ${c}，不是 .xlsx 工作簿的类型，例如模板或二进制工作簿。${resave}`],
+  ["xlsx-strict", /^(.+?): a Strict Open XML workbook; FlowAssert reads the transitional \.xlsx format that Excel saves by default$/s, (f) => `${f} 是“严格 Open XML”格式的工作簿；FlowAssert 读取 Excel 默认保存的 .xlsx 格式。${resave}`],
+  ["xlsx-external", /^(.+?): external relationship to (.+)$/s, (f, x) => `${f} 指向外部的 ${x}。FlowAssert 不读取文件以外的内容，也不发出请求。${wbNo}`],
+  ["xlsx-not-utf8", /^(.+?): (.+) is not UTF-8$/s, (f, p) => `${f} 的 ${p} 不是 UTF-8 编码。${wbNo}`],
+  ["xlsx-doctype", /^(.+?): (.+) has a DOCTYPE declaration, which FlowAssert does not read$/s, (f, p) => `${f} 的 ${p} 含有 DOCTYPE 声明。为了安全，FlowAssert 不读取这样的 XML。${wbNo}`],
+  ["xlsx-not-well-formed", /^(.+?): (.+) is not well-formed XML$/s, (f, p) => `${f} 的 ${p} 不是格式正确的 XML。${wbNo}`],
+  ["xlsx-bound", /^(.+?): (.+) exceeds a reading bound \(a tag longer than 65536 characters, or elements nested deeper than 64\)$/s, (f, p) => `${f} 的 ${p} 超出了读取上限：有一个标签长于 65536 个字符，或元素嵌套深于 64 层。${wbNo}`],
+  ["xlsx-no-sheet", /^(.+?): the workbook has no sheet$/s, (f) => `${f} 这个工作簿没有任何工作表。${wbNo}`],
+  [
+    "xlsx-several-sheets",
+    /^(.+?): the workbook has (\d+) sheets \((.+)\); choose one with (--source-worksheet|--destination-worksheet)$/s,
+    (f, n, s, o) => `${f} 有 ${n} 个工作表（${s}）。FlowAssert 不替你选择，因为隐藏的工作表里也可能是要核对的数据：请用 ${o} 指定一个（浏览器里是选择工作表）。`,
+  ],
+  ["xlsx-no-such-worksheet", /^(.+?): no worksheet named (.+); the workbook has: (.+)$/s, (f, n, s) => `${f} 里没有名为 ${n} 的工作表（名称必须完全一致，包括大小写）。这个工作簿有：${s}。`],
+  ["xlsx-not-worksheet", /^(.+?): sheet (.+) is not a worksheet$/s, (f, n) => `${f} 的 ${n} 不是普通工作表（例如是图表工作表），里面没有单元格。`],
+  ["xlsx-row-1-empty", /^(.+?): worksheet (.+?): row 1 is empty; FlowAssert reads the column names from row 1$/s, (f, w) => `${f} 的工作表 ${w} 第 1 行是空的。FlowAssert 从第 1 行读取列名；如果表头上方有标题行，请删掉它们再保存。`],
+  ["xlsx-bad-reference", /^(.+?): worksheet (.+?): cell reference (.+) is not a cell of a worksheet$/s, (f, w, r) => `${f} 的工作表 ${w} 有一个单元格引用 ${r}，不是工作表里的单元格（最大是 XFD1048576）。${wbNo}`],
+  ["xlsx-bad-row", /^(.+?): worksheet (.+?): row (.+) is not a row of a worksheet$/s, (f, w, r) => `${f} 的工作表 ${w} 有一个行号 ${r}，不是工作表里的行。${wbNo}`],
+  ["xlsx-out-of-order", /^(.+?): worksheet (.+?): (cell [A-Z]+[0-9]+|row \d+) is out of order$/s, (f, w, c) => `${f} 的工作表 ${w} 中，${c.startsWith("cell") ? `单元格 ${c.slice(5)}` : `第 ${c.slice(4)} 行`}的顺序不对：行和单元格必须按顺序排列。${wbNo}`],
+  ["xlsx-beyond-header", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) has a value beyond the header$/s, (f, w, c) => `${f} 的工作表 ${w} 中，单元格 ${c} 在表头最后一列的右边却有值。这一行比表头宽，和 CSV 里多出一列一样，会被拒绝。`],
+  ["xlsx-error-value", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) holds the error value (.+)$/s, (f, w, c, e) => `${f} 的工作表 ${w} 中，单元格 ${c} 是错误值 ${e}。错误值没有可以如实比较的文本：请在电子表格里修正或清空它，保存后再选择。`],
+  ["xlsx-formula", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) has a formula without a cached value; open and save the workbook in a spreadsheet program, which stores the values$/s, (f, w, c) => `${f} 的工作表 ${w} 中，单元格 ${c} 有公式但没有保存计算结果。FlowAssert 不计算公式：请在电子表格程序里打开并保存这个工作簿，它会保存结果。`],
+  ["xlsx-shared-string", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) refers to shared string (.+), which does not exist$/s, (f, w, c, n) => `${f} 的工作表 ${w} 中，单元格 ${c} 引用了不存在的共享字符串 ${n}，文件已损坏。${wbNo}`],
+  ["xlsx-no-value", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) has no value$/s, (f, w, c) => `${f} 的工作表 ${w} 中，单元格 ${c} 标明了类型却没有值，文件可能已损坏。${wbNo}`],
+  ["xlsx-type", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) has the type (.+), which FlowAssert does not read$/s, (f, w, c, k) => `${f} 的工作表 ${w} 中，单元格 ${c} 的类型是 ${k}，FlowAssert 没有为它定义文本，所以不读取。${wbNo}`],
+  ["xlsx-not-number", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) holds (.+), which is not (a number|a boolean|an ISO 8601 date)$/s, (f, w, c, v, k) => `${f} 的工作表 ${w} 中，单元格 ${c} 存的是 ${v}，不是${k === "a number" ? "数字" : k === "a boolean" ? "逻辑值（0 或 1）" : " ISO 8601 日期"}，文件可能已损坏。${wbNo}`],
+  ["xlsx-style", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) has style (.+), which the workbook does not define$/s, (f, w, c, s) => `${f} 的工作表 ${w} 中，单元格 ${c} 使用的样式 ${s} 在工作簿里没有定义。${wbNo}`],
+  ["xlsx-format-undefined", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) has number format (\d+), which the workbook does not define$/s, (f, w, c, n) => `${f} 的工作表 ${w} 中，单元格 ${c} 使用的数字格式 ${n} 没有在工作簿里写明，它的含义取决于写这个文件的程序的语言，所以无法确定这是不是日期。${resave}`],
+  ["xlsx-format-unread", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) has number format (.+), which FlowAssert does not read$/s, (f, w, c, n) => `${f} 的工作表 ${w} 中，单元格 ${c} 的数字格式 ${n} 不在 FlowAssert 能确定含义的格式之内。请把这一列改成常规、数字、日期或文本格式。`],
+  ["xlsx-not-a-date", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) holds the serial number (.+), which is not a date in the (1900|1904) date system$/s, (f, w, c, n, s) => `${f} 的工作表 ${w} 中，单元格 ${c} 是日期格式，但它的序列号 ${n} 在 ${s} 日期系统里不是一个日期（例如 1900 年 2 月 29 日并不存在）。${wbNo}`],
+  ["xlsx-long-cell", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) is longer than 131072 characters$/s, (f, w, c) => `${f} 的工作表 ${w} 中，单元格 ${c} 超过 131072 个字符，和 CSV 的字段上限一样。${wbNo}`],
+  ["xlsx-surrogate", /^(.+?): worksheet (.+?): cell ([A-Z]+[0-9]+) holds an escaped character that is not a whole character$/s, (f, w, c) => `${f} 的工作表 ${w} 中，单元格 ${c} 有一个转义字符只是半个字符，无法得到确定的文本。${wbNo}`],
+  ["xlsx-changed", /^(.+?): changed while it was read; run the check again$/s, (f) => `${f} 在读取期间发生了变化。请再运行一次核对。${wbNo}`],
+  ["xlsx-no-inflate", /^(.+?): this JavaScript platform has no DecompressionStream, so it cannot read an \.xlsx workbook$/s, (f) => `这个 JavaScript 环境没有 DecompressionStream，无法解压 ${f}。${wbNo}`],
+];
+
+const WORKBOOK_SUMMARY: readonly Entry[] = [
+  [
+    "summary-workbook",
+    /^(Source|Destination) read from worksheet (.+) of an \.xlsx workbook: cells as stored, not as displayed\.$/s,
+    (side, w) => `${side === "Source" ? "来源" : "目标"}读取自 .xlsx 工作簿的工作表 ${w}：读的是单元格存储的值，不是电子表格显示的样子。`,
+  ],
+  [
+    "summary-workbook-stored",
+    /^ {2}Read as stored, where a spreadsheet may display them otherwise: (.+)\.$/s,
+    (list) => `下面这些单元格按存储的值读取，电子表格可能显示成别的样子（例如数字带千分位、百分比乘以 100、日期按本地格式）：${list}。`,
+  ],
+  [
+    "summary-workbook-hidden",
+    /^ {2}(?:Hidden: .+?, read like any other\.)?(?: ?Merged ranges: \d+, read as stored: only the first cell of each holds the value\.)?$/s,
+    () => "隐藏的行和列也照常读取，包括筛选隐藏的行；合并区域按存储的值读取：只有每个区域的第一个单元格有值，其余是空的。",
+  ],
+];
+
 const REFUSALS: readonly Entry[] = [
+  ...WORKBOOK_REFUSALS,
   ...SHEET_REFUSALS,
   ...HUBSPOT_REFUSALS,
   ["same-file", /^source and destination are the same file, so the check would not be independent$/, () => "来源和目标是同一个文件，这样的核对不独立。"],
@@ -394,6 +477,7 @@ const reason = (text: string) => {
 
 /** The lines of the printed summary (cli.summary), and the claim and limitations of a report. */
 const SUMMARY: readonly Entry[] = [
+  ...WORKBOOK_SUMMARY,
   ["claim", /^At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows\.$/, () => CLAIM_ZH],
   ["limitations", /^Files and completeness statements are not authenticated\. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline\.$/, () => LIMITS_ZH],
   ["summary-state", /^(Verified|Mismatch|Unverified|Pending): (\d+) rows of (unknown total|\d+)$/, (s, n, t) => `批次结果：${STATE[s!]}。来源有 ${n} 行，${t === "unknown total" ? "总数未知" : `总数 ${t}`}。`],

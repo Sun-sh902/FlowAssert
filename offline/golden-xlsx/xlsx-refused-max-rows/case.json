@@ -1,0 +1,19 @@
+{
+  "name": "xlsx-refused-max-rows",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--key",
+    "external_id",
+    "--field",
+    "phone",
+    "--field",
+    "email:hs_email",
+    "--max-rows",
+    "3"
+  ]
+}
