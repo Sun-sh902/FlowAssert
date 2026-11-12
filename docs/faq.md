@@ -6,6 +6,11 @@
 - [Does FlowAssert still need `--source-complete` when it reads my sheet?](#does-flowassert-still-need---source-complete-when-it-reads-my-sheet)
 - [Does FlowAssert change my sheet?](#does-flowassert-change-my-sheet)
 - [Does reading HubSpot show that my contacts are all there?](#does-reading-hubspot-show-that-my-contacts-are-all-there)
+- [Can I check an Excel file without saving it as CSV?](#can-i-check-an-excel-file-without-saving-it-as-csv)
+- [Why does a date or a number read differently from what Excel shows?](#why-does-a-date-or-a-number-read-differently-from-what-excel-shows)
+- [What do I do with the records that did not arrive?](#what-do-i-do-with-the-records-that-did-not-arrive)
+- [Can FlowAssert check every morning on its own?](#can-flowassert-check-every-morning-on-its-own)
+- [Is there an n8n node?](#is-there-an-n8n-node)
 - [Can I trust a download of FlowAssert?](#can-i-trust-a-download-of-flowassert)
 - [How is this different from a diff tool?](#how-is-this-different-from-a-diff-tool)
 - [Can I use it on real data?](#can-i-use-it-on-real-data)
@@ -35,8 +40,8 @@ No.
 
 - **The command line** reads local files and makes no network request, unless you give it `--source-sheet`: then it reads that one range of your Google Sheets spreadsheet with three read-only `GET` requests to Google, and sends Google nothing of your files ([the Google Sheets guide](guides/google-sheets.md)). With `--destination-hubspot contacts` it lists your HubSpot contacts with read-only `GET` requests, asking only for the properties you named, and sends HubSpot nothing of your source file ([the design note](connectors/hubspot.md)).
 - **The browser check** reads the files in the browser, in Web Workers, as streams; the file profile, the result explorer and the character diff run there too. From choosing the files to downloading the reports it makes no request, and the online demo's Content Security Policy forbids every connection. Nothing you choose or state is stored, unless you press **Keep this report in this browser**, which keeps that one report in this browser profile (see [Saved reports](../README.md#saved-reports-and-comparing-two-results)).
-- **The GitHub Action** runs on your workflow's runner and downloads nothing. Its log and job summary show no key or value unless you set `show-records`.
-- **The n8n example** runs in your n8n instance; the Code node makes no request.
+- **The GitHub Action** runs on your workflow's runner and downloads nothing. From 1.1.0 it reads a sheet or HubSpot exactly as the command line does, and only when you give it `source-sheet` or `destination-hubspot`. Its log and job summary show no compared value, and no key unless you set `show-records` or `summary-keys`.
+- **The n8n example** runs in your n8n instance; the Code node makes no request. The n8n node (1.1.0) makes none either.
 
 The **Give feedback** links on the CSV check and saved reports pages open GitHub in a new tab only when you press them, and carry nothing from the page.
 
@@ -61,6 +66,41 @@ Only the command line reads sheets. The browser check, the GitHub Action and the
 No. With `--destination-hubspot contacts`, FlowAssert lists the contacts itself, page by page, so no export step could filter them or cut them short. That shows which contacts the API listed to your token at that time. It does not show that the object is complete: contacts the token cannot see are not listed, a contact changed during the read may be missed, and archived contacts are not read. Whether the records cover the whole object is still your statement, `--destination-complete`, with the same meaning as for an export, and the report says that the read does not show completeness. The same records give the same result as the same rows in a CSV file.
 
 FlowAssert only reads: `GET` requests to one documented endpoint, with a token that should have the scope `crm.objects.contacts.read` and nothing else. It has been tested against a local fake of that endpoint, not yet against a HubSpot account.
+
+## Can I check an Excel file without saving it as CSV?
+
+Yes, from 1.1.0: one worksheet of an `.xlsx` workbook, on the command line (`--source-format xlsx`), in the browser
+(choose the file), in the GitHub Action and in the n8n node. The same rows give the same result as in a CSV file. A
+legacy `.xls`, a password-protected or macro-enabled workbook is refused; save a copy as an Excel Workbook (.xlsx).
+See [Check an Excel workbook](guides/excel.md).
+
+## Why does a date or a number read differently from what Excel shows?
+
+FlowAssert reads the value a cell stores, not the text a spreadsheet program displays through its format: a date is
+`2025-11-12` whatever the format shows, a percentage `12.5%` is `0.125`, and `1,234.50` is `1234.5`. Stored values are
+the same on every computer and in every language; displayed text is not. The summary counts the cells a spreadsheet
+may display otherwise, so you can see when it matters. [The Excel guide](guides/excel.md#3-the-text-of-a-cell-stored-not-displayed)
+has the table.
+
+## What do I do with the records that did not arrive?
+
+From 1.1.0 FlowAssert can write them as CSV files to import again: `--export-dir` on the command line, "Export records
+to fix" in the browser, `export-dir` in the Action, and the node's outputs in n8n. The records whose status is unknown
+are in a file of their own, because resending them may create duplicates, and a destination you did not state complete
+never gives a list of missing records. See [Export the records to fix](guides/records-to-fix.md).
+
+## Can FlowAssert check every morning on its own?
+
+Yes, with the GitHub Action on a schedule: it reads a Google Sheets range and HubSpot's contacts with credentials kept
+in repository secrets, and writes a summary on the run's page. A scheduled check says what the data looked like when it
+ran; it is not a monitor. See [Scheduled checks](guides/scheduled-checks.md). It has been tested against local fakes of
+Google and HubSpot only.
+
+## Is there an n8n node?
+
+Yes, from 1.1.0: [`n8n-nodes-flowassert`](../integrations/n8n-nodes-flowassert/README.md), for a self-hosted n8n. It
+is not yet published on npm, and it is not verified by n8n, so it cannot be installed on n8n Cloud; there, the
+[Code-node example](../examples/n8n/README.md) runs the same checker.
 
 ## Can I trust a download of FlowAssert?
 

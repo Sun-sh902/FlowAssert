@@ -7,12 +7,14 @@ A hint is only a suggestion. FlowAssert never retries a check, and never changes
 In the messages below, `FILE` is the path you gave (the file's name in the browser), and `N` a number.
 
 - [Reading the CSV files](#reading-the-csv-files)
+- [Reading an Excel workbook](#reading-an-excel-workbook)
 - [Choosing columns](#choosing-columns)
 - [Configuration and mapping files](#configuration-and-mapping-files)
 - [Options](#options)
 - [The two files together](#the-two-files-together)
 - [Reading a Google Sheets range](#reading-a-google-sheets-range)
 - [Reading HubSpot contacts](#reading-hubspot-contacts)
+- [Records to resend](#records-to-resend)
 
 ## Reading the CSV files
 
@@ -84,6 +86,103 @@ One value is longer than 131,072 characters, Python's default limit, often becau
 ### `FILE: ERROR`
 
 The file could not be opened, for example `No such file or directory` or `Permission denied`; the error is the operating system's. Check the path and that you can read the file.
+
+## Reading an Excel workbook
+
+From 1.1.0 either side can be one worksheet of an .xlsx workbook (`--source-format xlsx`, `--destination-format xlsx`;
+in the browser, a workbook is recognised when you choose it). FlowAssert reads the value each cell stores, never what a
+spreadsheet program displays, and refuses a workbook it cannot read with certainty. In these messages `WS` is the
+worksheet's name and `REF` a cell such as `B7`. The [Excel guide](excel.md) explains how a workbook is read, and the
+[design note](../design/1.1-excel.md#refusals-and-bounds) lists every message.
+
+### `--source-format must be one of: csv, xlsx`, and the same for `--destination-format`
+
+Use `csv` (the default) or `xlsx`. FlowAssert never decides a file's format from its name or its content.
+
+### `--source-worksheet needs --source-format xlsx`, and the same for the destination
+
+A worksheet is chosen only for a workbook. Add `--source-format xlsx`, or leave the worksheet out for a CSV file.
+
+### `--source-encoding does not apply to a workbook`, and the same for the destination
+
+A workbook has no encoding to choose: its text is UTF-8 inside the archive. Leave the encoding out for that side.
+
+### `--source-format does not apply to a sheet source` and `--destination-format does not apply to a HubSpot destination`
+
+A Google Sheets range or HubSpot's contacts are read through their services, not from a file. Leave the format out.
+
+### `FILE: not an .xlsx workbook: it is an OLE compound file, …`
+
+The file is a legacy .xls workbook, or an .xlsx workbook protected by a password: both are stored in the older OLE
+format. In your spreadsheet program, save a copy as an Excel Workbook (.xlsx) without a password, and check that copy.
+
+### `FILE: not an .xlsx workbook (not a ZIP archive)`
+
+An .xlsx workbook is a ZIP archive and this file is not one. If it is a CSV file, leave out `--source-format xlsx` (in
+the browser, choose CSV as its format).
+
+### `FILE: a macro-enabled workbook (.xlsm); …`, `FILE: a Strict Open XML workbook; …` and `FILE: the workbook part has content type TYPE, …`
+
+FlowAssert reads the .xlsx format Excel saves by default. Save a copy as an Excel Workbook (.xlsx): cells keep their
+values, and FlowAssert never runs macros either way.
+
+### `FILE: the workbook has N sheets (NAMES); choose one with --source-worksheet`
+
+Name the worksheet to read exactly as the workbook names it, with `--source-worksheet NAME` (or
+`--destination-worksheet`). In the browser, pick it under "Choose the worksheet to check". A workbook with one sheet
+needs no name.
+
+### `FILE: no worksheet named 'NAME'; the workbook has: NAMES`, `FILE: sheet 'NAME' is not a worksheet` and `FILE: the workbook has no sheet`
+
+Use one of the names listed, exactly, including case and spaces. A chart sheet or a dialog sheet holds no rows.
+
+### `FILE: worksheet WS: row 1 is empty; FlowAssert reads the column names from row 1`
+
+Row 1 must hold the column names. Move them to row 1, or delete the rows above them.
+
+### `FILE: worksheet WS: cell REF holds the error value ERROR`
+
+The cell shows an error, such as `#N/A` or `#DIV/0!`, instead of a value. Correct its formula, or replace the error
+with the value it should have.
+
+### `FILE: worksheet WS: cell REF has a formula without a cached value; …`
+
+The workbook holds the formula but not its result, which happens with files written by some programs other than
+spreadsheet programs. FlowAssert never computes a formula. Open the workbook in a spreadsheet program and save it, which
+stores every result.
+
+### `FILE: worksheet WS: cell REF has number format 'CODE', which FlowAssert does not read`
+
+The cell's format is one whose text FlowAssert does not define, such as a fraction. Format the column as General,
+Number, Text or a date in the spreadsheet program, or export the sheet as CSV.
+
+### `FILE: worksheet WS: cell REF holds the serial number X, which is not a date in the 1900 date system`
+
+A date cell holds a number that is not a date, such as a negative number or Excel's 29 February 1900, which never
+existed. Correct the cell, or format the column as a number.
+
+### `FILE: worksheet WS: cell REF has a value beyond the header`
+
+A cell to the right of the last column name holds a value. Give that column a name in row 1, or clear the cell.
+
+### `FILE: inflated parts exceed --max-bytes limit of N`
+
+The workbook's parts, uncompressed, are larger than `--max-bytes` (200 MiB by default). Raise `--max-bytes` on the
+command line if you expect a workbook that large; the limit also stops a file built to fill memory.
+
+### `FILE: changed while it was read; run the check again`
+
+The file's size or time of change differed between the start and the end of the read: another program was writing it.
+Check again once it is saved.
+
+### Other messages about the archive or its XML
+
+`damaged ZIP archive`, `a ZIP64 archive`, `encrypted ZIP entry`, `repeated ZIP entry`, `compression method`,
+`missing part`, `external relationship`, `is not UTF-8`, `has a DOCTYPE declaration`, `is not well-formed XML`,
+`exceeds a reading bound`, `cell reference … is not a cell of a worksheet`, `is out of order`, `has the type`,
+`has no value`, `is not a number`, `refers to shared string`, `has style N`, `is longer than 131072 characters`,
+`escaped character`: the file is damaged, or was written in a way FlowAssert does not read with certainty. Open it in a
+spreadsheet program and save it as an Excel Workbook (.xlsx), or export the worksheet as CSV UTF-8.
 
 ## Choosing columns
 
@@ -378,3 +477,26 @@ A page is not what HubSpot's documentation describes. FlowAssert does not guess 
 ### `HubSpot contacts: exceeds --max-rows limit of N`, `HubSpot contacts: response exceeds --max-bytes limit of N`
 
 More contacts were listed than `--max-rows` allows, or a page was larger than `--max-bytes`. Raise the limit if the number is expected.
+
+## Records to resend
+
+From 1.1.0, `--export-dir DIR` writes the records to resend after the check ([guide](records-to-fix.md)).
+
+### `--export-dir cannot be combined with --redact-values: the exported rows hold the values`
+
+`--redact-values` promises output without values, and the exported rows are values. Leave out one of the two.
+
+### `DIR: exists; --export-dir writes to a new directory`
+
+Each check writes its files into a new directory, so they are never mixed with an older check's. Name a directory that
+does not exist yet, for example one with the date in its name. FlowAssert creates it, one level only.
+
+### `FILE: changed after it was checked; nothing was exported`
+
+The rows are read again to write them in full, and the file was not the one the check had read. Nothing was written,
+not even the reports. Check again once the file no longer changes.
+
+### `DIR: ERROR`
+
+The directory or a file in it could not be written; the error is the operating system's. Nothing is left behind: the
+files written so far and the directory are removed, and no report is written.

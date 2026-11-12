@@ -2,6 +2,92 @@
 
 ## 1.1.0 (unreleased)
 
+The release that removes reasons not to try FlowAssert, or to stop after one check. Four highlights, in order: Excel
+workbooks checked directly; from finding to fixing, with the records to resend; an n8n community node; and scheduled
+checks in the GitHub Action with a run summary.
+
+**Every verdict of every existing case is unchanged, and no existing golden file changed**: for every golden case,
+sheet and HubSpot golden case, scenario, conformance case and comparison case, the records, rule results, counts,
+cohort state, exit status, refusals, printed summary, JSON report and HTML report are the same bytes as in 1.0.0
+(`golden.py --check`, `comparison_cases.py --check`, `schemas.py --check` and `conformance.py --connectors --bytes
+--html`, 289 of 289, pass without regenerating anything). The new options leave every existing command as it was.
+
+Not true of this release: no outside user, review or adoption is claimed. The Google Sheets source and the HubSpot
+destination, now also in the Action, have been tested against local fakes only. No GitHub workflow was run: the
+Action's 1.1.0 inputs and run summary were tested in-process against local fakes, and its self-test, the release
+workflow and the node's publish workflow were written and checked for structure only. The n8n node was tested in a
+local self-hosted n8n (2.47.5 and 2.46.4, on macOS), not on n8n Cloud; it is not published on npm, not listed in n8n's
+catalogue and not verified by n8n.
+
+### Added
+
+- **Excel workbooks** ([guide](docs/guides/excel.md), [design note](docs/design/1.1-excel.md)). Either side can be one
+  worksheet of an `.xlsx` workbook: `--source-format xlsx` and `--destination-format xlsx` (default `csv`), with
+  `--source-worksheet NAME` and `--destination-worksheet NAME` when a workbook has several sheets. Each cell is read as
+  stored, never as displayed, with its text defined once for every cell type and number format, in Python and
+  TypeScript alike: numbers as ECMAScript writes them, percentages as fractions, dates and times in ISO 8601 in the
+  workbook's date system, booleans as `TRUE` or `FALSE`, a formula's cached result. The same rows give the same result
+  as in a CSV file. Readers are standard library only in Python and use the platform's `DecompressionStream` in the
+  browser; `--max-bytes` also bounds what is inflated.
+- **Workbook refusals**, each with an exact message ([refusal guide](docs/guides/refusals.md#reading-an-excel-workbook)):
+  a legacy `.xls` or password-protected file, a macro-enabled `.xlsm`, a Strict or binary workbook, several sheets and
+  no name, an unknown worksheet, an empty row 1, an error value such as `#N/A`, a formula without a cached value, an
+  undefined or unread number format, a serial number that is not a date, a damaged, ZIP64 or encrypted archive, a
+  `DOCTYPE`, XML that is not well-formed or not UTF-8, and a file changed while it was read; and the option refusals
+  `--source-worksheet needs --source-format xlsx`, `--source-encoding does not apply to a workbook`, `--source-format
+  does not apply to a sheet source` and `--destination-format does not apply to a HubSpot destination`. The browser
+  gives hints for six of them.
+- **`schema_version` 4**, for a report with a side read from a workbook, with `inputs.source_workbook` and
+  `inputs.destination_workbook` (worksheet, its state, sheets, date system, the file's digest and size, inflated bytes,
+  columns, rows, cells by how they were read, hidden rows and columns, merged ranges); its digest is that of the canonical
+  form `flowassert-xlsx-csv-1`. [JSON Schema](docs/schema/report-v4.schema.json), [spec section 16](docs/spec/verification.md),
+  golden cases in `offline/golden-xlsx/`, fixtures from two independent writers in `offline/xlsx-fixtures/`. Reports of
+  the existing kinds keep their versions and bytes.
+- **Workbooks in the browser**: a workbook is recognised when chosen, its sheets listed for a choice by keyboard, its
+  worksheet profiled (rows, columns, empty cells, cells read as numbers, dates, durations, booleans or formula results,
+  hidden rows and columns, merged ranges), checked, and read back in saved reports and comparisons.
+- **The records to resend** ([guide](docs/guides/records-to-fix.md), [design note](docs/design/1.1-exports.md),
+  [spec section 17](docs/spec/verification.md)): `--export-dir DIR` writes `missing-from-destination.csv`,
+  `values-differ.csv`, `duplicated-in-destination.csv`, `unknown-status-resending-may-create-duplicates.csv`,
+  `only-in-destination.csv` and `only-in-destination-not-concluded.csv`, each row as read under its file's own header,
+  UTF-8 with a byte order mark and CR LF. Advice only: no result, report, summary line or exit status changes. A
+  destination not stated complete never gives a missing file. Text is never changed; fields that a spreadsheet would
+  run as formulas are counted, with the advice to import the files. Refused: `--export-dir cannot be combined with
+  --redact-values: …`, `DIR: exists; --export-dir writes to a new directory` and `FILE: changed after it was checked;
+  nothing was exported`. The browser's "Export records to fix" builds a file only when its button is pressed; the
+  TypeScript checker writes the same bytes, and `checkCsv` takes `exports: true`.
+- **The n8n community node**, `n8n-nodes-flowassert` 1.1.0, MIT, in `integrations/n8n-nodes-flowassert/`
+  ([README](integrations/n8n-nodes-flowassert/README.md), [design note](docs/design/1.1-n8n-node.md)): two files from
+  binary properties, CSV or a workbook; parameters that mirror the check's with every premise unstated by default; a
+  Result output and one output per file of records to resend. It holds the packaged checker, has no runtime
+  dependency, makes no request and needs no credential; n8n's linter passes. A new premise origin, `n8n node`.
+  `checkCsv` also takes `details`, `redactValues`, `maxBytes` and `maxRows`. Publishing is prepared, not run:
+  `.github/workflows/n8n-node-publish.yml` (npm trusted publishing with provenance, from a tag `n8n-node-v*`) and the
+  owner's checklist, `scripts/dev/n8n_node_publish.md`; `release.yml` also attests the node's `npm pack` tarball.
+- **The Action, 1.1.0** ([guide](docs/guides/scheduled-checks.md), [examples](examples/github-actions/README.md),
+  [design note](docs/design/1.1-action.md)): the inputs `source-sheet`, `source-range`, `source-timeout`,
+  `skip-source-revision`, `destination-hubspot`, `destination-timeout`, `source-format`, `source-worksheet`,
+  `destination-format`, `destination-worksheet`, `export-dir`, `summary` and `summary-keys`, and the output
+  `export-dir`; `source` and `destination` are no longer marked required. Credentials come only from the step's
+  environment, set from secrets. After 1.0's job summary, unchanged, "What this run shows": the verdict, the claim,
+  the counts, each premise and whether it was applied, each input's kind and digests and the records to resend, with no
+  value, keys only on request, and under GitHub's 1 MiB limit. Two example workflows: a scheduled check from a sheet to
+  HubSpot, and a check of two workbooks.
+- Guides: [Check an Excel workbook](docs/guides/excel.md), [Export the records to fix](docs/guides/records-to-fix.md),
+  [Scheduled checks](docs/guides/scheduled-checks.md); new answers in the [FAQ](docs/faq.md); README screenshots of a
+  workbook's worksheet choice and profile, and of the records to fix.
+
+### Changed
+
+- The browser lets go of a check's evaluation (about 133 MiB after two files of a million rows) when a file or a choice
+  changes, instead of keeping it until the next check: 1.1 MiB is then held.
+- The README describes `--max-rows` as the data rows of a file, since a workbook has them too.
+
+### Known issues
+
+- A HubSpot summary that read one page says "1 pages". The summary's lines keep their wording in 1.x, so the plural
+  waits for 2.0.
+
 ### Removed
 
 - The documents, the interface and the screenshots are in English only. The Chinese copies of the documents, the

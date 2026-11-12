@@ -12,7 +12,7 @@ import { CsvError, CsvReader, LineReader, MAX_BYTES, MAX_ROWS, NeedMore, readHea
 export type HintPart = string | { value: string };
 
 export interface Hint {
-  /** Which hint: "utf-16", "utf-16-no-bom", "utf-8", "gb18030", "missing-column", "line-fields", "separator", … */
+  /** Which hint: "utf-16", "utf-16-no-bom", "utf-8", "gb18030", "missing-column", "line-fields", "separator", "xlsx-…", … */
   kinds: string[];
   /** Paragraphs, each a list of parts. */
   paragraphs: HintPart[][];
@@ -280,6 +280,34 @@ export function refusalHint(message: string, files: readonly HintFile[]): Hint |
     return {
       kinds: ["max-bytes"],
       paragraphs: [[`The browser check reads files of up to ${MAX_BYTES} bytes (200 MiB). For a larger file, use the command line, where --max-bytes sets the limit and the destination file is read without holding it in memory.`]],
+    };
+  }
+  // A workbook (1.1.0): the refusals a person can act on in a spreadsheet program, or by another choice on the page.
+  if (/: not an \.xlsx workbook: it is an OLE compound file/.test(text)) {
+    return {
+      kinds: ["xlsx-ole"],
+      paragraphs: [["This is a legacy .xls workbook, or an .xlsx workbook protected by a password. In your spreadsheet program, save a copy as an Excel Workbook (.xlsx) without a password, and choose that copy."]],
+    };
+  }
+  if (text.endsWith(": not an .xlsx workbook (not a ZIP archive)")) {
+    return { kinds: ["xlsx-not-zip"], paragraphs: [["An .xlsx workbook is a ZIP archive, and this file is not one. If it is a CSV file, choose CSV as its format."]] };
+  }
+  if (/: a macro-enabled workbook \(\.xlsm\)/.test(text)) {
+    return { kinds: ["xlsx-macro"], paragraphs: [["FlowAssert never runs macros, and reads only .xlsx workbooks. Save a copy as an Excel Workbook (.xlsx) and choose that copy: the cells keep their values."]] };
+  }
+  if (/: the workbook has \d+ sheets \(.*\); choose one with --(source|destination)-worksheet$/s.test(text)) {
+    return { kinds: ["xlsx-sheets"], paragraphs: [["Pick one under “Choose the worksheet to check” in the file’s panel, then check again."]] };
+  }
+  if (/: cell [A-Z]+\d+ has a formula without a cached value/.test(text)) {
+    return {
+      kinds: ["xlsx-formula"],
+      paragraphs: [["Some programs write a formula without its result. FlowAssert reads the result a spreadsheet program stored, never computes one. Open the workbook in a spreadsheet program and save it, which stores every result, and choose it again."]],
+    };
+  }
+  if (/: cell [A-Z]+\d+ holds the error value /.test(text)) {
+    return {
+      kinds: ["xlsx-error"],
+      paragraphs: [["The cell shows an error, such as #N/A, instead of a value. Correct the formula in the workbook, or replace the error with the value it should have, and choose the workbook again."]],
     };
   }
   if (/: exceeds --max-rows limit of \d+$/.test(text)) {

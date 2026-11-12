@@ -170,3 +170,23 @@ describe("the other refusals", () => {
     expect(hint).toBeNull();
   });
 });
+
+describe("a workbook (1.1.0)", () => {
+  const refusal = (name: string) => readFileSync(join(REPO_ROOT, "offline/golden-xlsx", name, "stderr.txt"), "utf-8").trimEnd();
+  test.each([
+    ["xlsx-refused-ole", "xlsx-ole", "save a copy as an Excel Workbook (.xlsx) without a password"],
+    ["xlsx-refused-not-zip", "xlsx-not-zip", "choose CSV as its format"],
+    ["xlsx-refused-macro-enabled", "xlsx-macro", "FlowAssert never runs macros"],
+    ["xlsx-refused-several-sheets", "xlsx-sheets", "“Choose the worksheet to check”"],
+    ["xlsx-refused-formula-without-value", "xlsx-formula", "never computes one"],
+    ["xlsx-refused-error-value", "xlsx-error", "such as #N/A"],
+  ])("%s: %s", (name, kind, words) => {
+    const hint = refusalHint(refusal(name), []);
+    expect(hint?.kinds).toEqual([kind]);
+    expect(hint!.paragraphs.flat().join("")).toContain(words);
+  });
+
+  test("no hint for a workbook refusal no hint is written for, such as a DOCTYPE", () => {
+    expect(refusalHint(refusal("xlsx-refused-doctype"), [])).toBeNull();
+  });
+});

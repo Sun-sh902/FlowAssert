@@ -11,7 +11,7 @@
    "src/test/contract-drift-runtime.test.ts": 3,
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
-   "src/test/english-only.test.ts": 53,
+   "src/test/english-only.test.ts": 56,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/explorer.test.tsx": 11,
    "src/test/fix03.test.tsx": 21,
@@ -26,7 +26,7 @@
    "src/test/lookup-contract-drift.test.ts": 19,
    "src/test/lookup-detail.test.tsx": 10,
    "src/test/lookup-gate.test.ts": 102,
-   "src/test/markdown-links.test.ts": 123,
+   "src/test/markdown-links.test.ts": 126,
    "src/test/offline/api.test.ts": 103,
    "src/test/offline/bundle.test.ts": 64,
    "src/test/offline/chardiff.test.ts": 10,
@@ -44,7 +44,7 @@
    "src/test/offline/profile.test.ts": 107,
    "src/test/offline/python-semantics.test.ts": 55,
    "src/test/offline/random-parity.test.ts": 2,
-   "src/test/offline/refusal-hint.test.ts": 16,
+   "src/test/offline/refusal-hint.test.ts": 23,
    "src/test/offline/report-schema.test.ts": 164,
    "src/test/offline/saved-report.test.ts": 110,
    "src/test/offline/scenarios.test.ts": 19,
@@ -376,6 +376,10 @@
    },
    "chrome › perf.spec.ts › DOM size, layout shift and load timing per route": {
     "passed": 1
+   },
+   "chrome › readme-screens.spec.ts › README screenshots of a workbook and the records to fix": {
+    "skipped": 1,
+    "reason": "set FA_README_SCREENS=1 to write the README's screenshots"
    },
    "chrome › readme-screens.spec.ts › README screenshots of the CSV check": {
     "skipped": 1,
@@ -895,6 +899,10 @@
    },
    "webkit › perf.spec.ts › DOM size, layout shift and load timing per route": {
     "passed": 1
+   },
+   "webkit › readme-screens.spec.ts › README screenshots of a workbook and the records to fix": {
+    "skipped": 1,
+    "reason": "set FA_README_SCREENS=1 to write the README's screenshots"
    },
    "webkit › readme-screens.spec.ts › README screenshots of the CSV check": {
     "skipped": 1,

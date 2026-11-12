@@ -2,21 +2,28 @@
 
 **The workflow succeeded. Did the expected business data actually arrive?**
 
-FlowAssert compares a source CSV, the records that should have arrived, with an export of the destination system, what is there now, and reports each record as **Verified**, **Mismatch** or **Unverified**. Its central rule: without enough evidence, it never says Verified. It runs on your computer, in a terminal or in your browser, and reads local files; the command line can also read the source rows from a Google Sheets range and the destination records from HubSpot's contacts, read-only ([Google Sheets](#read-the-source-from-google-sheets), [HubSpot](#read-the-destination-from-hubspot)).
+FlowAssert compares a source file, the records that should have arrived, with an export of the destination system, what is there now, and reports each record as **Verified**, **Mismatch** or **Unverified**. Its central rule: without enough evidence, it never says Verified. It runs on your computer, in a terminal or in your browser, and reads local CSV files and Excel workbooks; the command line and the GitHub Action can also read the source rows from a Google Sheets range and the destination records from HubSpot's contacts, read-only ([Google Sheets](#read-the-source-from-google-sheets), [HubSpot](#read-the-destination-from-hubspot)).
 
 Version 1.0.0 freezes the report format, specifies the check, publishes JSON Schemas and a conformance suite, and builds every release file with a provenance attestation anyone can verify ([What 1.0 promises](#what-10-promises)).
 
+Version 1.1.0 (not yet released) adds, with every verdict unchanged:
+
+- **Excel workbooks, checked directly**: one worksheet of an `.xlsx` file, read as stored, in every part of FlowAssert ([guide](docs/guides/excel.md)).
+- **The records to fix**: after a check, CSV files of the rows that did not arrive, that differ or that are duplicated, and, kept apart, those whose status is unknown ([guide](docs/guides/records-to-fix.md)).
+- **An n8n community node**, [`n8n-nodes-flowassert`](integrations/n8n-nodes-flowassert/README.md), for a self-hosted n8n (not yet published).
+- **Scheduled checks in the GitHub Action**, from a Google Sheets range to HubSpot, with a run summary ([guide](docs/guides/scheduled-checks.md)).
+
 > [!IMPORTANT]
 > **Early-stage project with one maintainer.** It is not production software.
-> The Service and UI work on five reviewed synthetic cases only. They have no live n8n, HubSpot or Google Sheets connection, take no credentials, and capture no external data. The command line's Google Sheets source and HubSpot destination are read-only and have been tested against local fakes of those services only. Hashes and local receipts show internal consistency, not that any data is authentic. No outside user, review or adoption is claimed.
+> The Service and UI work on five reviewed synthetic cases only. They have no live n8n, HubSpot or Google Sheets connection, take no credentials, and capture no external data. The Google Sheets source and HubSpot destination of the command line and the Action are read-only and have been tested against local fakes of those services only. Hashes and local receipts show internal consistency, not that any data is authentic. No outside user, review or adoption is claimed.
 
 ## Try it online
 
 <https://sun-sh902.github.io/FlowAssert/> runs the check in your browser. Your files never leave your computer: the page makes no network request.
 
-1. Drop your two CSV files on their panels, or choose them, or use one of the four synthetic scenarios under **No files at hand? Try a scenario**. Each file is profiled at once: its rows, columns and empty cells, encoding, line endings and size, or the refusal a check would give it.
+1. Drop your two files on their panels, CSV files or Excel workbooks (`.xlsx`), or choose them, or use one of the synthetic scenarios under **No files at hand? Try a scenario**. Each file is profiled at once: its rows, columns and empty cells, encoding, line endings and size, or for a workbook its sheets, the worksheet you choose and how its cells were read; or the refusal a check would give it.
 2. Choose the key column and the compared fields, and state only what you know about the files. **Before you check** says what a check would do with a total that contradicts a file, or a key column with empty or repeated keys.
-3. Press **Check**. Under the result, **What this result means** explains it from the report alone, and **Explore the records** lists every record, with each rule's result and, for a field that failed, exactly which characters differ.
+3. Press **Check**. Under the result, **What this result means** explains it from the report alone, **Export records to fix** offers the rows that need action as CSV files to download, and **Explore the records** lists every record, with each rule's result and, for a field that failed, exactly which characters differ.
 
 A file of a million rows is read as a stream, with progress and an estimate of the time left. Nothing is uploaded.
 
@@ -54,6 +61,11 @@ Verified 1 · Mismatch 3 · Unverified 0
     uniqueness fail: more than one destination row carries this key
     ...
 ```
+
+To also write the records to fix, add `--export-dir records-to-fix`: the three records above are written to
+`missing-from-destination.csv`, `values-differ.csv` and `duplicated-in-destination.csv`, each row as it was read
+([guide](docs/guides/records-to-fix.md)). An Excel workbook is checked the same way, with
+`--source-format xlsx` and, when it has several sheets, `--source-worksheet NAME` ([guide](docs/guides/excel.md)).
 
 The [first-check guide](docs/guides/first-check.md) explains each line, and [Scenarios for a first check](offline/examples/scenarios/README.md) has more small examples to run. If the check is refused (exit status 2), [When a check is refused](docs/guides/refusals.md) explains the message.
 
@@ -138,6 +150,15 @@ A result explored: the records that are not Verified, and one of them opened, wi
 ![The result explorer with a record and its character diff](docs/readme/check-explorer.png)
 
 </details>
+
+From 1.1.0, an Excel workbook: the worksheet to check, chosen among its sheets, and a profile that says how each cell
+was read (as stored, not as displayed). Under a result, the records to fix, each file with its rows and meaning.
+
+| A workbook's worksheet | How its cells were read |
+| --- | --- |
+| ![A source panel with a workbook's three sheets and the chosen worksheet's profile](docs/readme/check-worksheet.png) | ![A workbook profile counting numbers, dates, durations, booleans and formula results](docs/readme/check-workbook-profile.png) |
+
+![The Export records to fix section with three files and the warning beside the unknown file](docs/readme/check-export.png)
 
 ### The HTML report
 
@@ -241,6 +262,9 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | `--destination-count N` | You state the destination total seen in the original system; a different row count leaves absence and duplicates unknown |
 | `--allow-identical-content` | Continue when two distinct files have identical content, and record that in `inputs` |
 | `--source-encoding NAME` | `utf-8` (default), `utf-16` or `gb18030` |
+| `--source-format csv\|xlsx` | `csv` (default), or `xlsx`: read one worksheet of an Excel workbook, as stored ([guide](docs/guides/excel.md)) |
+| `--source-worksheet NAME` | With `--source-format xlsx`: the worksheet to read, exactly as named; needed when the workbook has several sheets |
+| `--destination-format csv\|xlsx`, `--destination-worksheet NAME` | The same for the destination |
 | `--source-sheet ID` | Read the source from this Google Sheets spreadsheet, read-only, in place of `--source` ([guide](docs/guides/google-sheets.md)) |
 | `--source-range RANGE` | With `--source-sheet`: a tab and bounded columns, such as `Leads!A1:F` or `Leads!A1:F500` |
 | `--source-timeout SECONDS` | With `--source-sheet`: the longest each request may take (default: `60`) |
@@ -249,12 +273,13 @@ python3 -m pip install "git+https://github.com/Sun-sh902/FlowAssert.git#subdirec
 | `--destination-timeout SECONDS` | With `--destination-hubspot`: the longest each request may take (default: `60`) |
 | `--destination-encoding NAME` | `utf-8` (default), `utf-16` or `gb18030` |
 | `--max-bytes N` | Refuse a file larger than `N` bytes before reading (default: `209715200`, 200 MiB) |
-| `--max-rows N` | Refuse a CSV with more than `N` rows while reading (default: `1000000`) |
+| `--max-rows N` | Refuse a file with more than `N` data rows while reading (default: `1000000`) |
 | `--max-details N` | Print at most `N` non-Verified records in the summary; `0` prints none (default: `50`) |
 | `--json PATH` | Write a full report with file digests. Refuses to overwrite a file. [Format](docs/report-format.md) |
 | `--details problems\|all` | `problems` (default): Verified records in `--json` keep only key, row and state. `all`: every record in full |
 | `--html PATH` | Write a self-contained HTML report. Refuses to overwrite a file |
 | `--redact-values` | Leave keys and compared values out of the output |
+| `--export-dir DIR` | After the check, write the records to fix as CSV files into the new directory `DIR`; changes no result ([guide](docs/guides/records-to-fix.md)) |
 | `--version` | Show the version |
 
 | Exit status | Meaning |
@@ -310,7 +335,8 @@ flowassert-verify --source leads.csv --destination-hubspot contacts \
 ## Check in your browser
 
 The same check runs in the web UI, for people who do not use a terminal: open the **CSV check** page, choose the two
-files, the key column, the fields and a rule for each, state what you know, and press Check. The result, the printed
+files (CSV files or Excel workbooks), the key column, the fields and a rule for each, state what you know, and press
+Check. The result, the printed
 summary and the JSON and HTML reports are the command line's, byte for byte, except that each premise's origin is
 `browser form`.
 
@@ -328,6 +354,7 @@ What the page adds to the command line's output, all read from the files or the 
 
 - **A file profile** as soon as a file is chosen or dropped, and **Before you check**, the consequences of a stated total or a key column the profile contradicts.
 - **Streaming.** Files are read in pieces with bounded memory: two files of 1,000,000 rows peak at about 175 MiB in the worker, with the rows read on each side and an honest estimate of the time left.
+- **Export records to fix**, on a result: each file of records to fix with its row count, its meaning and a download button. A file is built from the file you chose, read again, only when you press its button.
 - **Explore the records**, on a result, a saved report and a comparison: filter by state, rule and result, search keys, and open any record with every rule result and, for a failed field, exactly which characters differ. The view is in the address, so a filtered view of a saved report can be linked.
 
 Differences from the command line:
@@ -374,9 +401,12 @@ From 0.5.0 the **Saved reports** page (`#/check/reports`) keeps JSON reports in 
 
 ## Use in GitHub Actions
 
-The repository is also a GitHub Action. It runs the offline check on two CSV files in your workflow, with the
-runner's Python 3.9 or later, from the Action's own copy of `offline/`: nothing is installed or downloaded while it
-runs. The step passes or fails on the result.
+The repository is also a GitHub Action. It runs the offline check in your workflow, with the runner's Python 3.9 or
+later, from the Action's own copy of `offline/`: nothing is installed or downloaded while it runs. The step passes or
+fails on the result. From 1.1.0 it also reads Excel workbooks, a Google Sheets range and HubSpot's contacts (with
+credentials from repository secrets, never from inputs), writes the records to fix, and adds a run summary to the
+run's page; [examples/github-actions](examples/github-actions/README.md) has a scheduled check from a sheet to HubSpot
+and a check of two workbooks, and [Scheduled checks](docs/guides/scheduled-checks.md) explains them.
 
 ```yaml
 name: Check the nightly export
@@ -421,9 +451,12 @@ none is assumed: add `source-complete: "true"` and the others only when they are
 | `fail-on` | `not-verified` | `not-verified`: the step passes only on Verified. `mismatch`: it passes on Verified and Unverified and fails on Mismatch. A refused input or an internal failure (exit status 2 or 4) always fails the step |
 | `show-records` | `"false"` | **Logs and job summaries are often public**, for example in a public repository. By default the step prints and summarizes the state, the counts, the premises and the limitations, and no key or field value. `"true"` also prints the checker's record lines, values included |
 | `json`, `html` | empty | Write the JSON or HTML report to this new file. Reports hold keys and compared values unless `redact-values` is `"true"`, and are written only where you ask |
+| `summary` | `"true"` | 1.1.0: after the job summary, "What this run shows": the verdict, the claim, the counts, each premise and whether it was applied, the inputs' digests and the records to fix, with no value. `"false"` writes no job summary |
+| `summary-keys` | `"false"` | 1.1.0: `"true"` also lists the keys of the records that are not Verified, up to 50 |
+| `export-dir` | empty | 1.1.0: write the records to fix into this new directory, to upload as an artifact |
 
-Outputs: `state` (`Verified`, `Mismatch`, `Unverified`, `refused` or `failed`), `exit-code`, and `json` and `html`
-(the report paths, when written). The step's summary and reports say exactly what `flowassert-verify` says for the
+Outputs: `state` (`Verified`, `Mismatch`, `Unverified`, `refused` or `failed`), `exit-code`, and `json`, `html` and
+`export-dir` (the paths, when written). The step's summary and reports say exactly what `flowassert-verify` says for the
 same arguments. `.github/workflows/action-self-test.yml` runs the Action on Linux, macOS and Windows.
 
 ## Use in n8n
@@ -435,6 +468,12 @@ premise's `origin` is `n8n Code node`. The files' content stays in the n8n insta
 no command. Every premise starts unstated in the node's configuration block. It was tested on a self-hosted n8n
 2.46.4 only, not on n8n Cloud; the [example's README](examples/n8n/README.md) has the setup and what was found out
 about the Code node.
+
+From 1.1.0 there is also a community node, [`n8n-nodes-flowassert`](integrations/n8n-nodes-flowassert/README.md):
+the same checker in a node set up like n8n's own, for CSV files and Excel workbooks, with the result and the records
+to fix on their own outputs. It needs a self-hosted n8n, since unverified community nodes are not available on n8n
+Cloud, and it is not yet published on npm. It was tested with every golden case it can express in a local n8n 2.47.5
+and 2.46.4.
 
 The packaged script is `flowassert-check.js`, built with `cd ui && npm run build:lib` (CI builds it on every run, to
 be attached to each release). It defines one global, `FlowAssert`, with `checkCsv` and `VERSION`, imports nothing and makes no request; other
@@ -537,6 +576,8 @@ Repository history was scanned for common key formats before publication, and no
 | Browser check | Supports fewer date directives than the command line, and follows Python 3.15 where Python versions differ. See [Check in your browser](#check-in-your-browser) |
 | Saved reports | Kept in the browser profile, readable by anyone using it, and on the online demo by other GitHub Pages sites of the same account. Imported reports are not authenticated. See [Saved reports and comparing two results](#saved-reports-and-comparing-two-results) |
 | n8n example | Tested on a self-hosted n8n 2.46.4 only, not on n8n Cloud. It reads files with the Read/Write Files node, which n8n restricts to `~/.n8n-files` by default |
+| n8n node | Not published on npm and not verified by n8n, so not available on n8n Cloud. Tested with a local n8n 2.47.5 and 2.46.4 on macOS, as a custom extension, not installed from npm |
+| GitHub Action 1.1.0 | The new inputs, the run summary and the self-test steps were tested in-process against local fakes; no workflow was run on GitHub |
 | Evaluator status | The pinned version is labelled `Round03.5 research — unapproved` |
 | P3A-AUD-001 | A legacy path such as `/api/v1/verifications/x%2Fevidence` can address the wrong resource. Use the query routes for unusual IDs |
 | Archive seals | Unkeyed hashes. Anyone who can write the database can forge a consistent row |
