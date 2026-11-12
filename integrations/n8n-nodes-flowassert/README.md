@@ -12,8 +12,10 @@ unverified community nodes are not available on n8n Cloud. On n8n Cloud, use the
 
 ## Install
 
-In a self-hosted n8n: Settings, Community Nodes, Install, and enter `n8n-nodes-flowassert`. See n8n's guide to
-[installing community nodes](https://docs.n8n.io/integrations/community-nodes/installation/).
+The package is not yet published on npm, so it cannot be installed this way yet. Once it is, in a self-hosted n8n:
+Settings, Community Nodes, Install, and enter `n8n-nodes-flowassert`. See n8n's guide to
+[installing community nodes](https://docs.n8n.io/integrations/community-nodes/installation/). Until then, it can be
+built from this folder and loaded as a custom extension, as its integration test does (see "Development" below).
 
 ## Use
 
