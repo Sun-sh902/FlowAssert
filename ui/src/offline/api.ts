@@ -25,7 +25,7 @@ import { sha256 } from "./sha256";
 export const VERSION = "1.0.0";
 
 /** The origins a caller may record for its premises. */
-export const API_ORIGINS = [ORIGINS.javascript, ORIGINS.n8n] as const;
+export const API_ORIGINS = [ORIGINS.javascript, ORIGINS.n8n, ORIGINS.n8nNode] as const;
 export type ApiOrigin = (typeof API_ORIGINS)[number];
 
 /** A file's content: its bytes (a Uint8Array, such as a Node.js Buffer, or an ArrayBuffer), or text for utf-8 only. */
@@ -63,6 +63,12 @@ export interface CheckCsvInput {
   origin?: ApiOrigin;
   /** Also the records to resend (1.1.0): result.exports. Without it, the result is exactly as before. */
   exports?: boolean;
+  /** 1.1.0, each as the command line's option of the same name, and its default when absent: --details ("problems"
+   * or "all"), --redact-values, --max-bytes and --max-rows (a string or a safe integer). */
+  details?: string;
+  redactValues?: boolean;
+  maxBytes?: string | number;
+  maxRows?: string | number;
 }
 
 /** One file of the records to resend: what --export-dir writes under that name, as text. */
@@ -213,6 +219,10 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
     if (typeof input !== "object" || input === null) throw new Refusal("checkCsv takes one object: source, destination, config and the premises");
     const origin = input.origin ?? ORIGINS.javascript;
     if (input.exports !== undefined && typeof input.exports !== "boolean") throw new Refusal("exports must be true or false");
+    if (input.details !== undefined && typeof input.details !== "string") throw new Refusal("details must be a string");
+    const redactValues = premise(input.redactValues, "redactValues");
+    if (redactValues && input.exports) throw new Refusal("exports cannot be combined with redactValues: the exported rows hold the values");
+    const limits = { maxBytes: count(input.maxBytes, "maxBytes"), maxRows: count(input.maxRows, "maxRows") };
     if (!(API_ORIGINS as readonly string[]).includes(origin)) throw new Refusal(`origin must be one of: ${API_ORIGINS.join(", ")}`);
     const encodings = [input.source, input.destination].filter((f) => f?.format !== "xlsx").map((f) => String(f?.encoding ?? "utf-8"));
     const problem = hostProblem(encodings);
@@ -242,6 +252,10 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
       sameFile: false,
       origin: origin as ApiOrigin,
       ...(input.exports ? { exportRecords: true } : {}),
+      ...(input.details !== undefined ? { details: input.details } : {}),
+      ...(redactValues ? { redactValues } : {}),
+      ...(limits.maxBytes !== null ? { maxBytes: limits.maxBytes } : {}),
+      ...(limits.maxRows !== null ? { maxRows: limits.maxRows } : {}),
     });
     const report = outcome.report;
     const state: CheckState = report ? report.cohort_state === "Pending" ? "Unverified" : report.cohort_state : outcome.exit === 2 ? "refused" : "failed";

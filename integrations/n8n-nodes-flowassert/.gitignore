@@ -1,0 +1,6 @@
+node_modules/
+dist/
+# Written by scripts/copy-checker.mjs from ui/dist-lib/flowassert-check.js at each build.
+nodes/FlowAssert/checker.js
+*.tsbuildinfo
+node-junit.xml

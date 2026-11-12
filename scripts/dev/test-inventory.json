@@ -11,7 +11,7 @@
    "src/test/contract-drift-runtime.test.ts": 3,
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
-   "src/test/english-only.test.ts": 50,
+   "src/test/english-only.test.ts": 53,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/explorer.test.tsx": 11,
    "src/test/fix03.test.tsx": 21,
@@ -26,8 +26,8 @@
    "src/test/lookup-contract-drift.test.ts": 19,
    "src/test/lookup-detail.test.tsx": 10,
    "src/test/lookup-gate.test.ts": 102,
-   "src/test/markdown-links.test.ts": 120,
-   "src/test/offline/api.test.ts": 100,
+   "src/test/markdown-links.test.ts": 123,
+   "src/test/offline/api.test.ts": 103,
    "src/test/offline/bundle.test.ts": 64,
    "src/test/offline/chardiff.test.ts": 10,
    "src/test/offline/compare.test.ts": 42,
@@ -109,7 +109,7 @@
     "scripts/dev/tests/test_offline_verify.py": 385,
     "scripts/dev/tests/test_sheets_source.py": 210,
     "scripts/dev/tests/test_spec.py": 303,
-    "scripts/dev/tests/test_workflows.py": 22,
+    "scripts/dev/tests/test_workflows.py": 26,
     "scripts/dev/tests/test_xlsx.py": 105,
     "scripts/dev/tests/test_exports.py": 331
    }
@@ -1857,6 +1857,11 @@
    "scenarios": ["overview", "verifications", "detail", "history", "archived-detail", "rules", "states", "unavailable", "ui-corrupt", "ui-unverifiable"],
    "keyboard_scroll_widths": [768, 1024],
    "overview_focus_stops": 12
+  }
+ },
+ "n8n-node": {
+  "files": {
+   "integrations/n8n-nodes-flowassert/test/node.test.mjs": 69
   }
  }
 }

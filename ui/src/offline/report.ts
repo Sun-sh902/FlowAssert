@@ -19,9 +19,10 @@ export const LIMITS =
   "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.";
 /**
  * Where a premise was stated: the command line, the CSV check page in the browser, or a program calling the packaged
- * checker (api.ts), which says whether it is any JavaScript or the n8n example's Code node.
+ * checker (api.ts), which says whether it is any JavaScript, the n8n example's Code node, or the n8n community node
+ * (1.1.0).
  */
-export const ORIGINS = { cli: "command-line option", browser: "browser form", javascript: "JavaScript call", n8n: "n8n Code node" } as const;
+export const ORIGINS = { cli: "command-line option", browser: "browser form", javascript: "JavaScript call", n8n: "n8n Code node", n8nNode: "n8n node" } as const;
 export type Origin = (typeof ORIGINS)[keyof typeof ORIGINS];
 
 export interface Report extends Omit<EvaluationResult, "premises"> {

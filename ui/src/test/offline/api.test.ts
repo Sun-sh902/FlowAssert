@@ -48,7 +48,7 @@ describe("checkCsv on the golden cases", () => {
 
 describe("checkCsv inputs", () => {
   test("the origins a caller may choose", async () => {
-    expect(API_ORIGINS).toEqual(["JavaScript call", "n8n Code node"]);
+    expect(API_ORIGINS).toEqual(["JavaScript call", "n8n Code node", "n8n node"]);
     expect((await checkCsv(example())).json).toContain('"origin": "JavaScript call"');
     expect((await checkCsv({ ...example(), origin: "n8n Code node" })).json).toContain('"origin": "n8n Code node"');
     for (const origin of ["command-line option", "browser form", "javascript call", ""]) {
@@ -57,7 +57,7 @@ describe("checkCsv inputs", () => {
         exit: 2,
         state: "refused",
         summary: "",
-        message: "refused: origin must be one of: JavaScript call, n8n Code node\n",
+        message: "refused: origin must be one of: JavaScript call, n8n Code node, n8n node\n",
         json: null,
         html: null,
       });
@@ -208,5 +208,34 @@ describe("checkCsv and its host", () => {
   test("the golden folder is where the cases are", () => {
     expect(GOLDEN.endsWith(join("offline", "golden"))).toBe(true);
     expect(pageCases.length).toBeGreaterThanOrEqual(50);
+  });
+});
+
+describe("1.1.0: the options the n8n node gives", () => {
+  test("the origin n8n node is recorded on every premise", async () => {
+    expect(API_ORIGINS).toContain("n8n node");
+    const result = await checkCsv({ ...example(), origin: "n8n node" });
+    const report = JSON.parse(result.json!) as { premises: Record<string, { origin: string }> };
+    expect(Object.values(report.premises).every((p) => p.origin === "n8n node")).toBe(true);
+  });
+
+  test("details, redactValues, maxBytes and maxRows are the command line's options", async () => {
+    const all = JSON.parse((await checkCsv({ ...example(), details: "all" })).json!) as { details: string; records: { rules?: unknown }[] };
+    expect(all.details).toBe("all");
+    expect(all.records.every((r) => r.rules)).toBe(true);
+    const redacted = JSON.parse((await checkCsv({ ...example(), redactValues: true })).json!) as { records: { key: string }[] };
+    expect(redacted.records.every((r) => r.key === "[redacted]")).toBe(true);
+    expect((await checkCsv({ ...example(), maxRows: "2" })).message).toBe("refused: source.csv: exceeds --max-rows limit of 2\n");
+    expect((await checkCsv({ ...example(), maxBytes: 10 })).message).toMatch(/^refused: configuration: file size \d+ bytes exceeds --max-bytes limit of 10\n$/);
+    expect((await checkCsv({ ...example(), details: "some" })).message).toBe("refused: --details must be one of: problems, all\n");
+  });
+
+  test("records to resend cannot be combined with redactValues, and each option has its type", async () => {
+    const both = await checkCsv({ ...example(), exports: true, redactValues: true });
+    expect(both.message).toBe("refused: exports cannot be combined with redactValues: the exported rows hold the values\n");
+    expect(both.exports).toBeNull();
+    expect((await checkCsv({ ...example(), redactValues: "yes" as unknown as boolean })).message).toBe("refused: redactValues must be true or false\n");
+    expect((await checkCsv({ ...example(), details: 1 as unknown as string })).message).toBe("refused: details must be a string\n");
+    expect((await checkCsv({ ...example(), maxRows: 1.5 })).message).toBe("refused: maxRows must be a string, an integer or null\n");
   });
 });

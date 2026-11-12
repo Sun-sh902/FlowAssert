@@ -43,6 +43,7 @@ jobs:
           version=$(python -c 'import re; print(re.search(r"__version__ = \"(.+?)\"", open("offline/flowassert_offline/__init__.py").read()).group(1))')
           test "v$version" = "$GITHUB_REF_NAME"
           grep -q "^export const VERSION = \"$version\";$" ui/src/offline/api.ts
+          test "$(node -p 'require("./integrations/n8n-nodes-flowassert/package.json").version')" = "$version"
       # PyPA's build front end makes the sdist that pip cannot. It is installed in this job only, at a fixed version;
       # flowassert-offline itself still has no dependency.
       - name: The Python wheel and sdist
@@ -58,6 +59,14 @@ jobs:
           grep -q "connect-src 'none'" dist-pages/index.html
           cp dist-lib/flowassert-check.js ../release/
           tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C dist-pages -czf ../release/flowassert-site.tar.gz .
+      # The n8n community node as npm would publish it: the tarball npm pack writes, with the checker built above.
+      - name: The n8n node package
+        working-directory: integrations/n8n-nodes-flowassert
+        run: |
+          npm ci
+          npm run build
+          npm test
+          npm pack --pack-destination ../../release
       - name: SHA256SUMS
         working-directory: release
         run: |
@@ -68,6 +77,7 @@ jobs:
           subject-path: |
             release/*.whl
             release/*.tar.gz
+            release/*.tgz
             release/flowassert-check.js
             release/SHA256SUMS
       - uses: actions/upload-artifact@v7

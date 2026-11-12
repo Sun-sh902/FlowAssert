@@ -216,17 +216,37 @@ def test_the_release_workflow_attests_every_file_it_uploads_and_writes_their_che
     steps = build['steps']
     attest = next(step for step in steps if step.get('uses', '').startswith('actions/attest-build-provenance@'))
     subjects = attest['with']['subject-path'].split()
-    assert subjects == ['release/*.whl', 'release/*.tar.gz', 'release/flowassert-check.js', 'release/SHA256SUMS']
+    assert subjects == ['release/*.whl', 'release/*.tar.gz', 'release/*.tgz', 'release/flowassert-check.js',
+                        'release/SHA256SUMS']
     runs = '\n'.join(step.get('run', '') for step in steps)
     assert 'python -m build --sdist --wheel --outdir release ./offline' in runs
     assert 'build==1.6.1' in runs  # a release-only tool, at a fixed version
     assert 'cp dist-lib/flowassert-check.js ../release/' in runs and 'flowassert-site.tar.gz' in runs
+    assert 'npm pack --pack-destination ../../release' in runs  # the n8n node's tarball (1.1.0)
     assert 'sha256sum -- * > SHA256SUMS' in runs
     # The checksums are written after every other file, and the attestation after the checksums.
     order = [i for i, step in enumerate(steps) if 'SHA256SUMS' in step.get('run', '') or step is attest]
     assert order == sorted(order) and steps.index(attest) > order[0]
     upload = next(step for step in steps if step.get('uses', '').startswith('actions/upload-artifact@'))
     assert upload['with']['path'] == 'release/' and steps.index(upload) > steps.index(attest)
+
+
+def test_the_n8n_node_is_published_only_from_its_tag_with_trusted_publishing_and_no_token():
+    w = _workflow('n8n-node-publish.yml')
+    assert w['on'] == {'push': {'tags': ['n8n-node-v*']}}
+    assert w['permissions'] == {'contents': 'read'}
+    job = w['jobs']['publish']
+    assert job['permissions'] == {'contents': 'read', 'id-token': 'write'}
+    assert job['runs-on'].startswith('ubuntu-')
+    text = (ROOT / '.github' / 'workflows' / 'n8n-node-publish.yml').read_text(encoding='utf-8')
+    assert 'secrets.' not in text and 'NPM_TOKEN' not in text and 'NODE_AUTH_TOKEN' not in text
+    runs = [step.get('run', '') for step in job['steps']]
+    assert any('npm install --global npm@11.' in r for r in runs)
+    assert any('example.invalid' in r for r in runs)  # the author's email must be set before a publish
+    assert runs[-1] == 'npm run release'
+    package = json.loads((ROOT / 'integrations' / 'n8n-nodes-flowassert' / 'package.json').read_text(encoding='utf-8'))
+    assert package['scripts']['release'] == 'n8n-node release'
+    assert package['repository']['url'] == 'git+https://github.com/Sun-sh902/FlowAssert.git'
 
 
 def test_the_pages_workflow_attests_the_artifact_it_deploys():

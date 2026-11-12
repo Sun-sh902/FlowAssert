@@ -5,6 +5,11 @@
 holds the packaged JavaScript checker of this FlowAssert version. It gives the same result, summary and JSON report as
 `flowassert-verify` for the same files and premises; only each premise's `origin` differs (`n8n Code node`).
 
+From 1.1.0 there is also a community node, [`n8n-nodes-flowassert`](../../integrations/n8n-nodes-flowassert/README.md),
+set up in a form like n8n's own nodes, with Excel workbooks and the records to resend as outputs. It needs a
+self-hosted n8n: unverified community nodes are not available on n8n Cloud. This Code-node workflow stays for n8n
+Cloud, and for anyone who prefers not to install a node.
+
 ```text
 Run the check ─┬─ Read source CSV ──────┬─ Both files ── FlowAssert check ── Verified?
                └─ Read destination CSV ─┘   (Merge)        (Code node)       (If: true / false)

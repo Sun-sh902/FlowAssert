@@ -5,6 +5,7 @@
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py offline JUNIT.xml    (pytest --junitxml, the offline checker's files)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py playwright GATE REPORT.json   (--reporter=json; FIX02)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py matrix GATE results.json      (ui/scripts/dev/fix04-product-review.mjs)
+    /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py n8n-node JUNIT.xml   (node --test --test-reporter=junit, 1.1.0)
 
 Compares the run with scripts/dev/test-inventory.json. FAIL when a mandatory suite is missing or unlisted, a suite
 has a different number of required tests, or any required test is skipped, pending or not passed. An optional
@@ -107,6 +108,30 @@ def offline(xml_path):
     return problems, [f"offline checker tests: {sum(counts.values())} in {len(counts)} files"]
 
 
+def n8n_node(xml_path):
+    """The n8n node's unit tests (1.1.0, Node's test runner): every listed file, with its number of tests, each passed."""
+    inv = INVENTORY["n8n-node"]["files"]
+    root = Path(__file__).resolve().parents[2]
+    problems, counts = [], {}
+    for case in ET.parse(xml_path).getroot().iter("testcase"):
+        try:
+            rel = Path(case.get("file", "")).resolve().relative_to(root).as_posix()
+        except ValueError:
+            rel = case.get("file", "")
+        counts[rel] = counts.get(rel, 0) + 1
+        for tag in ("skipped", "failure", "error"):
+            if case.find(tag) is not None:
+                problems.append(f"{rel}::{case.get('name')}: {tag}")
+    for rel in sorted(set(inv) - set(counts)):
+        problems.append(f"{rel}: mandatory suite did not run")
+    for rel in sorted(set(counts) - set(inv)):
+        problems.append(f"{rel}: suite is not in scripts/dev/test-inventory.json")
+    for rel in sorted(set(inv) & set(counts)):
+        if counts[rel] != inv[rel]:
+            problems.append(f"{rel}: {counts[rel]} tests, inventory has {inv[rel]}")
+    return problems, [f"n8n node tests: {sum(counts.values())} in {len(counts)} files"]
+
+
 def playwright(gate, report):
     inv = INVENTORY["playwright"].get(gate)
     if inv is None:
@@ -186,7 +211,7 @@ def matrix(gate, rows):
 
 def main():
     args = sys.argv[1:]
-    if not ((len(args) == 2 and args[0] in ("vitest", "pytest", "offline")) or (len(args) == 3 and args[0] in ("playwright", "matrix"))):
+    if not ((len(args) == 2 and args[0] in ("vitest", "pytest", "offline", "n8n-node")) or (len(args) == 3 and args[0] in ("playwright", "matrix"))):
         print(__doc__, file=sys.stderr)
         return 2
     kind, path = args[0], args[-1]
@@ -205,7 +230,8 @@ def main():
             problems, notes = playwright(args[1], report)
     else:
         problems, notes = (vitest(json.loads(Path(path).read_text(encoding="utf-8"))) if kind == "vitest"
-                           else offline(path) if kind == "offline" else pytest(path))
+                           else offline(path) if kind == "offline" else n8n_node(path) if kind == "n8n-node"
+                           else pytest(path))
     for n in notes:
         print(n)
     for p in problems:

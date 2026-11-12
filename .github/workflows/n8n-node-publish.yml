@@ -1,0 +1,56 @@
+name: Publish the n8n node
+
+# Publishes integrations/n8n-nodes-flowassert to npm from a tag n8n-node-vX.Y.Z, with npm's trusted publishing: no
+# token is stored, npm exchanges this job's OIDC identity for a short-lived credential, and attaches a provenance
+# statement (n8n requires one for a node submitted for verification, from 2026-05-01). Prepared and never run while
+# 1.1.0 was built; scripts/dev/n8n_node_publish.md lists the owner's steps before the first run.
+on:
+  push:
+    tags: ["n8n-node-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-node-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, test and publish n8n-nodes-flowassert
+    # A GitHub-hosted runner: npm's trusted publishing accepts these.
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # The OIDC token npm's trusted publishing and the provenance statement need; nothing else.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - name: npm 11.5.1 or later, which trusted publishing needs
+        run: npm install --global npm@11.6.2
+      - name: The tag names the package's version, and the author's email is set
+        working-directory: integrations/n8n-nodes-flowassert
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          test "n8n-node-v$version" = "$GITHUB_REF_NAME"
+          if grep -q 'example.invalid' package.json; then echo "Set the author's email in package.json first."; exit 1; fi
+      - name: The packaged checker
+        working-directory: ui
+        run: |
+          npm ci
+          npm run build:lib
+      - name: Build and test the node
+        working-directory: integrations/n8n-nodes-flowassert
+        run: |
+          npm ci
+          npm run build
+          npm test
+      - name: Lint, build and publish with provenance (n8n-node release)
+        working-directory: integrations/n8n-nodes-flowassert
+        run: npm run release

@@ -47,6 +47,11 @@ export interface PageCheckInput {
   origin?: Origin;
   /** Also the records to resend (exports.ts), read again after the check: outcome.exports. */
   exportRecords?: boolean;
+  /** For the packaged checker (1.1.0): --details, --redact-values, --max-bytes and --max-rows; the page gives none. */
+  details?: string;
+  redactValues?: boolean;
+  maxBytes?: string;
+  maxRows?: string;
   now?: () => string;
   progress?: (side: "source" | "destination", bytes: number, rows: number) => void;
   evaluating?: (done: number, total: number) => void;
@@ -75,6 +80,10 @@ export function pageCheck(input: PageCheckInput): Promise<CheckOutcome> {
     sameFile: input.sameFile,
     origin: input.origin ?? ORIGINS.browser,
     ...(input.exportRecords ? { exportRecords: true } : {}),
+    ...(input.details !== undefined ? { details: input.details } : {}),
+    ...(input.redactValues ? { redactValues: true } : {}),
+    ...(input.maxBytes !== undefined ? { maxBytes: input.maxBytes } : {}),
+    ...(input.maxRows !== undefined ? { maxRows: input.maxRows } : {}),
     now: input.now,
     progress: input.progress,
     evaluating: input.evaluating,

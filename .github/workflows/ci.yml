@@ -107,6 +107,35 @@ jobs:
           path: ui/dist-lib/flowassert-check.js
           if-no-files-found: error
 
+  n8n-node:
+    name: n8n community node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: The packaged checker the node holds
+        working-directory: ui
+        run: |
+          npm ci
+          npm run build:lib
+      - name: Build, n8n's linter, and the unit tests (records to resend compared with the command line's)
+        working-directory: integrations/n8n-nodes-flowassert
+        run: |
+          npm ci
+          npm run build
+          npm run lint
+          node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=node-junit.xml test/node.test.mjs
+      - run: /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py n8n-node integrations/n8n-nodes-flowassert/node-junit.xml
+      # A real n8n, started for each case with a temporary user folder and nothing sent anywhere.
+      - name: Every golden case the node can express, in n8n 2.47.5
+        working-directory: integrations/n8n-nodes-flowassert
+        run: node test/n8n-run.mjs --n8n "npx --yes n8n@2.47.5"
+
   parity:
     name: Browser check parity (Python 3.15)
     runs-on: ubuntu-latest

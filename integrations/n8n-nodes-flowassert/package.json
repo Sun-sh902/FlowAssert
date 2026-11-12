@@ -1,0 +1,52 @@
+{
+  "name": "n8n-nodes-flowassert",
+  "version": "1.1.0",
+  "description": "An n8n node that checks whether expected records reached a destination, from two CSV or Excel files, and never calls a result Verified without enough evidence.",
+  "license": "MIT",
+  "homepage": "https://github.com/Sun-sh902/FlowAssert/tree/main/integrations/n8n-nodes-flowassert",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "reconciliation",
+    "csv",
+    "xlsx",
+    "data-quality"
+  ],
+  "author": {
+    "name": "Sun-sh902",
+    "email": "set-before-publishing@example.invalid"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sun-sh902/FlowAssert.git",
+    "directory": "integrations/n8n-nodes-flowassert"
+  },
+  "scripts": {
+    "checker": "node scripts/copy-checker.mjs",
+    "build": "node scripts/copy-checker.mjs && n8n-node build",
+    "lint": "node scripts/copy-checker.mjs && n8n-node lint",
+    "test": "node --test test/node.test.mjs",
+    "release": "n8n-node release",
+    "prepublishOnly": "n8n-node prerelease"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": true,
+    "credentials": [],
+    "nodes": [
+      "dist/nodes/FlowAssert/FlowAssert.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "0.55.2",
+    "eslint": "9.29.0",
+    "n8n-workflow": "2.46.2",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
