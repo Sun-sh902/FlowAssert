@@ -77,7 +77,7 @@ describe("opening a report from a HubSpot destination", () => {
     expect(refuse((r) => (r.inputs.destination_hubspot.token = "x"))).toContain("unknown member");
     expect(refuse((r) => r.inputs.destination_hubspot.properties.push("a b"))).toContain("properties[");
     expect(refuse((r) => delete r.inputs.destination_hubspot)).toContain("destination_hubspot");
-    expect(refuse((r) => (r.schema_version = 4))).toContain("schema_version must be 1, 2 or 3");
+    expect(refuse((r) => (r.schema_version = 5))).toContain("schema_version must be 1, 2, 3 or 4");
   });
 
   test("two HubSpot reports compare; a HubSpot report and a file report of the same rows do not", () => {

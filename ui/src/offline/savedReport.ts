@@ -37,6 +37,9 @@ const EVALUATED_AT = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d{6})?Z$/;
 export const SHEET_SCHEMA_VERSION = 2;
 /** schema_version 3: the destination is HubSpot's contacts (offline/flowassert_offline/hubspot.py). */
 export const HUBSPOT_SCHEMA_VERSION = 3;
+/** schema_version 4: either side is a worksheet of an .xlsx workbook (offline/flowassert_offline/xlsx.py). */
+export const WORKBOOK_SCHEMA_VERSION = 4;
+type Version = 1 | 2 | 3 | 4;
 const SPREADSHEET_ID = /^[A-Za-z0-9_-]{1,200}$/;
 const DRIVE_VERSION = /^[0-9]{1,20}$/;
 /** The reasons a sheet read cannot be tied to a revision. */
@@ -101,8 +104,31 @@ export interface ReportInputs {
   destination_encoding?: string;
   /** schema_version 2, and 3 when the source was also a sheet. */
   source_sheet?: SourceSheet;
-  /** schema_version 3 only. */
+  /** schema_version 3, and 4 when the other side is a workbook. */
   destination_hubspot?: DestinationHubspot;
+  /** schema_version 4: a side read from one worksheet of an .xlsx workbook. */
+  source_workbook?: Workbook;
+  destination_workbook?: Workbook;
+}
+
+/** Where the command line or the page read one side of a schema_version 4 report: one worksheet of a workbook. */
+export interface Workbook {
+  format: "xlsx";
+  worksheet: string;
+  worksheet_state: "visible" | "hidden" | "veryHidden";
+  sheets: number;
+  date_system: "1900" | "1904";
+  file_sha256: string;
+  file_bytes: number;
+  inflated_bytes: number;
+  columns: number;
+  rows: number;
+  cells: Record<"text" | "number" | "percentage" | "date_time" | "duration" | "boolean" | "formula", number>;
+  hidden_rows: number;
+  hidden_columns: number;
+  merged_ranges: number;
+  values: "stored";
+  canonical_form: "flowassert-xlsx-csv-1";
 }
 
 export interface ReportObligation {
@@ -135,7 +161,7 @@ export interface DestinationHubspot {
 
 /** A schema_version 1 report, with the members docs/report-format.md lists and nothing else. */
 export interface SavedReport {
-  schema_version: 1 | 2 | 3;
+  schema_version: Version;
   cohort_state: (typeof RECORD_STATES)[number];
   claim: string | null;
   counts: Counts;
@@ -373,7 +399,46 @@ function destinationHubspot(v: PyValue | undefined): DestinationHubspot {
   };
 }
 
-function inputs(v: PyValue | undefined, version: 1 | 2 | 3): ReportInputs {
+const WORKBOOK_MEMBERS = ["format", "worksheet", "worksheet_state", "sheets", "date_system", "file_sha256", "file_bytes", "inflated_bytes", "columns", "rows", "cells", "hidden_rows", "hidden_columns", "merged_ranges", "values", "canonical_form"];
+const CELL_FORMS = ["text", "number", "percentage", "date_time", "duration", "boolean", "formula"] as const;
+
+function workbook(v: PyValue | undefined, side: "source" | "destination"): Workbook {
+  const path = `inputs.${side}_workbook.`;
+  const o = obj(v, `inputs.${side}_workbook`);
+  for (const name of Object.keys(o)) if (!WORKBOOK_MEMBERS.includes(name)) fail("member", `unknown member ${pyRepr(`${path}${name}`)}`);
+  const is = <T extends PyValue>(name: string, value: T): T => {
+    if (member(o, name, path) !== value) fail("inputs", `${path}${name} must be ${pyRepr(value as string)}, not ${describe(o[name])}`);
+    return value;
+  };
+  const n = (name: string) => count(member(o, name, path), `${path}${name}`);
+  const c = obj(member(o, "cells", path), `${path}cells`);
+  for (const name of Object.keys(c)) if (!(CELL_FORMS as readonly string[]).includes(name)) fail("member", `unknown member ${pyRepr(`${path}cells.${name}`)}`);
+  const cells = Object.fromEntries(CELL_FORMS.map((f) => [f, count(member(c, f, `${path}cells.`), `${path}cells.${f}`)])) as Workbook["cells"];
+  const sheets = n("sheets");
+  if (sheets < 1) fail("inputs", `${path}sheets must be at least 1`);
+  const columns = n("columns");
+  if (columns < 1) fail("inputs", `${path}columns must be at least 1`);
+  return {
+    format: is("format", "xlsx"),
+    worksheet: str(member(o, "worksheet", path), `${path}worksheet`),
+    worksheet_state: oneOf(member(o, "worksheet_state", path), `${path}worksheet_state`, ["visible", "hidden", "veryHidden"] as const, "inputs"),
+    sheets,
+    date_system: oneOf(member(o, "date_system", path), `${path}date_system`, ["1900", "1904"] as const, "inputs"),
+    file_sha256: sha(member(o, "file_sha256", path), `${path}file_sha256`),
+    file_bytes: n("file_bytes"),
+    inflated_bytes: n("inflated_bytes"),
+    columns,
+    rows: n("rows"),
+    cells,
+    hidden_rows: n("hidden_rows"),
+    hidden_columns: n("hidden_columns"),
+    merged_ranges: n("merged_ranges"),
+    values: is("values", "stored"),
+    canonical_form: is("canonical_form", "flowassert-xlsx-csv-1"),
+  };
+}
+
+function inputs(v: PyValue | undefined, version: Version): ReportInputs {
   const o = obj(v, "inputs");
   const out: ReportInputs = {
     source_sha256: sha(member(o, "source_sha256", "inputs."), "inputs.source_sha256"),
@@ -391,7 +456,21 @@ function inputs(v: PyValue | undefined, version: 1 | 2 | 3): ReportInputs {
   for (const name of ["mapping_file_sha256", "config_file_sha256"] as const) if (Object.hasOwn(o, name)) out[name] = sha(o[name], `inputs.${name}`);
   const encodings = ["source_encoding", "destination_encoding"] as const;
   const given = encodings.filter((n) => Object.hasOwn(o, n));
-  if (version === HUBSPOT_SCHEMA_VERSION) {
+  if (version === WORKBOOK_SCHEMA_VERSION) {
+    // Either side may be a workbook; a side read from a workbook, a sheet or HubSpot has no encoding.
+    for (const side of ["source", "destination"] as const) {
+      const other = side === "source" ? "source_sheet" : "destination_hubspot";
+      if (Object.hasOwn(o, `${side}_workbook`)) {
+        if (Object.hasOwn(o, other)) fail("inputs", `inputs.${side}_workbook and inputs.${other} are both present, but a side is read one way`);
+        out[`${side}_workbook`] = workbook(o[`${side}_workbook`], side);
+      }
+      if ((Object.hasOwn(o, `${side}_workbook`) || Object.hasOwn(o, other)) && Object.hasOwn(o, `${side}_encoding`))
+        fail("inputs", `inputs.${side}_encoding is present, but the ${side} was not read from a file with an encoding`);
+    }
+    if (!out.source_workbook && !out.destination_workbook) fail("inputs", "schema_version 4 has inputs.source_workbook or inputs.destination_workbook, and this report has neither");
+    if (Object.hasOwn(o, "source_sheet")) out.source_sheet = sourceSheet(o.source_sheet);
+    if (Object.hasOwn(o, "destination_hubspot")) out.destination_hubspot = destinationHubspot(o.destination_hubspot);
+  } else if (version === HUBSPOT_SCHEMA_VERSION) {
     // The records HubSpot lists have no encoding: only the source's is recorded, when it was chosen for a file.
     if (Object.hasOwn(o, "destination_encoding")) fail("inputs", "inputs.destination_encoding is present, but the destination was read from HubSpot, which has no encoding");
     out.destination_hubspot = destinationHubspot(member(o, "destination_hubspot", "inputs."));
@@ -479,14 +558,14 @@ function destinationOnly(v: PyValue | undefined, populationKnown: boolean): Dest
 export function reportOf(data: PyValue): SavedReport {
   const o = obj(data, "the report");
   const version = member(o, "schema_version", "");
-  if (version !== SCHEMA_VERSION && version !== SHEET_SCHEMA_VERSION && version !== HUBSPOT_SCHEMA_VERSION)
-    fail("schema-version", `schema_version must be ${SCHEMA_VERSION}, ${SHEET_SCHEMA_VERSION} or ${HUBSPOT_SCHEMA_VERSION}, not ${describe(version)}`);
+  if (version !== SCHEMA_VERSION && version !== SHEET_SCHEMA_VERSION && version !== HUBSPOT_SCHEMA_VERSION && version !== WORKBOOK_SCHEMA_VERSION)
+    fail("schema-version", `schema_version must be ${SCHEMA_VERSION}, ${SHEET_SCHEMA_VERSION}, ${HUBSPOT_SCHEMA_VERSION} or ${WORKBOOK_SCHEMA_VERSION}, not ${describe(version)}`);
 
   const ob = obligation(member(o, "obligation", ""));
   const details = oneOf(member(o, "details", ""), "details", ["problems", "all"] as const);
   const ruleNames = ["existence", "uniqueness", ...ob.fields.map(([s]) => `field:${s}`)];
   const pr = premises(member(o, "premises", ""));
-  const inp = inputs(member(o, "inputs", ""), version as 1 | 2 | 3);
+  const inp = inputs(member(o, "inputs", ""), version as Version);
 
   const rows = count(member(o, "source_rows_observed", ""), "source_rows_observed");
   const c = counts(member(o, "counts", ""), "counts");
@@ -526,10 +605,14 @@ export function reportOf(data: PyValue): SavedReport {
   if (coverage !== coverageGiven) fail("premises", `destination_coverage_sufficient is ${coverage}, but the destination statements and rows without a key give ${coverageGiven}`);
   if (inp.destination_hubspot && inp.destination_hubspot.rows !== destinationCount.observed)
     fail("premises", `premises.destination_count.observed is ${destinationCount.observed}, but HubSpot listed ${inp.destination_hubspot.rows} records`);
+  if (inp.source_workbook && inp.source_workbook.rows !== rows)
+    fail("premises", `source_rows_observed is ${rows}, but the worksheet had ${inp.source_workbook.rows} data rows`);
+  if (inp.destination_workbook && inp.destination_workbook.rows !== destinationCount.observed)
+    fail("premises", `premises.destination_count.observed is ${destinationCount.observed}, but the worksheet had ${inp.destination_workbook.rows} data rows`);
   if (destinationCount.observed! < keyless) fail("premises", `destination_rows_without_key is ${keyless}, more than the ${destinationCount.observed} destination rows`);
 
   const report: SavedReport = {
-    schema_version: version as 1 | 2 | 3,
+    schema_version: version as Version,
     cohort_state: "Unverified",
     claim: null,
     counts: c,

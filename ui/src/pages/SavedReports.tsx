@@ -19,7 +19,7 @@ import { buttonClass } from "../components/ui/primitives";
 import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
 import type { Counts } from "../offline/evaluator";
 import { explain } from "../offline/explain";
-import { NotAReport, instant, readReport, readReportFile, storeOfSaved, viewOf, type ReadReport, type SavedReport } from "../offline/savedReport";
+import { NotAReport, instant, readReport, readReportFile, storeOfSaved, viewOf, type ReadReport, type SavedReport, type Workbook } from "../offline/savedReport";
 import { cn } from "../lib/cn";
 import { useLocation, useReplaceParams } from "../lib/router";
 import { saveBlob } from "../lib/download";
@@ -36,6 +36,28 @@ export const obtainedText = (o: Obtained) => (o.kind === "checked" ? "Checked in
 const downloadName = (o: Obtained) => (o.kind === "imported" ? o.fileName : "flowassert-report.json");
 
 /** What a saved report is, and is not: imported reports are not authenticated, and no saved report is. */
+/** One side of a schema_version 4 report read from a workbook: the worksheet, how its cells were read, both digests. */
+function WorkbookFacts({ side, book, digest }: { side: "source" | "destination"; book: Workbook; digest: string }) {
+  const label = side === "source" ? "Source" : "Destination";
+  return (
+    <>
+      <dt className="text-ink-3">{`${label} read`}</dt>
+      <dd className="min-w-0" data-testid={`saved-${side}-workbook`}>
+        <span>Worksheet</span> <Value>{book.worksheet}</Value> <span>of an .xlsx workbook, each cell read as stored, not as displayed:</span>{" "}
+        <span>{`${countOf(book.rows, "data row")}, ${book.date_system} date system.`}</span>
+      </dd>
+      <dt className="text-ink-3">{`${label} file`}</dt>
+      <dd className="min-w-0">
+        <Value className="text-ink-2">{book.file_sha256}</Value>
+      </dd>
+      <dt className="text-ink-3">{`${label} rows digest`}</dt>
+      <dd className="min-w-0">
+        <Value className="text-ink-2">{digest}</Value> <span>(canonical form)</span>
+      </dd>
+    </>
+  );
+}
+
 export function Provenance({ obtained, compact = false }: { obtained: Obtained; compact?: boolean }) {
   if (obtained.kind === "imported") {
     return (
@@ -655,6 +677,8 @@ export function SavedReportPage({ id }: { id: string }) {
                     <Value className="text-ink-2">{report.inputs.source_sha256}</Value> <span>(canonical form)</span>
                   </dd>
                 </>
+              ) : report.inputs.source_workbook ? (
+                <WorkbookFacts side="source" book={report.inputs.source_workbook} digest={report.inputs.source_sha256} />
               ) : (
                 <>
                   <dt className="text-ink-3">Source file</dt>
@@ -679,6 +703,8 @@ export function SavedReportPage({ id }: { id: string }) {
                     <Value className="text-ink-2">{report.inputs.destination_sha256}</Value> <span>(canonical form)</span>
                   </dd>
                 </>
+              ) : report.inputs.destination_workbook ? (
+                <WorkbookFacts side="destination" book={report.inputs.destination_workbook} digest={report.inputs.destination_sha256} />
               ) : (
                 <>
                   <dt className="text-ink-3">Destination file</dt>

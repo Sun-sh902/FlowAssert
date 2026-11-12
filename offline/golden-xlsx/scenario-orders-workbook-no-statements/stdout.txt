@@ -1,0 +1,15 @@
+Unverified: 4 rows of unknown total
+Verified 0 · Mismatch 0 · Unverified 4
+Source read from worksheet 'Orders' of an .xlsx workbook: cells as stored, not as displayed.
+  Read as stored, where a spreadsheet may display them otherwise: 4 numbers, 4 dates or times in ISO 8601.
+Source population unknown: the batch cannot be Verified.
+Destination coverage not established: absence and uniqueness stay unknown.
+  record 1 ORD-7001: Unverified
+    uniqueness unknown: insufficient evidence
+  record 2 ORD-7002: Unverified
+    uniqueness unknown: insufficient evidence
+  record 3 ORD-7003: Unverified
+    uniqueness unknown: insufficient evidence
+  record 4 ORD-7004: Unverified
+    uniqueness unknown: insufficient evidence
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

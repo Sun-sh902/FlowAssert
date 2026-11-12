@@ -1,0 +1,17 @@
+{
+  "name": "scenario-orders-workbook-no-statements",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--source-worksheet",
+    "Orders",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--destination-encoding",
+    "utf-8"
+  ]
+}

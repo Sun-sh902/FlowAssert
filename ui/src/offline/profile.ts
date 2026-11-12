@@ -10,6 +10,7 @@
  */
 import { MAX_BYTES, MAX_ROWS, Refused, readCsv, type CsvSource, type Encoding, type LineEndings } from "./csv";
 import { Evaluation, sameCount } from "./evaluator";
+import { readXlsx, type CellCounts, type XlsxRead } from "./xlsx";
 
 /** The byte order mark at the start of a file, for the encoding it is read with. */
 export type Bom = "none" | "utf-8" | "utf-16-le" | "utf-16-be" | "gb18030";
@@ -29,6 +30,29 @@ export interface FileProfile {
   endings: LineEndings;
   /** The file's size in bytes. */
   size: number;
+  /** For a worksheet of an .xlsx workbook: what was read, and what a spreadsheet would show otherwise. */
+  workbook?: WorkbookProfile;
+}
+
+export interface WorkbookProfile {
+  worksheet: string;
+  state: string;
+  /** Every sheet the workbook lists, with the inflated size of its part. */
+  sheets: XlsxRead["sheets"];
+  dateSystem: "1900" | "1904";
+  cells: CellCounts;
+  emptyCells: number;
+  hiddenRows: number;
+  hiddenColumns: number;
+  mergedRanges: number;
+}
+
+/** A worksheet to read: the workbook's file, and the worksheet the person chose (or the only one). */
+export interface WorkbookSource {
+  name: string;
+  size: number;
+  blob: Blob;
+  worksheet?: string;
 }
 
 export type ProfileResult = { ok: true; profile: FileProfile } | { ok: false; message: string };
@@ -87,6 +111,68 @@ export async function profileCsv(source: ProfileSource, progress?: (rows: number
     }, MAX_ROWS);
     const columns = read.header.map((name, i) => ({ name, empty: empty?.[i] ?? 0 }));
     return { ok: true, profile: { rows: read.rows, columns, encoding: source.encoding, bom: bomOf(head, source.encoding), endings: read.endings, size: source.size } };
+  } catch (e) {
+    if (e instanceof Refused) return { ok: false, message: e.message };
+    throw e;
+  }
+}
+
+/** The profile of one worksheet, read whole with the check's reader (xlsx.readXlsx), as profileCsv reads a CSV file. */
+export async function profileXlsx(source: WorkbookSource, progress?: (rows: number) => void, abandoned?: () => boolean): Promise<ProfileResult> {
+  const tooLarge = sizeRefusal({ name: source.name, size: source.size } as ProfileSource);
+  if (tooLarge) return { ok: false, message: tooLarge };
+  let empty: Float64Array | null = null;
+  let rows = 0;
+  try {
+    const read = await readXlsx({ name: source.name, blob: source.blob }, null, (row) => {
+      empty ??= new Float64Array(row.length);
+      for (let i = 0; i < row.length; i++) if (row[i] === "") empty[i]!++;
+      if (++rows % EVERY === 0) {
+        if (abandoned?.()) throw new Abandoned();
+        progress?.(rows);
+      }
+    }, { maxRows: MAX_ROWS, maxBytes: MAX_BYTES, worksheet: source.worksheet });
+    const m = read.member;
+    return {
+      ok: true,
+      profile: {
+        rows: read.rows,
+        columns: read.header.map((name, i) => ({ name, empty: empty?.[i] ?? 0 })),
+        encoding: "utf-8",
+        bom: "none",
+        endings: { lf: 0, crlf: 0, cr: 0 },
+        size: source.size,
+        workbook: {
+          worksheet: m.worksheet,
+          state: m.worksheet_state,
+          sheets: read.sheets,
+          dateSystem: m.date_system,
+          cells: m.cells,
+          emptyCells: read.emptyCells,
+          hiddenRows: m.hidden_rows,
+          hiddenColumns: m.hidden_columns,
+          mergedRanges: m.merged_ranges,
+        },
+      },
+    };
+  } catch (e) {
+    if (e instanceof Refused) return { ok: false, message: e.message };
+    throw e;
+  }
+}
+
+/** The key profile of one column of one worksheet, as keyProfileCsv. */
+export async function keyProfileXlsx(source: WorkbookSource, column: string, abandoned?: () => boolean): Promise<KeyProfileResult> {
+  const tooLarge = sizeRefusal({ name: source.name, size: source.size } as ProfileSource);
+  if (tooLarge) return { ok: false, message: tooLarge };
+  const keys = new Evaluation({ key: [column, column], fields: [] });
+  let rows = 0;
+  try {
+    await readXlsx({ name: source.name, blob: source.blob }, [column], (row) => {
+      keys.addSource(row[0]!, []);
+      if (++rows % EVERY === 0 && abandoned?.()) throw new Abandoned();
+    }, { maxRows: MAX_ROWS, maxBytes: MAX_BYTES, worksheet: source.worksheet });
+    return { ok: true, key: { column, ...keys.keyFacts() } };
   } catch (e) {
     if (e instanceof Refused) return { ok: false, message: e.message };
     throw e;

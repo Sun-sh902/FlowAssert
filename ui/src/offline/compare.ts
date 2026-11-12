@@ -7,6 +7,7 @@
  * recorded under the premises each one states; it does not say that a problem was fixed, that data improved, or that
  * a record is correct. Two reports that are not comparable are refused with every reason, and nothing else is given.
  */
+import { pyRepr } from "./pystr";
 import { STATES, type Counts, type RuleResult, type SourceRecord, type State } from "./evaluator";
 import { REDACTED, instant, rulesOf, scopeOf, type SavedReport, type StatedPremise } from "./savedReport";
 
@@ -140,6 +141,8 @@ const isRedacted = (r: SavedReport) => r.records.some((x) => x.key === REDACTED)
  */
 export function sourceOf(r: SavedReport): string {
   const sheet = r.inputs.source_sheet;
+  const book = r.inputs.source_workbook;
+  if (book) return `worksheet ${pyRepr(book.worksheet)} of an .xlsx workbook`;
   if (!sheet) return "a CSV file";
   return `Google Sheets range ${sheet.range_requested} of spreadsheet ${sheet.spreadsheet_id} (${sheet.value_render_option}, ${sheet.date_time_render_option})`;
 }
@@ -147,6 +150,8 @@ export function sourceOf(r: SavedReport): string {
 /** Where a report's destination rows came from: a file, or the contacts FlowAssert listed from HubSpot. */
 export function destinationOf(r: SavedReport): string {
   const crm = r.inputs.destination_hubspot;
+  const book = r.inputs.destination_workbook;
+  if (book) return `worksheet ${pyRepr(book.worksheet)} of an .xlsx workbook`;
   return crm ? `HubSpot ${crm.object}, listed by FlowAssert` : "a CSV file";
 }
 

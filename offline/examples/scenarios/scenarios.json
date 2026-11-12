@@ -1,5 +1,5 @@
 {
-  "about": "Synthetic scenarios for a first check. Each has a source and a destination CSV in its folder, the configuration the CSV check page uses (config.json, as the page writes it), and the result to expect with each set of premises. offline/bench/golden.py runs each expectation as a golden case named scenario-ID-PREMISES; ui/src/test/offline/scenarios.test.ts checks that each result is the one written here.",
+  "about": "Synthetic scenarios for a first check. Each has a source and a destination file in its folder (a CSV file, or for orders-workbook an .xlsx workbook as the source), the configuration the CSV check page uses (config.json, as the page writes it), and the result to expect with each set of premises. offline/bench/golden.py runs each expectation as a golden case named scenario-ID-PREMISES; ui/src/test/offline/scenarios.test.ts checks that each result is the one written here.",
   "scenarios": [
     {
       "id": "contacts-crm",
@@ -164,6 +164,55 @@
           },
           "result": "Unverified",
           "why": "The row without a key cannot be matched, and nothing else is established either."
+        }
+      ]
+    },
+    {
+      "id": "orders-workbook",
+      "title": "Orders exported from Excel",
+      "description": "An order list kept in an Excel workbook, checked against the order system's export. The workbook shows dates and amounts in its own formats; FlowAssert reads the stored values, dates in ISO 8601 and amounts as plain numbers, so they compare with the export as they are.",
+      "source_format": "xlsx",
+      "source_worksheet": "Orders",
+      "config": {
+        "key": [
+          "order_id",
+          "order_ref"
+        ],
+        "fields": [
+          {
+            "source": "ordered_on",
+            "destination": "ordered",
+            "rule": "exact"
+          },
+          {
+            "source": "amount",
+            "destination": "total",
+            "rule": "exact"
+          },
+          {
+            "source": "status",
+            "destination": "state",
+            "rule": "casefold"
+          }
+        ],
+        "scope": "source"
+      },
+      "expect": [
+        {
+          "premises": {
+            "source_complete": true,
+            "destination_complete": true
+          },
+          "result": "Verified",
+          "why": "Every order is in the export once, with the same date, amount and status (compared without regard to case)."
+        },
+        {
+          "premises": {
+            "source_complete": false,
+            "destination_complete": false
+          },
+          "result": "Unverified",
+          "why": "Without the statements, the workbook is not known to be the whole batch, and the export not known to be the whole object, so no duplicate or missing order can be ruled out."
         }
       ]
     }

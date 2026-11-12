@@ -24,12 +24,12 @@ import { PagesOriginNotice, StorageProblem } from "../components/report/Storage"
 import { Seal, StatusBadge, StatusGlyph } from "../components/ui/status";
 import { canonicalConfig, readConfig, Refused } from "../offline/check";
 import { ENCODINGS, type Encoding, type LineEndings } from "../offline/csv";
-import { Abandoned, beforeYouCheck, type Bom, type FileProfile, type KeyProfileResult, type ProfileResult, type SideFacts, type Warning } from "../offline/profile";
+import { Abandoned, beforeYouCheck, type Bom, type FileProfile, type KeyProfileResult, type ProfileResult, type SideFacts, type Warning, type WorkbookProfile } from "../offline/profile";
 import { TimeLeft, timeLeftText } from "../offline/eta";
 import { EvaluatorError, parseRule, type Scope } from "../offline/evaluator";
 import type { ChosenConfig } from "../offline/pageCheck";
 import { SUPPORTED_DIRECTIVES } from "../offline/strptime";
-import { Cancelled, inThreadRunner, workerRunner, type CheckRunner, type HeaderResult, type Progress, type Reading, type RunInput, type RunResult } from "../offline/runner";
+import { Cancelled, inThreadRunner, workerRunner, type Book, type CheckRunner, type HeaderResult, type Progress, type Reading, type RunInput, type RunResult, type SheetsResult } from "../offline/runner";
 import { HINT_BYTES, refusalHint, type Hint, type HintFile, type HintPart } from "../offline/refusalHint";
 import { readReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
@@ -48,17 +48,45 @@ type HeaderState = { kind: "none" } | { kind: "reading" } | { kind: "read"; resu
 /** The file profile (offline/profile.ts): read from the file as soon as it is chosen, never a result. */
 type ProfileState = { kind: "none" } | { kind: "reading"; rows: number } | { kind: "read"; result: ProfileResult } | { kind: "failed"; message: string };
 
+/**
+ * How a chosen file is read: as CSV, or as one worksheet of an .xlsx workbook (docs/design/1.1-excel.md). For a
+ * workbook, its sheets once listed, and the worksheet: the only one, or the one the person chose (null until then).
+ */
+type BookState =
+  | { kind: "csv" }
+  | { kind: "listing" }
+  | { kind: "listed"; sheets: (SheetsResult & { ok: true })["sheets"]; worksheet: string | null };
+
 interface Choice {
   file: File | null;
   encoding: Encoding;
+  book: BookState;
   header: HeaderState;
   profile: ProfileState;
 }
+
+/** A file read as a workbook: by its name, or by its first bytes (a ZIP archive or an OLE compound file). */
+const WORKBOOK_NAME = /\.(xlsx|xlsm|xlsb|xltx|xls)$/i;
+async function isWorkbook(file: File): Promise<boolean> {
+  if (WORKBOOK_NAME.test(file.name)) return true;
+  const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  const zip = head[0] === 0x50 && head[1] === 0x4b && head[2] === 3 && head[3] === 4;
+  const ole = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1].every((b, i) => head[i] === b);
+  return zip || ole;
+}
+
+/** The worksheet to read, as the check reads it: none for CSV, and for a workbook the name only when it has several. */
+function bookOf(c: Choice): Book | undefined {
+  if (c.book.kind !== "listed") return undefined;
+  return c.book.sheets.length > 1 && c.book.worksheet !== null ? { worksheet: c.book.worksheet } : {};
+}
+const isBook = (c: Choice) => c.book.kind !== "csv";
 
 /** The key profile of the key column chosen for one file, with what it was read for. */
 interface KeyRead {
   file: File;
   encoding: Encoding;
+  worksheet: string | null;
   column: string;
   result: KeyProfileResult;
 }
@@ -230,16 +258,22 @@ function ProfileView({ profile, testId, columnsLabel }: { profile: FileProfile; 
             </>
           )}
         </dd>
-        <dt className="text-ink-3">Encoding</dt>
-        <dd className="text-ink-2">
-          <span>{ENCODINGS[profile.encoding]}</span>
-          <span aria-hidden> · </span>
-          <span>{BOM_TEXT[profile.bom]}</span>
-        </dd>
-        <dt className="text-ink-3">Line endings</dt>
-        <dd className="font-mono text-[11.5px] text-ink-2" data-profile="endings">
-          <span>{endingsText(profile.endings)}</span>
-        </dd>
+        {profile.workbook ? (
+          <WorkbookRows book={profile.workbook} />
+        ) : (
+          <>
+            <dt className="text-ink-3">Encoding</dt>
+            <dd className="text-ink-2">
+              <span>{ENCODINGS[profile.encoding]}</span>
+              <span aria-hidden> · </span>
+              <span>{BOM_TEXT[profile.bom]}</span>
+            </dd>
+            <dt className="text-ink-3">Line endings</dt>
+            <dd className="font-mono text-[11.5px] text-ink-2" data-profile="endings">
+              <span>{endingsText(profile.endings)}</span>
+            </dd>
+          </>
+        )}
         <dt className="text-ink-3">Size</dt>
         <dd className="font-mono text-[11.5px] tabular text-ink-2">
           <span>{sizeText(profile.size)}</span>
@@ -271,6 +305,112 @@ function ProfileView({ profile, testId, columnsLabel }: { profile: FileProfile; 
         </details>
       )}
     </div>
+  );
+}
+
+const plural = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${grouped(n)} ${many}`);
+
+/**
+ * What the profile adds for a worksheet: which one, the cells a spreadsheet displays otherwise, hidden rows and
+ * columns and merged ranges, all read as stored (docs/design/1.1-excel.md, "Stored, not displayed").
+ */
+function WorkbookRows({ book }: { book: WorkbookProfile }) {
+  const forms = (
+    [
+      ["number", "number", "numbers"],
+      ["percentage", "percentage, read as a fraction", "percentages, read as fractions"],
+      ["date_time", "date or time, read in ISO 8601", "dates or times, read in ISO 8601"],
+      ["duration", "duration, read in days", "durations, read in days"],
+      ["boolean", "boolean, read as TRUE or FALSE", "booleans, read as TRUE or FALSE"],
+      ["formula", "formula result, as last saved", "formula results, as last saved"],
+    ] as const
+  ).filter(([name]) => book.cells[name] > 0);
+  const hidden = [book.hiddenRows ? plural(book.hiddenRows, "hidden row", "hidden rows") : null, book.hiddenColumns ? plural(book.hiddenColumns, "hidden column", "hidden columns") : null].filter(
+    (h): h is string => h !== null,
+  );
+  return (
+    <>
+      <dt className="text-ink-3">Worksheet</dt>
+      <dd className="text-ink-2" data-profile="worksheet">
+        <Value className="text-[11.5px]">{book.worksheet}</Value>
+        {book.state !== "visible" && (
+          <>
+            <span aria-hidden> · </span>
+            <span>hidden in the workbook</span>
+          </>
+        )}
+      </dd>
+      <dt className="text-ink-3">Sheets</dt>
+      <dd className="min-w-0 text-ink-2" data-profile="sheets">
+        <ul className="grid gap-0.5">
+          {book.sheets.map((s, i) => (
+            <li key={i} className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+              <Value className="min-w-0 text-[11.5px]">{s.name}</Value>
+              {s.bytes !== null && <span className="font-mono text-[11.5px] tabular text-ink-3">{sizeText(s.bytes)}</span>}
+              {s.name === book.worksheet && <span className="text-ink-3">read</span>}
+              {s.state !== "visible" && <span className="text-ink-3">hidden</span>}
+              {!s.worksheet && <span className="text-ink-3">not a worksheet</span>}
+            </li>
+          ))}
+        </ul>
+      </dd>
+      <dt className="text-ink-3">Empty cells</dt>
+      <dd className="font-mono tabular text-ink-2" data-profile="empty-cells">
+        {grouped(book.emptyCells)}
+      </dd>
+      <dt className="text-ink-3">Read as stored</dt>
+      <dd className="text-ink-2" data-profile="forms">
+        {forms.length ? (
+          <ul className="grid gap-0.5">
+            {forms.map(([name, one, many]) => (
+              <li key={name}>{plural(book.cells[name], one, many)}</li>
+            ))}
+          </ul>
+        ) : (
+          <span>every cell is text</span>
+        )}
+      </dd>
+      {(hidden.length > 0 || book.mergedRanges > 0) && (
+        <>
+          <dt className="text-ink-3">Also read</dt>
+          <dd className="text-ink-2" data-profile="hidden">
+            {hidden.map((h) => (
+              <span key={h} className="block">
+                {h}
+              </span>
+            ))}
+            {hidden.length > 0 && <span className="block text-ink-3">Hidden rows and columns are read like any other.</span>}
+            {book.mergedRanges > 0 && <span className="block">{plural(book.mergedRanges, "merged range: only its first cell holds the value", "merged ranges: only the first cell of each holds the value")}</span>}
+          </dd>
+        </>
+      )}
+      <dt className="text-ink-3">Dates</dt>
+      <dd className="text-ink-2">{book.dateSystem === "1904" ? "1904 date system" : "1900 date system"}</dd>
+    </>
+  );
+}
+
+/** The sheets of a workbook, to choose the one to check: a radio group, operable by keyboard. */
+function WorksheetChoice({ side, book, onWorksheet }: { side: Side; book: BookState & { kind: "listed" }; onWorksheet: (name: string) => void }) {
+  const id = useId();
+  return (
+    <fieldset className="mt-2 min-w-0" data-testid={`${side}-worksheets`}>
+      <legend className="text-xs font-semibold text-ink-2" id={`${id}-legend`}>
+        Choose the worksheet to check
+      </legend>
+      <div role="radiogroup" aria-labelledby={`${id}-legend`} className="mt-1 grid gap-0.5">
+        {book.sheets.map((s, i) => (
+          <label key={i} className={cn("flex min-w-0 items-baseline gap-2 rounded-sm px-1 py-0.5 text-xs", s.worksheet ? "cursor-pointer text-ink" : "text-ink-3")}>
+            <input type="radio" name={`${id}-sheet`} value={s.name} checked={book.worksheet === s.name} disabled={!s.worksheet} onChange={() => onWorksheet(s.name)} data-testid={`${side}-worksheet-${i}`} />
+            <Value className="min-w-0 text-[11.5px]">{s.name}</Value>
+            {s.state !== "visible" && <span className="text-ink-3">hidden</span>}
+            {!s.worksheet && <span className="text-ink-3">not a worksheet</span>}
+            {s.bytes !== null && <span className="ml-auto shrink-0 font-mono tabular text-ink-3">{sizeText(s.bytes)}</span>}
+          </label>
+        ))}
+      </div>
+      {book.worksheet === null && <p className="mt-1 text-xs text-ink-3">Nothing is read from a worksheet until you choose it.</p>}
+    </fieldset>
   );
 }
 
@@ -314,12 +454,14 @@ function FilePicker({
   choice,
   onFile,
   onEncoding,
+  onWorksheet,
   keyReady,
 }: {
   side: Side;
   choice: Choice;
   onFile: (file: File | null) => void;
   onEncoding: (encoding: Encoding) => void;
+  onWorksheet: (name: string) => void;
   /** Whether the key profile of the chosen key column is read (for the large-file test). */
   keyReady: boolean;
 }) {
@@ -349,7 +491,9 @@ function FilePicker({
   const hint =
     side === "source" ? "The records that should have reached the destination." : "An export from the system the records should have reached.";
   const header = choice.header;
-  const sources = useMemo(() => [{ file: choice.file, encoding: choice.encoding }], [choice.file, choice.encoding]);
+  // A hint reads a CSV file's first bytes; a workbook's refusals are explained, not guessed at.
+  const book = choice.book;
+  const sources = useMemo(() => (book.kind === "csv" ? [{ file: choice.file, encoding: choice.encoding }] : []), [book.kind, choice.file, choice.encoding]);
   return (
     <fieldset
       className={cn("relative min-w-0 rounded-md border px-4 pt-2 pb-4", dragging ? "border-brand" : "border-line")}
@@ -370,7 +514,7 @@ function FilePicker({
       <p className="text-xs text-ink-3">{hint}</p>
       <div className="fa-field">
         <span className="label" id={`${id}-file-label`}>
-          CSV file
+          CSV or Excel file
         </span>
       </div>
       {/* The browser draws a file input's own button and "no file" text in the system's language, whatever the
@@ -397,7 +541,7 @@ function FilePicker({
       <input
         ref={fileInput}
         type="file"
-        accept=".csv,text/csv,text/plain"
+        accept=".csv,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         className="sr-only"
         tabIndex={-1}
         aria-hidden
@@ -407,16 +551,28 @@ function FilePicker({
           onFile(e.target.files?.[0] ?? null);
         }}
       />
-      <label className="fa-field mt-2">
-        <span className="label">Encoding</span>
-        <select value={choice.encoding} onChange={(e) => onEncoding(e.target.value as Encoding)} data-testid={`${side}-encoding`}>
-          {(Object.keys(ENCODINGS) as Encoding[]).map((e) => (
-            <option key={e} value={e}>
-              {ENCODING_LABEL[e]}
-            </option>
-          ))}
-        </select>
-      </label>
+      {book.kind === "csv" ? (
+        <label className="fa-field mt-2">
+          <span className="label">Encoding</span>
+          <select value={choice.encoding} onChange={(e) => onEncoding(e.target.value as Encoding)} data-testid={`${side}-encoding`}>
+            {(Object.keys(ENCODINGS) as Encoding[]).map((e) => (
+              <option key={e} value={e}>
+                {ENCODING_LABEL[e]}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <div className="mt-2" data-testid={`${side}-workbook`}>
+          <p className="text-xs text-ink-2">
+            <span className="font-semibold text-ink">Excel workbook (.xlsx)</span>
+            <span aria-hidden> · </span>
+            <span>each cell is read as stored, not as the spreadsheet displays it</span>
+          </p>
+          {book.kind === "listing" && <p className="mt-1 text-xs text-ink-2">Reading the workbook…</p>}
+          {book.kind === "listed" && book.sheets.length > 1 && <WorksheetChoice side={side} book={book} onWorksheet={onWorksheet} />}
+        </div>
+      )}
       <div role="status" className="mt-1 min-h-5 text-xs text-ink-2">
         {choice.file && (
           <>
@@ -424,7 +580,7 @@ function FilePicker({
               {choice.file.name}
             </span>
             {" · "}
-            {header.kind === "reading" && <span>Reading the header…</span>}
+            {header.kind === "reading" && <span>{book.kind === "csv" ? "Reading the header…" : "Reading row 1…"}</span>}
             {header.kind === "read" && header.result.ok && <span>{`${header.result.columns.length} columns`}</span>}
           </>
         )}
@@ -852,8 +1008,8 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   useAllFontFaces();
 
   const [choices, setChoices] = useState<Record<Side, Choice>>({
-    source: { file: null, encoding: "utf-8", header: noHeader, profile: noProfile },
-    destination: { file: null, encoding: "utf-8", header: noHeader, profile: noProfile },
+    source: { file: null, encoding: "utf-8", book: { kind: "csv" }, header: noHeader, profile: noProfile },
+    destination: { file: null, encoding: "utf-8", book: { kind: "csv" }, header: noHeader, profile: noProfile },
   });
   const profileReads = useRef<Record<Side, Reading<ProfileResult> | null>>({ source: null, destination: null });
   const [keyReads, setKeyReads] = useState<Record<Side, KeyRead | null>>({ source: null, destination: null });
@@ -892,10 +1048,10 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
     setRun({ kind: "cancelled", changed: true });
   };
 
-  const readColumns = (side: Side, file: File | null, encoding: Encoding) => {
+  const readColumns = (side: Side, file: File | null, encoding: Encoding, worksheet?: string) => {
     const read = ++headerReads.current[side];
-    // A statement was made about the file it was made for: another file needs it stated again.
-    if (file !== choices[side].file) {
+    // A statement was made about the rows it was made for: another file or worksheet needs it stated again.
+    if (file !== choices[side].file || worksheet !== undefined) {
       if (side === "source") {
         setSourceComplete(false);
         setSourceCount("");
@@ -905,22 +1061,53 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       }
       setAllowIdentical(false);
     }
-    setChoices((c) => ({ ...c, [side]: { file, encoding, header: file ? { kind: "reading" } : noHeader, profile: file ? { kind: "reading", rows: 0 } : noProfile } }));
+    const same = file !== null && file === choices[side].file;
+    setChoices((c) => ({
+      ...c,
+      [side]: { file, encoding, book: same && worksheet !== undefined ? c[side].book : { kind: "csv" }, header: file ? { kind: "reading" } : noHeader, profile: file ? { kind: "reading", rows: 0 } : noProfile },
+    }));
     changed();
     profileReads.current[side]?.abandon();
     profileReads.current[side] = null;
     if (!file) return;
     const current = () => read === headerReads.current[side];
-    const settle = (result: HeaderResult) => current() && setChoices((c) => ({ ...c, [side]: { ...c[side], header: { kind: "read", result } } }));
-    runner.header(file, encoding).then(settle, (e: unknown) => settle({ ok: false, message: e instanceof Error ? e.message : String(e) }));
-    // The profile reads the whole file in the other worker, so the column lists never wait for it.
-    const setProfile = (profile: ProfileState) => current() && setChoices((c) => ({ ...c, [side]: { ...c[side], profile } }));
-    const reading = runner.profile(file, encoding, (rows) => setProfile({ kind: "reading", rows }));
-    profileReads.current[side] = reading;
-    reading.result.then(
-      (result) => setProfile({ kind: "read", result }),
-      (e: unknown) => !(e instanceof Abandoned) && setProfile({ kind: "failed", message: e instanceof Error ? e.message : String(e) }),
-    );
+    const update = (part: Partial<Choice>) => current() && setChoices((c) => ({ ...c, [side]: { ...c[side], ...part } }));
+    const settle = (result: HeaderResult) => update({ header: { kind: "read", result } });
+    const readRows = (book?: Book) => {
+      update({ header: { kind: "reading" }, profile: { kind: "reading", rows: 0 } });
+      runner.header(file, encoding, book).then(settle, (e: unknown) => settle({ ok: false, message: e instanceof Error ? e.message : String(e) }));
+      // The profile reads the whole file in the other worker, so the column lists never wait for it.
+      const setProfile = (profile: ProfileState) => update({ profile });
+      const reading = runner.profile(file, encoding, (rows) => setProfile({ kind: "reading", rows }), book);
+      profileReads.current[side] = reading;
+      reading.result.then(
+        (result) => setProfile({ kind: "read", result }),
+        (e: unknown) => !(e instanceof Abandoned) && setProfile({ kind: "failed", message: e instanceof Error ? e.message : String(e) }),
+      );
+    };
+    // Another worksheet of the same workbook: its sheets are known, and the choice stays in place, with its focus.
+    const known = choices[side].book;
+    if (same && worksheet !== undefined && known.kind === "listed") {
+      update({ book: { ...known, worksheet } });
+      return readRows({ worksheet });
+    }
+    void isWorkbook(file).then((workbook) => {
+      if (!current()) return;
+      if (!workbook) return readRows();
+      update({ book: { kind: "listing" }, header: noHeader, profile: noProfile });
+      runner.sheets(file).then(
+        (listed) => {
+          if (!current()) return;
+          if (!listed.ok) return update({ book: { kind: "listed", sheets: [], worksheet: null }, header: { kind: "read", result: { ok: false, message: listed.message } } });
+          // The only sheet is read without asking, as the command line reads it without --source-worksheet.
+          const only = listed.sheets.length === 1 ? listed.sheets[0]!.name : null;
+          const chosen = worksheet ?? only;
+          update({ book: { kind: "listed", sheets: listed.sheets, worksheet: chosen } });
+          if (chosen !== null) readRows(only !== null ? {} : { worksheet: chosen });
+        },
+        (e: unknown) => settle({ ok: false, message: e instanceof Error ? e.message : String(e) }),
+      );
+    });
   };
 
   // The key profile of each key column, once its file's profile is ready; a change of file, encoding or column
@@ -929,17 +1116,17 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
     const c = choices[side];
     const column = key[side === "source" ? 0 : 1];
     const ready = c.profile.kind === "read" && c.profile.result.ok && c.profile.result.profile.columns.some((x) => x.name === column);
-    return { file: ready ? c.file : null, encoding: c.encoding, column };
+    return { file: ready ? c.file : null, encoding: c.encoding, worksheet: c.book.kind === "listed" ? c.book.worksheet : null, book: bookOf(c), column };
   };
   const sourceKeyFor = keyFor("source");
   const destinationKeyFor = keyFor("destination");
-  const keyRead = (side: Side, want: { file: File | null; encoding: Encoding; column: string }) => {
-    const { file, encoding, column } = want;
+  const keyRead = (side: Side, want: { file: File | null; encoding: Encoding; worksheet: string | null; book: Book | undefined; column: string }) => {
+    const { file, encoding, worksheet, book, column } = want;
     if (!file) return;
     let live = true;
-    const reading = runner.keyProfile(file, encoding, column);
+    const reading = runner.keyProfile(file, encoding, column, book);
     reading.result.then(
-      (result) => live && setKeyReads((k) => ({ ...k, [side]: { file, encoding, column, result } })),
+      (result) => live && setKeyReads((k) => ({ ...k, [side]: { file, encoding, worksheet, column, result } })),
       () => undefined, // given up, or the file could no longer be read: no key profile is shown
     );
     return () => {
@@ -947,13 +1134,13 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       reading.abandon();
     };
   };
-  useEffect(() => keyRead("source", sourceKeyFor), [runner, sourceKeyFor.file, sourceKeyFor.encoding, sourceKeyFor.column]);
-  useEffect(() => keyRead("destination", destinationKeyFor), [runner, destinationKeyFor.file, destinationKeyFor.encoding, destinationKeyFor.column]);
+  useEffect(() => keyRead("source", sourceKeyFor), [runner, sourceKeyFor.file, sourceKeyFor.encoding, sourceKeyFor.worksheet, sourceKeyFor.column]);
+  useEffect(() => keyRead("destination", destinationKeyFor), [runner, destinationKeyFor.file, destinationKeyFor.encoding, destinationKeyFor.worksheet, destinationKeyFor.column]);
   /** The key profile read for exactly the current choice, or null. */
   const keyProfileOf = (side: Side) => {
     const want = side === "source" ? sourceKeyFor : destinationKeyFor;
     const got = keyReads[side];
-    return got && want.file === got.file && want.encoding === got.encoding && want.column === got.column && got.result.ok ? got.result.key : null;
+    return got && want.file === got.file && want.encoding === got.encoding && want.worksheet === got.worksheet && want.column === got.column && got.result.ok ? got.result.key : null;
   };
   // A file dropped beside a panel is not opened by the browser in place of this page: only a panel takes a file.
   useEffect(() => {
@@ -986,10 +1173,10 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   // What a hint after a refused check may read: the chosen files, and the columns the check needed from each.
   const hintSources = useMemo<HintSource[]>(
     () => [
-      { file: choices.source.file, encoding: choices.source.encoding, columns: selection ? [selection.key[0], ...selection.fields.map((f) => f[0])] : undefined },
-      { file: choices.destination.file, encoding: choices.destination.encoding, columns: selection ? [selection.key[1], ...selection.fields.map((f) => f[1])] : undefined },
+      { file: isBook(choices.source) ? null : choices.source.file, encoding: choices.source.encoding, columns: selection ? [selection.key[0], ...selection.fields.map((f) => f[0])] : undefined },
+      { file: isBook(choices.destination) ? null : choices.destination.file, encoding: choices.destination.encoding, columns: selection ? [selection.key[1], ...selection.fields.map((f) => f[1])] : undefined },
     ],
-    [choices.source.file, choices.source.encoding, choices.destination.file, choices.destination.encoding, selection],
+    [choices.source.file, choices.source.encoding, choices.source.book, choices.destination.file, choices.destination.encoding, choices.destination.book, selection],
   );
   const fingerprint = selection ? JSON.stringify(selection) : null;
 
@@ -1012,6 +1199,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   for (const side of ["source", "destination"] as const) {
     const c = choices[side];
     if (!c.file) missing.push(side === "source" ? "Choose the source file." : "Choose the destination export.");
+    else if (c.book.kind === "listed" && c.book.worksheet === null && c.book.sheets.length > 1) missing.push(side === "source" ? "Choose the worksheet of the source workbook." : "Choose the worksheet of the destination workbook.");
     else if (c.header.kind !== "read" || !c.header.result.ok) missing.push(side === "source" ? "The source file must be readable." : "The destination export must be readable.");
   }
   if (!key[0] || !key[1]) missing.push("Choose the key column in both files.");
@@ -1076,6 +1264,8 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       sourceCount: sourceCount || null,
       destinationCount: destinationCount || null,
       allowIdenticalContent: allowIdentical,
+      sourceBook: bookOf(choices.source),
+      destinationBook: bookOf(choices.destination),
     };
     setRun({ kind: "running", progress: null, left: null });
     // A new result opens on its own first view: what the address said of the last one does not apply to it.
@@ -1123,7 +1313,8 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
 
   /** Fill in a scenario's files and configuration; its files are UTF-8. Every statement starts unstated again. */
   const chooseScenario = (scenario: Scenario) => {
-    readColumns("source", new File([scenario.source], "source.csv", { type: "text/csv" }), "utf-8");
+    if (typeof scenario.source === "string") readColumns("source", new File([scenario.source], "source.csv", { type: "text/csv" }), "utf-8");
+    else readColumns("source", new File([scenario.source as Uint8Array<ArrayBuffer>], "source.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "utf-8", scenario.source_worksheet);
     readColumns("destination", new File([scenario.destination], "destination.csv", { type: "text/csv" }), "utf-8");
     const chosen = chosenOf(scenario);
     setKey([chosen.key[0], chosen.key[1]]);
@@ -1172,13 +1363,21 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
       <section aria-labelledby="files-h">
         <SectionHead id="files-h" title="1 · Files" aside="read on this computer" />
         <div className="grid gap-4 md:grid-cols-2">
-          <FilePicker side="source" choice={choices.source} keyReady={keyProfileOf("source") !== null} onFile={(f) => (setScenario(null), readColumns("source", f, choices.source.encoding))} onEncoding={(e) => readColumns("source", choices.source.file, e)} />
+          <FilePicker
+            side="source"
+            choice={choices.source}
+            keyReady={keyProfileOf("source") !== null}
+            onFile={(f) => (setScenario(null), readColumns("source", f, choices.source.encoding))}
+            onEncoding={(e) => readColumns("source", choices.source.file, e)}
+            onWorksheet={(name) => readColumns("source", choices.source.file, choices.source.encoding, name)}
+          />
           <FilePicker
             side="destination"
             choice={choices.destination}
             keyReady={keyProfileOf("destination") !== null}
             onFile={(f) => (setScenario(null), readColumns("destination", f, choices.destination.encoding))}
             onEncoding={(e) => readColumns("destination", choices.destination.file, e)}
+            onWorksheet={(name) => readColumns("destination", choices.destination.file, choices.destination.encoding, name)}
           />
         </div>
         <ScenarioPanel inUse={scenario} onUse={chooseScenario} />

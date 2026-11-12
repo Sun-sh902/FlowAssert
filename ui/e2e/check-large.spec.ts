@@ -228,3 +228,94 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   expect(report.peakWorkerHeapMiB).toBeLessThan(300);
   expect(report.progressSeen).toBeGreaterThan(2);
 });
+
+/**
+ * The same rows as two .xlsx workbooks (offline/bench/large_xlsx.py), each one worksheet with shared strings, as a
+ * spreadsheet program writes them (docs/design/1.1-excel.md, "Measurements"). The page profiles them and checks them
+ * while its timers stay on time, and the summary is the command line's for the same workbooks.
+ */
+test("two workbooks of 1,000,000 rows are checked in the page, which stays responsive", async ({ page }, testInfo) => {
+  test.skip(!process.env.FA_LARGE, "set FA_LARGE=1 to check two workbooks of 1,000,000 rows");
+  test.setTimeout(20 * 60_000);
+  mkdirSync(testInfo.outputDir, { recursive: true });
+  const python = process.env.FA_PYTHON ?? "python3";
+  const source = join(testInfo.outputDir, "source.xlsx");
+  const destination = join(testInfo.outputDir, "destination.xlsx");
+  for (const [path, side] of [[source, "source"], [destination, "destination"]] as const) execFileSync(python, [join(REPO, "offline/bench/large_xlsx.py"), path, side]);
+
+  await openCheck(page);
+  const chosen = Date.now();
+  await page.getByTestId("source-file").setInputFiles(source);
+  await page.getByTestId("destination-file").setInputFiles(destination);
+  await expect(page.getByTestId("key-source").locator("option").nth(1)).toBeAttached({ timeout: 60_000 });
+  await expect(page.getByTestId("key-destination").locator("option").nth(1)).toBeAttached({ timeout: 60_000 });
+  await page.getByTestId("key-source").selectOption("id");
+  await page.getByTestId("key-destination").selectOption("id");
+  await page.getByTestId("field-0-source").selectOption("phone");
+  await page.getByTestId("field-0-destination").selectOption("phone");
+  await page.getByRole("button", { name: "Add a field" }).click();
+  await page.getByTestId("field-1-source").selectOption("email");
+  await page.getByTestId("field-1-destination").selectOption("email");
+  await page.getByTestId("source-complete").check();
+  await page.getByTestId("destination-complete").check();
+  await expect(page.getByTestId("source-profile")).toHaveAttribute("data-rows", String(ROWS), { timeout: 120_000 });
+  await expect(page.getByTestId("destination-profile")).toHaveAttribute("data-rows", String(ROWS), { timeout: 120_000 });
+  await expect(page.getByTestId("source-panel")).toHaveAttribute("data-key-profile", "ready", { timeout: 120_000 });
+  await expect(page.getByTestId("destination-panel")).toHaveAttribute("data-key-profile", "ready", { timeout: 120_000 });
+  const profiledSeconds = (Date.now() - chosen) / 1000;
+
+  await page.evaluate(() => {
+    const probe = { late: 0, ticks: 0 };
+    (window as unknown as { probe: typeof probe }).probe = probe;
+    let last = performance.now();
+    setInterval(() => {
+      const now = performance.now();
+      probe.late = Math.max(probe.late, now - last - 100);
+      probe.ticks++;
+      last = now;
+    }, 100);
+    const timing = { clicked: 0, shown: 0 };
+    (window as unknown as { timing: typeof timing }).timing = timing;
+    document.querySelector('[data-testid="run-check"]')!.addEventListener("click", () => (timing.clicked = performance.now()), { capture: true, once: true });
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector("[data-result]")) return;
+      timing.shown = performance.now();
+      observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+  const heap = await watchHeap(page);
+  await page.getByTestId("run-check").click();
+  await page.locator("[data-result]").waitFor({ timeout: 15 * 60_000 });
+  const seconds = await page.evaluate(() => {
+    const { clicked, shown } = (window as unknown as { timing: { clicked: number; shown: number } }).timing;
+    return Math.round(shown - clicked) / 1000;
+  });
+  const probe = await page.evaluate(() => (window as unknown as { probe: { late: number; ticks: number } }).probe);
+  const held = await heap.stop();
+  await expect(page.locator("[data-result]")).toHaveAttribute("data-result", "Mismatch");
+  await expect(page.locator('[data-count="Mismatch"]')).toHaveText("3");
+  const summary = await page.getByTestId("summary").textContent();
+  let cli = "";
+  try {
+    execFileSync(python, [join(REPO, "offline/verify.py"), "--source", source, "--source-format", "xlsx", "--destination", destination, "--destination-format", "xlsx",
+      "--key", "id", "--field", "phone", "--field", "email", "--source-complete", "--destination-complete"], { encoding: "utf-8", maxBuffer: 1 << 26 });
+  } catch (e) {
+    cli = (e as { stdout: string }).stdout; // exit status 1: Mismatch
+  }
+  const report = { rows: ROWS, seconds, profiledSeconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks,
+    peakPageHeapMiB: MiB(heap.peak.pageHeap), peakWorkerHeapMiB: MiB(heap.peak.workerHeap), peakWorkerBuffersMiB: MiB(heap.peak.workerBuffers),
+    peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heldWorkerHeapMiB: MiB(held.heap), heldWorkerBuffersMiB: MiB(held.buffers), heapSamples: heap.peak.samples };
+  writeReport("check-large-xlsx", report);
+  testInfo.annotations.push({ type: "large-workbook", description: JSON.stringify(report) });
+  console.info(`large-workbook check: ${JSON.stringify(report)}`);
+  expect(summary).toBe(cli);
+  expect(probe.late).toBeLessThan(100);
+  // Bounded: the workbooks are read in pieces of 1 MiB and inflated as streams, and never held whole. Each piece is a
+  // new buffer (Blob.slice().arrayBuffer(), see xlsx.ts), so the peak counts pieces waiting for the garbage collector,
+  // not pieces kept: after a collection the worker holds less than 32 MiB of buffers. Its heap beyond the CSV check's
+  // is the destination's shared string table while it is read.
+  expect(report.heldWorkerBuffersMiB).toBeLessThan(32);
+  expect(report.peakWorkerBuffersMiB).toBeLessThan(400);
+  expect(report.peakWorkerHeapMiB).toBeLessThan(600);
+});

@@ -10,7 +10,10 @@ import { AXE_PATH } from "./helpers.ts";
 export const REPO = resolve(process.cwd(), "..");
 export const EXAMPLES = join(REPO, "offline/examples");
 export const GOLDEN = join(REPO, "offline/golden");
+export const GOLDEN_XLSX = join(REPO, "offline/golden-xlsx");
 export const golden = (name: string, file: string) => readFileSync(join(GOLDEN, name, file), "utf-8");
+/** A case of the workbook golden folder (offline/golden-xlsx/, 1.1.0). */
+export const goldenXlsx = (name: string, file: string) => readFileSync(join(GOLDEN_XLSX, name, file), "utf-8");
 /** A golden report as the page writes it: the same bytes, the premises' origin "browser form". */
 export const asBrowser = (text: string) =>
   text.replaceAll('"origin": "command-line option"', '"origin": "browser form"').replaceAll("· origin: command-line option", "· origin: browser form");

@@ -4,7 +4,7 @@
  * every cell and every refusal are the same as Python's; the parts are inflated by the platform's
  * DecompressionStream("deflate-raw"), and nothing is ever fetched.
  */
-import { Refused, blobStream, type ByteStream } from "./csv";
+import { Refused, type ByteStream } from "./csv";
 import { pyRepr } from "./pystr";
 import { Sha256 } from "./sha256";
 
@@ -397,9 +397,31 @@ const hex = (bytes: Uint8Array) => {
   return out;
 };
 
-/** Bytes [start, end) of a Blob, read through its stream (csv.blobStream, which every test environment has). */
+/** How much of a workbook is read from its file at a time. */
+const PIECE = 1 << 20;
+
+/**
+ * Bytes [start, end) of a Blob as a stream of pieces, each read with Blob.slice().arrayBuffer(). Not Blob.stream():
+ * in Chrome, two streams of one chosen file read at once in a worker (the header and the profile of one worksheet)
+ * could leave one of them waiting for ever, piped into a DecompressionStream. A piece is never larger than PIECE.
+ */
+function sliceStream(blob: Blob, start: number, end: number): ByteStream {
+  let at = start;
+  return {
+    read: async () => {
+      if (at >= end) return null;
+      const next = Math.min(end, at + PIECE);
+      const piece = new Uint8Array(await blob.slice(at, next).arrayBuffer());
+      at = next;
+      return piece;
+    },
+    cancel: () => void (at = end),
+  };
+}
+
+/** Bytes [start, end) of a Blob. */
 async function readRange(blob: Blob, start: number, end: number): Promise<Uint8Array> {
-  const stream = blobStream(blob.slice(start, end));
+  const stream = sliceStream(blob, start, end);
   const pieces: Uint8Array[] = [];
   let length = 0;
   for (;;) {
@@ -597,7 +619,7 @@ export class Workbook {
       throw damaged(path, "entry header does not match the central directory");
     }
     const bad = () => damaged(path, `${entry.name} does not inflate to the data the archive records`);
-    let stream = readable(blobStream(this.blob.slice(start, start + entry.csize)));
+    let stream = readable(sliceStream(this.blob, start, start + entry.csize));
     if (entry.method === 8) {
       if (!canInflate()) throw new Refused(`${path}: this JavaScript platform has no DecompressionStream, so it cannot read an .xlsx workbook`);
       stream = stream.pipeThrough(new DecompressionStream("deflate-raw") as unknown as ReadableWritablePair<Uint8Array, Uint8Array>);
@@ -1292,7 +1314,19 @@ export class WorksheetReader {
   /** The worksheets the workbook lists, after open(): name, state and the size of its part. */
   sheetsListed: { name: string; state: string; bytes: number | null; worksheet: boolean }[] = [];
 
+  private sheets: [string | undefined, string, string | undefined][] = [];
+  private byId = new Map<string | undefined, Relation>();
+  private prefix = "";
+  private workbookRels: Relationships | null = null;
+  private book: WorkbookPart | null = null;
+
   async open(): Promise<void> {
+    await this.listed();
+    await this.choose();
+  }
+
+  /** The package parts up to the list of sheets, as open() reads them, with sheetsListed filled in. */
+  async listed(): Promise<void> {
     const wb = this.wb;
     const path = this.path;
     if (!wb.has("[Content_Types].xml")) throw new Refused(`${path}: missing part [Content_Types].xml`);
@@ -1330,6 +1364,22 @@ export class WorksheetReader {
       if (relation && relation[3] !== "External") bytes = wb.sizeOf(this.target(relation, prefix));
       return { name: name ?? "", state, bytes, worksheet: relation?.[1] === WORKSHEET };
     });
+    this.sheets = sheets;
+    this.byId = byId;
+    this.prefix = prefix;
+    this.workbookRels = workbookRels;
+    this.book = book;
+  }
+
+  /** Choose the worksheet, then read the styles and the shared strings, as open() does after listed(). */
+  async choose(): Promise<void> {
+    const wb = this.wb;
+    const path = this.path;
+    const sheets = this.sheets;
+    const byId = this.byId;
+    const prefix = this.prefix;
+    const workbookRels = this.workbookRels!;
+    const book = this.book!;
     const listed = sheets.map((s) => pyRepr(s[0])).join(", ");
     let chosen: (typeof sheets)[number];
     if (this.option === undefined) {
@@ -1545,7 +1595,7 @@ export interface XlsxRead {
 
 async function fileDigest(blob: Blob, progress?: (bytes: number) => void): Promise<string> {
   const digest = new Sha256();
-  const stream = blobStream(blob);
+  const stream = sliceStream(blob, 0, blob.size);
   let read = 0;
   for (;;) {
     const chunk = await stream.read();
@@ -1630,4 +1680,43 @@ export async function readXlsx(
     canonical_form: CANONICAL_FORM,
   };
   return { rows: reader.count, header, sha256: hex(digest.digest()), member, sheets: reader.sheetsListed, emptyCells: reader.count * width - nonEmpty };
+}
+
+/** The sheets a workbook lists, for the page to offer a choice, or the refusal reading it would give. */
+export async function listSheets(source: XlsxSource, maxBytes: number | bigint = 209_715_200): Promise<XlsxRead["sheets"]> {
+  const workbook = await Workbook.open(source, Number(maxBytes));
+  const reader = new WorksheetReader(workbook, undefined, "--source-worksheet");
+  await reader.listed();
+  return reader.sheetsListed;
+}
+
+class HeaderRead extends Error {
+  readonly header: string[];
+  constructor(header: string[]) {
+    super("header read");
+    this.header = header;
+  }
+}
+
+/** Row 1 of a worksheet, refused as the full read would refuse it there; the rest of the worksheet is not read. */
+export async function readXlsxHeader(source: XlsxSource, options: { worksheet?: string; option?: string; maxBytes?: number | bigint } = {}): Promise<string[]> {
+  const workbook = await Workbook.open(source, Number(options.maxBytes ?? 209_715_200));
+  const reader = new WorksheetReader(workbook, options.worksheet, options.option ?? "--source-worksheet");
+  await reader.open();
+  const sheet = reader.startRows(
+    (names) => {
+      if (new Set(names).size !== names.length) throw new Refused(`${source.name}: repeated column name`);
+      throw new HeaderRead(names);
+    },
+    () => undefined,
+    1,
+  );
+  try {
+    for await (const _ of workbook.tokenize(reader.sheetPart, sheet)) void _;
+    reader.finishRows();
+  } catch (e) {
+    if (e instanceof HeaderRead) return e.header;
+    throw e;
+  }
+  return reader.header ?? [];
 }

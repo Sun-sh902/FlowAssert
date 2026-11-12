@@ -86,6 +86,8 @@ export default defineConfig(({ command, mode }) => ({
   plugins: [localApiGate(), react(), tailwindcss(), inlineTabIcon(), ...(mode === "pages" ? [pagesContentSecurityPolicy(), publishReportSchemas()] : [])],
   // The CSV check runs in a module worker (src/offline/worker.ts), bundled as one file of the page's own origin.
   worker: { format: "es" },
+  // The workbook scenario is imported with ?inline: its bytes go into the bundle as a data URL, never fetched.
+  assetsInclude: ["**/*.xlsx"],
   // cors: false — the app is same-origin; no cross-origin client is served, and Vite's own CORS middleware would
   // otherwise answer OPTIONS on /api paths before the gate decides (it never forwarded them).
   // The CSV check page offers offline/examples/*.csv as sample files, so the dev server may read that folder.

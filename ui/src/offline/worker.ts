@@ -5,7 +5,7 @@
  */
 import { Abandoned } from "./profile";
 import { Explorer } from "./explore";
-import { accessOf, answer, factsOf, header, keyProfile, profile, runCheckKeeping, type Reply, type Request } from "./runner";
+import { accessOf, answer, factsOf, header, keyProfile, profile, runCheckKeeping, sheets, type Reply, type Request } from "./runner";
 
 const post = (reply: Reply) => (self as unknown as Worker).postMessage(reply);
 /** Profile reads the page has given up: each ends at its next look, and answers "abandoned". */
@@ -29,9 +29,10 @@ self.onmessage = async (event: MessageEvent<Request>) => {
   if (request.type === "abandon") return void abandoned.add(id);
   const given = () => abandoned.has(id);
   try {
-    if (request.type === "header") post({ id, type: "header", result: await header(request.file, request.encoding) });
-    else if (request.type === "profile") post({ id, type: "profile", result: await inTurn(() => (given() ? Promise.reject(new Abandoned()) : profile(request.file, request.encoding, (rows) => post({ id, type: "rows", rows }), given))) });
-    else if (request.type === "key-profile") post({ id, type: "key-profile", result: await inTurn(() => (given() ? Promise.reject(new Abandoned()) : keyProfile(request.file, request.encoding, request.column, given))) });
+    if (request.type === "header") post({ id, type: "header", result: await header(request.file, request.encoding, request.book) });
+    else if (request.type === "sheets") post({ id, type: "sheets", result: await sheets(request.file) });
+    else if (request.type === "profile") post({ id, type: "profile", result: await inTurn(() => (given() ? Promise.reject(new Abandoned()) : profile(request.file, request.encoding, (rows) => post({ id, type: "rows", rows }), given, request.book))) });
+    else if (request.type === "key-profile") post({ id, type: "key-profile", result: await inTurn(() => (given() ? Promise.reject(new Abandoned()) : keyProfile(request.file, request.encoding, request.column, given, request.book))) });
     else if (request.type === "explore") post({ id, type: "explored", result: answer(explorer, request) });
     else {
       explorer = null;

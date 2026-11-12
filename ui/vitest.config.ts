@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react()],
   // The CSV check page imports offline/examples/*.csv as its sample files.
   server: { fs: { allow: [searchForWorkspaceRoot(process.cwd()), "../offline/examples"] } },
+  // The workbook scenario (pages/scenarios.ts) is imported with ?inline, as a data URL.
+  assetsInclude: ["**/*.xlsx"],
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],

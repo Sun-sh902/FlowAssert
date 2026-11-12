@@ -11,7 +11,7 @@
    "src/test/contract-drift-runtime.test.ts": 3,
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
-   "src/test/english-texts.test.tsx": 406,
+   "src/test/english-texts.test.tsx": 408,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/explorer.test.tsx": 12,
    "src/test/fix03.test.tsx": 21,
@@ -37,7 +37,7 @@
    "src/test/offline/explain.test.ts": 195,
    "src/test/offline/explore.test.ts": 58,
    "src/test/offline/golden.test.ts": 160,
-   "src/test/offline/golden-xlsx.test.ts": 70,
+   "src/test/offline/golden-xlsx.test.ts": 72,
    "src/test/offline/html-report.test.ts": 3,
    "src/test/offline/hubspot-report.test.tsx": 15,
    "src/test/offline/n8n-workflow.test.ts": 6,
@@ -45,14 +45,15 @@
    "src/test/offline/python-semantics.test.ts": 55,
    "src/test/offline/random-parity.test.ts": 2,
    "src/test/offline/refusal-hint.test.ts": 17,
-   "src/test/offline/report-schema.test.ts": 162,
+   "src/test/offline/report-schema.test.ts": 164,
    "src/test/offline/saved-report.test.ts": 110,
-   "src/test/offline/scenarios.test.ts": 16,
+   "src/test/offline/scenarios.test.ts": 19,
    "src/test/offline/sha256.test.ts": 6,
    "src/test/offline/sheet-report.test.tsx": 83,
    "src/test/offline/streaming.test.ts": 107,
    "src/test/offline/xlsx-fixtures.test.ts": 8,
    "src/test/offline/xlsx-parity.test.ts": 4,
+   "src/test/offline/xlsx-report.test.ts": 39,
    "src/test/overview.test.tsx": 10,
    "src/test/p3a-aud-002-validator.test.ts": 224,
    "src/test/pages-build.test.tsx": 10,
@@ -106,7 +107,7 @@
     "scripts/dev/tests/test_hubspot_destination.py": 104,
     "scripts/dev/tests/test_offline_verify.py": 385,
     "scripts/dev/tests/test_sheets_source.py": 210,
-    "scripts/dev/tests/test_spec.py": 296,
+    "scripts/dev/tests/test_spec.py": 298,
     "scripts/dev/tests/test_workflows.py": 16,
     "scripts/dev/tests/test_xlsx.py": 105
    }
@@ -171,6 +172,10 @@
    "chrome › check-large.spec.ts › two files of 1,000,000 rows are checked in the page, which stays responsive": {
     "skipped": 1,
     "reason": "set FA_LARGE=1 to check two files of 1,000,000 rows"
+   },
+   "chrome › check-large.spec.ts › two workbooks of 1,000,000 rows are checked in the page, which stays responsive": {
+    "skipped": 1,
+    "reason": "set FA_LARGE=1 to check two workbooks of 1,000,000 rows"
    },
    "chrome › check-pages.spec.ts › #/capture says it works only locally and makes no request": {
     "passed": 1
@@ -344,6 +349,9 @@
     "passed": 1
    },
    "chrome › first-check.spec.ts › scenario orders-rules: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "chrome › first-check.spec.ts › scenario orders-workbook: the result it names for each set of premises, as its golden case": {
     "passed": 1
    },
    "chrome › first-check.spec.ts › the feedback link opens the trial form on GitHub in a new tab, with only the template in its address": {
@@ -625,6 +633,27 @@
     "skipped": 1,
     "reason": "set FA_CAPTURE=1 to write deliverable screenshots"
    },
+   "chrome › workbook.spec.ts › a dropped workbook is read as one, and its cells as stored": {
+    "passed": 1
+   },
+   "chrome › workbook.spec.ts › a workbook that cannot be read with certainty is refused before the check, with the cell named": {
+    "passed": 1
+   },
+   "chrome › workbook.spec.ts › a workbook with several worksheets: chosen by keyboard, profiled, and checked as the command line checks it": {
+    "passed": 1
+   },
+   "chrome › workbook.spec.ts › axe · dark · desktop · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
+   },
+   "chrome › workbook.spec.ts › axe · dark · phone · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
+   },
+   "chrome › workbook.spec.ts › axe · light · desktop · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
+   },
+   "chrome › workbook.spec.ts › axe · light · phone · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
+   },
    "webkit › a11y.spec.ts › axe · dark · connections": {
     "passed": 1
    },
@@ -682,6 +711,10 @@
    "webkit › check-large.spec.ts › two files of 1,000,000 rows are checked in the page, which stays responsive": {
     "skipped": 1,
     "reason": "set FA_LARGE=1 to check two files of 1,000,000 rows"
+   },
+   "webkit › check-large.spec.ts › two workbooks of 1,000,000 rows are checked in the page, which stays responsive": {
+    "skipped": 1,
+    "reason": "set FA_LARGE=1 to check two workbooks of 1,000,000 rows"
    },
    "webkit › check-pages.spec.ts › #/capture says it works only locally and makes no request": {
     "passed": 1
@@ -855,6 +888,9 @@
     "passed": 1
    },
    "webkit › first-check.spec.ts › scenario orders-rules: the result it names for each set of premises, as its golden case": {
+    "passed": 1
+   },
+   "webkit › first-check.spec.ts › scenario orders-workbook: the result it names for each set of premises, as its golden case": {
     "passed": 1
    },
    "webkit › first-check.spec.ts › the feedback link opens the trial form on GitHub in a new tab, with only the template in its address": {
@@ -1135,6 +1171,27 @@
    "webkit › screenshots.spec.ts › state specimens · light · 375": {
     "skipped": 1,
     "reason": "set FA_CAPTURE=1 to write deliverable screenshots"
+   },
+   "webkit › workbook.spec.ts › a dropped workbook is read as one, and its cells as stored": {
+    "passed": 1
+   },
+   "webkit › workbook.spec.ts › a workbook that cannot be read with certainty is refused before the check, with the cell named": {
+    "passed": 1
+   },
+   "webkit › workbook.spec.ts › a workbook with several worksheets: chosen by keyboard, profiled, and checked as the command line checks it": {
+    "passed": 1
+   },
+   "webkit › workbook.spec.ts › axe · dark · desktop · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
+   },
+   "webkit › workbook.spec.ts › axe · dark · phone · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
+   },
+   "webkit › workbook.spec.ts › axe · light · desktop · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
+   },
+   "webkit › workbook.spec.ts › axe · light · phone · a workbook's worksheet choice, its profile and a refused workbook": {
+    "passed": 1
    }
   },
   "rules-cls-repeat": {

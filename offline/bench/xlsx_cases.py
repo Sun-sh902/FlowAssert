@@ -4,6 +4,9 @@ Every result state, every cell form and every refusal of the design note has a c
 as in golden.py's CASES; the workbooks are written by xlsx_writer.py, this repository's own writer, and the
 independent writers' fixtures are tested apart (scripts/dev/tests/test_xlsx.py).
 """
+import json
+from pathlib import Path
+
 import xlsx_writer as w
 from xlsx_writer import Book, Cell, Sheet, workbook
 
@@ -322,3 +325,23 @@ XLSX_CASES = {
     "xlsx-refused-long-cell": refused(long_cell()),
     "xlsx-refused-escaped-surrogate": refused(raw_sheet(HEADER_ROW + data_row(2, inline("A2", "_xD83D_")))),
 }
+
+# The workbook scenario of offline/examples/scenarios/ (1.1.0): each expectation is a case the page runs, as the CSV
+# scenarios' cases in offline/golden/ are, with the scenario's own files.
+SCENARIOS = Path(__file__).resolve().parents[1] / "examples" / "scenarios"
+_SUFFIX = {(True, True): "both-statements", (True, False): "source-statement", (False, True): "destination-statement",
+           (False, False): "no-statements"}
+for _scenario in json.loads((SCENARIOS / "scenarios.json").read_text(encoding="utf-8"))["scenarios"]:
+    if _scenario.get("source_format") != "xlsx":
+        continue
+    _folder = SCENARIOS / _scenario["id"]
+    for _expect in _scenario["expect"]:
+        _p = _expect["premises"]
+        XLSX_CASES[f"scenario-{_scenario['id']}-{_SUFFIX[(_p['source_complete'], _p['destination_complete'])]}"] = (
+            {"source.xlsx": (_folder / "source.xlsx").read_bytes(),
+             "destination.csv": (_folder / "destination.csv").read_bytes(),
+             "config.json": (_folder / "config.json").read_bytes()},
+            ["--source", "source.xlsx", "--source-format", "xlsx", "--source-worksheet", _scenario["source_worksheet"],
+             "--destination", "destination.csv", "--config", "config.json", "--destination-encoding", "utf-8"]
+            + (["--source-complete"] if _p["source_complete"] else [])
+            + (["--destination-complete"] if _p["destination_complete"] else []))

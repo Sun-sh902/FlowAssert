@@ -1,0 +1,5 @@
+Verified: 4 rows of 4
+Verified 4 · Mismatch 0 · Unverified 0
+Source read from worksheet 'Orders' of an .xlsx workbook: cells as stored, not as displayed.
+  Read as stored, where a spreadsheet may display them otherwise: 4 numbers, 4 dates or times in ISO 8601.
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

@@ -13,8 +13,9 @@ import type { DestinationOnlyRecord, Premise, SourceRecord, State } from "./eval
 import { explain, type Explanation } from "./explain";
 import { Explorer, rulesOf, type Facts, type Item, type Matched, type Query, type RecordAccess, type RecordStore } from "./explore";
 import { pageCheck, type ChosenConfig } from "./pageCheck";
-import { Abandoned, keyProfileCsv, profileCsv, type KeyProfileResult, type ProfileResult, type ProfileSource } from "./profile";
+import { Abandoned, keyProfileCsv, keyProfileXlsx, profileCsv, profileXlsx, type KeyProfileResult, type ProfileResult, type ProfileSource } from "./profile";
 import { writeHtml, writeJson, type Report } from "./report";
+import { listSheets, readXlsxHeader } from "./xlsx";
 
 export type Phase = "reading-source" | "reading-destination" | "evaluating" | "writing-reports";
 
@@ -35,6 +36,12 @@ export interface Progress {
 const SHARE = { reading: 0.62, evaluating: 0.14, writing: 0.24 } as const;
 
 export type HeaderResult = { ok: true; columns: string[] } | { ok: false; message: string };
+/** The sheets a workbook lists (xlsx.listSheets), or the refusal reading its package would give. */
+export type SheetsResult = { ok: true; sheets: { name: string; state: string; bytes: number | null; worksheet: boolean }[] } | { ok: false; message: string };
+/** A file to read as one worksheet of an .xlsx workbook, and the worksheet chosen; absent for a CSV file. */
+export interface Book {
+  worksheet?: string;
+}
 
 export interface RunInput {
   source: File;
@@ -47,6 +54,9 @@ export interface RunInput {
   sourceCount: string | null;
   destinationCount: string | null;
   allowIdenticalContent: boolean;
+  /** A side that is a worksheet of an .xlsx workbook, and its worksheet; its encoding is then not used. */
+  sourceBook?: Book;
+  destinationBook?: Book;
 }
 
 /** What the page shows of a report; the full report is in the two Blobs. */
@@ -92,11 +102,14 @@ export interface Reading<T> {
 }
 
 export interface CheckRunner {
-  header(file: File, encoding: Encoding): Promise<HeaderResult>;
+  /** The header of a CSV file, or with `book`, row 1 of the chosen worksheet. */
+  header(file: File, encoding: Encoding, book?: Book): Promise<HeaderResult>;
+  /** The sheets a workbook lists, to choose from. */
+  sheets(file: File): Promise<SheetsResult>;
   /** The file profile, read from the whole file as a stream; `onRows` gets the rows read so far. */
-  profile(file: File, encoding: Encoding, onRows?: (rows: number) => void): Reading<ProfileResult>;
+  profile(file: File, encoding: Encoding, onRows?: (rows: number) => void, book?: Book): Reading<ProfileResult>;
   /** The key profile of one column. */
-  keyProfile(file: File, encoding: Encoding, column: string): Reading<KeyProfileResult>;
+  keyProfile(file: File, encoding: Encoding, column: string, book?: Book): Reading<KeyProfileResult>;
   run(input: RunInput, onProgress: (p: Progress) => void): Promise<RunResult>;
   /** The records of the result the last check gave, for the result explorer; its reads fail once another check starts. */
   records(facts: Facts): RecordStore;
@@ -111,7 +124,16 @@ export class Cancelled extends Error {}
 export const SHOWN_RECORDS = 500;
 
 /** Read just enough of the file for its header: 64 KiB at first, more only if the header is longer. */
-export async function header(file: File, encoding: Encoding): Promise<HeaderResult> {
+export async function header(file: File, encoding: Encoding, book?: Book): Promise<HeaderResult> {
+  if (book) {
+    if (file.size > MAX_BYTES) return { ok: false, message: `${file.name}: file size ${file.size} bytes exceeds --max-bytes limit of ${MAX_BYTES}` };
+    try {
+      return { ok: true, columns: await readXlsxHeader({ name: file.name, blob: file }, { worksheet: book.worksheet }) };
+    } catch (e) {
+      if (e instanceof Refused) return { ok: false, message: e.message };
+      throw e;
+    }
+  }
   if (file.size > MAX_BYTES) return { ok: false, message: `${file.name}: file size ${file.size} bytes exceeds --max-bytes limit of ${MAX_BYTES}` };
   for (let length = 65536; ; length *= 4) {
     const complete = length >= file.size;
@@ -126,6 +148,17 @@ export async function header(file: File, encoding: Encoding): Promise<HeaderResu
   }
 }
 
+/** The sheets of a workbook, for the page's choice. */
+export async function sheets(file: File): Promise<SheetsResult> {
+  if (file.size > MAX_BYTES) return { ok: false, message: `${file.name}: file size ${file.size} bytes exceeds --max-bytes limit of ${MAX_BYTES}` };
+  try {
+    return { ok: true, sheets: await listSheets({ name: file.name, blob: file }) };
+  } catch (e) {
+    if (e instanceof Refused) return { ok: false, message: e.message };
+    throw e;
+  }
+}
+
 const profileSource = (file: File, encoding: Encoding): ProfileSource => ({
   name: file.name,
   size: file.size,
@@ -135,11 +168,15 @@ const profileSource = (file: File, encoding: Encoding): ProfileSource => ({
 });
 
 /** The file profile of a chosen file, in this thread. */
-export const profile = (file: File, encoding: Encoding, onRows?: (rows: number) => void, abandoned?: () => boolean) =>
+const bookSource = (file: File, book: Book) => ({ name: file.name, size: file.size, blob: file as Blob, worksheet: book.worksheet });
+
+export const profile = (file: File, encoding: Encoding, onRows?: (rows: number) => void, abandoned?: () => boolean, book?: Book) =>
+  book ? profileXlsx(bookSource(file, book), onRows, abandoned) :
   profileCsv(profileSource(file, encoding), onRows, abandoned);
 
 /** The key profile of one column of a chosen file, in this thread. */
-export const keyProfile = (file: File, encoding: Encoding, column: string, abandoned?: () => boolean) => keyProfileCsv(profileSource(file, encoding), column, abandoned);
+export const keyProfile = (file: File, encoding: Encoding, column: string, abandoned?: () => boolean, book?: Book) =>
+  book ? keyProfileXlsx(bookSource(file, book), column, abandoned) : keyProfileCsv(profileSource(file, encoding), column, abandoned);
 
 function view(report: Report): ResultView {
   const problems: SourceRecord[] = [];
@@ -251,7 +288,7 @@ export async function runCheckKeeping(input: RunInput, onProgress: (p: Progress)
   const total = input.source.size + input.destination.size;
   let sameFile = false;
   if (same(input.source, input.destination)) sameFile = (await digestOf(input.source)) === (await digestOf(input.destination));
-  const file = (f: File) => ({ name: f.name, size: f.size, read: async () => new Uint8Array(await f.arrayBuffer()), open: () => blobStream(f) });
+  const file = (f: File) => ({ name: f.name, size: f.size, read: async () => new Uint8Array(await f.arrayBuffer()), open: () => blobStream(f), blob: () => f });
   const config = "loaded" in input.config
     ? { loaded: { name: input.config.loaded.name, size: input.config.loaded.bytes.length, read: () => (input.config as { loaded: { bytes: Uint8Array } }).loaded.bytes } }
     : input.config;
@@ -263,6 +300,8 @@ export async function runCheckKeeping(input: RunInput, onProgress: (p: Progress)
     destination: file(input.destination),
     sourceEncoding: input.sourceEncoding,
     destinationEncoding: input.destinationEncoding,
+    ...(input.sourceBook ? { sourceFormat: "xlsx" as const, sourceWorksheet: input.sourceBook.worksheet } : {}),
+    ...(input.destinationBook ? { destinationFormat: "xlsx" as const, destinationWorksheet: input.destinationBook.worksheet } : {}),
     config,
     sourceComplete: input.sourceComplete,
     destinationComplete: input.destinationComplete,
@@ -300,8 +339,9 @@ export function inThreadRunner(): CheckRunner {
   };
   return {
     header,
-    profile: (file, encoding, onRows) => reading((abandoned) => profile(file, encoding, onRows, abandoned)),
-    keyProfile: (file, encoding, column) => reading((abandoned) => keyProfile(file, encoding, column, abandoned)),
+    sheets,
+    profile: (file, encoding, onRows, book) => reading((abandoned) => profile(file, encoding, onRows, abandoned, book)),
+    keyProfile: (file, encoding, column, book) => reading((abandoned) => keyProfile(file, encoding, column, abandoned, book)),
     records: (facts) => {
       const ask = <T>(request: ExploreCall) => Promise.resolve().then(() => answer(explorer, request) as T);
       return { facts, query: (q) => ask({ call: "query", args: [q] }), window: (start, count) => ask({ call: "window", args: [start, count] }), indexOf: (row) => ask({ call: "indexOf", args: [row] }) };
@@ -321,15 +361,17 @@ export function inThreadRunner(): CheckRunner {
 
 /** Messages to a worker. */
 export type Request =
-  | { id: number; type: "header"; file: File; encoding: Encoding }
-  | { id: number; type: "profile"; file: File; encoding: Encoding }
-  | { id: number; type: "key-profile"; file: File; encoding: Encoding; column: string }
+  | { id: number; type: "header"; file: File; encoding: Encoding; book?: Book }
+  | { id: number; type: "sheets"; file: File }
+  | { id: number; type: "profile"; file: File; encoding: Encoding; book?: Book }
+  | { id: number; type: "key-profile"; file: File; encoding: Encoding; column: string; book?: Book }
   | { id: number; type: "abandon" }
   | { id: number; type: "run"; input: RunInput }
   | ({ id: number; type: "explore" } & ExploreCall);
 /** Messages from a worker. */
 export type Reply =
   | { id: number; type: "header"; result: HeaderResult }
+  | { id: number; type: "sheets"; result: SheetsResult }
   | { id: number; type: "profile"; result: ProfileResult }
   | { id: number; type: "key-profile"; result: KeyProfileResult }
   | { id: number; type: "rows"; rows: number }
@@ -407,9 +449,10 @@ export function workerRunner(start: () => Worker): CheckRunner {
     abandon: () => profiles.post({ id: request.id, type: "abandon" }),
   });
   return {
-    header: (file, encoding) => profiles.send<HeaderResult>({ id: ++next, type: "header", file, encoding }),
-    profile: (file, encoding, onRows) => reading<ProfileResult>({ id: ++next, type: "profile", file, encoding }, onRows),
-    keyProfile: (file, encoding, column) => reading<KeyProfileResult>({ id: ++next, type: "key-profile", file, encoding, column }),
+    header: (file, encoding, book) => profiles.send<HeaderResult>({ id: ++next, type: "header", file, encoding, book }),
+    sheets: (file) => profiles.send<SheetsResult>({ id: ++next, type: "sheets", file }),
+    profile: (file, encoding, onRows, book) => reading<ProfileResult>({ id: ++next, type: "profile", file, encoding, book }, onRows),
+    keyProfile: (file, encoding, column, book) => reading<KeyProfileResult>({ id: ++next, type: "key-profile", file, encoding, column, book }),
     run: (input, onProgress) => checks.send<RunResult>({ id: ++next, type: "run", input }, { progress: onProgress }),
     records: (facts) => {
       const ask = <T>(request: ExploreCall) => checks.send<T>({ id: ++next, type: "explore", ...request });

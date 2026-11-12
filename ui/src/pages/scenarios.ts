@@ -15,6 +15,9 @@ import extraSource from "../../../offline/examples/scenarios/extra-in-destinatio
 import extraDestination from "../../../offline/examples/scenarios/extra-in-destination/destination.csv?raw";
 import emptyKeySource from "../../../offline/examples/scenarios/empty-key/source.csv?raw";
 import emptyKeyDestination from "../../../offline/examples/scenarios/empty-key/destination.csv?raw";
+// A workbook is bytes: Vite inlines it as a data URL in the bundle, decoded here, so choosing it makes no request.
+import ordersWorkbook from "../../../offline/examples/scenarios/orders-workbook/source.xlsx?inline";
+import ordersWorkbookDestination from "../../../offline/examples/scenarios/orders-workbook/destination.csv?raw";
 import type { State } from "../offline/evaluator";
 import type { ChosenConfig } from "../offline/pageCheck";
 
@@ -30,11 +33,21 @@ export interface Scenario {
   description: string;
   config: { key: [string, string]; fields: { source: string; destination: string; rule: string }[]; scope: "source" | "exact" };
   expect: Expectation[];
-  source: string;
+  /** The source: CSV text, or for a workbook its bytes, with the worksheet to read. */
+  source: string | Uint8Array;
+  source_format?: "xlsx";
+  source_worksheet?: string;
   destination: string;
 }
 
-const FILES: Record<string, [string, string]> = {
+/** The bytes of a data URL as Vite inlines an asset: base64 after the comma. */
+export function dataUrlBytes(url: string): Uint8Array {
+  const text = atob(url.slice(url.indexOf(",") + 1));
+  return Uint8Array.from(text, (c) => c.charCodeAt(0));
+}
+
+const FILES: Record<string, [string | Uint8Array, string]> = {
+  "orders-workbook": [dataUrlBytes(ordersWorkbook), ordersWorkbookDestination],
   "contacts-crm": [contactsSource, contactsDestination],
   "orders-rules": [ordersSource, ordersDestination],
   "extra-in-destination": [extraSource, extraDestination],

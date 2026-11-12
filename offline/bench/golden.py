@@ -342,6 +342,8 @@ SCENARIOS = ROOT / "offline" / "examples" / "scenarios"
 SCENARIO_PREMISES = {(True, True): "both-statements", (True, False): "source-statement",
                      (False, True): "destination-statement", (False, False): "no-statements"}
 for _scenario in json.loads((SCENARIOS / "scenarios.json").read_text(encoding="utf-8"))["scenarios"]:
+    if _scenario.get("source_format") == "xlsx":
+        continue  # a workbook scenario's cases are in offline/golden-xlsx/ (xlsx_cases.py)
     _folder = SCENARIOS / _scenario["id"]
     for _expect in _scenario["expect"]:
         _premises = _expect["premises"]

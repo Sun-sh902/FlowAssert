@@ -8,12 +8,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { EXAMPLE, GOLDEN, REPO, audit, check, expectNoNetwork, golden, openCheck, recordRequests, storedState, type Locale } from "./check-helpers.ts";
+import { EXAMPLE, GOLDEN, REPO, audit, check, expectNoNetwork, golden, goldenXlsx, openCheck, recordRequests, storedState, type Locale } from "./check-helpers.ts";
 import { writeReport } from "./helpers.ts";
 
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, phone: { width: 375, height: 812 } } as const;
 const SCENARIOS = (JSON.parse(readFileSync(join(REPO, "offline/examples/scenarios/scenarios.json"), "utf-8")) as {
-  scenarios: { id: string; expect: { premises: { source_complete: boolean; destination_complete: boolean }; result: string }[] }[];
+  scenarios: { id: string; source_format?: "xlsx"; expect: { premises: { source_complete: boolean; destination_complete: boolean }; result: string }[] }[];
 }).scenarios;
 const SUFFIX = (p: { source_complete: boolean; destination_complete: boolean }) =>
   p.source_complete ? (p.destination_complete ? "both-statements" : "source-statement") : p.destination_complete ? "destination-statement" : "no-statements";
@@ -232,7 +232,8 @@ for (const s of SCENARIOS) {
     for (const e of s.expect) {
       await useScenario(page, s.id, e.premises);
       await expect(await result(page)).toHaveAttribute("data-result", e.result);
-      expect(await page.getByTestId("summary").textContent()).toBe(golden(`scenario-${s.id}-${SUFFIX(e.premises)}`, "stdout.txt"));
+      const read = s.source_format === "xlsx" ? goldenXlsx : golden;
+      expect(await page.getByTestId("summary").textContent()).toBe(read(`scenario-${s.id}-${SUFFIX(e.premises)}`, "stdout.txt"));
     }
     requests.stop();
     expectNoNetwork(page, requests);

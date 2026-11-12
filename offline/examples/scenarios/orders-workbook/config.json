@@ -1,0 +1,24 @@
+{
+  "key": [
+    "order_id",
+    "order_ref"
+  ],
+  "fields": [
+    {
+      "source": "ordered_on",
+      "destination": "ordered",
+      "rule": "exact"
+    },
+    {
+      "source": "amount",
+      "destination": "total",
+      "rule": "exact"
+    },
+    {
+      "source": "status",
+      "destination": "state",
+      "rule": "casefold"
+    }
+  ],
+  "scope": "source"
+}

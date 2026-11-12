@@ -16,6 +16,10 @@
  * what the read listed, and the three things it does not show. Reading every page is never offered as evidence that the
  * object is complete.
  *
+ * A report with a side read from an .xlsx workbook (inputs.source_workbook or inputs.destination_workbook,
+ * schema_version 4) gets one point for each such side: which worksheet was read, and that each cell was read as it is
+ * stored, not as a spreadsheet displays it, with what that means for numbers, percentages, dates and formulas.
+ *
  * The text is English, in parts: a string is interface text, which the Chinese catalogue (i18n/zh-CN.ts) translates
  * as it translates the rest of the page; a { value } is something the report holds, such as a column name or a rule,
  * shown exactly as written.
@@ -23,6 +27,15 @@
 import type { Counts, DestinationOnlyRecord, Premise, RuleResult, SourceRecord, State } from "./evaluator";
 
 export type Part = string | { value: string };
+
+/** The members of inputs.source_workbook and inputs.destination_workbook this module reads. */
+export interface WorkbookOrigin {
+  worksheet: string;
+  cells: { number: number; percentage: number; date_time: number; duration: number; boolean: number; formula: number };
+  hidden_rows: number;
+  hidden_columns: number;
+  merged_ranges: number;
+}
 
 /** The members of inputs.source_sheet this module reads. */
 export interface SheetOrigin {
@@ -59,8 +72,8 @@ export interface Explainable {
   records: readonly SourceRecord[] | { problems(): Iterable<SourceRecord> };
   destination_only?: readonly DestinationOnlyRecord[];
   obligation: { fields: readonly (readonly string[])[]; rules?: readonly string[]; scope?: string };
-  /** Only source_sheet and destination_hubspot are read: reports from the command line's connectors have them. */
-  inputs?: { source_sheet?: SheetOrigin; destination_hubspot?: { rows: number; pages: number } };
+  /** Only these are read: reports from the command line's connectors have the first two, workbook reports the others. */
+  inputs?: { source_sheet?: SheetOrigin; destination_hubspot?: { rows: number; pages: number }; source_workbook?: WorkbookOrigin; destination_workbook?: WorkbookOrigin };
   workflow_execution: string;
   business_truth: string;
   existed_by_deadline: string;
@@ -478,6 +491,25 @@ function hubspotPoint(read: { rows: number; pages: number }): Point {
   };
 }
 
+/** Which worksheet one side was read from, and what reading stored values means for it. */
+function workbookPoint(side: "source" | "destination", book: WorkbookOrigin): Point {
+  const c = book.cells;
+  const differs = c.number + c.percentage + c.date_time + c.duration + c.boolean + c.formula;
+  const detail = [
+    differs
+      ? "A number is read as the number itself, without its display format; a percentage as its fraction, so 12.5% is 0.125; a date or a time in ISO 8601, such as 2025-11-12; and a formula as the value the file last saved. If the other side holds the text a spreadsheet displays, the same value can differ only in its form."
+      : "Every cell of this worksheet is text, so what was read is what a spreadsheet displays.",
+  ];
+  if (book.hidden_rows || book.hidden_columns || book.merged_ranges) {
+    detail.push("Hidden rows and columns were read like any other, including rows a filter hid; in a merged range only the first cell holds the value.");
+  }
+  return {
+    id: `${side}-workbook`,
+    text: [side === "source" ? "The source rows were read from the worksheet" : "The destination rows were read from the worksheet", " ", { value: book.worksheet }, " ", "of an .xlsx workbook, each cell as it is stored, not as a spreadsheet displays it."],
+    detail,
+  };
+}
+
 /**
  * The points for one report, in the order a reader needs them. `redacted`: the report was written with
  * --redact-values, so its keys are all "[redacted]".
@@ -490,7 +522,11 @@ export function explain(report: Explainable, { redacted = false }: { redacted?: 
   const scope = report.obligation.scope ?? "source";
   const sheet = sheetOf(report);
   const crm = report.inputs?.destination_hubspot ?? null;
-  const sheetRoom = (sheet ? 2 : 0) + (crm ? 1 : 0);
+  const books = (["source", "destination"] as const).flatMap((side) => {
+    const book = report.inputs?.[`${side}_workbook`];
+    return book ? [workbookPoint(side, book)] : [];
+  });
+  const sheetRoom = (sheet ? 2 : 0) + (crm ? 1 : 0) + books.length;
 
   if (state === "Verified") {
     points = verified(report);
@@ -533,6 +569,7 @@ export function explain(report: Explainable, { redacted = false }: { redacted?: 
   }
   if (sheet) points.push(...sheetPoints(sheet));
   if (crm) points.push(hubspotPoint(crm));
+  points.push(...books);
   return { state, lead: LEAD[state], points, more };
 }
 
