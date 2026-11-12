@@ -216,8 +216,9 @@ jobs:
         run: |
           python scripts/dev/serve_fakes.py --sheets-token "$FAKE_SHEETS_TOKEN" --hubspot-token "$FAKE_HUBSPOT_TOKEN" \
             --env-file "$GITHUB_ENV" --ready fakes-ready --seconds 900 > fakes.log 2>&1 &
-          for i in $(seq 1 100); do test -e fakes-ready && break; sleep 0.1; done
-          test -e fakes-ready
+          # Up to 60 seconds: binding a port calls socket.getfqdn, which can take seconds on macOS runners.
+          for i in $(seq 1 600); do test -e fakes-ready && break; sleep 0.1; done
+          test -e fakes-ready || { cat fakes.log; exit 1; }
       - name: Sheet to HubSpot through the local fakes, with the records to resend
         id: connectors
         continue-on-error: true
