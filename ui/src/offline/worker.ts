@@ -29,6 +29,11 @@ self.onmessage = async (event: MessageEvent<Request>) => {
   const request = event.data;
   const id = request.id;
   if (request.type === "abandon") return void abandoned.add(id);
+  if (request.type === "release") {
+    explorer = null;
+    resend = null;
+    return;
+  }
   const given = () => abandoned.has(id);
   try {
     if (request.type === "header") post({ id, type: "header", result: await header(request.file, request.encoding, request.book) });

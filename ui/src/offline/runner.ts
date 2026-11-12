@@ -125,6 +125,11 @@ export interface CheckRunner {
   exportFile(file: string): Promise<ExportFileResult>;
   /** The records of the result the last check gave, for the result explorer; its reads fail once another check starts. */
   records(facts: Facts): RecordStore;
+  /**
+   * Let go of the last check's result once the page no longer shows it (a file or a choice changed): the evaluation
+   * the explorer reads, about 133 MiB after two files of a million rows, and the records to resend. 1.1.0.
+   */
+  release(): void;
   /** Abandon the running check: its promise rejects with Cancelled and no result arrives. */
   cancel(): void;
   dispose(): void;
@@ -399,6 +404,10 @@ export function inThreadRunner(): CheckRunner {
       return result;
     },
     exportFile: (file) => (resend ? resend(file) : Promise.resolve(NO_RESULT)),
+    release: () => {
+      explorer = null;
+      resend = null;
+    },
     cancel: () => void generation++,
     dispose: () => void generation++,
   };
@@ -413,6 +422,7 @@ export type Request =
   | { id: number; type: "abandon" }
   | { id: number; type: "run"; input: RunInput }
   | { id: number; type: "export"; file: string }
+  | { id: number; type: "release" }
   | ({ id: number; type: "explore" } & ExploreCall);
 /** Messages from a worker. */
 export type Reply =
@@ -506,6 +516,7 @@ export function workerRunner(start: () => Worker): CheckRunner {
       const ask = <T>(request: ExploreCall) => checks.send<T>({ id: ++next, type: "explore", ...request });
       return { facts, query: (q) => ask({ call: "query", args: [q] }), window: (start, count) => ask({ call: "window", args: [start, count] }), indexOf: (row) => ask({ call: "indexOf", args: [row] }) };
     },
+    release: () => checks.post({ id: ++next, type: "release" }),
     cancel: () => checks.restart(() => new Cancelled()),
     dispose() {
       checks.dispose();

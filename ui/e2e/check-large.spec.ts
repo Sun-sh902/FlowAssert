@@ -66,31 +66,37 @@ async function watchHeap(page: Page) {
     if (usage) peak.pageHeap = Math.max(peak.pageHeap, usage.usedSize);
   };
   const timer = setInterval(() => void sample(), 50);
+  let heldId = 1_000_000;
   return {
     peak,
     /** Stop sampling; then collect garbage in each worker and read what the result still holds. */
     async stop() {
+      const held = await this.held();
+      await cdp.detach().catch(() => undefined);
+      return held;
+    },
+    /** Collect garbage in each worker and read what it still holds; sampling stops. */
+    async held() {
       clearInterval(timer);
       await sample();
       const held = { heap: 0, buffers: 0 };
+      const first = heldId;
       const answered = new Promise<void>((resolve) => {
         let waiting = workers.size;
         if (!waiting) resolve();
         cdp.on("Target.receivedMessageFromTarget", (event) => {
           const message = JSON.parse(event.message) as { id: number; result?: HeapUsage };
-          if (message.id < 1_000_000 || !message.result) return;
+          if (message.id <= first || !message.result) return;
           held.heap = Math.max(held.heap, message.result.usedSize);
           held.buffers = Math.max(held.buffers, message.result.backingStorageSize ?? 0);
           if (--waiting === 0) resolve();
         });
       });
-      let id = 1_000_000;
       for (const sessionId of workers) {
         await cdp.send("Target.sendMessageToTarget", { sessionId, message: JSON.stringify({ id: 1, method: "HeapProfiler.collectGarbage" }) });
-        await cdp.send("Target.sendMessageToTarget", { sessionId, message: JSON.stringify({ id: ++id, method: "Runtime.getHeapUsage" }) });
+        await cdp.send("Target.sendMessageToTarget", { sessionId, message: JSON.stringify({ id: ++heldId, method: "Runtime.getHeapUsage" }) });
       }
       await Promise.race([answered, new Promise((r) => setTimeout(r, 10_000))]);
-      await cdp.detach().catch(() => undefined);
       return held;
     },
   };
@@ -197,7 +203,15 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
     await expect(page.getByTestId("explorer-count")).toHaveAttribute("data-matches", "3");
   });
   const explorerLate = await page.evaluate(() => (window as unknown as { probe: { late: number } }).probe.late);
-  const held = await heap.stop();
+  const held = await heap.held();
+  // A change to a choice removes the result; the worker then lets go of what it kept for the explorer (1.1.0).
+  await page.getByTestId("destination-complete").uncheck();
+  await expect(page.locator("[data-result]")).toHaveCount(0);
+  await page.waitForTimeout(500);
+  const released = await heap.stop();
+  await page.getByTestId("destination-complete").check();
+  await page.getByTestId("run-check").click();
+  await page.locator("[data-result]").waitFor({ timeout: 15 * 60_000 });
 
   await expect(page.locator("[data-result]")).toHaveAttribute("data-result", "Mismatch");
   await expect(page.locator('[data-count="Mismatch"]')).toHaveText("3");
@@ -213,6 +227,7 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   const report = { rows: ROWS, seconds, profiledSeconds, longestTimerDelayMs: Math.round(probe.late), timerTicks: probe.ticks, progressSeen: new Set(probe.progress).size,
     peakPageHeapMiB: MiB(heap.peak.pageHeap), peakWorkerHeapMiB: MiB(heap.peak.workerHeap), peakWorkerBuffersMiB: MiB(heap.peak.workerBuffers),
     peakWorkerTotalMiB: MiB(heap.peak.workerTotal), heldWorkerHeapMiB: MiB(held.heap), heldWorkerBuffersMiB: MiB(held.buffers), heapSamples: heap.peak.samples,
+    releasedWorkerHeapMiB: MiB(released.heap), releasedWorkerBuffersMiB: MiB(released.buffers),
     explorerListAllSeconds: listAll, explorerEndSeconds: toEnd, explorerRuleFilterSeconds: byRule, explorerLongestTimerDelayMs: Math.round(explorerLate) };
   writeReport("check-large", report);
   testInfo.annotations.push({ type: "large-file", description: JSON.stringify(report) });
@@ -227,6 +242,8 @@ test("two files of 1,000,000 rows are checked in the page, which stays responsiv
   expect(report.peakWorkerBuffersMiB).toBeLessThan(90);
   expect(report.peakWorkerHeapMiB).toBeLessThan(300);
   expect(report.progressSeen).toBeGreaterThan(2);
+  // Released: once a change removed the result, the worker no longer holds the evaluation (133 MiB in 1.0.0).
+  expect(report.releasedWorkerHeapMiB).toBeLessThan(report.heldWorkerHeapMiB - 50);
 });
 
 /**

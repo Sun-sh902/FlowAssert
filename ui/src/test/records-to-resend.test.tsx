@@ -32,7 +32,8 @@ afterEach(() => vi.unstubAllGlobals());
 async function checked(statements: boolean) {
   const runner = inThreadRunner();
   const asked: string[] = [];
-  const counted: CheckRunner = { ...runner, exportFile: (file) => (asked.push(file), runner.exportFile(file)) };
+  const released: number[] = [];
+  const counted: CheckRunner = { ...runner, exportFile: (file) => (asked.push(file), runner.exportFile(file)), release: () => (released.push(1), runner.release()) };
   const user = userEvent.setup();
   render(<Check runner={counted} />);
   await user.upload(screen.getByTestId("source-file"), example("source.csv"));
@@ -51,7 +52,7 @@ async function checked(statements: boolean) {
   }
   await user.click(screen.getByTestId("run-check"));
   const result = await screen.findByRole("region", { name: "Result" }, { timeout: 5000 });
-  return { user, asked, section: within(result).getByTestId("records-to-resend") };
+  return { user, asked, released, section: within(result).getByTestId("records-to-resend") };
 }
 
 const offered = (section: HTMLElement) => [...section.querySelectorAll("[data-export]")].map((e) => [e.getAttribute("data-export"), within(e as HTMLElement).getByTestId("export-rows").textContent]);
@@ -91,6 +92,16 @@ describe("Records to resend", () => {
   });
 });
 
+describe("letting go of a result", () => {
+  it("a change to a choice removes the result, and the runner lets go of what it kept for it", async () => {
+    const { user, released } = await checked(true);
+    expect(released).toEqual([]);
+    await user.click(screen.getByTestId("destination-complete"));
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Result" })).toBeNull());
+    expect(released).toEqual([1]);
+  });
+});
+
 describe("the records to resend of a runner", () => {
   const input = (source: File): RunInput => ({
     source,
@@ -111,6 +122,14 @@ describe("the records to resend of a runner", () => {
     expect(await resendOf(input(changed), report!)("missing-from-destination.csv")).toEqual({ ok: false, message: "source.csv: changed after it was checked; nothing was exported" });
     const same = await resendOf(input(example("source.csv")), report!)("missing-from-destination.csv");
     expect(same.ok).toBe(true);
+  });
+
+  it("has nothing to export once it let go of the result", async () => {
+    const runner = inThreadRunner();
+    await runner.run(input(example("source.csv")), () => undefined);
+    expect((await runner.exportFile("missing-from-destination.csv")).ok).toBe(true);
+    runner.release();
+    expect(await runner.exportFile("missing-from-destination.csv")).toEqual({ ok: false, message: "There is no result to export: run the check again." });
   });
 
   it("has nothing to export before a check or after a refused one", async () => {

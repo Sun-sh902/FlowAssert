@@ -1127,7 +1127,11 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
   const sourceNotes = countNotes(lastView, "source");
   const destinationNotes = countNotes(lastView, "destination");
   const changed = () => {
-    if (!running.current) return setRun({ kind: "idle" });
+    if (!running.current) {
+      // The result is no longer shown, so the worker lets go of what it kept for it (the explorer's records).
+      if (run.kind === "done") runner.release();
+      return setRun({ kind: "idle" });
+    }
     running.current = 0;
     runner.cancel();
     setRun({ kind: "cancelled", changed: true });

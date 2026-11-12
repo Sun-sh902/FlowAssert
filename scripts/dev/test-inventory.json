@@ -67,7 +67,7 @@
    "src/test/phase3b-contract-drift.test.ts": 7,
    "src/test/phase3b-wiring.test.tsx": 122,
    "src/test/provider.test.ts": 15,
-   "src/test/records-to-resend.test.tsx": 4,
+   "src/test/records-to-resend.test.tsx": 6,
    "src/test/remediation.test.tsx": 26,
    "src/test/residual-closeout.test.tsx": 20,
    "src/test/rules.test.tsx": 10,
