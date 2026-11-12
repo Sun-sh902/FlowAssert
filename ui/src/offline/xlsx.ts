@@ -1616,7 +1616,15 @@ export async function readXlsx(
   source: XlsxSource,
   columns: readonly string[] | null,
   onRow: (values: string[]) => void,
-  options: { maxRows?: number | bigint; maxBytes?: number | bigint; worksheet?: string; option?: string; progress?: (bytes: number, rows: number) => void } = {},
+  options: {
+    maxRows?: number | bigint;
+    maxBytes?: number | bigint;
+    worksheet?: string;
+    option?: string;
+    progress?: (bytes: number, rows: number) => void;
+    /** Called with row 1's texts before the first data row. */
+    onHeader?: (header: string[]) => void;
+  } = {},
 ): Promise<XlsxRead> {
   const path = source.name;
   const maxRows = Number(options.maxRows ?? 1_000_000);
@@ -1643,6 +1651,7 @@ export async function readXlsx(
       }
       header = names;
       digest.update(encoder.encode(canonicalRow(names)));
+      options.onHeader?.(names);
     },
     (values, cells, hidden) => {
       digest.update(encoder.encode(canonicalRow(values)));

@@ -45,6 +45,8 @@ export interface PageCheckInput {
   sameFile: boolean;
   /** Where the premises were stated: "browser form" unless the packaged checker (api.ts) says otherwise. */
   origin?: Origin;
+  /** Also the records to resend (exports.ts), read again after the check: outcome.exports. */
+  exportRecords?: boolean;
   now?: () => string;
   progress?: (side: "source" | "destination", bytes: number, rows: number) => void;
   evaluating?: (done: number, total: number) => void;
@@ -72,6 +74,7 @@ export function pageCheck(input: PageCheckInput): Promise<CheckOutcome> {
     allowIdenticalContent: input.allowIdenticalContent,
     sameFile: input.sameFile,
     origin: input.origin ?? ORIGINS.browser,
+    ...(input.exportRecords ? { exportRecords: true } : {}),
     now: input.now,
     progress: input.progress,
     evaluating: input.evaluating,

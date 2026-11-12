@@ -28,7 +28,8 @@ import { TimeLeft, timeLeftText } from "../offline/eta";
 import { EvaluatorError, parseRule, type Scope } from "../offline/evaluator";
 import type { ChosenConfig } from "../offline/pageCheck";
 import { SUPPORTED_DIRECTIVES } from "../offline/strptime";
-import { Cancelled, inThreadRunner, workerRunner, type Book, type CheckRunner, type HeaderResult, type Progress, type Reading, type RunInput, type RunResult, type SheetsResult } from "../offline/runner";
+import { UNKNOWN } from "../offline/exports";
+import { Cancelled, inThreadRunner, workerRunner, type Book, type CheckRunner, type ExportFileResult, type HeaderResult, type Progress, type Reading, type RunInput, type RunResult, type SheetsResult } from "../offline/runner";
 import { HINT_BYTES, refusalHint, type Hint, type HintFile, type HintPart } from "../offline/refusalHint";
 import { readReport } from "../offline/savedReport";
 import { cn } from "../lib/cn";
@@ -902,7 +903,96 @@ function KeepReport({ json }: { json: Blob }) {
   );
 }
 
-function Result({ result, headingRef, store }: { result: RunResult; headingRef: RefObject<HTMLHeadingElement | null>; store: RecordStore }) {
+const UNKNOWN_WARNING = "The check could not conclude for these records. Some may already be in the destination; resending them may create duplicates.";
+const FORMULA_WARNING = "begin with =, +, -, @, a tab or a carriage return. A spreadsheet program may run such text as a formula when it opens the file: import the file into the system the rows came from rather than opening it in a spreadsheet. FlowAssert does not change exported text.";
+
+type ResendFileState = { kind: "idle" } | { kind: "building" } | { kind: "built"; formulaFields: number } | { kind: "refused"; message: string };
+
+/**
+ * "Export records to fix": the files of the rows this result says need action (offline/exports.ts), each offered by its
+ * name, row count and meaning. A file is built in the worker from the files chosen, read again, only when its button
+ * is pressed; it is advice from the check, and changes nothing in the result.
+ */
+function RecordsToResend({ resend, exportFile }: { resend: NonNullable<RunResult["resend"]>; exportFile: (file: string) => Promise<ExportFileResult> }) {
+  const [states, setStates] = useState<Record<string, ResendFileState>>({});
+  const save = async (file: string) => {
+    setStates((s) => ({ ...s, [file]: { kind: "building" } }));
+    const built = await exportFile(file);
+    if (built.ok) {
+      saveBlob(built.blob, file);
+      setStates((s) => ({ ...s, [file]: { kind: "built", formulaFields: built.formulaFields } }));
+    } else setStates((s) => ({ ...s, [file]: { kind: "refused", message: built.message } }));
+  };
+  return (
+    <section aria-labelledby="resend-h" className="mt-8 max-w-[78ch]" data-testid="records-to-resend">
+      <h3 id="resend-h" className="serif text-xl text-ink">
+        Export records to fix
+      </h3>
+      <p className="mt-1 text-sm text-ink-2">
+        {resend.files.length
+          ? "CSV files of the rows that need action, each row as it was read, under its file's header, to import again. They are advice from this check, not a further conclusion."
+          : "This result has no records to resend."}
+      </p>
+      {resend.absenceNotEstablished && (
+        <p className="mt-2 text-sm text-ink-2" data-testid="resend-no-missing">
+          No list of missing records: the destination was not stated complete, so absence is not established.
+        </p>
+      )}
+      {resend.files.length > 0 && (
+        <ul className="mt-3 grid gap-3">
+          {resend.files.map(({ file, rows, meaning }) => {
+            const state = states[file] ?? { kind: "idle" };
+            return (
+              <li key={file} className="min-w-0 rounded-md border border-line px-4 py-3" data-export={file}>
+                <p className="min-w-0">
+                  <code className="font-mono text-[12.5px] break-all text-ink">{file}</code>{" "}
+                  <span className="text-sm text-ink-2" data-testid="export-rows">
+                    {rows === 1 ? "1 row" : `${grouped(rows)} rows`}
+                  </span>
+                </p>
+                <p id={`${file}-meaning`} className="mt-1 text-sm text-ink-2">
+                  {meaning}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <button
+                    type="button"
+                    className={buttonClass()}
+                    onClick={() => void save(file)}
+                    disabled={state.kind === "building"}
+                    data-testid="download-export"
+                    aria-describedby={file === UNKNOWN ? `${file}-meaning ${file}-warning` : `${file}-meaning`}
+                  >
+                    <Download size={14} aria-hidden />
+                    {state.kind === "building" ? "Preparing…" : "Download"}
+                  </button>
+                  {file === UNKNOWN && (
+                    <p id={`${file}-warning`} className="min-w-0 flex-1 basis-64 text-sm font-medium text-ink" data-testid="export-unknown-warning">
+                      {UNKNOWN_WARNING}
+                    </p>
+                  )}
+                </div>
+                <div aria-live="polite">
+                  {state.kind === "built" && state.formulaFields > 0 && (
+                    <p className="mt-1 text-sm text-ink" data-testid="export-formula-warning">
+                      {state.formulaFields === 1 ? `1 field in this file ${FORMULA_WARNING.replace("begin", "begins")}` : `${grouped(state.formulaFields)} fields in this file ${FORMULA_WARNING}`}
+                    </p>
+                  )}
+                  {state.kind === "refused" && (
+                    <p className="mt-1 text-sm text-mismatch-ink" role="alert" data-testid="export-refused">
+                      {state.message}
+                    </p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Result({ result, headingRef, store, exportFile }: { result: RunResult; headingRef: RefObject<HTMLHeadingElement | null>; store: RecordStore; exportFile: (file: string) => Promise<ExportFileResult> }) {
   const view = result.view!;
   const { params } = useLocation();
   const replace = useReplaceParams("/check");
@@ -961,6 +1051,8 @@ function Result({ result, headingRef, store }: { result: RunResult; headingRef: 
       </div>
 
       {result.explanation && <ResultExplanation explanation={result.explanation} />}
+
+      {result.resend && <RecordsToResend resend={result.resend} exportFile={exportFile} />}
 
       <section aria-labelledby="explore-h" className="mt-8">
         <h3 id="explore-h" className="serif text-xl text-ink">
@@ -1607,7 +1699,7 @@ export function Check({ runner: given }: { runner?: CheckRunner }) {
         {run.kind === "done" && !run.result.view && run.result.exit === 2 && <RefusalHelp message={run.result.message} sources={hintSources} />}
       </section>
 
-      {run.kind === "done" && run.result.view && store && <Result key={runs.current} result={run.result} headingRef={resultHeading} store={store} />}
+      {run.kind === "done" && run.result.view && store && <Result key={runs.current} result={run.result} headingRef={resultHeading} store={store} exportFile={runner.exportFile} />}
     </div>
   );
 }

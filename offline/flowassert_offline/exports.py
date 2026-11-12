@@ -96,7 +96,9 @@ def build(report, source_rows, destination_rows, destination_key):
     for name, positions in by_position.items():
         for position in positions:
             wanted[position] = name
+    # Each row kept as its text, as soon as it is read.
     out = {name: [] for name in FILES}
+    formulas = 0
     header = None
     for i, row in enumerate(source_rows):
         if i == 0:
@@ -104,7 +106,8 @@ def build(report, source_rows, destination_rows, destination_key):
             continue
         name = wanted.get(i - 1)
         if name is not None:
-            out[name].append(row)
+            formulas += sum(1 for value in row if formula_like(value))
+            out[name].append(row_text(row))
     headers = dict.fromkeys(FILES, header)
     if by_key[ONLY] or by_key[ONLY_UNKNOWN]:
         index = None
@@ -116,14 +119,13 @@ def build(report, source_rows, destination_rows, destination_key):
             key = _key(row[index])
             for name in (ONLY, ONLY_UNKNOWN):
                 if key in by_key[name]:
-                    out[name].append(row)
+                    formulas += sum(1 for value in row if formula_like(value))
+                    out[name].append(row_text(row))
     files = []
-    formulas = 0
     for name in FILES:
         rows = out[name]
         if rows:
-            formulas += sum(1 for row in rows for value in row if formula_like(value))
-            files.append((name, len(rows), BOM + "".join(row_text(r) for r in [headers[name]] + rows)))
+            files.append((name, len(rows), BOM + row_text(headers[name]) + "".join(rows)))
     return files, formulas
 
 

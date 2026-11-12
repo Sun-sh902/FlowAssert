@@ -61,6 +61,20 @@ export interface CheckCsvInput {
   destinationCount?: string | number | null;
   allowIdenticalContent?: boolean;
   origin?: ApiOrigin;
+  /** Also the records to resend (1.1.0): result.exports. Without it, the result is exactly as before. */
+  exports?: boolean;
+}
+
+/** One file of the records to resend: what --export-dir writes under that name, as text. */
+export interface CheckCsvExport {
+  file: string;
+  rows: number;
+  /** What the file holds, in one sentence. */
+  meaning: string;
+  /** How many of its fields begin with =, +, -, @, a tab or a carriage return, plain numbers excepted. */
+  formulaFields: number;
+  /** The file's text, beginning with its byte order mark (\ufeff); written as UTF-8, it is the command line's file. */
+  text: string;
 }
 
 export type CheckState = "Verified" | "Mismatch" | "Unverified" | "refused" | "failed";
@@ -76,6 +90,8 @@ export interface CheckCsvResult {
   /** The JSON and HTML reports, as --json and --html write them; null when refused or failed. */
   json: string | null;
   html: string | null;
+  /** Only when exports was asked for: the files that have rows, in the design's order; null when refused or failed. */
+  exports?: CheckCsvExport[] | null;
 }
 
 class Refusal extends Error {}
@@ -180,13 +196,23 @@ function count(value: unknown, name: string): string | null {
   throw new Refusal(`${name} must be a string, an integer or null`);
 }
 
-const refused = (message: string): CheckCsvResult => ({ exit: 2, state: "refused", summary: "", message: `refused: ${message}\n`, json: null, html: null });
+const refused = (message: string, exports: boolean): CheckCsvResult => ({
+  exit: 2,
+  state: "refused",
+  summary: "",
+  message: `refused: ${message}\n`,
+  json: null,
+  html: null,
+  ...(exports ? { exports: null } : {}),
+});
 
 /** Run one check. It never throws: a refusal or a failure is a result, as the command line exits with 2 or 4. */
 export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
+  const asked = typeof input === "object" && input !== null && input.exports !== undefined && input.exports !== false;
   try {
     if (typeof input !== "object" || input === null) throw new Refusal("checkCsv takes one object: source, destination, config and the premises");
     const origin = input.origin ?? ORIGINS.javascript;
+    if (input.exports !== undefined && typeof input.exports !== "boolean") throw new Refusal("exports must be true or false");
     if (!(API_ORIGINS as readonly string[]).includes(origin)) throw new Refusal(`origin must be one of: ${API_ORIGINS.join(", ")}`);
     const encodings = [input.source, input.destination].filter((f) => f?.format !== "xlsx").map((f) => String(f?.encoding ?? "utf-8"));
     const problem = hostProblem(encodings);
@@ -215,6 +241,7 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
       // Only a caller sees its inputs; there are no paths to compare, so identical content is still refused below.
       sameFile: false,
       origin: origin as ApiOrigin,
+      ...(input.exports ? { exportRecords: true } : {}),
     });
     const report = outcome.report;
     const state: CheckState = report ? report.cohort_state === "Pending" ? "Unverified" : report.cohort_state : outcome.exit === 2 ? "refused" : "failed";
@@ -225,9 +252,10 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
       message: outcome.stderr,
       json: report ? reportJson(report) : null,
       html: report ? reportHtml(report) : null,
+      ...(asked ? { exports: outcome.exports ? outcome.exports.files.map((f) => ({ ...f })) : null } : {}),
     };
   } catch (e) {
-    if (e instanceof Refusal) return refused(e.message);
-    return { exit: 4, state: "failed", summary: "", message: `failed: ${e instanceof Error ? e.name : "Error"}\n`, json: null, html: null };
+    if (e instanceof Refusal) return refused(e.message, asked);
+    return { exit: 4, state: "failed", summary: "", message: `failed: ${e instanceof Error ? e.name : "Error"}\n`, json: null, html: null, ...(asked ? { exports: null } : {}) };
   }
 }

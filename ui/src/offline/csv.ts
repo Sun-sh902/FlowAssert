@@ -619,6 +619,7 @@ export async function readCsv(
   onRow: (values: string[]) => void,
   maxRows: number | bigint = MAX_ROWS,
   progress?: CsvProgress,
+  onHeader?: (header: string[]) => void,
 ): Promise<CsvRead> {
   const stream = file.open();
   const feed = new ByteFeed();
@@ -646,6 +647,7 @@ export async function readCsv(
     if (missing.length) throw new Refused(`${file.name}: missing column ${missing.join(", ")}`);
     const index = columns === null ? null : columns.map((c) => header.indexOf(c));
     const width = header.length;
+    onHeader?.(header);
     let lastReport = 0;
     for (;;) {
       // Rows are taken synchronously while the feed has bytes; the stream is awaited only when it runs dry.

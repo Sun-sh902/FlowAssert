@@ -35,6 +35,7 @@
    "src/test/offline/eta.test.ts": 7,
    "src/test/offline/explain.test.ts": 139,
    "src/test/offline/explore.test.ts": 58,
+   "src/test/offline/exports.test.ts": 376,
    "src/test/offline/golden.test.ts": 160,
    "src/test/offline/golden-xlsx.test.ts": 72,
    "src/test/offline/html-report.test.ts": 3,
@@ -66,6 +67,7 @@
    "src/test/phase3b-contract-drift.test.ts": 7,
    "src/test/phase3b-wiring.test.tsx": 122,
    "src/test/provider.test.ts": 15,
+   "src/test/records-to-resend.test.tsx": 4,
    "src/test/remediation.test.tsx": 26,
    "src/test/residual-closeout.test.tsx": 20,
    "src/test/rules.test.tsx": 10,
@@ -106,7 +108,7 @@
     "scripts/dev/tests/test_hubspot_destination.py": 104,
     "scripts/dev/tests/test_offline_verify.py": 385,
     "scripts/dev/tests/test_sheets_source.py": 210,
-    "scripts/dev/tests/test_spec.py": 297,
+    "scripts/dev/tests/test_spec.py": 303,
     "scripts/dev/tests/test_workflows.py": 16,
     "scripts/dev/tests/test_xlsx.py": 105,
     "scripts/dev/tests/test_exports.py": 331
@@ -382,6 +384,24 @@
    "chrome › readme-screens.spec.ts › README screenshots of the HTML report": {
     "skipped": 1,
     "reason": "set FA_README_SCREENS=1 to write the README's screenshots"
+   },
+   "chrome › records-to-resend.spec.ts › axe · dark · desktop · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "chrome › records-to-resend.spec.ts › axe · dark · phone · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "chrome › records-to-resend.spec.ts › axe · light · desktop · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "chrome › records-to-resend.spec.ts › axe · light · phone · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "chrome › records-to-resend.spec.ts › each file downloads with the command line's bytes, with no request and nothing kept": {
+    "passed": 1
+   },
+   "chrome › records-to-resend.spec.ts › without the statements: the unknown file and its warning, and no list of missing records": {
+    "passed": 1
    },
    "chrome › remediation.spec.ts › UIA-001 focus visible · dark · drawer · current-page link": {
     "passed": 1
@@ -883,6 +903,24 @@
    "webkit › readme-screens.spec.ts › README screenshots of the HTML report": {
     "skipped": 1,
     "reason": "set FA_README_SCREENS=1 to write the README's screenshots"
+   },
+   "webkit › records-to-resend.spec.ts › axe · dark · desktop · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "webkit › records-to-resend.spec.ts › axe · dark · phone · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "webkit › records-to-resend.spec.ts › axe · light · desktop · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "webkit › records-to-resend.spec.ts › axe · light · phone · the records to resend, with a warning shown": {
+    "passed": 1
+   },
+   "webkit › records-to-resend.spec.ts › each file downloads with the command line's bytes, with no request and nothing kept": {
+    "passed": 1
+   },
+   "webkit › records-to-resend.spec.ts › without the statements: the unknown file and its warning, and no list of missing records": {
+    "passed": 1
    },
    "webkit › remediation.spec.ts › UIA-001 focus visible · dark · drawer · current-page link": {
     "passed": 1

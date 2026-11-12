@@ -147,4 +147,4 @@ jobs:
       - run: google-chrome --version
       # The CSV check, its saved reports and comparisons (real IndexedDB), the Pages build, the first-check help, and
       # an .xlsx workbook on the page.
-      - run: npx playwright test e2e/check.spec.ts e2e/check-pages.spec.ts e2e/saved-reports.spec.ts e2e/first-check.spec.ts e2e/html-report.spec.ts e2e/workbook.spec.ts --project chrome
+      - run: npx playwright test e2e/check.spec.ts e2e/check-pages.spec.ts e2e/saved-reports.spec.ts e2e/first-check.spec.ts e2e/html-report.spec.ts e2e/workbook.spec.ts e2e/records-to-resend.spec.ts e2e/english-only.spec.ts --project chrome

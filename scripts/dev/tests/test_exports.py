@@ -173,7 +173,7 @@ def _check(folder, source, destination, *extra):
     return code, out.getvalue(), err.getvalue()
 
 
-HOSTILE = ['say "hi"', 'two\nlines', 'cr\rhere', 'a,b', '﻿bom inside', '=1+1', '@SUM(A1)', '-2+3', '+44',
+HOSTILE = ['say "hi"', 'two\nlines', 'cr\rhere', 'a,b', '\ufeffbom inside', '=1+1', '@SUM(A1)', '-2+3', '+44',
            '-5', '\tTab', 'Zoë 名字']
 
 

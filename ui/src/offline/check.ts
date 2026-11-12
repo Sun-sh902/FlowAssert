@@ -6,6 +6,7 @@
  * Exit status: 0 Verified, 1 Mismatch, 3 Unverified, 2 the input was refused, 4 internal failure. A refused or failed
  * check has no report: nothing partial is ever returned.
  */
+import { ExportPlan, summaryLines, type Export } from "./exports";
 import { ENCODINGS, MAX_BYTES, MAX_ROWS, Refused, bytesStream, readCsv, sha256Hex, type ByteStream, type Encoding } from "./csv";
 import { DETAILS, Evaluation, EvaluatorError, SCOPES, parseRule, type Details, type Scope } from "./evaluator";
 import { DuplicateMember, JsonError, pyLoads, type PyValue } from "./pyjson";
@@ -63,6 +64,13 @@ export interface CheckArgs {
   maxDetails?: string | number;
   details?: string;
   redactValues?: boolean;
+  /**
+   * --export-dir DIR: also the records to resend (exports.ts), read again after the check, with DIR named in the
+   * summary as the command line names it. Nothing is written here; the caller writes outcome.exports.
+   */
+  exportDir?: string;
+  /** The records to resend, as with exportDir, without the summary's lines about them: the page and checkCsv. */
+  exportRecords?: boolean;
   /** The two inputs are the same file (realpath on the command line; known only when the browser can tell). */
   sameFile?: boolean;
   origin?: Origin;
@@ -79,6 +87,8 @@ export interface CheckOutcome {
   stdout: string;
   stderr: string;
   report?: Report;
+  /** With exportDir: the files that have rows, and how many exported fields begin like a formula. */
+  exports?: { files: Export[]; formulas: number };
 }
 
 /** evaluated_at as Python writes datetime.now(timezone.utc).isoformat() with "Z". */
@@ -273,7 +283,7 @@ async function selection(args: CheckArgs, maxBytes: bigint): Promise<[Selection,
   return [{ key, fields: args.field.map((f) => [...pair(f), "exact"] as [string, string, string]), scope }, {}];
 }
 
-async function run(args: CheckArgs): Promise<Report> {
+async function run(args: CheckArgs): Promise<[Report, CheckOutcome["exports"]]> {
   const maxBytes = intArg("--max-bytes", args.maxBytes ?? MAX_BYTES, 1);
   const maxRows = intArg("--max-rows", args.maxRows ?? MAX_ROWS, 1);
   const counts = {
@@ -292,6 +302,8 @@ async function run(args: CheckArgs): Promise<Report> {
   for (const [side, chosen, encoding] of [["source", sourceFormat, args.sourceEncoding], ["destination", destinationFormat, args.destinationEncoding]] as const) {
     if (encoding !== undefined && chosen === "xlsx") throw new Refused(`--${side}-encoding does not apply to a workbook`);
   }
+  const exporting = args.exportDir !== undefined || args.exportRecords === true;
+  if (exporting && args.redactValues) throw new Refused("--export-dir cannot be combined with --redact-values: the exported rows hold the values");
   const [{ key, fields, scope }, selectionSha] = await selection(args, maxBytes);
   if (new Set(fields.map(([s]) => s)).size !== fields.length) throw new Refused("a source field is repeated");
   if (args.sameFile) throw new Refused("source and destination are the same file, so the check would not be independent");
@@ -318,13 +330,7 @@ async function run(args: CheckArgs): Promise<Report> {
       books[side] = result.member;
       return result.sha256;
     }
-    // A file given whole is read through the same stream reader, as one chunk.
-    const open = file.open ?? (() => {
-      const whole = file.read();
-      let stream: ByteStream | null = null;
-      return { read: async () => (stream ??= bytesStream(await whole)).read() };
-    });
-    const read = await readCsv({ name: file.name, open, encoding }, columns, onRow, maxRows, args.progress && ((b, r) => args.progress!(side, b, r)));
+    const read = await readCsv({ name: file.name, open: opener(file), encoding }, columns, onRow, maxRows, args.progress && ((b, r) => args.progress!(side, b, r)));
     return read.sha256;
   };
   const sourceSha = await read("source", args.source, sourceEncoding, [key[0], ...fields.map(([s]) => s)], (v) => evaluation.addSource(v[0]!, v.slice(1)));
@@ -387,15 +393,73 @@ async function run(args: CheckArgs): Promise<Report> {
     report.records = report.records.redacted();
     for (const record of report.destination_only ?? []) record.key = "[redacted]";
   }
-  return report;
+  if (!exporting) return [report, undefined];
+  const side = (file: InputFile, format: Format, encoding: Encoding, worksheet: string | undefined, sha256: string): ExportSide => ({ file, format, encoding, worksheet, sha256 });
+  const exported = await exportsOf(
+    report,
+    side(args.source, sourceFormat, sourceEncoding, args.sourceWorksheet, sourceSha),
+    side(args.destination, destinationFormat, destinationEncoding, args.destinationWorksheet, destinationSha),
+    { maxRows, maxBytes },
+  );
+  return [report, exported];
+}
+
+/** A file given whole is read through the same stream reader, as one chunk. */
+const opener = (file: InputFile) =>
+  file.open ??
+  (() => {
+    const whole = file.read();
+    let stream: ByteStream | null = null;
+    return { read: async () => (stream ??= bytesStream(await whole)).read() };
+  });
+
+/** One side of a check, as the records to resend read it again: the file, how it was read, and its digest then. */
+export interface ExportSide {
+  file: InputFile;
+  format: Format;
+  encoding: Encoding;
+  worksheet?: string;
+  /** inputs.source_sha256 or inputs.destination_sha256: the file's bytes for CSV, the canonical form for a workbook. */
+  sha256: string;
+}
+
+/**
+ * The records to resend of a report (exports.ts): the source read again in full, and the destination when the report
+ * has destination-only records, each refused if it is not what the check read. As cli.py reads them for --export-dir.
+ */
+export async function exportsOf(report: Report, source: ExportSide, destination: ExportSide, limits: { maxRows?: number | bigint; maxBytes?: number | bigint } = {}): Promise<{ files: Export[]; formulas: number }> {
+  const plan = new ExportPlan(report);
+  const maxRows = limits.maxRows ?? MAX_ROWS;
+  const again = async (s: ExportSide, onHeader: (header: string[]) => void, onRow: (values: string[]) => void) => {
+    let digest: string;
+    try {
+      if (s.format === "xlsx") {
+        const blob = s.file.blob ? await s.file.blob() : new Blob([(await s.file.read()) as Uint8Array<ArrayBuffer>]);
+        const option = s === source ? "--source-worksheet" : "--destination-worksheet";
+        digest = (await readXlsx({ name: s.file.name, blob }, null, onRow, { maxRows, maxBytes: limits.maxBytes ?? MAX_BYTES, worksheet: s.worksheet, option, onHeader })).sha256;
+      } else {
+        digest = (await readCsv({ name: s.file.name, open: opener(s.file), encoding: s.encoding }, null, onRow, maxRows, undefined, onHeader)).sha256;
+      }
+    } catch (e) {
+      if (e instanceof Refused) throw new Refused(`${s.file.name}: changed after it was checked; nothing was exported`);
+      throw e;
+    }
+    if (digest !== s.sha256) throw new Refused(`${s.file.name}: changed after it was checked; nothing was exported`);
+  };
+  await again(source, (h) => plan.sourceHeader(h), (v) => plan.source(v));
+  if (plan.needsDestination) await again(destination, (h) => plan.destinationHeader(h, report.obligation.key[1]!), (v) => plan.destination(v));
+  const { exports, formulas } = plan.finish();
+  return { files: exports, formulas };
 }
 
 /** cli.main: the check, its printed summary and its exit status. */
 export async function check(args: CheckArgs): Promise<CheckOutcome> {
   try {
     const maxDetails = intArg("--max-details", args.maxDetails ?? MAX_DETAILS, 0);
-    const report = await run(args);
-    return { exit: EXIT[report.cohort_state], stdout: summaryText(report, maxDetails), stderr: "", report };
+    const [report, exported] = await run(args);
+    let stdout = summaryText(report, maxDetails);
+    if (exported && args.exportDir !== undefined) stdout += summaryLines(report, exported.files, args.exportDir!, exported.formulas).map((line) => line + "\n").join("");
+    return { exit: EXIT[report.cohort_state], stdout, stderr: "", report, ...(exported ? { exports: exported } : {}) };
   } catch (e) {
     if (e instanceof Refused) return { exit: 2, stdout: "", stderr: `refused: ${e.message}\n` };
     // Python's default exit status 1 would read as a Mismatch.

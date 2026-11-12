@@ -75,6 +75,8 @@ export interface PremiseInput {
 }
 
 const key = (value: Value): string | null => (typeof value === "string" && pyStrip(value) ? value : null);
+/** A row's key as the check takes it: its text, or null when it is empty or only whitespace (exports.ts). */
+export const keyOf = key;
 const rule = (status: Status, reason: string, detail: Partial<RuleResult> = {}): RuleResult => ({ status, reason, ...detail });
 
 function stateOf(rules: Record<string, RuleResult>): State {

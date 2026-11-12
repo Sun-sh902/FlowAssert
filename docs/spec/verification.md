@@ -239,7 +239,7 @@ The messages, in the order in which they can arise. `FILE` is a file's name, `N`
 | `FILE: …` with the operating system's message | The file cannot be opened or read |
 | `source and destination have identical content, so the check would not be independent; pass --allow-identical-content if they really come from different systems` | R2.8, after both inputs were read |
 
-The refusals of a workbook are listed in [section 16](#16-a-worksheet-of-an-xlsx-workbook) and, each with its text, in the [Excel design note](../design/1.1-excel.md#refusals-and-bounds); the option refusals among them come after the encodings in this order.
+The refusals of a workbook are listed in [section 16](#16-a-worksheet-of-an-xlsx-workbook) and, each with its text, in the [Excel design note](../design/1.1-excel.md#refusals-and-bounds); the option refusals among them come after the encodings in this order. The refusals of `--export-dir` are listed in [section 17](#17-records-to-resend).
 
 - **R12.4** The texts in this table are part of the format: an implementation MUST give them exactly. Cases: `golden/refused-bad-count`, `golden/refused-config-premise`, `golden/refused-field-limit`, `golden/decode-utf16-no-bom`.
 
@@ -311,3 +311,24 @@ every cell, every refusal with its text, and every bound.
 - **R16.10** Identical content MUST compare the sides' digests: a worksheet and a CSV file holding the same rows are identical content. Cases: `golden-xlsx/xlsx-identical-content-refused`, `golden-xlsx/xlsx-identical-content-allowed`.
 - **R16.11** The summary MUST say, for each side read from a workbook, which worksheet was read and that cells were read as stored, not as displayed, with the counts of the cells a spreadsheet may display otherwise and of the hidden rows, hidden columns and merged ranges. Cases: `golden-xlsx/xlsx-cell-forms`, `golden-xlsx/xlsx-unverified`.
 - **R16.12** The same rows MUST give the same records, rule results, counts, cohort state and exit status whether a worksheet or a CSV file holds them (R14.1). Cases: `golden-xlsx/xlsx-mismatch`, `golden-xlsx/xlsx-config-rules`, `golden-xlsx/xlsx-redacted`.
+
+## 17. Records to resend
+
+From 1.1.0, `--export-dir DIR` also writes, after the check, CSV files of the rows that need action. The
+[exports design note](../design/1.1-exports.md) is part of this specification for them: it defines each file, which
+record goes to which, and their bytes. `scripts/dev/tests/test_exports.py` runs every golden case with and without
+`--export-dir`, and `ui/src/test/offline/exports.test.ts` requires the TypeScript checker to write the same bytes.
+
+- **R17.1** `--export-dir` MUST NOT change any record, rule result, count, cohort state, report or exit status, and MUST NOT change the summary's lines; it only adds lines after them. Cases: `golden/example`, `golden/scope-exact-source-known`, `golden-xlsx/xlsx-mismatch`, `golden-sheets/sheet-mismatch`, `golden-hubspot/hubspot-mismatch`.
+- **R17.2** Each source record that is not Verified MUST be in exactly one file: `missing-from-destination.csv` when `existence` failed, `duplicated-in-destination.csv` when `uniqueness` failed, `values-differ.csv` for any other Mismatch, and `unknown-status-resending-may-create-duplicates.csv` when it is Unverified or Pending. Cases: `golden/example`, `golden/rules-fail`, `golden/example-page-no-premises`.
+- **R17.3** A destination not stated complete MUST NOT give `missing-from-destination.csv`, and the summary MUST say that absence is not established when records were not found. Cases: `golden/example-without-premises`, `golden/scenario-contacts-crm-no-statements`.
+- **R17.4** With scope `exact`, each destination row whose key is not in the source MUST be in `only-in-destination.csv` when its record is a Mismatch, and in `only-in-destination-not-concluded.csv` when it is Unverified. Cases: `golden/scope-exact-source-known`, `golden/scope-exact-source-unknown`.
+- **R17.5** Each exported row MUST be the row as read, every column, under its own file's header, in UTF-8 with a byte order mark and CR LF line endings, quoted only where a reader needs it, so that reading the file back gives the rows exactly; no text is changed, including text a spreadsheet would run as a formula, which the summary counts. Cases: `golden/example`, `golden/unsafe-values`, `golden/quoted-line-breaks`, `golden-xlsx/xlsx-cell-forms`.
+- **R17.6** `--export-dir` MUST be refused with `--redact-values`, and when `DIR` exists, before either input is read; a file that changed between the check and the export MUST be refused; and when any file or report cannot be written, nothing MUST be left behind. Cases: `golden/example-redacted`.
+
+| Message | When |
+| --- | --- |
+| `--export-dir cannot be combined with --redact-values: the exported rows hold the values` | After the formats, before the configuration is read |
+| `DIR: exists; --export-dir writes to a new directory` | `DIR` exists, even as a link to nothing |
+| `FILE: changed after it was checked; nothing was exported` | A side read again does not have the digest it had |
+| `DIR: …` with the operating system's message | The directory or a file in it cannot be written |

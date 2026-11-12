@@ -8,9 +8,11 @@
  * reads headers and profiles (./profile.ts). Cancelling a check ends its worker at once and starts the next one; a
  * cancelled check never delivers a result, and the profiles being read are not disturbed.
  */
+import { exportsOf, type InputFile } from "./check";
 import { ByteFeed, MAX_BYTES, NeedMore, Refused, blobStream, readHeader, type Encoding } from "./csv";
 import type { DestinationOnlyRecord, Premise, SourceRecord, State } from "./evaluator";
 import { explain, type Explanation } from "./explain";
+import { absenceNotEstablished, plannedFiles, type Export, type PlannedExport } from "./exports";
 import { Explorer, rulesOf, type Facts, type Item, type Matched, type Query, type RecordAccess, type RecordStore } from "./explore";
 import { pageCheck, type ChosenConfig } from "./pageCheck";
 import { Abandoned, keyProfileCsv, keyProfileXlsx, profileCsv, profileXlsx, type KeyProfileResult, type ProfileResult, type ProfileSource } from "./profile";
@@ -93,7 +95,15 @@ export interface RunResult {
   explanation: Explanation | null;
   json: Blob | null;
   html: Blob | null;
+  /**
+   * The records to resend this result has (exports.ts), known from the report alone: each file that has rows, and
+   * whether records were not found in a destination not stated complete. No file is read again until one is asked for.
+   */
+  resend: { files: PlannedExport[]; absenceNotEstablished: boolean } | null;
 }
+
+/** One file of the records to resend, built when asked for, or why it could not be. */
+export type ExportFileResult = { ok: true; file: string; blob: Blob; rows: number; formulaFields: number } | { ok: false; message: string };
 
 /** A read of a profile that can be given up: `abandon` ends it, and its promise then rejects with Abandoned. */
 export interface Reading<T> {
@@ -111,6 +121,8 @@ export interface CheckRunner {
   /** The key profile of one column. */
   keyProfile(file: File, encoding: Encoding, column: string, book?: Book): Reading<KeyProfileResult>;
   run(input: RunInput, onProgress: (p: Progress) => void): Promise<RunResult>;
+  /** One file of the records to resend of the last check's result, read again from the files chosen then. */
+  exportFile(file: string): Promise<ExportFileResult>;
   /** The records of the result the last check gave, for the result explorer; its reads fail once another check starts. */
   records(facts: Facts): RecordStore;
   /** Abandon the running check: its promise rejects with Cancelled and no result arrives. */
@@ -317,7 +329,7 @@ export async function runCheckKeeping(input: RunInput, onProgress: (p: Progress)
     evaluating: (done, records) => report_("evaluating", total, SHARE.reading + (records ? done / records : 1) * SHARE.evaluating),
   });
   const report = outcome.report;
-  if (!report) return [{ exit: outcome.exit, summary: "", message: outcome.stderr.trimEnd(), view: null, explanation: null, json: null, html: null }, null];
+  if (!report) return [{ exit: outcome.exit, summary: "", message: outcome.stderr.trimEnd(), view: null, explanation: null, json: null, html: null, resend: null }, null];
   // The JSON report has one piece per record; the HTML report lists only the records that are not Verified.
   const written = { n: 0 };
   const records = report.records.length || 1;
@@ -326,13 +338,43 @@ export async function runCheckKeeping(input: RunInput, onProgress: (p: Progress)
   const json = blobOf(counted(writeJson(report), written), "application/json", writing);
   const html = blobOf(writeHtml(report), "text/html;charset=utf-8");
   report_("writing-reports", total, 1);
-  return [{ exit: outcome.exit, summary: outcome.stdout, message: "", view: view(report), explanation: explain(report), json, html }, report];
+  const resend = { files: plannedFiles(report), absenceNotEstablished: absenceNotEstablished(report) };
+  return [{ exit: outcome.exit, summary: outcome.stdout, message: "", view: view(report), explanation: explain(report), json, html, resend }, report];
 }
+
+const inputFile = (f: File): InputFile => ({ name: f.name, size: f.size, read: async () => new Uint8Array(await f.arrayBuffer()), open: () => blobStream(f), blob: () => f });
+
+/**
+ * The records to resend of one check, built once when the first file is asked for: the files the person chose, read
+ * again and refused if they changed, never fetched or stored. What a runner keeps of its last check until the next.
+ */
+export function resendOf(input: RunInput, report: Report) {
+  let built: Promise<Export[]> | null = null;
+  const build = () =>
+    (built ??= exportsOf(
+      report,
+      { file: inputFile(input.source), format: input.sourceBook ? "xlsx" : "csv", encoding: input.sourceEncoding, worksheet: input.sourceBook?.worksheet, sha256: report.inputs.source_sha256 as string },
+      { file: inputFile(input.destination), format: input.destinationBook ? "xlsx" : "csv", encoding: input.destinationEncoding, worksheet: input.destinationBook?.worksheet, sha256: report.inputs.destination_sha256 as string },
+    ).then((r) => r.files));
+  return async (file: string): Promise<ExportFileResult> => {
+    try {
+      const found = (await build()).find((e) => e.file === file);
+      if (!found) return { ok: false, message: `${file}: this result has no such file` };
+      return { ok: true, file, blob: new Blob([found.text], { type: "text/csv;charset=utf-8" }), rows: found.rows, formulaFields: found.formulaFields };
+    } catch (e) {
+      built = null;
+      return { ok: false, message: e instanceof Refused ? e.message : `${e instanceof Error ? e.name : "Error"}: the file could not be built` };
+    }
+  };
+}
+
+const NO_RESULT: ExportFileResult = { ok: false, message: "There is no result to export: run the check again." };
 
 /** A runner in this thread, for tests and for a browser without module workers. Cancel only drops the result. */
 export function inThreadRunner(): CheckRunner {
   let generation = 0;
   let explorer: Explorer | null = null;
+  let resend: ((file: string) => Promise<ExportFileResult>) | null = null;
   const reading = <T>(start: (abandoned: () => boolean) => Promise<T>): Reading<T> => {
     let given = false;
     return { result: start(() => given), abandon: () => void (given = true) };
@@ -349,11 +391,14 @@ export function inThreadRunner(): CheckRunner {
     async run(input, onProgress) {
       const mine = ++generation;
       explorer = null;
+      resend = null;
       const [result, report] = await runCheckKeeping(input, (p) => mine === generation && onProgress(p));
       if (mine === generation) explorer = report ? new Explorer(accessOf(report), factsOf(report)) : null;
+      if (mine === generation) resend = report ? resendOf(input, report) : null;
       if (mine !== generation) throw new Cancelled();
       return result;
     },
+    exportFile: (file) => (resend ? resend(file) : Promise.resolve(NO_RESULT)),
     cancel: () => void generation++,
     dispose: () => void generation++,
   };
@@ -367,6 +412,7 @@ export type Request =
   | { id: number; type: "key-profile"; file: File; encoding: Encoding; column: string; book?: Book }
   | { id: number; type: "abandon" }
   | { id: number; type: "run"; input: RunInput }
+  | { id: number; type: "export"; file: string }
   | ({ id: number; type: "explore" } & ExploreCall);
 /** Messages from a worker. */
 export type Reply =
@@ -379,6 +425,7 @@ export type Reply =
   | { id: number; type: "progress"; progress: Progress }
   | { id: number; type: "result"; result: RunResult }
   | { id: number; type: "explored"; result: Matched | Item[] | number }
+  | { id: number; type: "exported"; result: ExportFileResult }
   | { id: number; type: "error"; message: string };
 
 interface Pending {
@@ -454,6 +501,7 @@ export function workerRunner(start: () => Worker): CheckRunner {
     profile: (file, encoding, onRows, book) => reading<ProfileResult>({ id: ++next, type: "profile", file, encoding, book }, onRows),
     keyProfile: (file, encoding, column, book) => reading<KeyProfileResult>({ id: ++next, type: "key-profile", file, encoding, column, book }),
     run: (input, onProgress) => checks.send<RunResult>({ id: ++next, type: "run", input }, { progress: onProgress }),
+    exportFile: (file) => checks.send<ExportFileResult>({ id: ++next, type: "export", file }).catch((e: Error) => ({ ok: false as const, message: e.message })),
     records: (facts) => {
       const ask = <T>(request: ExploreCall) => checks.send<T>({ id: ++next, type: "explore", ...request });
       return { facts, query: (q) => ask({ call: "query", args: [q] }), window: (start, count) => ask({ call: "window", args: [start, count] }), indexOf: (row) => ask({ call: "indexOf", args: [row] }) };
