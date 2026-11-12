@@ -11,7 +11,9 @@
  * for a gb18030 file. Each is checked on known bytes before a check starts; when one is missing or answers
  * differently, the check is refused and says which. The two files are read through the stream reader of csv.ts, as
  * one chunk each, and hashed with the SHA-256 of sha256.ts, which the tests compare with crypto.subtle; the
- * configuration is hashed with crypto.subtle when the host has it, and with sha256.ts otherwise.
+ * configuration is hashed with crypto.subtle when the host has it, and with sha256.ts otherwise. A side given with
+ * format "xlsx" is read as one worksheet of an .xlsx workbook (xlsx.ts), which needs the host's Blob and
+ * DecompressionStream("deflate-raw"); a host without them refuses the workbook and says so.
  */
 import { reportHtml, reportJson } from "./check";
 import { useDigestWithoutSubtle, type Encoding } from "./csv";
@@ -35,6 +37,10 @@ export interface CsvFileInput {
   content: Content;
   /** "utf-8" (the default, with an optional byte order mark), "utf-16" (with a byte order mark) or "gb18030". */
   encoding?: string;
+  /** "csv" (the default) or "xlsx": one worksheet of an .xlsx workbook, as --source-format xlsx reads it (1.1.0). */
+  format?: string;
+  /** For a workbook: the worksheet to read, exactly as the workbook names it; needed when it has several. */
+  worksheet?: string;
 }
 
 export interface CheckCsvInput {
@@ -134,8 +140,13 @@ function fileBytes(file: CsvFileInput, side: "source" | "destination"): { name: 
   if (typeof file.name !== "string" || !file.name) throw new Refusal(`${side} name must be a non-empty string`);
   const encoding = file.encoding ?? "utf-8";
   if (typeof encoding !== "string") throw new Refusal(`${side} encoding must be a string`);
+  if (file.format !== undefined && file.format !== "csv" && file.format !== "xlsx") throw new Refusal(`${side} format must be csv or xlsx`);
+  if (file.worksheet !== undefined && typeof file.worksheet !== "string") throw new Refusal(`${side} worksheet must be a string`);
+  if (file.format === "xlsx" && file.encoding !== undefined) throw new Refusal(`${side} encoding does not apply to a workbook`);
+  if (file.worksheet !== undefined && file.format !== "xlsx") throw new Refusal(`${side} worksheet needs format xlsx`);
   const bytes = asBytes(file.content);
   if (bytes) return { name: file.name, bytes, encoding };
+  if (file.format === "xlsx") throw new Refusal(`${side} content of a workbook must be its bytes: a Uint8Array or an ArrayBuffer`);
   if (typeof file.content !== "string") throw new Refusal(`${side} content must be a Uint8Array, an ArrayBuffer or a string`);
   if (encoding !== "utf-8") throw new Refusal(`${side} content as text can only be read as utf-8; pass the file's bytes for ${encoding}`);
   return { name: file.name, bytes: text(file.content, `${side} content`), encoding };
@@ -177,7 +188,7 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
     if (typeof input !== "object" || input === null) throw new Refusal("checkCsv takes one object: source, destination, config and the premises");
     const origin = input.origin ?? ORIGINS.javascript;
     if (!(API_ORIGINS as readonly string[]).includes(origin)) throw new Refusal(`origin must be one of: ${API_ORIGINS.join(", ")}`);
-    const encodings = [input.source?.encoding ?? "utf-8", input.destination?.encoding ?? "utf-8"].map(String);
+    const encodings = [input.source, input.destination].filter((f) => f?.format !== "xlsx").map((f) => String(f?.encoding ?? "utf-8"));
     const problem = hostProblem(encodings);
     if (problem) throw new Refusal(`this JavaScript host ${problem}, which the check needs; ${NOT_ANOTHER_WAY}`);
     // For the configuration: crypto.subtle when the host has it; otherwise the pure SHA-256, which gives the same digests.
@@ -191,6 +202,10 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
       // An unknown encoding name reaches the check as typed, and is refused there as the command line refuses it.
       sourceEncoding: source.encoding as Encoding,
       destinationEncoding: destination.encoding as Encoding,
+      sourceFormat: input.source.format === "xlsx" ? "xlsx" : "csv",
+      destinationFormat: input.destination.format === "xlsx" ? "xlsx" : "csv",
+      sourceWorksheet: input.source.worksheet,
+      destinationWorksheet: input.destination.worksheet,
       config: { loaded: { name: "configuration", size: config.length, read: () => config } },
       sourceComplete: premise(input.sourceComplete, "sourceComplete"),
       destinationComplete: premise(input.destinationComplete, "destinationComplete"),

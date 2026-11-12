@@ -194,6 +194,36 @@ def destination_hubspot():
          "read_finished_at", "canonical_form"])
 
 
+def workbook(side):
+    count = COUNT
+    return obj(
+        f"Where FlowAssert read the {side} rows: one worksheet of an .xlsx workbook, each cell as it is stored "
+        "(docs/design/1.1-excel.md).",
+        {"format": {"const": "xlsx"},
+         "worksheet": STRING,
+         "worksheet_state": {"enum": ["visible", "hidden", "veryHidden"]},
+         "sheets": {"type": "integer", "minimum": 1},
+         "date_system": {"enum": ["1900", "1904"]},
+         "file_sha256": {"description": "SHA-256 of the file's bytes.", **ref("sha256")},
+         "file_bytes": count,
+         "inflated_bytes": count,
+         "columns": {"type": "integer", "minimum": 1},
+         "rows": count,
+         "cells": obj("Data cells by how they were read, and how many of them are a formula's cached result.",
+                      {name: count for name in ("text", "number", "percentage", "date_time", "duration", "boolean",
+                                                "formula")},
+                      ["text", "number", "percentage", "date_time", "duration", "boolean", "formula"],
+                      additionalProperties=False),
+         "hidden_rows": count,
+         "hidden_columns": count,
+         "merged_ranges": count,
+         "values": {"const": "stored"},
+         "canonical_form": {"const": "flowassert-xlsx-csv-1"}},
+        ["format", "worksheet", "worksheet_state", "sheets", "date_system", "file_sha256", "file_bytes",
+         "inflated_bytes", "columns", "rows", "cells", "hidden_rows", "hidden_columns", "merged_ranges", "values",
+         "canonical_form"])
+
+
 def inputs(version):
     encoding = {"enum": ["utf-8", "utf-16", "gb18030"]}
     properties = {
@@ -223,6 +253,21 @@ def inputs(version):
         properties["source_sheet"] = ref("sourceSheet")
         required.append("source_sheet")
         rules.append({"description": "A sheet has no encoding.", "not": {"required": ["source_encoding"]}})
+    elif version == 4:
+        description = ("The digest of each side: a file's bytes, or the canonical form of a worksheet's, a sheet's or "
+                       "HubSpot's rows; and how each was read. At least one side was read from a workbook.")
+        properties["source_sheet"] = ref("sourceSheet")
+        properties["destination_hubspot"] = ref("destinationHubspot")
+        properties["source_workbook"] = ref("sourceWorkbook")
+        properties["destination_workbook"] = ref("destinationWorkbook")
+        rules.append({"description": "At least one side was read from a workbook.",
+                      "anyOf": [{"required": ["source_workbook"]}, {"required": ["destination_workbook"]}]})
+        for side, other in (("source", "source_sheet"), ("destination", "destination_hubspot")):
+            rules.append({"description": f"A {side} workbook, sheet or HubSpot listing has no encoding.",
+                          "if": {"anyOf": [{"required": [f"{side}_workbook"]}, {"required": [other]}]},
+                          "then": {"not": {"required": [f"{side}_encoding"]}}})
+            rules.append({"description": f"The {side} is read one way only.",
+                          "not": {"required": [f"{side}_workbook", other]}})
     else:
         description = ("The digest of the source (a file's bytes, or the canonical form of a sheet's values), the "
                        "digest of the canonical form of the records HubSpot listed, and how each was read.")
@@ -247,6 +292,10 @@ TITLES = {
         "The JSON report of a check whose destination FlowAssert read from HubSpot Contacts. The source is a CSV "
         "file, or a Google Sheets range when inputs.source_sheet is present. Every member of version 1, with "
         "inputs.destination_hubspot, and no inputs.destination_encoding."),
+    4: ("FlowAssert report, schema_version 4",
+        "The JSON report of a check in which either side FlowAssert read from one worksheet of an .xlsx workbook. "
+        "Every member of version 1, with inputs.source_workbook or inputs.destination_workbook (or both); "
+        "inputs.source_sheet and inputs.destination_hubspot keep their version 2 and 3 meanings when present."),
 }
 
 
@@ -256,8 +305,11 @@ def schema(version):
     definitions["inputs"] = inputs(version)
     if version >= 2:
         definitions["sourceSheet"] = source_sheet()
-    if version == 3:
+    if version >= 3:
         definitions["destinationHubspot"] = destination_hubspot()
+    if version == 4:
+        definitions["sourceWorkbook"] = workbook("source")
+        definitions["destinationWorkbook"] = workbook("destination")
     properties = {
         "schema_version": {"const": version},
         "cohort_state": {"description": "The batch result. The exit status follows it: 0, 1, 3.",
@@ -314,7 +366,7 @@ def schema(version):
             "allOf": rules, "$defs": definitions}
 
 
-VERSIONS = (1, 2, 3)
+VERSIONS = (1, 2, 3, 4)
 
 
 def text(version):

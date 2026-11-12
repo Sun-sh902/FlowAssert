@@ -21,6 +21,7 @@ report holds, what is refused and how the command exits.
 - [13. Exit statuses](#13-exit-statuses)
 - [14. Rows read by a connector](#14-rows-read-by-a-connector)
 - [15. What this specification leaves open](#15-what-this-specification-leaves-open)
+- [16. A worksheet of an .xlsx workbook](#16-a-worksheet-of-an-xlsx-workbook)
 
 ## 1. Conventions
 
@@ -28,7 +29,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be read as in RF
 special meaning only in capitals.
 
 Every requirement has a number, and every requirement with MUST names at least one golden case that tests it. A case
-is written as its folder: `golden/NAME` is `offline/golden/NAME`, `golden-sheets/NAME` is `offline/golden-sheets/NAME`, `golden-hubspot/NAME` is `offline/golden-hubspot/NAME`, and `conformance/NAME` is `offline/conformance/NAME.json`.
+is written as its folder: `golden/NAME` is `offline/golden/NAME`, `golden-sheets/NAME` is `offline/golden-sheets/NAME`, `golden-hubspot/NAME` is `offline/golden-hubspot/NAME`, `golden-xlsx/NAME` is `offline/golden-xlsx/NAME`, and `conformance/NAME` is `offline/conformance/NAME.json`.
 [Conformance](../conformance.md) says how an implementation runs them. A test
 (`scripts/dev/tests/test_spec.py`) fails when a requirement names no case, or a case that does not exist.
 
@@ -162,7 +163,7 @@ the source are reported).
 The report is one JSON object. [Report format](../report-format.md) describes every member, and the
 [JSON Schemas](../schema/) define them for each `schema_version`.
 
-- **R10.1** The report MUST begin with `schema_version`, and a writer MUST use the version whose schema the report satisfies: 1 for two files, 2 when the source was read from Google Sheets, 3 when the destination was read from HubSpot. Cases: `golden/example`, `golden-sheets/sheet-verified`, `golden-hubspot/hubspot-verified`.
+- **R10.1** The report MUST begin with `schema_version`, and a writer MUST use the version whose schema the report satisfies: 1 for two files, 2 when the source was read from Google Sheets, 3 when the destination was read from HubSpot, 4 when either side was read from an .xlsx workbook ([section 16](#16-a-worksheet-of-an-xlsx-workbook)). Cases: `golden/example`, `golden-sheets/sheet-verified`, `golden-hubspot/hubspot-verified`, `golden-xlsx/xlsx-verified`.
 - **R10.2** `records` MUST hold one record per source row, in file order, with `source_row` counting from 0. Cases: `golden/example`, `golden/duplicate-source-key`.
 - **R10.3** With details `problems` (the default) a Verified record MUST have only `key`, `source_row` and `state`; with `all`, every record has every member. The details level MUST NOT change any state, count or the summary. Cases: `golden/example`, `golden/example-details-all`.
 - **R10.4** With `--redact-values` every record key and destination-only key MUST be `[redacted]`, and no field result has `expected`, `actual`, `expected_normalized` or `actual_normalized`; states, reasons and counts are unchanged. Cases: `golden/example-redacted`, `golden/rules-redacted`, `golden/scope-exact-cli`, `golden/unsafe-values-details-all`.
@@ -190,6 +191,7 @@ its condition holds:
 | `STATE: N rows of TOTAL` | Always; `TOTAL` is `expected_total` or `unknown total` |
 | `Verified A · Mismatch B · Unverified C` | Always |
 | The lines of a connector ([section 14](#14-rows-read-by-a-connector)) | The source or the destination was read by a connector |
+| The lines of a workbook ([section 16](#16-a-worksheet-of-an-xlsx-workbook)) | Either side was read from an .xlsx workbook |
 | `Source and destination files were identical (--allow-identical-content).` | The inputs were identical |
 | `Source count stated S, file has N rows: the batch cannot be Verified.` | The stated source count differs |
 | `Destination count stated S, file has N rows: absence and uniqueness stay unknown.` | The stated destination count differs |
@@ -239,6 +241,8 @@ The messages, in the order in which they can arise. `FILE` is a file's name, `N`
 | `FILE: …` with the operating system's message | The file cannot be opened or read |
 | `source and destination have identical content, so the check would not be independent; pass --allow-identical-content if they really come from different systems` | R2.8, after both inputs were read |
 
+The refusals of a workbook are listed in [section 16](#16-a-worksheet-of-an-xlsx-workbook) and, each with its text, in the [Excel design note](../design/1.1-excel.md#refusals-and-bounds); the option refusals among them come after the encodings in this order.
+
 - **R12.4** The texts in this table are part of the format: an implementation MUST give them exactly. Cases: `golden/refused-bad-count`, `golden/refused-config-premise`, `golden/refused-field-limit`, `golden/decode-utf16-no-bom`.
 
 ## 13. Exit statuses
@@ -287,3 +291,25 @@ tests. Each is stated so that nobody has to discover it.
 | **The same file given twice** is recognised by its resolved path on the command line. The browser cannot see paths, and treats two choices as the same file when their name, size, modification time and bytes are equal. | A difference of platform: both refuse with the same message |
 | **`--mapping`** exists only on the command line. | The browser and the packaged checker always run as `--config` |
 | **Usage errors** (an option that does not exist, no `--destination`) are printed by the argument parser and exit with 2. | Their text is not part of the format |
+| **A workbook that changed while it was read** is refused on the command line, which compares the file's size and modification time before and after. A file chosen in the browser cannot change. | A difference of platform |
+| **A part that is both damaged and malformed.** The two implementations meet every problem in the order of its position in the inflated text, except a deflate stream damaged midway: Python's zlib gives none of the text a failing block would have given, and a browser's `DecompressionStream` may give some. | Left open: both refuse, and the message can name either problem. No golden case is both |
+| **`DecompressionStream`.** The browser and the packaged checker inflate a workbook's parts with the platform's `DecompressionStream("deflate-raw")`; a JavaScript platform without it refuses every workbook. | A difference of platform, refused with its own message |
+
+## 16. A worksheet of an .xlsx workbook
+
+From 1.1.0 either side can be one worksheet of an .xlsx workbook (`--source-format xlsx`, `--destination-format xlsx`).
+The [Excel design note](../design/1.1-excel.md) is part of this specification for workbooks: it defines the text of
+every cell, every refusal with its text, and every bound.
+
+- **R16.1** A side MUST be read as a workbook only when its format option says `xlsx`, and never because of a file's name or content. `--source-worksheet` without `--source-format xlsx`, and an encoding with a workbook, are refused. Cases: `golden-xlsx/xlsx-verified`, `golden-xlsx/xlsx-refused-worksheet-without-format`, `golden-xlsx/xlsx-refused-encoding-with-workbook`, `golden-xlsx/xlsx-refused-format-name`.
+- **R16.2** The worksheet MUST be the sheet whose name equals the one given, exactly; without a name, the workbook MUST have exactly one sheet, or the check is refused with every sheet's name. A sheet that is not a worksheet is refused. Cases: `golden-xlsx/xlsx-hidden-sheet-by-name`, `golden-xlsx/xlsx-refused-several-sheets`, `golden-xlsx/xlsx-refused-no-such-worksheet`, `golden-xlsx/xlsx-refused-chart-sheet`.
+- **R16.3** The header MUST be row 1, from column A to its last non-empty cell; an empty row 1 is refused. Cases: `golden-xlsx/xlsx-verified`, `golden-xlsx/xlsx-refused-row-1-empty`, `golden-xlsx/xlsx-refused-repeated-column`, `golden-xlsx/xlsx-refused-missing-column`.
+- **R16.4** A later row with no non-empty cell MUST NOT be a record; cells left out of a row are empty; a non-empty cell beyond the header's last column, a cell or row out of order and a reference outside the worksheet MUST be refused. Cases: `golden-xlsx/xlsx-gaps-and-no-references`, `golden-xlsx/xlsx-refused-beyond-header`, `golden-xlsx/xlsx-refused-cell-out-of-order`, `golden-xlsx/xlsx-refused-row-out-of-order`, `golden-xlsx/xlsx-refused-huge-column`.
+- **R16.5** Each cell's text MUST be the stored value written as the design note defines it, for every cell type and number format, with no locale: numbers as ECMAScript's `Number::toString`, dates and times in ISO 8601 in the workbook's date system, booleans as `TRUE` or `FALSE`, a formula's cached value, escapes decoded. Cases: `golden-xlsx/xlsx-cell-forms`, `golden-xlsx/xlsx-date-1904`.
+- **R16.6** A cell whose text the design note does not define MUST be refused: an error value, a formula without a cached value, a number format that is not defined or not read, a serial number that is not a date in the date system, an unknown type, and a value that is not of its type. Cases: `golden-xlsx/xlsx-refused-error-value`, `golden-xlsx/xlsx-refused-formula-without-value`, `golden-xlsx/xlsx-refused-undefined-format`, `golden-xlsx/xlsx-refused-unread-format`, `golden-xlsx/xlsx-refused-date-60`, `golden-xlsx/xlsx-refused-unknown-type`, `golden-xlsx/xlsx-refused-not-a-number`.
+- **R16.7** A file that is not an .xlsx workbook FlowAssert can read with certainty MUST be refused: an OLE compound file (a legacy .xls or a password-protected workbook), a file that is not a ZIP archive, a damaged archive, a ZIP64 archive, a repeated or encrypted entry, a macro-enabled, Strict or other workbook, an external relationship, a part that is not UTF-8, has a `DOCTYPE` or is not well-formed XML. Cases: `golden-xlsx/xlsx-refused-ole`, `golden-xlsx/xlsx-refused-not-zip`, `golden-xlsx/xlsx-refused-crc`, `golden-xlsx/xlsx-refused-zip64`, `golden-xlsx/xlsx-refused-macro-enabled`, `golden-xlsx/xlsx-refused-strict`, `golden-xlsx/xlsx-refused-external`, `golden-xlsx/xlsx-refused-doctype`, `golden-xlsx/xlsx-refused-not-well-formed`, `golden-xlsx/xlsx-refused-not-utf8`.
+- **R16.8** `--max-bytes` MUST bound the bytes inflated from the parts read, together, as well as the file's size, so that inflating stops at the limit; `--max-rows` counts data rows. Cases: `golden-xlsx/xlsx-bomb-within-bounds`, `golden-xlsx/xlsx-refused-bomb-beyond-bounds`, `golden-xlsx/xlsx-max-rows-at-limit`, `golden-xlsx/xlsx-refused-max-rows`.
+- **R16.9** The report MUST have `schema_version` 4 and record, for each side read from a workbook, `inputs.source_workbook` or `inputs.destination_workbook`: the worksheet, the date system, the file's SHA-256, the counts of the cells by how they were read, and the canonical form `flowassert-xlsx-csv-1`, whose SHA-256 is the side's digest. Cases: `golden-xlsx/xlsx-verified`, `golden-xlsx/xlsx-both-workbooks-scope-exact`, `golden-xlsx/xlsx-destination-workbook-source-encoding`.
+- **R16.10** Identical content MUST compare the sides' digests: a worksheet and a CSV file holding the same rows are identical content. Cases: `golden-xlsx/xlsx-identical-content-refused`, `golden-xlsx/xlsx-identical-content-allowed`.
+- **R16.11** The summary MUST say, for each side read from a workbook, which worksheet was read and that cells were read as stored, not as displayed, with the counts of the cells a spreadsheet may display otherwise and of the hidden rows, hidden columns and merged ranges. Cases: `golden-xlsx/xlsx-cell-forms`, `golden-xlsx/xlsx-unverified`.
+- **R16.12** The same rows MUST give the same records, rule results, counts, cohort state and exit status whether a worksheet or a CSV file holds them (R14.1). Cases: `golden-xlsx/xlsx-mismatch`, `golden-xlsx/xlsx-config-rules`, `golden-xlsx/xlsx-redacted`.

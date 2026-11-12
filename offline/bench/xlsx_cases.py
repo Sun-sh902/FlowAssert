@@ -87,8 +87,9 @@ FORM_ROWS = [
     ["boolean-false", Cell(t="b", v="0"), "FALSE"],
     ["iso-date", Cell(t="d", v="2025-11-12T09:30:00Z"), "2025-11-12T09:30:00Z"],
     ["formula-number", Cell(f="SUM(1,2)", v="3"), "3"],
-    ["escape-cr", "a_x000D_b", "a\rb"],
-    ["escape-underscore", "_x005F_x0041_", "_x0041_"],
+    # The writer stores a carriage return as _x000D_, and a text like _x0041_ as _x005F_x0041_, as Excel does.
+    ["escape-cr", "a\rb", "a\rb"],
+    ["escape-underscore", "_x0041_", "_x0041_"],
     ["spaces", "  kept  ", "  kept  "],
     ["line-break", "two\nlines", "two\nlines"],
     ["cjk", "名字", "名字"],
@@ -192,6 +193,9 @@ def long_cell():
     return book([["external_id", "phone", "email"], ["SYN-001", "x" * 131073, "ada@example.test"]])
 
 
+PAGE_CONFIG = ('{\n  "key": [\n    "external_id",\n    "external_id"\n  ],\n  "fields": [\n    {\n      "source": "phone",\n'
+               '      "destination": "phone",\n      "rule": "exact"\n    },\n    {\n      "source": "email",\n'
+               '      "destination": "hs_email",\n      "rule": "exact"\n    }\n  ],\n  "scope": "source"\n}\n').encode()
 OLE_FILE = bytes([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]) + bytes(504)
 ONLY_DESTINATION_ROWS = DESTINATION_ROWS + [["SYN-099", "+1 212 555 0199", "extra@example.test"]]
 
@@ -231,6 +235,12 @@ XLSX_CASES = {
                                           b'"destination": "phone", "rule": "digits"}], "scope": "exact"}\n'},
                           ["--source", "source.xlsx", "--source-format", "xlsx", "--destination", "destination.csv",
                            "--config", "config.json"] + COMPLETE),
+    # As the browser page and the packaged checker run a check: a --config file, the CSV file's encoding stated.
+    "xlsx-as-the-page-runs-it": ({"source.xlsx": book(EXAMPLE_ROWS), "destination.csv": csv(DESTINATION_ROWS),
+                                  "config.json": PAGE_CONFIG},
+                                 ["--source", "source.xlsx", "--source-format", "xlsx", "--destination",
+                                  "destination.csv", "--config", "config.json", "--destination-encoding", "utf-8"]
+                                 + COMPLETE),
     # Refusals of the options.
     "xlsx-refused-format-name": source_case(book(EXAMPLE_ROWS), EXAMPLE_ARGS + ["--destination-format", "xls"]),
     "xlsx-refused-worksheet-without-format": ({}, ["--source", "source.csv", "--destination", "destination.csv",

@@ -19,8 +19,8 @@ import schemas  # noqa: E402
 SPEC = (ROOT / 'docs/spec/verification.md').read_text(encoding='utf-8')
 VALIDATOR_CASES = json.loads((ROOT / 'offline/bench/json_schema_cases.json').read_text(encoding='utf-8'))
 CASE_ROOTS = {'golden': ROOT / 'offline/golden', 'golden-sheets': ROOT / 'offline/golden-sheets',
-              'golden-hubspot': ROOT / 'offline/golden-hubspot'}
-CITED = re.compile(r'`((?:golden|golden-sheets|golden-hubspot|conformance)/[A-Za-z0-9._-]+)`')
+              'golden-hubspot': ROOT / 'offline/golden-hubspot', 'golden-xlsx': ROOT / 'offline/golden-xlsx'}
+CITED = re.compile(r'`((?:golden|golden-sheets|golden-hubspot|golden-xlsx|conformance)/[A-Za-z0-9._-]+)`')
 REQUIREMENTS = [line for line in SPEC.splitlines() if re.match(r'- \*\*R\d+\.\d+\*\*', line)]
 
 
@@ -55,7 +55,8 @@ def test_a_requirement_with_must_cites_a_golden_case_that_exists(line):
 
 
 def test_every_case_the_specification_names_exists():
-    cited = set(CITED.findall(SPEC)) - {'golden/NAME', 'golden-sheets/NAME', 'golden-hubspot/NAME', 'conformance/NAME'}
+    cited = set(CITED.findall(SPEC)) - {'golden/NAME', 'golden-sheets/NAME', 'golden-hubspot/NAME', 'golden-xlsx/NAME',
+                                        'conformance/NAME'}
     assert len(cited) > 80
     assert sorted(c for c in cited if not _exists(c)) == []
 

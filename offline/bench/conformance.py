@@ -41,6 +41,8 @@ sys.path.insert(0, str(ROOT / "offline"))
 import json_schema  # noqa: E402
 
 GOLDEN = ROOT / "offline" / "golden"
+# The cases of workbooks (1.1.0): files only, run like the cases of offline/golden/.
+GOLDEN_XLSX = ROOT / "offline" / "golden-xlsx"
 CASES = ROOT / "offline" / "conformance"
 SCHEMAS = ROOT / "docs" / "schema"
 OUTPUTS = ("exit_status.txt", "stdout.txt", "stderr.txt", "report.json", "report.html")
@@ -202,6 +204,9 @@ def collect(options):
     if not options.no_golden:
         for folder in sorted(GOLDEN.iterdir()):
             runs.append((f"golden/{folder.name}", lambda f=folder: golden_case(f, command, options)))
+        if GOLDEN_XLSX.is_dir():
+            for folder in sorted(GOLDEN_XLSX.iterdir()):
+                runs.append((f"golden-xlsx/{folder.name}", lambda f=folder: golden_case(f, command, options)))
         if options.connectors:
             for root, kind in connector_folders():
                 for folder in sorted(root.iterdir()):

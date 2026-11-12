@@ -14,6 +14,7 @@ A row is a list of cells. A cell is:
   Cell(...)                anything else: a type, a stored value, a style, a formula, an inline string, a reference
 """
 import io
+import re
 import struct
 import zipfile
 import zlib
@@ -55,6 +56,18 @@ class Sheet:
     chart: bool = False             # a chart sheet instead of a worksheet
 
 
+_ESCAPED = re.compile("_x[0-9A-Fa-f]{4}_")
+_CONTROL = re.compile("[\x00-\x08\x0b-\x1f\ufffe\uffff]")
+
+
+def text_xml(text):
+    """A cell's text as a writer puts it in XML: an existing _xHHHH_ kept by escaping its underscore, a carriage return
+    and every character XML cannot hold written _xHHHH_, as Excel writes them, then the XML escapes."""
+    text = _ESCAPED.sub(lambda m: "_x005F" + m.group(0), text)
+    text = _CONTROL.sub(lambda m: f"_x{ord(m.group(0)):04X}_", text)
+    return escape(text)
+
+
 def column_letters(number):
     letters = ""
     while number:
@@ -85,8 +98,8 @@ def _cell(ref, value, strings, index, book):
             ref = value.ref
         attrs = (f' r="{ref}"' if ref else "") + (f' s="{value.s}"' if value.s is not None else "")
         if value.inline is not None:
-            runs = "".join(f"<r><t xml:space=\"preserve\">{escape(r)}</t></r>" if book.rich else
-                           f"<t xml:space=\"preserve\">{escape(r)}</t>" for r in value.inline)
+            runs = "".join(f"<r><t xml:space=\"preserve\">{text_xml(r)}</t></r>" if book.rich else
+                           f"<t xml:space=\"preserve\">{text_xml(r)}</t>" for r in value.inline)
             return f'<c{attrs} t="inlineStr"><is>{runs}</is></c>'
         attrs += f' t="{value.t}"' if value.t is not None else ""
         body = (f"<f>{escape(value.f)}</f>" if value.f is not None else "") + (
@@ -98,7 +111,7 @@ def _cell(ref, value, strings, index, book):
     if isinstance(value, (int, float)):
         return f"<c{r}><v>{value!r}</v></c>"
     if book.inline_strings:
-        return f'<c{r} t="inlineStr"><is><t xml:space="preserve">{escape(value)}</t></is></c>'
+        return f'<c{r} t="inlineStr"><is><t xml:space="preserve">{text_xml(value)}</t></is></c>'
     if value not in index:
         index[value] = len(strings)
         strings.append(value)
@@ -179,8 +192,8 @@ def parts(book):
     for i, (sheet, text) in enumerate(zip(book.sheets, sheet_parts), start=1):
         result[f"xl/{'chartsheets' if sheet.chart else 'worksheets'}/sheet{i}.xml"] = text
     if strings or not book.inline_strings:
-        items = "".join((f'<si><r><t xml:space="preserve">{escape(s)}</t></r></si>' if book.rich else
-                         f'<si><t xml:space="preserve">{escape(s)}</t></si>') for s in strings)
+        items = "".join((f'<si><r><t xml:space="preserve">{text_xml(s)}</t></r></si>' if book.rich else
+                         f'<si><t xml:space="preserve">{text_xml(s)}</t></si>') for s in strings)
         result["xl/sharedStrings.xml"] = (DECLARATION + f'<sst xmlns="{M}" count="{len(strings)}" '
                                           f'uniqueCount="{len(strings)}">{items}</sst>')
     out = {k: v.encode("utf-8") for k, v in result.items()}

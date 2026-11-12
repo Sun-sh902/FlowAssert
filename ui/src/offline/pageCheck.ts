@@ -6,8 +6,10 @@
  *       [--allow-identical-content]
  *
  * with every premise's origin "browser form". C is the configuration file the user loaded, unchanged, or the
- * canonical bytes of the configuration chosen in the page (canonicalConfig). The page always states both encodings
- * and a scope, so a report from the page always has inputs.source_encoding, obligation.rules and obligation.scope.
+ * canonical bytes of the configuration chosen in the page (canonicalConfig). The page always states the encoding of a
+ * CSV file and a scope, so a report from the page always has obligation.rules and obligation.scope, and the encodings
+ * of its CSV files. A side read from a workbook (1.1.0) is given as --source-format xlsx [--source-worksheet NAME]
+ * in place of its encoding, which a workbook does not have.
  * The packaged checker (api.ts) runs this same check with an origin of its own.
  */
 import { canonicalConfig, check, type CheckOutcome, type InputFile } from "./check";
@@ -26,6 +28,11 @@ export interface PageCheckInput {
   destination: InputFile;
   sourceEncoding: Encoding;
   destinationEncoding: Encoding;
+  /** A side read from an .xlsx workbook, and its worksheet when the workbook has several. Its encoding is not given. */
+  sourceFormat?: "csv" | "xlsx";
+  destinationFormat?: "csv" | "xlsx";
+  sourceWorksheet?: string;
+  destinationWorksheet?: string;
   /** The configuration file the user loaded and did not change since, or the choices made in the page. */
   config: { loaded: InputFile } | { chosen: ChosenConfig };
   sourceComplete: boolean;
@@ -54,8 +61,10 @@ export function pageCheck(input: PageCheckInput): Promise<CheckOutcome> {
     source: input.source,
     destination: input.destination,
     config: "loaded" in input.config ? input.config.loaded : chosenConfigFile(input.config.chosen),
-    sourceEncoding: input.sourceEncoding,
-    destinationEncoding: input.destinationEncoding,
+    sourceEncoding: input.sourceFormat === "xlsx" ? undefined : input.sourceEncoding,
+    destinationEncoding: input.destinationFormat === "xlsx" ? undefined : input.destinationEncoding,
+    ...(input.sourceFormat === "xlsx" ? { sourceFormat: "xlsx", sourceWorksheet: input.sourceWorksheet } : {}),
+    ...(input.destinationFormat === "xlsx" ? { destinationFormat: "xlsx", destinationWorksheet: input.destinationWorksheet } : {}),
     sourceComplete: input.sourceComplete,
     destinationComplete: input.destinationComplete,
     sourceCount: input.sourceCount ?? undefined,

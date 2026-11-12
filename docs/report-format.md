@@ -16,9 +16,9 @@ The report never claims more than its evidence. A member that FlowAssert could n
 
 `schema_version` is the first member. It changes when a member is removed or renamed, or when the meaning of a value changes. New members can be added without a change, so a reader should ignore members it does not know.
 
-From 1.0.0 the format is frozen: a released `schema_version` is never changed, and [Compatibility in 1.x](compatibility.md) says what a later release may add and what a reader must do with a version it does not know. Each version has a JSON Schema (draft 2020-12) in [docs/schema/](schema/), `report-v1.schema.json`, `report-v2.schema.json` and `report-v3.schema.json`; every golden report is validated against its schema in the tests. [The specification](spec/verification.md) says how each value comes about.
+From 1.0.0 the format is frozen: a released `schema_version` is never changed, and [Compatibility in 1.x](compatibility.md) says what a later release may add and what a reader must do with a version it does not know. Each version has a JSON Schema (draft 2020-12) in [docs/schema/](schema/), `report-v1.schema.json`, `report-v2.schema.json`, `report-v3.schema.json` and `report-v4.schema.json`; every golden report is validated against its schema in the tests. [The specification](spec/verification.md) says how each value comes about.
 
-A report whose source is a Google Sheets range (`--source-sheet`, 0.7.0 and later) has `schema_version` 2, because three members of version 1 mean something else for it; every other report is version 1. A reader that knows only version 1 refuses a version 2 report, rather than show the sheet's rows as a file. A report whose destination was read from HubSpot (`--destination-hubspot`, 1.0.0 and later) has `schema_version` 3, for the same reason on the destination side; a reader that knows only versions 1 and 2 refuses it.
+A report whose source is a Google Sheets range (`--source-sheet`, 0.7.0 and later) has `schema_version` 2, because three members of version 1 mean something else for it; every other report is version 1. A reader that knows only version 1 refuses a version 2 report, rather than show the sheet's rows as a file. A report whose destination was read from HubSpot (`--destination-hubspot`, 1.0.0 and later) has `schema_version` 3, for the same reason on the destination side; a reader that knows only versions 1 and 2 refuses it. A report in which either side was read from an .xlsx workbook (`--source-format xlsx` or `--destination-format xlsx`, 1.1.0 and later) has `schema_version` 4 ([A report with a side read from an .xlsx workbook](#a-report-with-a-side-read-from-an-xlsx-workbook)); a reader that knows only versions 1 to 3 refuses it.
 
 Reports from FlowAssert 0.1.x have no `schema_version`. They have the same members as a 0.2.0 report run with `--details all`, except `schema_version`, `details` and `premises`, and their `claim` text is shorter.
 
@@ -32,6 +32,7 @@ Reports from FlowAssert 0.1.x have no `schema_version`. They have the same membe
 | `inputs.source_encoding`, `inputs.destination_encoding` | `--source-encoding` or `--destination-encoding` was passed. Both are recorded; with a sheet source, only `destination_encoding` |
 | `inputs.source_sheet` | The source is a Google Sheets range (`--source-sheet`); `schema_version` is then 2, or 3 with a HubSpot destination |
 | `inputs.destination_hubspot` | The destination was read from HubSpot (`--destination-hubspot`); `schema_version` is then 3 |
+| `inputs.source_workbook`, `inputs.destination_workbook` | That side was read from an .xlsx workbook (`--source-format xlsx`, `--destination-format xlsx`); `schema_version` is then 4 |
 | `obligation.rules` | `--config` was used |
 | `obligation.scope` | `--scope` was passed, or the configuration file has `scope` |
 | `premises.allow_identical_content` | `--allow-identical-content` was passed |
@@ -45,7 +46,7 @@ Reports from FlowAssert 0.1.x have no `schema_version`. They have the same membe
 
 | Member | Type | Meaning |
 | --- | --- | --- |
-| `schema_version` | integer | `1`, or `2` for a report whose source is a Google Sheets range |
+| `schema_version` | integer | `1`, or `2` for a report whose source is a Google Sheets range, `3` for one whose destination was read from HubSpot, `4` for one with a side read from an .xlsx workbook |
 | `cohort_state` | string | The batch result: `Verified`, `Mismatch` or `Unverified`. The exit status follows it: 0, 1, 3 |
 | `claim` | string or null | When `cohort_state` is `Verified`: "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows." Otherwise `null` |
 | `counts` | object | Number of records in each state (see below) |
@@ -236,6 +237,42 @@ The report never records the token, the portal (account) ID, the account's name 
 ### The canonical form `flowassert-hubspot-csv-1`
 
 The same text as `flowassert-sheet-csv-1`: UTF-8 without a byte order mark; the requested property names as the header, then one row per record in the order listed, a property that is `null` written as an empty cell, each row followed by a line feed (also the last); a cell in double quotes, with each `"` doubled, when it contains `,`, `"`, a carriage return or a line feed, or when it is the only cell of its row and is empty. `flowassert-verify --destination` reads it as exactly the records HubSpot listed.
+
+## A report with a side read from an .xlsx workbook
+
+From 1.1.0, `--source-format xlsx` and `--destination-format xlsx` read a side from one worksheet of an .xlsx workbook ([the design note](design/1.1-excel.md)). Its report has `schema_version` 4, and every member of version 1 with the same meaning, except, for each side read from a workbook:
+
+| Member | In version 4 |
+| --- | --- |
+| `inputs.source_sha256`, `inputs.destination_sha256` | SHA-256 of the canonical form of the worksheet's rows (`flowassert-xlsx-csv-1`), not of the file's bytes, which are in `file_sha256` below |
+| `source_rows_observed`, `premises.*_count.observed` | The worksheet's data rows: the rows after row 1 with at least one non-empty cell |
+| `inputs.source_encoding`, `inputs.destination_encoding` | Never present for a workbook side; the other side's is present alone when it was stated |
+| `inputs.identical_content` | Whether the two sides' digests are equal, so a worksheet and a CSV file holding the same rows are identical content |
+| `inputs.source_workbook`, `inputs.destination_workbook` | What was read, below. Present for each workbook side |
+| `inputs.source_sheet`, `inputs.destination_hubspot` | Present when that side was read by a connector, with their version 2 and 3 meanings |
+
+### `inputs.source_workbook` and `inputs.destination_workbook`
+
+| Member | Meaning |
+| --- | --- |
+| `format` | Always `xlsx` |
+| `worksheet` | The worksheet's name, as the workbook spells it |
+| `worksheet_state` | `visible`, `hidden` or `veryHidden` |
+| `sheets` | The number of sheets the workbook lists |
+| `date_system` | `1900` or `1904`: how the workbook counts the days of a date |
+| `file_sha256`, `file_bytes` | SHA-256 and size of the file's bytes |
+| `inflated_bytes` | The bytes inflated from the parts read; with the file's size, within `--max-bytes` |
+| `columns`, `rows` | The header's width, and the data rows |
+| `cells` | Data cells by how they were read: `text`, `number`, `percentage`, `date_time`, `duration`, `boolean`, and `formula`, those among them that are a formula's value as the file was last saved |
+| `hidden_rows`, `hidden_columns`, `merged_ranges` | Data rows and header columns marked hidden, and merged ranges: read like any other cell, and counted because a spreadsheet shows them otherwise |
+| `values` | Always `stored`: each cell was read as the file stores it, not as a spreadsheet displays it |
+| `canonical_form` | Always `flowassert-xlsx-csv-1` |
+
+A spreadsheet displays a cell through its number format; FlowAssert reads what is stored. A number with a format is read as the number (`1,234.50` as `1234.5`), a percentage as its fraction (`12.5%` as `0.125`), a date or a time in ISO 8601 (`2025-11-12`, `2025-11-12T12:00:00`) whatever its format, a boolean as `TRUE` or `FALSE`, and a formula as the value last saved. The design note defines the text of every cell type and format; a cell whose text it does not define, such as `#N/A`, is refused. `--redact-values` leaves these members in place: a worksheet's name is not a value.
+
+### The canonical form `flowassert-xlsx-csv-1`
+
+The same text as `flowassert-sheet-csv-1`: UTF-8 without a byte order mark; row 1 as the header, then every data row padded with empty strings to the header's width, each followed by a line feed (also the last); a cell in double quotes, with each `"` doubled, when it contains `,`, `"`, a carriage return or a line feed, or when it is the only cell of its row and is empty. `flowassert-verify --source` reads it as exactly the rows the worksheet gave.
 
 ## HTML report
 

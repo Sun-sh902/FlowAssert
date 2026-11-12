@@ -1,0 +1,130 @@
+{
+ "exceljs-4.4.0.xlsx": {
+  "worksheet": "Contacts",
+  "rows": [
+   [
+    "external_id",
+    "name",
+    "amount",
+    "joined",
+    "rate",
+    "active",
+    "total"
+   ],
+   [
+    "SYN-101",
+    "Synthetic One",
+    "1234.5",
+    "2025-11-12",
+    "0.125",
+    "TRUE",
+    "2469"
+   ],
+   [
+    "SYN-102",
+    "Rich Two",
+    "7",
+    "2024-02-29",
+    "0.5",
+    "FALSE",
+    "14"
+   ],
+   [
+    "SYN-103",
+    "名字 Zoë 😀",
+    "0.1",
+    "1999-12-31T12:30:00",
+    "1",
+    "TRUE",
+    "0.2"
+   ]
+  ],
+  "cells": {
+   "text": 6,
+   "number": 6,
+   "percentage": 3,
+   "date_time": 3,
+   "duration": 0,
+   "boolean": 3,
+   "formula": 3
+  },
+  "hidden_rows": 1,
+  "merged_ranges": 1,
+  "date_system": "1900",
+  "worksheet_state": "visible",
+  "sheets": 3
+ },
+ "exceljs-4.4.0.xlsx#Archive": {
+  "worksheet": "Archive",
+  "rows": [
+   [
+    "external_id"
+   ],
+   [
+    "SYN-999"
+   ]
+  ],
+  "worksheet_state": "hidden",
+  "sheets": 3
+ },
+ "sheetjs-0.18.5-1904.xlsx": {
+  "worksheet": null,
+  "rows": [
+   [
+    "external_id",
+    "phone",
+    "count",
+    "when",
+    "ok"
+   ],
+   [
+    "SYN-201",
+    "+1 212 555 0201",
+    "42",
+    "2029-11-13T00:00:00",
+    "TRUE"
+   ],
+   [
+    "SYN-202",
+    "+1 212 555 0202",
+    "-3.75",
+    "2029-11-13T06:00:00",
+    "FALSE"
+   ],
+   [
+    "SYN-203",
+    "",
+    "1e+21",
+    "1904-01-01T00:00:00",
+    "TRUE"
+   ]
+  ],
+  "cells": {
+   "text": 5,
+   "number": 3,
+   "percentage": 0,
+   "date_time": 3,
+   "duration": 0,
+   "boolean": 3,
+   "formula": 0
+  },
+  "date_system": "1904"
+ },
+ "sheetjs-0.18.5-inline.xlsx": {
+  "worksheet": null,
+  "rows": [
+   [
+    "id",
+    "note"
+   ],
+   [
+    "SYN-301",
+    "line one\nline two"
+   ],
+   [
+    "SYN-302",
+    " spaced "
+   ]
+  ]
+ }
+}

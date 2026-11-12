@@ -16,9 +16,9 @@
 
 `schema_version` 是第一个成员。成员被删除或改名，或者某个值的含义改变时，它就会改变。新增成员不改变版本，所以读取方应忽略它不认识的成员。
 
-从 1.0.0 起，格式已经冻结：发布过的 `schema_version` 不再改动。[1.x 的兼容性](compatibility.zh-CN.md)说明以后的版本可以新增什么，以及读取方遇到不认识的版本时必须怎么做。每个版本都有一份 JSON Schema（draft 2020-12），放在 [docs/schema/](schema/)：`report-v1.schema.json`、`report-v2.schema.json` 和 `report-v3.schema.json`；测试会用对应的 Schema 校验每份核对样例的报告。[规范](spec/verification.zh-CN.md)说明每个值是怎样得出的。
+从 1.0.0 起，格式已经冻结：发布过的 `schema_version` 不再改动。[1.x 的兼容性](compatibility.zh-CN.md)说明以后的版本可以新增什么，以及读取方遇到不认识的版本时必须怎么做。每个版本都有一份 JSON Schema（draft 2020-12），放在 [docs/schema/](schema/)：`report-v1.schema.json`、`report-v2.schema.json`、`report-v3.schema.json` 和 `report-v4.schema.json`；测试会用对应的 Schema 校验每份核对样例的报告。[规范](spec/verification.zh-CN.md)说明每个值是怎样得出的。
 
-来源是 Google 表格范围的报告（`--source-sheet`，0.7.0 及以后）的 `schema_version` 是 2，因为对它来说，版本 1 中有三个成员的含义不同；其他所有报告都是版本 1。只认识版本 1 的读取方会拒绝版本 2 的报告，而不是把表格中的行当作文件显示。目标从 HubSpot 读取的报告（`--destination-hubspot`，1.0.0 及以后）的 `schema_version` 是 3，原因相同，只是发生在目标一侧；只认识版本 1 和 2 的读取方会拒绝它。
+来源是 Google 表格范围的报告（`--source-sheet`，0.7.0 及以后）的 `schema_version` 是 2，因为对它来说，版本 1 中有三个成员的含义不同；其他所有报告都是版本 1。只认识版本 1 的读取方会拒绝版本 2 的报告，而不是把表格中的行当作文件显示。目标从 HubSpot 读取的报告（`--destination-hubspot`，1.0.0 及以后）的 `schema_version` 是 3，原因相同，只是发生在目标一侧；只认识版本 1 和 2 的读取方会拒绝它。有一侧从 .xlsx 工作簿读取的报告（`--source-format xlsx` 或 `--destination-format xlsx`，1.1.0 及以后）的 `schema_version` 是 4（[有一侧从 .xlsx 工作簿读取的报告](#有一侧从-xlsx-工作簿读取的报告)）；只认识版本 1 到 3 的读取方会拒绝它。
 
 FlowAssert 0.1.x 写出的报告没有 `schema_version`。它们的成员和 0.2.0 用 `--details all` 运行时的报告相同，只是没有 `schema_version`、`details` 和 `premises`，`claim` 的文字也更短。
 
@@ -32,6 +32,7 @@ FlowAssert 0.1.x 写出的报告没有 `schema_version`。它们的成员和 0.2
 | `inputs.source_encoding`、`inputs.destination_encoding` | 使用了 `--source-encoding` 或 `--destination-encoding`。两者都会记录；来源是表格时，只记录 `destination_encoding` |
 | `inputs.source_sheet` | 来源是 Google 表格范围（`--source-sheet`）；这时 `schema_version` 是 2，目标为 HubSpot 时是 3 |
 | `inputs.destination_hubspot` | 目标从 HubSpot 读取（`--destination-hubspot`）；这时 `schema_version` 是 3 |
+| `inputs.source_workbook`、`inputs.destination_workbook` | 这一侧从 .xlsx 工作簿读取（`--source-format xlsx`、`--destination-format xlsx`）；这时 `schema_version` 是 4 |
 | `obligation.rules` | 使用了 `--config` |
 | `obligation.scope` | 使用了 `--scope`，或者配置文件中有 `scope` |
 | `premises.allow_identical_content` | 使用了 `--allow-identical-content` |
@@ -45,7 +46,7 @@ FlowAssert 0.1.x 写出的报告没有 `schema_version`。它们的成员和 0.2
 
 | 成员 | 类型 | 含义 |
 | --- | --- | --- |
-| `schema_version` | 整数 | `1`；来源是 Google 表格范围的报告为 `2` |
+| `schema_version` | 整数 | `1`；来源是 Google 表格范围的报告为 `2`；目标从 HubSpot 读取的为 `3`；有一侧从 .xlsx 工作簿读取的为 `4` |
 | `cohort_state` | 字符串 | 批次结果：`Verified`、`Mismatch` 或 `Unverified`。退出码随之而定：0、1、3 |
 | `claim` | 字符串或 null | `cohort_state` 为 `Verified` 时是“At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.”，否则为 `null` |
 | `counts` | 对象 | 每种状态的记录数（见下） |
@@ -236,6 +237,42 @@ UTF-8，没有字节顺序标记。先是表头，然后是每个数据行，用
 ### 规范形式 `flowassert-hubspot-csv-1`
 
 与 `flowassert-sheet-csv-1` 是同样的文本：UTF-8，没有字节顺序标记；所请求的属性名作为表头，然后按列出的顺序每条记录一行，值为 `null` 的属性写成空单元格，每行后面跟一个换行符（最后一行也是）；单元格包含 `,`、`"`、回车或换行时，或者它是所在行唯一的单元格并且为空时，写在双引号中，其中每个 `"` 写两次。`flowassert-verify --destination` 读这份文本，得到的正是 HubSpot 列出的那些记录。
+
+## 有一侧从 .xlsx 工作簿读取的报告
+
+从 1.1.0 起，`--source-format xlsx` 和 `--destination-format xlsx` 从 .xlsx 工作簿的一个工作表读取一侧（[设计说明](design/1.1-excel.zh-CN.md)）。这样的报告 `schema_version` 是 4，含有版本 1 的全部成员，含义相同；只是对每个从工作簿读取的一侧：
+
+| 成员 | 在版本 4 中 |
+| --- | --- |
+| `inputs.source_sha256`、`inputs.destination_sha256` | 工作表各行的规范形式（`flowassert-xlsx-csv-1`）的 SHA-256，不是文件字节的；文件字节的摘要在下面的 `file_sha256` |
+| `source_rows_observed`、`premises.*_count.observed` | 工作表的数据行：第 1 行之后至少有一个非空单元格的行 |
+| `inputs.source_encoding`、`inputs.destination_encoding` | 工作簿一侧从不出现；另一侧的编码只在声明过时单独出现 |
+| `inputs.identical_content` | 两侧摘要是否相同；所以放着同样行的工作表和 CSV 文件算内容完全相同 |
+| `inputs.source_workbook`、`inputs.destination_workbook` | 读取了什么，见下。每个工作簿一侧都有 |
+| `inputs.source_sheet`、`inputs.destination_hubspot` | 那一侧由连接器读取时出现，含义与版本 2 和 3 相同 |
+
+### `inputs.source_workbook` 和 `inputs.destination_workbook`
+
+| 成员 | 含义 |
+| --- | --- |
+| `format` | 总是 `xlsx` |
+| `worksheet` | 工作表的名称，与工作簿里的写法相同 |
+| `worksheet_state` | `visible`、`hidden` 或 `veryHidden` |
+| `sheets` | 工作簿列出的工作表数 |
+| `date_system` | `1900` 或 `1904`：工作簿计算日期天数的方式 |
+| `file_sha256`、`file_bytes` | 文件字节的 SHA-256 和大小 |
+| `inflated_bytes` | 所读各部分解压后的字节数；和文件大小一起受 `--max-bytes` 限制 |
+| `columns`、`rows` | 表头的宽度和数据行数 |
+| `cells` | 按读取方式分类的数据单元格数：`text`、`number`、`percentage`、`date_time`、`duration`、`boolean`，以及 `formula`：其中取公式在文件最后保存时的结果的单元格 |
+| `hidden_rows`、`hidden_columns`、`merged_ranges` | 标为隐藏的数据行和表头列，以及合并区域：它们和其他单元格一样读取，计数是因为电子表格显示它们的方式不同 |
+| `values` | 总是 `stored`：每个单元格按文件存储的值读取，不按电子表格显示的样子 |
+| `canonical_form` | 总是 `flowassert-xlsx-csv-1` |
+
+电子表格按数字格式显示单元格，FlowAssert 读的是存储的值。带格式的数字读作数字本身（`1,234.50` 读作 `1234.5`），百分比读作小数（`12.5%` 读作 `0.125`），日期和时间不论格式都读作 ISO 8601（`2025-11-12`、`2025-11-12T12:00:00`），逻辑值读作 `TRUE` 或 `FALSE`，公式读作最后保存的结果。设计说明规定了每种单元格类型和格式的文本；没有规定文本的单元格（例如 `#N/A`）会被拒绝。`--redact-values` 不去掉这些成员：工作表名称不是值。
+
+### 规范形式 `flowassert-xlsx-csv-1`
+
+与 `flowassert-sheet-csv-1` 的文本相同：UTF-8，没有字节顺序标记；第 1 行是表头，之后每个数据行用空字符串补齐到表头的宽度，每行后面一个换行符（最后一行也有）；单元格含有 `,`、`"`、回车或换行，或者是所在行唯一且为空的单元格时，写在双引号里，其中的每个 `"` 写两次。`flowassert-verify --source` 读取它，得到的正是工作表给出的那些行。
 
 ## HTML 报告
 

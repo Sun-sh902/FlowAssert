@@ -43,7 +43,7 @@ describe("the schema validator of the tests", () => {
 
 function reports(): [string, Json][] {
   const found: [string, Json][] = [];
-  for (const kind of ["golden", "golden-sheets", "golden-hubspot"]) {
+  for (const kind of ["golden", "golden-sheets", "golden-hubspot", "golden-xlsx"]) {
     const root = join(REPO_ROOT, "offline", kind);
     if (!existsSync(root)) continue;
     for (const name of readdirSync(root).sort(compareCodePoints)) {

@@ -19,12 +19,13 @@
 - [13. 退出码](#13-退出码)
 - [14. 由连接器读取的行](#14-由连接器读取的行)
 - [15. 本规范没有定死的地方](#15-本规范没有定死的地方)
+- [16. .xlsx 工作簿的一个工作表](#16-xlsx-工作簿的一个工作表)
 
 ## 1. 约定
 
 “必须”“不得”“应当”“不应”“可以”分别对应 RFC 2119 和 RFC 8174 里的 MUST、MUST NOT、SHOULD、SHOULD NOT、MAY，只有加粗时才有这层含义。
 
-每条要求都有编号。带**必须**或**不得**的要求，至少列出一个检验它的核对样例。样例写成它所在的文件夹：`golden/NAME` 指 `offline/golden/NAME`，`golden-sheets/NAME` 指 `offline/golden-sheets/NAME`，`golden-hubspot/NAME` 指 `offline/golden-hubspot/NAME`，`conformance/NAME` 指 `offline/conformance/NAME.json`。[一致性](../conformance.zh-CN.md)说明一个实现怎样运行这些样例。如果某条要求没有列出样例，或者列出的样例不存在，测试（`scripts/dev/tests/test_spec.py`）就会失败。
+每条要求都有编号。带**必须**或**不得**的要求，至少列出一个检验它的核对样例。样例写成它所在的文件夹：`golden/NAME` 指 `offline/golden/NAME`，`golden-sheets/NAME` 指 `offline/golden-sheets/NAME`，`golden-hubspot/NAME` 指 `offline/golden-hubspot/NAME`，`golden-xlsx/NAME` 指 `offline/golden-xlsx/NAME`，`conformance/NAME` 指 `offline/conformance/NAME.json`。[一致性](../conformance.zh-CN.md)说明一个实现怎样运行这些样例。如果某条要求没有列出样例，或者列出的样例不存在，测试（`scripts/dev/tests/test_spec.py`）就会失败。
 
 参考实现是 `offline/flowassert_offline/`，运行在 CPython 上。本文和参考实现不一致时，说明其中一方有缺陷，需要报告并解决；任何一方都不会默认为准。
 
@@ -145,7 +146,7 @@
 
 报告是一个 JSON 对象。[报告格式](../report-format.zh-CN.md)说明每个成员，[JSON Schema](../schema/) 按每个 `schema_version` 定义它们。
 
-- **R10.1** 报告**必须**以 `schema_version` 开头，写入方**必须**使用报告所符合的那个版本：两个文件是 1，来源从 Google Sheets 读取是 2，目标从 HubSpot 读取是 3。样例：`golden/example`、`golden-sheets/sheet-verified`、`golden-hubspot/hubspot-verified`。
+- **R10.1** 报告**必须**以 `schema_version` 开头，写入方**必须**使用报告所符合的那个版本：两个文件是 1，来源从 Google Sheets 读取是 2，目标从 HubSpot 读取是 3，任何一侧从 .xlsx 工作簿读取是 4（[第 16 节](#16-xlsx-工作簿的一个工作表)）。样例：`golden/example`、`golden-sheets/sheet-verified`、`golden-hubspot/hubspot-verified`、`golden-xlsx/xlsx-verified`。
 - **R10.2** `records` 里**必须**每个来源行有一条记录，按文件顺序排列，`source_row` 从 0 开始。样例：`golden/example`、`golden/duplicate-source-key`。
 - **R10.3** 明细级别是 `problems`（默认）时，已验证的记录**必须**只有 `key`、`source_row` 和 `state`；是 `all` 时，每条记录都有全部成员。明细级别**不得**改变任何状态、计数或摘要。样例：`golden/example`、`golden/example-details-all`。
 - **R10.4** 使用 `--redact-values` 时，每条记录的键和每个只在目标中的键都**必须**是 `[redacted]`，字段结果里没有 `expected`、`actual`、`expected_normalized` 和 `actual_normalized`；状态、原因和计数不变。样例：`golden/example-redacted`、`golden/rules-redacted`、`golden/scope-exact-cli`、`golden/unsafe-values-details-all`。
@@ -169,6 +170,7 @@
 | `STATE: N rows of TOTAL` | 始终；`TOTAL` 是 `expected_total` 或 `unknown total` |
 | `Verified A · Mismatch B · Unverified C` | 始终 |
 | 连接器的行（[第 14 节](#14-由连接器读取的行)） | 来源或目标由连接器读取 |
+| 工作簿的行（[第 16 节](#16-xlsx-工作簿的一个工作表)） | 任何一侧从 .xlsx 工作簿读取 |
 | `Source and destination files were identical (--allow-identical-content).` | 两份输入相同 |
 | `Source count stated S, file has N rows: the batch cannot be Verified.` | 声明的来源总数不同 |
 | `Destination count stated S, file has N rows: absence and uniqueness stay unknown.` | 声明的目标总数不同 |
@@ -217,6 +219,8 @@
 | `FILE: …` 加操作系统的信息 | 文件无法打开或读取 |
 | `source and destination have identical content, so the check would not be independent; pass --allow-identical-content if they really come from different systems` | R2.8，在两份输入都读完之后 |
 
+工作簿的拒绝信息列在[第 16 节](#16-xlsx-工作簿的一个工作表)，每一条的原文见 [Excel 设计说明](../design/1.1-excel.zh-CN.md#拒绝和上限)；其中针对选项的拒绝排在编码之后，按那里的顺序。
+
 - **R12.4** 表里的文字是格式的一部分：实现**必须**一字不差地给出。样例：`golden/refused-bad-count`、`golden/refused-config-premise`、`golden/refused-field-limit`、`golden/decode-utf16-no-bom`。
 
 ## 13. 退出码
@@ -262,3 +266,23 @@
 | **同一个文件给两次**：命令行按解析后的路径识别。浏览器看不到路径，两次选择的文件名、大小、修改时间和字节都相同时，视为同一个文件。 | 平台差异：两者都用同样的信息拒绝 |
 | **`--mapping`** 只有命令行提供。 | 浏览器和打包的核对函数始终按 `--config` 运行 |
 | **用法错误**（不存在的选项、没有 `--destination`）由参数解析器打印，以 2 退出。 | 它们的文字不属于格式 |
+| **读取期间发生变化的工作簿**：命令行比较读取前后的文件大小和修改时间，变化了就拒绝。浏览器里选定的文件不会变化。 | 平台差异 |
+| **既损坏又不是格式正确的 XML 的部分**：两个实现都按问题在解压后文本中的位置先后处理，只有一种情况例外：deflate 数据流在中途损坏时，Python 的 zlib 不会给出出错的那一块里的任何文本，浏览器的 `DecompressionStream` 可能给出一部分。 | 没有定死：两者都会拒绝，信息可能指向其中任何一个问题。没有核对样例同时有这两个问题 |
+| **`DecompressionStream`**：浏览器和打包的核对函数用平台自带的 `DecompressionStream("deflate-raw")` 解压工作簿的各部分；没有它的 JavaScript 平台会拒绝所有工作簿。 | 平台差异，用单独的信息拒绝 |
+
+## 16. .xlsx 工作簿的一个工作表
+
+从 1.1.0 起，任何一侧都可以是 .xlsx 工作簿里的一个工作表（`--source-format xlsx`、`--destination-format xlsx`）。[Excel 设计说明](../design/1.1-excel.zh-CN.md)是本规范中关于工作簿的部分：它规定每个单元格的文本、每一条拒绝信息的原文和每一个上限。
+
+- **R16.1** 只有格式选项写明 `xlsx` 时，**必须**把这一侧当作工作簿读取，**不得**根据文件名或内容判断。没有 `--source-format xlsx` 却给了 `--source-worksheet`，或者给工作簿指定编码，都会被拒绝。样例：`golden-xlsx/xlsx-verified`、`golden-xlsx/xlsx-refused-worksheet-without-format`、`golden-xlsx/xlsx-refused-encoding-with-workbook`、`golden-xlsx/xlsx-refused-format-name`。
+- **R16.2** 工作表**必须**是名称与给出的名称完全相同的那个；没有给名称时，工作簿**必须**恰好只有一个工作表，否则拒绝，并列出每个工作表的名称。不是普通工作表的会被拒绝。样例：`golden-xlsx/xlsx-hidden-sheet-by-name`、`golden-xlsx/xlsx-refused-several-sheets`、`golden-xlsx/xlsx-refused-no-such-worksheet`、`golden-xlsx/xlsx-refused-chart-sheet`。
+- **R16.3** 表头**必须**是第 1 行，从 A 列到它最后一个非空单元格；第 1 行为空时拒绝。样例：`golden-xlsx/xlsx-verified`、`golden-xlsx/xlsx-refused-row-1-empty`、`golden-xlsx/xlsx-refused-repeated-column`、`golden-xlsx/xlsx-refused-missing-column`。
+- **R16.4** 之后没有任何非空单元格的行**不得**算作记录；一行里省略的单元格是空的；表头最后一列右边的非空单元格、顺序不对的单元格或行、超出工作表范围的引用，都**必须**拒绝。样例：`golden-xlsx/xlsx-gaps-and-no-references`、`golden-xlsx/xlsx-refused-beyond-header`、`golden-xlsx/xlsx-refused-cell-out-of-order`、`golden-xlsx/xlsx-refused-row-out-of-order`、`golden-xlsx/xlsx-refused-huge-column`。
+- **R16.5** 每个单元格的文本**必须**是设计说明为各种单元格类型和数字格式规定的存储值写法，与地区设置无关：数字按 ECMAScript 的 `Number::toString` 写，日期和时间按工作簿的日期系统写成 ISO 8601，逻辑值写成 `TRUE` 或 `FALSE`，公式取保存的结果，转义字符先解开。样例：`golden-xlsx/xlsx-cell-forms`、`golden-xlsx/xlsx-date-1904`。
+- **R16.6** 设计说明没有规定文本的单元格**必须**拒绝：错误值、没有保存结果的公式、没有定义或不读取的数字格式、在日期系统里不是日期的序列号、未知的类型，以及与类型不符的值。样例：`golden-xlsx/xlsx-refused-error-value`、`golden-xlsx/xlsx-refused-formula-without-value`、`golden-xlsx/xlsx-refused-undefined-format`、`golden-xlsx/xlsx-refused-unread-format`、`golden-xlsx/xlsx-refused-date-60`、`golden-xlsx/xlsx-refused-unknown-type`、`golden-xlsx/xlsx-refused-not-a-number`。
+- **R16.7** 不是 FlowAssert 能确定读取的 .xlsx 工作簿的文件**必须**拒绝：OLE 复合文件（旧的 .xls 或设置了密码的工作簿）、不是 ZIP 压缩包的文件、损坏的压缩包、ZIP64 压缩包、重复或加密的条目、启用宏的、严格格式的或其他类型的工作簿、外部关系，以及不是 UTF-8、含有 `DOCTYPE` 或不是格式正确的 XML 的部分。样例：`golden-xlsx/xlsx-refused-ole`、`golden-xlsx/xlsx-refused-not-zip`、`golden-xlsx/xlsx-refused-crc`、`golden-xlsx/xlsx-refused-zip64`、`golden-xlsx/xlsx-refused-macro-enabled`、`golden-xlsx/xlsx-refused-strict`、`golden-xlsx/xlsx-refused-external`、`golden-xlsx/xlsx-refused-doctype`、`golden-xlsx/xlsx-refused-not-well-formed`、`golden-xlsx/xlsx-refused-not-utf8`。
+- **R16.8** `--max-bytes` 除了限制文件大小，还**必须**限制所读各部分解压后的总字节数，解压到上限就停止；`--max-rows` 计算数据行。样例：`golden-xlsx/xlsx-bomb-within-bounds`、`golden-xlsx/xlsx-refused-bomb-beyond-bounds`、`golden-xlsx/xlsx-max-rows-at-limit`、`golden-xlsx/xlsx-refused-max-rows`。
+- **R16.9** 报告**必须**是 `schema_version` 4，并为每个从工作簿读取的一侧记录 `inputs.source_workbook` 或 `inputs.destination_workbook`：工作表、日期系统、文件的 SHA-256、按读取方式分类的单元格数，以及规范形式 `flowassert-xlsx-csv-1`，它的 SHA-256 就是这一侧的摘要。样例：`golden-xlsx/xlsx-verified`、`golden-xlsx/xlsx-both-workbooks-scope-exact`、`golden-xlsx/xlsx-destination-workbook-source-encoding`。
+- **R16.10** 判断内容是否完全相同时**必须**比较两侧的摘要：放着同样行的工作表和 CSV 文件，内容完全相同。样例：`golden-xlsx/xlsx-identical-content-refused`、`golden-xlsx/xlsx-identical-content-allowed`。
+- **R16.11** 对每个从工作簿读取的一侧，摘要**必须**写明读的是哪个工作表、单元格按存储的值读取而不是按显示的样子，以及电子表格可能显示成别的样子的单元格数、隐藏的行和列数、合并区域数。样例：`golden-xlsx/xlsx-cell-forms`、`golden-xlsx/xlsx-unverified`。
+- **R16.12** 同样的行，不论放在工作表还是 CSV 文件里，都**必须**得到同样的记录、规则结果、计数、批次状态和退出码（R14.1）。样例：`golden-xlsx/xlsx-mismatch`、`golden-xlsx/xlsx-config-rules`、`golden-xlsx/xlsx-redacted`。

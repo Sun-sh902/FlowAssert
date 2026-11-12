@@ -11,7 +11,7 @@
    "src/test/contract-drift-runtime.test.ts": 3,
    "src/test/contract-drift.test.ts": 32,
    "src/test/detail.test.tsx": 15,
-   "src/test/english-texts.test.tsx": 405,
+   "src/test/english-texts.test.tsx": 406,
    "src/test/evidence-mode-switch-race.test.tsx": 92,
    "src/test/explorer.test.tsx": 12,
    "src/test/fix03.test.tsx": 21,
@@ -27,7 +27,7 @@
    "src/test/lookup-contract-drift.test.ts": 19,
    "src/test/lookup-detail.test.tsx": 10,
    "src/test/lookup-gate.test.ts": 102,
-   "src/test/markdown-links.test.ts": 136,
+   "src/test/markdown-links.test.ts": 139,
    "src/test/offline/api.test.ts": 100,
    "src/test/offline/bundle.test.ts": 64,
    "src/test/offline/chardiff.test.ts": 10,
@@ -37,7 +37,7 @@
    "src/test/offline/explain.test.ts": 195,
    "src/test/offline/explore.test.ts": 58,
    "src/test/offline/golden.test.ts": 160,
-   "src/test/offline/golden-xlsx.test.ts": 69,
+   "src/test/offline/golden-xlsx.test.ts": 70,
    "src/test/offline/html-report.test.ts": 3,
    "src/test/offline/hubspot-report.test.tsx": 15,
    "src/test/offline/n8n-workflow.test.ts": 6,
@@ -45,12 +45,14 @@
    "src/test/offline/python-semantics.test.ts": 55,
    "src/test/offline/random-parity.test.ts": 2,
    "src/test/offline/refusal-hint.test.ts": 17,
-   "src/test/offline/report-schema.test.ts": 147,
+   "src/test/offline/report-schema.test.ts": 162,
    "src/test/offline/saved-report.test.ts": 110,
    "src/test/offline/scenarios.test.ts": 16,
    "src/test/offline/sha256.test.ts": 6,
    "src/test/offline/sheet-report.test.tsx": 83,
    "src/test/offline/streaming.test.ts": 107,
+   "src/test/offline/xlsx-fixtures.test.ts": 8,
+   "src/test/offline/xlsx-parity.test.ts": 4,
    "src/test/overview.test.tsx": 10,
    "src/test/p3a-aud-002-validator.test.ts": 224,
    "src/test/pages-build.test.tsx": 10,
@@ -98,14 +100,15 @@
    ]
   },
   "offline": {
-   "about": "The command-line checker, the GitHub Action's wrapper, the Google Sheets source, the HubSpot Contacts destination, the 1.0 commitment (the specification's cases, the JSON Schemas, the conformance runner) and the workflows (CI job offline), per file. Run on every supported Python; the count is the same on each.",
+   "about": "The command-line checker, the GitHub Action's wrapper, the Google Sheets source, the HubSpot Contacts destination, the 1.0 commitment (the specification's cases, the JSON Schemas, the conformance runner), the workflows and the .xlsx reader (CI job offline), per file. Run on every supported Python; the count is the same on each.",
    "files": {
     "scripts/dev/tests/test_action.py": 112,
     "scripts/dev/tests/test_hubspot_destination.py": 104,
     "scripts/dev/tests/test_offline_verify.py": 385,
     "scripts/dev/tests/test_sheets_source.py": 210,
-    "scripts/dev/tests/test_spec.py": 268,
-    "scripts/dev/tests/test_workflows.py": 16
+    "scripts/dev/tests/test_spec.py": 296,
+    "scripts/dev/tests/test_workflows.py": 16,
+    "scripts/dev/tests/test_xlsx.py": 105
    }
   }
  },

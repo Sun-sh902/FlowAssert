@@ -1,0 +1,17 @@
+{
+  "name": "xlsx-as-the-page-runs-it",
+  "args": [
+    "--source",
+    "source.xlsx",
+    "--source-format",
+    "xlsx",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--destination-encoding",
+    "utf-8",
+    "--source-complete",
+    "--destination-complete"
+  ]
+}
