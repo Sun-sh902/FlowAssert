@@ -23,7 +23,7 @@ Use `source:destination` when a column has different names. Exit status: 0 Verif
 
 Without installing, run `python3 offline/verify.py` with the same options.
 
-Step-by-step walkthrough: [First-check guide](../docs/guides/first-check.md) | [第一次核对指南（简体中文）](../docs/guides/first-check.zh-CN.md).
+Step-by-step walkthrough: [First-check guide](../docs/guides/first-check.md).
 
 The same check runs in the browser, on the CSV check page of the web UI, for people who do not use a terminal; the files stay on the computer. Its differences from this command are listed in the [README](../README.md#check-in-your-browser).
 

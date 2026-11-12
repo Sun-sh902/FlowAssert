@@ -61,23 +61,6 @@ def test_every_case_the_specification_names_exists():
     assert sorted(c for c in cited if not _exists(c)) == []
 
 
-def test_the_chinese_specification_has_the_same_requirements_and_cases():
-    chinese = (ROOT / 'docs/spec/verification.zh-CN.md').read_text(encoding='utf-8')
-
-    def by_number(text):
-        found = {}
-        for line in text.splitlines():
-            m = re.match(r'- \*\*(R\d+\.\d+)\*\*', line)
-            if m:
-                found[m.group(1)] = sorted(CITED.findall(line))
-        return found
-    assert by_number(chinese) == by_number(SPEC)
-    assert sorted(set(CITED.findall(chinese))) == sorted(set(CITED.findall(SPEC)))
-    # The refusal texts are quoted, never translated.
-    quoted = set(re.findall(r'`([^`\n]*(?:must be|cannot be|is required|does not match|exceeds)[^`\n]*)`', SPEC))
-    assert len(quoted) > 15 and [q for q in quoted if f'`{q}`' not in chinese] == []
-
-
 def test_the_tests_the_specification_names_outside_the_golden_cases_exist():
     source = (ROOT / 'scripts/dev/tests/test_offline_verify.py').read_text(encoding='utf-8')
     named = re.findall(r'`(test_[a-z0-9_]+)`', SPEC)

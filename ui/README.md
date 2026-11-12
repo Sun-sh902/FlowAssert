@@ -97,7 +97,7 @@ scripts/dev/regression.sh LABEL              # release: every product gate plus 
 | --- | --- |
 | Design system (tokens, type, status glyphs, components) | Implemented |
 | App shell (sidebar, mobile drawer, Service status, light/dark/system theme) | Implemented |
-| CSV check (two local files, same result and reports as the command line; English and Chinese) | Implemented, in the browser |
+| CSV check (two local files, same result and reports as the command line) | Implemented, in the browser |
 | Overview and Verifications (five known cases; live beside archived; four status axes) | Implemented, LOCAL_RESEARCH |
 | Verification Detail, evidence, exact-ID lookup | Implemented, LOCAL_RESEARCH |
 | History (archive list, archived Detail, archived evidence; retrieval and integrity reported separately) | Implemented, LOCAL_RESEARCH |

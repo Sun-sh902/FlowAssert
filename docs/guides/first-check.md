@@ -1,7 +1,5 @@
 # First check: compare two CSV files
 
-English | [简体中文](first-check.zh-CN.md)
-
 This guide walks through installing `flowassert-verify`, preparing a source CSV and a destination CSV export, stating only the premises you can stand behind, and reading the result.
 
 FlowAssert follows one rule throughout: **without enough evidence, never say Verified.**

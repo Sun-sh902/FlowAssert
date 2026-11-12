@@ -1,7 +1,5 @@
 # HubSpot Contacts destination: design note
 
-English | [简体中文](hubspot.zh-CN.md)
-
 Status: FlowAssert 1.0.0, command line only. Written before the code, and kept in step with it: the code, the golden
 cases in `offline/golden-hubspot/` and `scripts/dev/tests/test_hubspot_destination.py` now follow it. Nothing here has been
 tried against HubSpot: no account was created and no request was sent to HubSpot with a credential. Every statement

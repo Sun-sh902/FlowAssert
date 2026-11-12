@@ -103,8 +103,8 @@ describe("Markdown links", () => {
     expect(slug("6. What the result does not prove")).toBe("6-what-the-result-does-not-prove");
   });
 
-  test("the files checked include both READMEs, the guides, the FAQ and the development pages", () => {
-    for (const f of ["README.md", "README.zh-CN.md", "docs/faq.md", "docs/faq.zh-CN.md", "docs/development.md", "docs/development.zh-CN.md", "docs/guides/refusals.md", "CHANGELOG.md"]) expect(files).toContain(f);
+  test("the files checked include the README, the guides, the FAQ, the development page and the roadmap", () => {
+    for (const f of ["README.md", "docs/faq.md", "docs/development.md", "docs/guides/refusals.md", "docs/ROADMAP.md", "CHANGELOG.md"]) expect(files).toContain(f);
   });
 
   test.each(files)("%s", (file) => {

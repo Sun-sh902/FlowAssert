@@ -1,7 +1,5 @@
 # Scenarios for a first check
 
-English | [简体中文](README.zh-CN.md)
-
 Four small scenarios, each a pair of synthetic CSV files with the configuration that compares them. Each says which result to expect with which statements, so you can see how the statements change a result before you use your own files. The data is invented: the keys, numbers and `example.test` addresses belong to no one.
 
 The same scenarios are on the CSV check page under **No files at hand? Try a scenario**. Choosing one fills in its files, columns and rules; it states nothing for you.

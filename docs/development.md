@@ -1,7 +1,5 @@
 # Development
 
-English | [简体中文](development.zh-CN.md)
-
 How FlowAssert is built and tested, and how to run the Service and UI locally. These sections were in the [README](../README.md) until 0.5.0 and are unchanged, apart from relative links, which now start from `docs/`.
 
 - [Quick start: run the Service and UI](#quick-start-run-the-service-and-ui)
@@ -250,9 +248,7 @@ So a stopped Service shows `NO_VERDICT`, not Unverified. A difference between li
 
 ### Interface language
 
-The interface is English by default. The `EN` and `中文` switch at the bottom of the rail stores the choice in this browser and reloads the page.
-
-Simplified Chinese is a presentation layer in `ui/src/i18n/`. A catalogue keyed by the English source translates interface text and accessible names. It never touches providers, decoders or view models. Evaluator reasons, the Service's assurance statements, identifiers, digests, evidence values and technical validator diagnostics stay exactly as supplied.
+The interface is in English only (from 1.1.0; 1.0.0 and earlier also had a Simplified Chinese interface). Evaluator reasons, the Service's assurance statements, identifiers, digests, evidence values and technical validator diagnostics are shown exactly as supplied.
 
 ### Integrity and read behavior
 
@@ -269,7 +265,7 @@ A matching digest shows that two values from the same Service agree. It proves n
 | --- | --- | --- |
 | Backend | pytest | Over 300 tests on routes, archive, cursors, receipts, failure paths |
 | Scripts and offline check | pytest | Dev tooling, CSV check, agreement with Evaluator v1 |
-| Frontend | Vitest | Over 1,800 tests, including contract drift, hostile responses and the Chinese interface |
+| Frontend | Vitest | Over 1,800 tests, including contract drift and hostile responses |
 | Browser | Playwright | Chrome and WebKit suites for workspace, history, lookup, gate security, accessibility |
 | Layout | Custom | 200-cell responsive matrix and layout-shift checks |
 | Identity | `check_identities.py` | Pinned Evaluator, contracts, and backend source map |

@@ -451,11 +451,11 @@ def test_the_step_falls_back_to_python_and_runs_the_check(tmp_path):
 
 
 def test_the_action_is_named_at_one_released_version_everywhere():
-    # README.md, README.zh-CN.md and action.yml show `uses: Sun-sh902/FlowAssert@vX.Y.Z`. They name one version, and
+    # README.md and action.yml show `uses: Sun-sh902/FlowAssert@vX.Y.Z`. They name one version, and
     # it has a dated section in CHANGELOG.md, so no example points at a version that was never released.
     uses = re.compile(r'uses: Sun-sh902/FlowAssert@v(\d+\.\d+\.\d+)\b')
     found = {name: uses.findall((ROOT / name).read_text(encoding='utf-8'))
-             for name in ('README.md', 'README.zh-CN.md', 'action.yml')}
+             for name in ('README.md', 'action.yml')}
     assert all(found.values()), found
     versions = {v for values in found.values() for v in values}
     assert len(versions) == 1, found

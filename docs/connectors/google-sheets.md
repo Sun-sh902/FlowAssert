@@ -1,7 +1,5 @@
 # Google Sheets source: design note
 
-English | [简体中文](google-sheets.zh-CN.md)
-
 Status: FlowAssert 0.7.0, command line only. Written before the code, and kept in step with it. Nothing here has been
 tried against Google: every statement about Google's behaviour comes from documentation, and is marked as such. The
 statements marked **[doc]** come from a document listed in [Sources](#sources); the statements marked

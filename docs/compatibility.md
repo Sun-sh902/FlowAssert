@@ -1,7 +1,5 @@
 # Compatibility in 1.x
 
-English | [简体中文](compatibility.zh-CN.md)
-
 This page says what stays the same in every FlowAssert release from 1.0.0 until 2.0.0, what may change, how something
 is retired, and what a program that reads a report must do with one it does not know.
 
@@ -52,7 +50,7 @@ In any 1.x release, without notice beyond the changelog:
 
 - **The HTML report's markup and look.** It is for people. It always shows the result the JSON report holds, escapes
   every value, has no script and loads nothing; its bytes are not stable.
-- The web UI: its layout, its interface text, its Chinese text, and everything it shows beside a result ("What this
+- The web UI: its layout, its interface text, and everything it shows beside a result ("What this
   result means", the file profile, the warnings before a check, the explorer, the character highlighting, the refusal
   hints). None of these is in a report.
 - The text of a usage error from the argument parser, and the operating system's part of a refusal.

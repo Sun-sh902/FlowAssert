@@ -36,7 +36,6 @@ The `--portable` and release profiles report the `protected-custody` gate as BLO
 - `service/vendor/model.py` and the contracts in `service/contracts/` are pinned. Evaluator v1 and the frozen contracts stay unchanged unless an issue agrees a new version.
 - Adding or removing a test means updating `scripts/dev/test-inventory.json`.
 - Changing a Service file means updating `scripts/dev/backend-current-identity.json`.
-- Changing interface text means updating `ui/src/i18n/zh-CN.ts`. Evidence values, identifiers and evaluator reasons are not translated.
 
 Use synthetic data in tests and examples. Never commit real customer data or credentials.
 

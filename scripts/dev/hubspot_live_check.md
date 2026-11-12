@@ -1,7 +1,5 @@
 # Live check of the HubSpot Contacts destination (for the owner; not run)
 
-English | [简体中文](hubspot_live_check.zh-CN.md)
-
 > [!IMPORTANT]
 > **Before anything else:** read HubSpot's Terms of Service, its developer terms and the terms of any free account
 > before any account is created, and check who may hold such an account and whether a person may open one for

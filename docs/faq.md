@@ -1,7 +1,5 @@
 # Questions and answers
 
-English | [简体中文](faq.zh-CN.md)
-
 - [Why is my result Unverified?](#why-is-my-result-unverified)
 - [Can FlowAssert check that my files are complete?](#can-flowassert-check-that-my-files-are-complete)
 - [Do my files leave my computer?](#do-my-files-leave-my-computer)

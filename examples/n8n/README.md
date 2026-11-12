@@ -1,7 +1,5 @@
 # FlowAssert in n8n
 
-[简体中文](README.zh-CN.md)
-
 `flowassert-check.workflow.json` runs the FlowAssert CSV check inside an n8n workflow, with no Execute Command node
 (it is disabled by default from n8n 2.0, and n8n Cloud does not offer it). The check runs in a **Code node** that
 holds the packaged JavaScript checker of this FlowAssert version. It gives the same result, summary and JSON report as

@@ -1,7 +1,5 @@
 # The FlowAssert check: specification
 
-English | [简体中文](verification.zh-CN.md)
-
 Version 1.0. This document is normative. It specifies the check that `flowassert-verify` performs and that the browser
 check and the packaged JavaScript checker repeat: its inputs, how rows are read, how records are judged, what the
 report holds, what is refused and how the command exits.

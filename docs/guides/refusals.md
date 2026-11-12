@@ -1,7 +1,5 @@
 # When a check is refused
 
-English | [简体中文](refusals.zh-CN.md)
-
 A refused check prints `refused: ` and one message to standard error, exits with status `2`, and writes no report: nothing was checked, so there is no result to read. This page has one section for each message, with what it means and what you can do. The CSV check page in the browser shows the same messages, and under some of them the same hints, worked out from the first bytes of the files you chose.
 
 A hint is only a suggestion. FlowAssert never retries a check, and never changes an encoding, a separator or a column for you: you change the choice and run the check again.

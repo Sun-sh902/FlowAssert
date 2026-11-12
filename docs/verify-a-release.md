@@ -1,7 +1,5 @@
 # Verify a release
 
-English | [简体中文](verify-a-release.zh-CN.md)
-
 From 1.0.0, every file of a FlowAssert release, and the site the online demo serves, is built by a GitHub Actions
 workflow of this repository and carries a **build provenance attestation**: a statement, signed with a short-lived
 certificate that GitHub's OIDC token obtains from Sigstore, that names the file's SHA-256 digest, the repository, the

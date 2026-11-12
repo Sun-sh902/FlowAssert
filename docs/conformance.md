@@ -1,7 +1,5 @@
 # Conformance
 
-English | [简体中文](conformance.zh-CN.md)
-
 How another implementation of the check shows that it gives FlowAssert's results. An implementation conforms when it
 passes the cases in this repository; it does not conform because its author has read
 [the specification](spec/verification.md).

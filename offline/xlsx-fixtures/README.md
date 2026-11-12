@@ -1,7 +1,5 @@
 # Workbooks from independent writers
 
-English | [简体中文](README.zh-CN.md)
-
 The .xlsx reader (`offline/flowassert_offline/xlsx.py` and `ui/src/offline/xlsx.ts`) is tested against workbooks that
 this repository's own writer did not make. Each file here was written once by `make.mjs` with an exact version of
 another program's spreadsheet writer, in a throwaway folder, and committed:

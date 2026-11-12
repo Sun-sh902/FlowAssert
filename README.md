@@ -1,7 +1,5 @@
 # FlowAssert
 
-English | [简体中文](README.zh-CN.md)
-
 **The workflow succeeded. Did the expected business data actually arrive?**
 
 FlowAssert compares a source CSV, the records that should have arrived, with an export of the destination system, what is there now, and reports each record as **Verified**, **Mismatch** or **Unverified**. Its central rule: without enough evidence, it never says Verified. It runs on your computer, in a terminal or in your browser, and reads local files; the command line can also read the source rows from a Google Sheets range and the destination records from HubSpot's contacts, read-only ([Google Sheets](#read-the-source-from-google-sheets), [HubSpot](#read-the-destination-from-hubspot)).

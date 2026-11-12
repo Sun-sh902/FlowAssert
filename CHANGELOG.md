@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 (unreleased)
+
+### Removed
+
+- The documents, the interface and the screenshots are in English only. The Chinese copies of the documents, the
+  Simplified Chinese interface (its language switch, catalogue and the Chinese explanations beside English report
+  texts) and the Chinese screenshots are removed; they remain in 1.0.0 and earlier. The roadmap is now
+  [docs/ROADMAP.md](docs/ROADMAP.md), translated from the Chinese roadmap without change. Chinese characters in data,
+  such as the GB18030 and UTF-16 cases and the golden files, are unchanged.
+
 ## 1.0.0 (2026-11-11)
 
 The release that turns a careful prototype into a tool a stranger can check. It has four themes: a browser check that knows a file the moment it is chosen and explores any result; a trust commitment, with the report format frozen, specified, given JSON Schemas, a compatibility promise, a runnable conformance suite and build provenance for every release file; large files read as streams; and a read-only HubSpot Contacts destination for the command line.
@@ -45,7 +55,7 @@ Every check that does not use the new options is unchanged: the same printed sum
 - **A failed or doubtful read concludes nothing**: no credential, 400, 401, 403, 404, 429, 5xx, a timeout, a response that is not the documented JSON, a returned range other than the one asked for, too many rows, a cell that is not text, a change during the read, or any redirect is a refusal (exit status 2, no report), with a precise message that never repeats the server's own error text. Each message has a Chinese explanation in the interface and a section in both refusal guides.
 - **Reports from a sheet source** have `schema_version` 2 and `inputs.source_sheet`: read by FlowAssert, the spreadsheet ID, the ranges asked for and returned, the render options, the read time in UTC, the Drive version and modification time before and after (or why there is none), and the canonical form (`flowassert-sheet-csv-1`) whose SHA-256 is `inputs.source_sha256`. They never record the credential, the account or the spreadsheet's title. The summary and the HTML report say where the rows were read and that this does not show the range is the whole batch. A reader of version 1 only refuses them, by design. Reports without a sheet source keep `schema_version` 1. See [the report format](docs/report-format.md#a-report-from-a-google-sheets-source).
 - **The browser reads such reports**: the Saved reports page imports and opens them and shows where the rows were read and the revision; a comparison is refused with `different-source` when the two reports' sources differ (a file and a sheet, two spreadsheets or two ranges); "What this result means" explains the new members from the report alone, in English and Chinese, and words the premises for a range. The browser makes no request to Google.
-- [The design note](docs/connectors/google-sheets.md) and [the Google Sheets guide](docs/guides/google-sheets.md), in English and Chinese, with every statement about Google's behaviour marked as read from documentation or still unconfirmed, and the steps that were not tried said plainly; two new questions in both FAQs; a Chinese copy of [the report format](docs/report-format.zh-CN.md); and [the owner's live check](scripts/dev/sheets_live_check.md), prepared and not run.
+- [The design note](docs/connectors/google-sheets.md) and [the Google Sheets guide](docs/guides/google-sheets.md), in English and Chinese, with every statement about Google's behaviour marked as read from documentation or still unconfirmed, and the steps that were not tried said plainly; two new questions in both FAQs; a Chinese copy of [the report format](https://github.com/Sun-sh902/FlowAssert/blob/v1.0.0/docs/report-format.zh-CN.md); and [the owner's live check](scripts/dev/sheets_live_check.md), prepared and not run.
 - Tests: `scripts/dev/tests/test_sheets_source.py` against a local fake of the two endpoints (`offline/bench/fake_sheets_api.py`), covering every refusal, the method, host and path of every request, verified TLS, no retry or redirect, the timeout, the revision, the credential leak test, and the same result as a CSV file with the same rows for 80 golden cases. 42 sheet-sourced golden cases in `offline/golden-sheets/`, with the fake's responses and the requests the checker sent, checked by `golden.py --check` in CI. A Vitest suite opens, explains and compares sheet-sourced reports. The test inventory gains an `offline` group for the command line's own tests.
 
 ### Changed

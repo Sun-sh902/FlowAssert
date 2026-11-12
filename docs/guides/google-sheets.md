@@ -1,7 +1,5 @@
 # Check a Google Sheets range against a destination export
 
-English | [简体中文](google-sheets.zh-CN.md)
-
 From 1.0.0 the command line can read the source rows itself, from one range of a Google Sheets spreadsheet, read-only, instead of from a CSV file you exported. The destination is still a CSV export. This guide covers preparing the range, obtaining a read-only credential, running one check, reading the result, and what is still your statement. [The design note](../connectors/google-sheets.md) has every detail and every refusal.
 
 Only the command line reads sheets. The CSV check page in the browser, the GitHub Action and the n8n example read files only, and make no request to Google.
