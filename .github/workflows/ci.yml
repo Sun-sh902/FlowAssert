@@ -145,5 +145,6 @@ jobs:
           cache-dependency-path: ui/package-lock.json
       - run: npm ci
       - run: google-chrome --version
-      # The CSV check, its saved reports and comparisons (real IndexedDB), the Pages build, and the first-check help.
-      - run: npx playwright test e2e/check.spec.ts e2e/check-pages.spec.ts e2e/saved-reports.spec.ts e2e/first-check.spec.ts e2e/html-report.spec.ts --project chrome
+      # The CSV check, its saved reports and comparisons (real IndexedDB), the Pages build, the first-check help, and
+      # an .xlsx workbook on the page.
+      - run: npx playwright test e2e/check.spec.ts e2e/check-pages.spec.ts e2e/saved-reports.spec.ts e2e/first-check.spec.ts e2e/html-report.spec.ts e2e/workbook.spec.ts --project chrome
