@@ -332,8 +332,33 @@ async function hostileWorkbooks(): Promise<{ name: string; bytes: Uint8Array; ex
   return [
     // ECMA-376 requires a sheet's name; without one, both readers record an empty name (the schema's worksheet is a string).
     { name: "sheet-without-a-name.xlsx", bytes: await zip(smallBook(SHEET, '<sheet sheetId="1" r:id="rId1"/>'), true), expected: { worksheet: "" } },
+    // Markup that runs past the tag bound is refused for the bound, whatever else is wrong with it and however much of
+    // the part a chunk holds. Before, the browser, which inflates larger chunks than Python, called it not well-formed.
+    ...(await Promise.all(
+      PAST_THE_BOUND.flatMap(([kind, before, opening, closing]) =>
+        [70_000, 700_000].flatMap((length) =>
+          [false, true].map(async (deflated) => {
+            const spaces = " ".repeat(length);
+            const head = XML_DECLARATION + (before ? before + spaces + closing : "");
+            const sheet = head + `<worksheet xmlns="${M}">` + (before ? "" : opening + spaces + closing) + "<sheetData/></worksheet>";
+            const name = `${kind}-${length}-${deflated ? "deflated" : "stored"}.xlsx`;
+            return { name, bytes: await zip(smallBook(sheet), deflated), expected: { refused: `xl/worksheets/sheet1.xml ${BOUND}` } };
+          }),
+        ),
+      ),
+    )),
   ];
 }
+
+const BOUND = "exceeds a reading bound (a tag longer than 65536 characters, or elements nested deeper than 64)";
+/** Malformed markup: what comes before the root element, the markup's opening and its closing. */
+const PAST_THE_BOUND: [string, string, string, string][] = [
+  ["not-a-tag", "", "< ", ">"],
+  ["attribute-without-value", "", '<a b="1" c', ">"],
+  ["comment-with-dashes", "", "<!-- -- ", "-->"],
+  ["instruction-without-target", "", "<? ", "?>"],
+  ["cdata-outside-the-root", "<![CDATA[", "", "]]>"],
+];
 
 async function readWithTypeScript(name: string, bytes: Uint8Array): Promise<{ rows?: string[][]; sha256?: string; member?: unknown; refused?: string }> {
   const rows: string[][] = [];

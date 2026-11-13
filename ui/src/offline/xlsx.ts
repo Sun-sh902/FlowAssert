@@ -218,8 +218,8 @@ export class Xml {
   }
 
   private wait(buf: string, pos: number, final: boolean): number {
-    if (final) throw new NotWellFormed();
     if (buf.length - pos > TAG_BOUND) throw new Bound();
+    if (final) throw new NotWellFormed();
     return pos;
   }
 
@@ -281,6 +281,7 @@ export class Xml {
           break;
         }
         const content = buf.slice(pos + 4, end);
+        if (end + 3 - pos > TAG_BOUND) throw new Bound();
         if (content.includes("--") || content.endsWith("-")) throw new NotWellFormed();
         end += 3;
       } else if (buf.startsWith("<?", pos)) {
@@ -290,6 +291,7 @@ export class Xml {
           break;
         }
         end += 2;
+        if (end - pos > TAG_BOUND) throw new Bound();
         PI_TARGET.lastIndex = pos;
         const target = PI_TARGET.exec(buf);
         if (!target) throw new NotWellFormed();
@@ -306,8 +308,8 @@ export class Xml {
           pos = this.wait(buf, pos, final);
           break;
         }
-        if (!this.stack.length) throw new NotWellFormed();
         if (end + 3 - pos > TAG_BOUND) throw new Bound();
+        if (!this.stack.length) throw new NotWellFormed();
         handler.text(buf.slice(pos + 9, end));
         end += 3;
       } else if (buf.startsWith("<!DOCTYPE", pos)) {
@@ -316,10 +318,14 @@ export class Xml {
         break outer;
       } else {
         TAG_SCAN.lastIndex = pos;
-        if (!TAG_SCAN.test(buf) && !final) {
+        const scanned = TAG_SCAN.test(buf);
+        if (!scanned && !final) {
           pos = this.wait(buf, pos, final);
           break;
         }
+        // Markup that runs past the bound is refused for the bound, whatever else is wrong with it, so that the
+        // refusal does not depend on how much of the part a chunk held.
+        if ((scanned ? TAG_SCAN.lastIndex : size) - pos > TAG_BOUND) throw new Bound();
         throw new NotWellFormed();
       }
       if (end - pos > TAG_BOUND) throw new Bound();

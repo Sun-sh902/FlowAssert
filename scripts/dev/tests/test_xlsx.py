@@ -210,3 +210,60 @@ def test_a_sheet_without_a_name_is_recorded_with_an_empty_name(tmp_path):
     import json_schema
     schema = json.loads((ROOT / 'docs/schema/report-v4.schema.json').read_text(encoding='utf-8'))
     assert json_schema.validate(schema, report) == []
+
+
+class _Events:
+    fast = None
+    fast_depth = None
+
+    def start(self, name, attrs):
+        pass
+
+    def end(self, name):
+        pass
+
+    def text(self, piece):
+        pass
+
+
+_BOUND = 'exceeds a reading bound (a tag longer than 65536 characters, or elements nested deeper than 64)'
+
+
+@pytest.mark.parametrize('before, opening, closing', [
+    ('', '< ', '>'),                         # not the start of a tag
+    ('', '<a b="1" c', '>'),                 # an attribute without a value
+    ('', '<!-- -- ', '-->'),                 # "--" inside a comment
+    ('', '<? ', '?>'),                       # a processing instruction without a target
+    ('<![CDATA[', '', ']]>'),                # a CDATA section outside the root element
+])
+@pytest.mark.parametrize('length', [10, 70_000, 700_000])
+def test_markup_past_the_tag_bound_is_refused_for_the_bound_whatever_the_chunks(before, opening, closing, length):
+    # The same text refused the same way whether a chunk holds all of it or a piece: not well-formed when the markup
+    # is short, the bound when it runs past 65,536 characters, as a tag still open at the bound is. Before, a long
+    # malformed tag whose end was already in the buffer was "not well-formed", and the browser, which inflates
+    # larger chunks, refused files the command line refused for the bound.
+    head = f'<?xml version="1.0" encoding="UTF-8"?>{before}{" " * length if before else ""}{closing if before else ""}'
+    text = head + f'<worksheet xmlns="{xlsx.M_NS}">' + (opening + ' ' * length + closing if not before else '') + \
+        '<sheetData/></worksheet>'
+    expected = xlsx._NotWellFormed if length <= 10 else xlsx._Bound
+    for size in (len(text), 65_536, 8_192, 1 << 20):
+        x = xlsx.Xml(_Events())
+        with pytest.raises(expected):
+            for at in range(0, len(text), size):
+                x.feed(text[at:at + size])
+            x.feed('', final=True)
+    for method in (w.zipfile.ZIP_STORED, w.zipfile.ZIP_DEFLATED):
+        parts = w.parts(w.Book(sheets=[w.Sheet('S', [['id'], ['a']])]))
+        parts['xl/worksheets/sheet1.xml'] = text.encode('utf-8')
+        refusal = _refusal_of(parts, method)
+        assert refusal.endswith(_BOUND if length > 10 else 'xl/worksheets/sheet1.xml is not well-formed XML'), refusal
+
+
+def _refusal_of(parts, method):
+    import tempfile
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / 'book.xlsx'
+        path.write_bytes(w.zip_bytes(parts.items(), method))
+        with pytest.raises(Refused) as e:
+            list(xlsx.XlsxFile(str(path), []).full_rows())
+        return str(e.value)

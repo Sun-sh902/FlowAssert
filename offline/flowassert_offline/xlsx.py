@@ -266,6 +266,8 @@ class Xml:
                     pos = self._wait(buf, pos, final)
                     break
                 content = buf[pos + 4:end]
+                if end + 3 - pos > TAG_BOUND:
+                    raise _Bound()
                 if "--" in content or content.endswith("-"):
                     raise _NotWellFormed()
                 end += 3
@@ -275,6 +277,8 @@ class Xml:
                     pos = self._wait(buf, pos, final)
                     break
                 end += 2
+                if end - pos > TAG_BOUND:
+                    raise _Bound()
                 target = _PI_TARGET.match(buf, pos)
                 if target is None:
                     raise _NotWellFormed()
@@ -292,10 +296,10 @@ class Xml:
                 if end < 0:
                     pos = self._wait(buf, pos, final)
                     break
-                if not self.stack:
-                    raise _NotWellFormed()
                 if end + 3 - pos > TAG_BOUND:
                     raise _Bound()
+                if not self.stack:
+                    raise _NotWellFormed()
                 self.h.text(buf[pos + 9:end])
                 end += 3
             elif buf.startswith("<!DOCTYPE", pos):
@@ -304,9 +308,14 @@ class Xml:
                                              or "<!--"[:rest] == buf[pos:]):
                 break
             else:
-                if _TAG_SCAN.match(buf, pos) is None and not final:
+                scanned = _TAG_SCAN.match(buf, pos)
+                if scanned is None and not final:
                     pos = self._wait(buf, pos, final)
                     break
+                # Markup that runs past the bound is refused for the bound, whatever else is wrong with it, so that
+                # the refusal does not depend on how much of the part a chunk held.
+                if (size if scanned is None else scanned.end()) - pos > TAG_BOUND:
+                    raise _Bound()
                 raise _NotWellFormed()
             if end - pos > TAG_BOUND:
                 raise _Bound()
@@ -319,10 +328,10 @@ class Xml:
 
     @staticmethod
     def _wait(buf, pos, final):
-        if final:
-            raise _NotWellFormed()
         if len(buf) - pos > TAG_BOUND:
             raise _Bound()
+        if final:
+            raise _NotWellFormed()
         return pos
 
 
