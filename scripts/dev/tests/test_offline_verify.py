@@ -1513,3 +1513,19 @@ def test_golden_check_reports_a_changed_missing_or_extra_file(tmp_path):
     (expected / 'case' / 'missing.txt').write_text('x')
     (actual / 'case' / 'extra.txt').write_text('y')
     assert golden.differences(expected, actual) == ['case/changed.txt', 'case/extra.txt', 'case/missing.txt']
+
+
+def test_a_nul_in_a_csv_file_is_read_from_python_3_11_and_refused_before(tmp_path, capsys):
+    # Specification section 15: CPython's CSV reader refuses a line with U+0000 before 3.11, with its own text, and
+    # reads it from 3.11, as the browser check does. The review of 2026-11-13 found the difference undocumented.
+    source = write(tmp_path / 's.csv', 'k,p\n1,a\x00b\n2,x\n')
+    destination = write(tmp_path / 'd.csv', 'k,p\n1,a\x00b\n2,y\n')
+    code = verify.main(['--source', source, '--destination', destination, '--key', 'k', '--field', 'p',
+                        '--source-complete', '--destination-complete'])
+    captured = capsys.readouterr()
+    if sys.version_info >= (3, 11):
+        assert code == 1 and captured.out.startswith('Mismatch: 2 rows of 2\nVerified 1 · Mismatch 1 · Unverified 0\n')
+    else:
+        assert (code, captured.out, captured.err) == (2, '', f'refused: {source}: line contains NUL\n')
+    spec = (ROOT / 'docs/spec/verification.md').read_text(encoding='utf-8')
+    assert '`FILE: line contains NUL`' in spec

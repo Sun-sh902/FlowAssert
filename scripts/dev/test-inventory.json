@@ -106,7 +106,7 @@
    "files": {
     "scripts/dev/tests/test_action.py": 127,
     "scripts/dev/tests/test_hubspot_destination.py": 104,
-    "scripts/dev/tests/test_offline_verify.py": 385,
+    "scripts/dev/tests/test_offline_verify.py": 386,
     "scripts/dev/tests/test_sheets_source.py": 210,
     "scripts/dev/tests/test_spec.py": 303,
     "scripts/dev/tests/test_workflows.py": 26,
