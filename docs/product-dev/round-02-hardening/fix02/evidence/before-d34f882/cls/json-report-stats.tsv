@@ -1,4 +1,0 @@
-report	workers	projects	expected	unexpected	skipped	flaky	duration_s	start
-perf-repeat20.json	5	chrome	20	0	0	0	29.8	2026-10-23T05:58:08.534Z
-perf-repeat20-w1.json	1	chrome	20	0	0	0	111.2	2026-10-23T05:58:38.823Z
-e2e-static.json	5	chrome,webkit	136	0	24	0	40.3	2026-10-23T06:01:00.269Z

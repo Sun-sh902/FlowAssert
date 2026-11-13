@@ -1,2 +1,0 @@
-GET /lab.html 200
-GET /src/lab/main.tsx 200; retained laboratory accessible in development

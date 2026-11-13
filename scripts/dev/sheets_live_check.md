@@ -6,7 +6,7 @@
 > chat, an issue, a commit or a file in this repository. Use synthetic data only.
 
 This plan was written with FlowAssert 0.7.0 and has **not** been run. It answers S1 question T7 of the
-[validation plan](../../docs/product-dev/final-version/S1_VALIDATION_PLAN.md) — "Is a Google Sheets read bounded and
+[validation plan](https://github.com/Sun-sh902/FlowAssert/blob/v1.1.0/docs/product-dev/final-version/S1_VALIDATION_PLAN.md) — "Is a Google Sheets read bounded and
 repeatable? Pass: exact cells, a revision reference if available, and read-only scope" — and confirms or contradicts
 the statements marked **[unconfirmed]** in the [design note](../../docs/connectors/google-sheets.md). Record what
 each step printed in a private note, not in the repository; afterwards, write the conclusions (not the outputs that

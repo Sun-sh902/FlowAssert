@@ -1,7 +1,0 @@
-== tools
-== ui-deps
-== py-env
-== identity
-  the workspace no longer matches the accepted pinned identities — do not run the Service until resolved
-  log: /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev-FIX01/1dbd47c8-e326-49a5-9309-cd35e27c8e1b/scratchpad/cr-before/FlowAssert-Product-Dev/.dev-runtime/bootstrap/identity.log
-bootstrap exit=126

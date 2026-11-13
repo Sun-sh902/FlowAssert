@@ -1,4 +1,0 @@
-  ✓  147 [webkit] › e2e/responsive.spec.ts:12:5 › no horizontal overflow · dark · 1440px (2.6s)
-
-  24 skipped
-  136 passed (40.3s)

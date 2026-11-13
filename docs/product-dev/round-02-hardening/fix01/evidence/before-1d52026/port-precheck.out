@@ -1,5 +1,0 @@
-listener on 5183: pid 11375
-if lsof -nP -iTCP:8765 -iTCP:5183 -sTCP:LISTEN >/dev/null 2>&1; then
-  echo "ports 5183/8765 must be free (stop the dev server and Service)" >&2; exit 1
-fi
-round-02 pre-check verdict: ports free -> would start the gates (WRONG)

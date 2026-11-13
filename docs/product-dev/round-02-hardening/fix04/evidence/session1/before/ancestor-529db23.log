@@ -1,3 +1,0 @@
-$ git merge-base --is-ancestor 529db23 HEAD
-
-exit=0

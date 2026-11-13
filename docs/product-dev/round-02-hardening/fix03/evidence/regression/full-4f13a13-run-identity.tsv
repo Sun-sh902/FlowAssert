@@ -1,8 +1,0 @@
-run_id	fix03-4f13a13
-commit	4f13a13518019080e216ebfa778ef1010ab593ce
-branch	product-dev/round-02-hardening
-worktree_changes	0
-mode	full
-started_utc	2026-10-23T13:18:06Z
-host	Darwin 27.2.0 arm64
-run_dir	/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/fix03-4f13a13

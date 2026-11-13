@@ -1,5 +1,0 @@
-  ✘  2 [webkit] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (0ms)
-  ✓  1 [chrome] › e2e/perf.spec.ts:9:1 › DOM size, layout shift and load timing per route (4.5s)
-    Error: browserType.launch: Executable doesn't exist at /private/tmp/claude-501/-Users-zhangshenghe-Documents-FlowAssert-Product-Dev/659f982b-a4e4-49ba-a1a8-6de7b9ee6026/scratchpad/empty-browsers/webkit-2359/pw_run.sh
-  1 failed
-  1 passed (10.0s)

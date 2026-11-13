@@ -222,7 +222,7 @@ Not done yet: the owner running `scripts/dev/sheets_live_check.md` once with a t
 
 The original preconditions were that 0.7.0 had been verified on a real account and that at least one person trying it needed HubSpot. On 2026-11-09 the owner decided not to wait for those two preconditions and built it into 1.0.0: command line `--destination-hubspot contacts`, only GET requests, tested only against a local fake.
 
-Answers T1 to T6 and T8 of the [S1 validation plan](product-dev/final-version/S1_VALIDATION_PLAN.md): the minimal read-only permission, whether reading by a unique property can show "does not exist" credibly, how long after a record is created it can be read, and how rate limits and errors map to results. A delay in reading may give "Pending" its first real use.
+Answers T1 to T6 and T8 of the [S1 validation plan](https://github.com/Sun-sh902/FlowAssert/blob/v1.1.0/docs/product-dev/final-version/S1_VALIDATION_PLAN.md): the minimal read-only permission, whether reading by a unique property can show "does not exist" credibly, how long after a record is created it can be read, and how rate limits and errors map to results. A delay in reading may give "Pending" its first real use.
 
 The check on a real account has not been done yet (`scripts/dev/hubspot_live_check.md`). If a credible "does not exist" cannot be read, the scope narrows as the product definition says: every missing record is Unverified.
 

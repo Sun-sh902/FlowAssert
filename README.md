@@ -619,7 +619,7 @@ The architecture, the backend and frontend, the tests, the repository layout, th
 The aim is to find out whether this is useful to people who maintain automations. There are no dates.
 
 - Improve the offline CSV check using real feedback.
-- Test the planned checks with read-only sandbox accounts. See the [validation plan](docs/product-dev/final-version/S1_VALIDATION_PLAN.md).
+- Test the planned checks with read-only sandbox accounts. See the [validation plan](https://github.com/Sun-sh902/FlowAssert/blob/v1.1.0/docs/product-dev/final-version/S1_VALIDATION_PLAN.md).
 - Add explicit, reviewed comparison policies beyond exact match.
 - Connect the Service to real sources only after that testing supports it.
 

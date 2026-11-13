@@ -304,7 +304,7 @@ The Service was built to fail on anything unreviewed, so several limits are deli
 
 Changing `model.py` makes the Service return 503 until the pins are updated, which is intended.
 
-The planned route to real data is in [docs/product-dev/final-version/](../docs/product-dev/final-version/): [product definition v0.2](../docs/product-dev/final-version/PRODUCT_DEFINITION_v0.2.md) and the [validation plan](../docs/product-dev/final-version/S1_VALIDATION_PLAN.md). It recommends testing with users and read-only sandbox accounts before writing connectors. `offline/flowassert_offline/evaluator_v2.py` is the first step toward configurable rules.
+The planned route to real data is in [docs/product-dev/final-version/](https://github.com/Sun-sh902/FlowAssert/tree/v1.1.0/docs/product-dev/final-version/): [product definition v0.2](https://github.com/Sun-sh902/FlowAssert/blob/v1.1.0/docs/product-dev/final-version/PRODUCT_DEFINITION_v0.2.md) and the [validation plan](https://github.com/Sun-sh902/FlowAssert/blob/v1.1.0/docs/product-dev/final-version/S1_VALIDATION_PLAN.md). It recommends testing with users and read-only sandbox accounts before writing connectors. `offline/flowassert_offline/evaluator_v2.py` is the first step toward configurable rules.
 
 ## Repository layout
 
@@ -330,22 +330,21 @@ ui/
   docs/                      Design and integration notes
 scripts/dev/                 Bootstrap, seed, run, regression
 docs/readme/                 Screenshots used by the READMEs
-docs/product-dev/            Reports, screenshots, raw test evidence
 ```
 
-Most of `docs/product-dev/` and `service/evidence/` is the project's raw development record, published unchanged. Paths in it name the original machine and do not exist elsewhere. Rewriting them would break recorded digests.
+`service/evidence/` is part of the project's raw development record, published unchanged. The rest of that record, `docs/product-dev/` (round reports, screenshots and raw test evidence from October 2026), was removed from `main` on 2026-11-13 and is kept in [tag v1.1.0](https://github.com/Sun-sh902/FlowAssert/tree/v1.1.0/docs/product-dev/) and earlier. Paths in it name the original machine and do not exist elsewhere. Rewriting them would break recorded digests.
 
 Useful starting points:
 
 | Topic | Document |
 | --- | --- |
-| Project closure | [PROJECT_CLOSEOUT_20261101.md](../docs/product-dev/final-version/PROJECT_CLOSEOUT_20261101.md) |
+| Project closure | [PROJECT_CLOSEOUT_20261101.md](https://github.com/Sun-sh902/FlowAssert/blob/v1.1.0/docs/product-dev/final-version/PROJECT_CLOSEOUT_20261101.md) |
 | Archive design | [ARCHIVE_INTEGRITY_MODEL.md](../service/docs/phase3a/ARCHIVE_INTEGRITY_MODEL.md), [SQLITE_SCHEMA.md](../service/docs/phase3a/SQLITE_SCHEMA.md) |
 | Snapshots and cursors | [SNAPSHOT_AND_CURSOR_MODEL.md](../service/docs/phase3a/SNAPSHOT_AND_CURSOR_MODEL.md) |
 | Backend decisions | [ARCHITECTURE_DECISIONS.md](../service/docs/phase3a/ARCHITECTURE_DECISIONS.md) |
 | Frontend contract | [frontend-provider-contract.md](../service/contracts/frontend-provider-contract.md) |
 | UI structure | [INFORMATION_ARCHITECTURE.md](../ui/docs/INFORMATION_ARCHITECTURE.md) |
-| Regression profiles | [REGRESSION_PROFILES.md](../docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md) |
+| Regression profiles | [REGRESSION_PROFILES.md](https://github.com/Sun-sh902/FlowAssert/blob/v1.1.0/docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md) |
 
 ## Project history
 

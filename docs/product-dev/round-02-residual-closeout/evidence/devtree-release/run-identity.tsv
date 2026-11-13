@@ -1,8 +1,0 @@
-run_id	devtree-release-f287274
-commit	f287274e70b1a7436741275db7306afae43e942e
-branch	product-dev/round-02-residual-closeout
-worktree_changes	1
-mode	release
-started_utc	2026-10-23T16:48:58Z
-host	Darwin 27.2.0 arm64
-run_dir	/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/devtree-release-f287274

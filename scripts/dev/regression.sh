@@ -1,6 +1,6 @@
 #!/bin/sh
 # Every product-workspace gate, in order, each logged with its exit code and status. Three profiles
-# (docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md):
+# (docs/product-dev/round-02-residual-closeout/REGRESSION_PROFILES.md in tag v1.1.0):
 #   scripts/dev/regression.sh LABEL              RELEASE: every product gate plus historical custody (needs the genuine
 #                                                historical roots). The profile release acceptance requires.
 #   scripts/dev/regression.sh --product LABEL    PRODUCT: every gate that tests this repository's product against its own

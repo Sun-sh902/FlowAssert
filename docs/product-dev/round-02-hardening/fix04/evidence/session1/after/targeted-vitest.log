@@ -1,9 +1,0 @@
-
- RUN  v5.0.3 /Users/zhangshenghe/Documents/FlowAssert-Product-Dev/ui
-
-
- Test Files  3 passed (3)
-      Tests  54 passed (54)
-   Start at  10:09:34
-   Duration  1.17s (environment 39%, tests 27%, transform 16%, import 11%, setup 7%)
-

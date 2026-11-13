@@ -16,7 +16,7 @@
  * swapped in (CLS 0.137 on #/rules, layout-shift sources: the page head and everything below it).
  * These faces scale the local fallback to the web font's advance width and line metrics, so the swap
  * changes glyph shapes but not layout. Values measured in Chrome against the bundled faces
- * (scripts/dev/cls-probe.mjs; docs/product-dev/round-02/evidence/rules-cls/).
+ * (scripts/dev/cls-probe.mjs; docs/product-dev/round-02/evidence/rules-cls/ in tag v1.1.0).
  */
 @font-face {
   font-family: "Instrument Serif Fallback";

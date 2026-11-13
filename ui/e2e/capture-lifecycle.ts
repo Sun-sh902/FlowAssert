@@ -6,7 +6,7 @@
  * settle() was still being read when the test ended and Playwright closed the page; its allHeaders() then rejected
  * with "Target page, context or browser has been closed" as an unhandled rejection, which Playwright reports against
  * whichever test is running at that moment (the owner, or the next test) and which, in a serial file, stops every
- * later test. Reproduced in Chrome and WebKit: docs/product-dev/round-02-hardening/fix02/BROWSER_FAILURE_ROOT_CAUSE.md.
+ * later test. Reproduced in Chrome and WebKit: docs/product-dev/round-02-hardening/fix02/BROWSER_FAILURE_ROOT_CAUSE.md (tag v1.1.0).
  *
  * settle() now waits until no read is in flight, including reads that start while it waits, and throws the first read
  * error. A read cut off because the page closed (Playwright's TargetClosedError; the client does not export the class

@@ -1,6 +1,0 @@
-venv python: Python 3.12.14
-== py-env
-service/.venv exists — verifying it instead of recreating
-service/.venv == requirements.lock (37 distributions)
-BOOTSTRAP OK
-bootstrap exit=0

@@ -1,2 +1,0 @@
-portable backend tests: 247; custody tests run separately: tests/test_service.py::test_protected_repository_integrity
-pytest inventory: OK (0 problems)

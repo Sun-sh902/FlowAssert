@@ -1,4 +1,0 @@
-$ sh -c ls dist; find dist -iname '*lab*' -o -iname 'Brand-*' -o -iname 'AShell-*' -o -iname 'CShell-*' -o -iname 'newsreader-*' -o -iname 'martian-mono-*' -o -iname 'inter-*' | grep . && exit 1 || exit 0
-assets
-favicon.svg
-index.html

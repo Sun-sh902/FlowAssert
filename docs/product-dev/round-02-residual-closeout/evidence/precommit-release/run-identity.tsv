@@ -1,8 +1,0 @@
-run_id	residual-precommit-1
-commit	1caef22693eb87ee483b2de187d74bd73246f106
-branch	product-dev/round-02-residual-closeout
-worktree_changes	21
-mode	release
-started_utc	2026-10-23T15:52:09Z
-host	Darwin 27.2.0 arm64
-run_dir	/Users/zhangshenghe/Documents/FlowAssert-Product-Dev/.dev-runtime/regression/residual-precommit-1

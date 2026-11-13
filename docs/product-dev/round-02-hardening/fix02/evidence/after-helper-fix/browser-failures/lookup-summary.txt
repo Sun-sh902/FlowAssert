@@ -1,6 +1,0 @@
-lookup run 1 exit=0  3 skipped  57 passed (1.6m)  interrupted=0
-lookup run 2 exit=0  3 skipped  57 passed (1.6m)  interrupted=0
-lookup run 3 exit=0  3 skipped  57 passed (1.6m)  interrupted=0
-lookup run 4 exit=0  3 skipped  57 passed (1.6m)  interrupted=0
-lookup run 5 exit=0  3 skipped  57 passed (1.6m)  interrupted=0
-lookup run 6 exit=0  3 skipped  57 passed (1.5m)  interrupted=0

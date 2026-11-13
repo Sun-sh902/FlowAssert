@@ -1,5 +1,5 @@
 /**
- * Round 02 hardening FIX03 — domain and UI semantic findings (docs/product-dev/round-02-hardening/fix03/).
+ * Round 02 hardening FIX03 — domain and UI semantic findings (docs/product-dev/round-02-hardening/fix03/, tag v1.1.0).
  * Each test reproduces one CONFIRMED finding and fails on 203f702. Service behaviour is the captured or genuine one:
  * the 503 detail shape is service/app/history_api.py's; the rule records are verbatim output of the pinned Evaluator
  * (service/vendor/model.py) on reviewed fixture A-verified with one input changed (see fix03/evidence/evaluator/).

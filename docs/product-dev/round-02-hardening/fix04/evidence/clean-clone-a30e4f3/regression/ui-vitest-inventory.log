@@ -1,2 +1,0 @@
-RAN      src/test/contract-drift-mutations.test.ts › drift guard sensitivity — independent audit mutants (read-only replay) (13 passed)
-vitest inventory: OK (0 problems)

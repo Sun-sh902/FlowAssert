@@ -1,8 +1,0 @@
-simulated interruption: dev-main has seed only
-all states exist; nothing written
-seed.sh exit=0
-== fixtures
-synthetic archives in service/.runtime: dev-main (10 evaluations), dev-single (5), dev-empty — only missing ones were created
-
-BOOTSTRAP OK
-bootstrap exit=0

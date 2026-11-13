@@ -125,7 +125,7 @@ server/       localApiGate.ts — the dev/preview gate to the local Service
 docs/         design system, information architecture, product understanding, Phase 2 / 2.5 / 3A reports and evidence
 ```
 
-Round reports, screenshots and test evidence for this workspace are in `../docs/product-dev/`.
+Round reports, screenshots and test evidence for this workspace are in `docs/product-dev/` in [tag v1.1.0](https://github.com/Sun-sh902/FlowAssert/tree/v1.1.0/docs/product-dev/) and earlier; they were removed from `main` on 2026-11-13.
 
 Stack: React 19, TypeScript (strict), Vite 8, Tailwind CSS 4, lucide-react, self-hosted fonts (Instrument Serif,
 Instrument Sans, IBM Plex Mono via Fontsource; all SIL OFL 1.1). The design lab (`lab.html`) additionally uses Inter

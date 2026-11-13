@@ -1,2 +1,0 @@
-  1 skipped
-  31 passed (50.7s)

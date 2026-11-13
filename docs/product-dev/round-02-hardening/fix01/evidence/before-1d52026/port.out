@@ -1,7 +1,0 @@
-python3.1 6338 zhangshenghe    3u  IPv4 0x730fa68e0af49a79      0t0  TCP 127.0.0.1:4184 (LISTEN)
-rules-cls-probe exit 0
-30 loads measured; max cls 0
-unrelated server still alive (pid 6338)
-  - `__dirname` (vite.config.ts:28:30). Use `import.meta.dirname` instead
-Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
-{"runs":30,"cls":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"over":0,"max":0}

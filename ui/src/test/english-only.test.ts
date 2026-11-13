@@ -1,7 +1,7 @@
 /**
  * FlowAssert is English only from 1.1.0 (the owner's decision of 2026-11-12): no tracked file is a Chinese copy, and no
  * Markdown document has Chinese text. Data is not text: Chinese characters in code spans and code blocks, in test
- * values, golden files and fixtures, and the historical records under docs/product-dev/ and service/ are not scanned.
+ * values, golden files and fixtures, and the historical records under service/ are not scanned.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -10,7 +10,7 @@ import { describe, expect, test } from "vitest";
 import { REPO_ROOT } from "./fixtures/sources";
 
 const tracked = execFileSync("git", ["ls-files"], { cwd: REPO_ROOT, encoding: "utf-8" }).split("\n").filter(Boolean);
-const HISTORY = /^(docs\/product-dev|service)\//;
+const HISTORY = /^service\//;
 /** Han characters, and the CJK and full-width punctuation that only Chinese text uses. */
 const CHINESE = /[　-〿㐀-䶿一-鿿豈-﫿！-｠]/u;
 /** A Markdown file's text outside fenced code blocks and code spans, where a value is a value. */

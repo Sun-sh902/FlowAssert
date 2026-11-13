@@ -1,4 +1,0 @@
-{'numTotalTests': 1623, 'numPassedTests': 1623, 'numFailedTests': 0, 'numPendingTests': 0, 'numTotalTestSuites': 164}
-RAN      src/test/contract-drift-mutations.test.ts › drift guard sensitivity — independent audit mutants (read-only replay) (13 passed)
-vitest inventory: OK (0 problems)
-inventory exit=0

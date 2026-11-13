@@ -1,3 +1,0 @@
-OK      chrome   156.0.8078.47
-OK      webkit   26.6
-ABSENT  firefox  browser.newPage: Target page, context or browser has been closed (not mandatory)

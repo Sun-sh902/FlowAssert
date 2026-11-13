@@ -1,3 +1,0 @@
-$ git merge-base --is-ancestor 203f702 HEAD
-
-exit=0
