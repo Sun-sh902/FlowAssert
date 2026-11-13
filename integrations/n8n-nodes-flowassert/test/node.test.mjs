@@ -98,6 +98,14 @@ describe("the checker's input", () => {
 		assert.deepEqual(input.source, { name: "f.csv", content: file.content, format: "xlsx", worksheet: "Orders" });
 	});
 
+	test("a total an expression gives as a number is taken as the command line takes its text", () => {
+		// Before, checkInput called trim() on it and the item failed with "value.trim is not a function".
+		const input = checkInput({ ...base, sourceCount: 12, destinationCount: 0 }, file, file);
+		assert.equal(input.sourceCount, "12");
+		assert.equal(input.destinationCount, "0");
+		assert.equal(checkInput({ ...base, sourceCount: " " }, file, file).sourceCount, null);
+	});
+
 	test("records to resend cannot be combined with values left out", () => {
 		assert.equal(checkInput({ ...base, options: { redactValues: true } }, file, file), "Output Records to Resend cannot be combined with Leave Values Out of the Reports: the exported rows hold the values");
 		assert.equal(checkInput({ ...base, exportRecords: false, options: { redactValues: true } }, file, file).redactValues, true);

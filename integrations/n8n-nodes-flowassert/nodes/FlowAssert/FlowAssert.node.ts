@@ -274,8 +274,8 @@ export interface Parameters {
 	scope: string;
 	sourceComplete: boolean;
 	destinationComplete: boolean;
-	sourceCount: string;
-	destinationCount: string;
+	sourceCount: string | number;
+	destinationCount: string | number;
 	allowIdenticalContent: boolean;
 	exportRecords: boolean;
 	options: { redactValues?: boolean; maxBytes?: string; maxRows?: string; details?: string };
@@ -307,7 +307,8 @@ export function checkInput(
 		const rule = f.rule === 'date' ? `date:${f.dateFormat ?? ''}` : (f.rule ?? 'exact');
 		return { source: sourceColumn, destination: f.destinationColumn || sourceColumn, rule };
 	});
-	const count = (value: string) => (value.trim() === '' ? null : value);
+	// A total typed in the field is text; one an expression gives, such as {{ $json.total }}, can be a number.
+	const count = (value: unknown) => (value === undefined || value === null || String(value).trim() === '' ? null : String(value));
 	const options = p.options;
 	return {
 		source: file('source', source),

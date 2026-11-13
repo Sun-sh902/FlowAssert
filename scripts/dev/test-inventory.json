@@ -1869,7 +1869,7 @@
  },
  "n8n-node": {
   "files": {
-   "integrations/n8n-nodes-flowassert/test/node.test.mjs": 69
+   "integrations/n8n-nodes-flowassert/test/node.test.mjs": 70
   }
  }
 }
