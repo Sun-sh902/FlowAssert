@@ -486,6 +486,10 @@ class Workbook:
         produced = 0
         left = entry.csize
         self.f.seek(start)
+        # The text inflated before a problem is handed on before the problem is refused, and of a part that inflates
+        # to more than the archive records only the recorded size, so that a problem earlier in the text is met first
+        # whatever the size of the pieces, as the browser meets it (spec section 15 keeps one exception: the text of a
+        # deflate block that fails midway, which zlib does not give).
         try:
             while left:
                 piece = self.f.read(min(CHUNK, left))
@@ -493,36 +497,49 @@ class Workbook:
                     raise bad
                 left -= len(piece)
                 position = self.f.tell()
+                problem = False
                 if inflater is None:
                     outs = [piece]
                 else:
                     outs = []
                     data = piece
                     while data:
-                        out = inflater.decompress(data, INFLATE_PIECE)
+                        try:
+                            out = inflater.decompress(data, INFLATE_PIECE)
+                        except zlib.error:
+                            problem = True
+                            break
                         data = inflater.unconsumed_tail
                         if out:
                             outs.append(out)
                             if produced + sum(map(len, outs)) > entry.usize:
-                                raise bad
+                                break
                         if inflater.eof and (data or inflater.unused_data):
-                            raise bad
+                            problem = True  # data after the end of the deflate stream
+                            break
                 for out in outs:
+                    over = produced + len(out) > entry.usize
+                    if over:
+                        out = out[:entry.usize - produced]
                     produced += len(out)
-                    if produced > entry.usize:
-                        raise bad
                     crc = zlib.crc32(out, crc)
-                    yield out
+                    if out:
+                        yield out
+                    if over:
+                        raise bad
+                if problem:
+                    raise bad
                 self.f.seek(position)
             if inflater is not None:
                 tail = inflater.flush()
+                over = produced + len(tail) > entry.usize
+                if over:
+                    tail = tail[:entry.usize - produced]
                 if tail:
                     produced += len(tail)
-                    if produced > entry.usize:
-                        raise bad
                     crc = zlib.crc32(tail, crc)
                     yield tail
-                if not inflater.eof or inflater.unused_data:
+                if over or not inflater.eof or inflater.unused_data:
                     raise bad
         except zlib.error:
             raise bad from None

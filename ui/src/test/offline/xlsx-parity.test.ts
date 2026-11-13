@@ -310,6 +310,50 @@ describe.skipIf(skip)(skip ? why : "with Python", () => {
 
 // ---------- Hostile workbooks found by fuzzing the two readers against each other (review of 2026-11-13) ----------
 
+interface RawEntry {
+  name: string;
+  /** The bytes stored in the archive: the part itself when stored, its deflate stream (and anything after it) when deflated. */
+  body: Uint8Array;
+  deflated: boolean;
+  /** The CRC-32 and inflated size the archive records. */
+  crc: number;
+  usize: number;
+}
+
+/** A ZIP archive of these entries exactly as given, so an entry can record what its data does not hold. */
+function rawZip(entries: RawEntry[]): Uint8Array {
+  const chunks: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let offset = 0;
+  for (const e of entries) {
+    const nameBytes = new TextEncoder().encode(e.name);
+    const local = new DataView(new ArrayBuffer(30));
+    const fields = [0x04034b50, 20, 0, e.deflated ? 8 : 0, 0, 0, e.crc, e.body.length, e.usize, nameBytes.length, 0];
+    [4, 2, 2, 2, 2, 2, 4, 4, 4, 2, 2].reduce((at, size, i) => (size === 4 ? local.setUint32(at, fields[i]! >>> 0, true) : local.setUint16(at, fields[i]!, true), at + size), 0);
+    const entry = new DataView(new ArrayBuffer(46));
+    const cfields = [0x02014b50, 20, 20, 0, e.deflated ? 8 : 0, 0, 0, e.crc, e.body.length, e.usize, nameBytes.length, 0, 0, 0, 0, 0, offset];
+    [4, 2, 2, 2, 2, 2, 2, 4, 4, 4, 2, 2, 2, 2, 2, 4, 4].reduce((at, size, i) => (size === 4 ? entry.setUint32(at, cfields[i]! >>> 0, true) : entry.setUint16(at, cfields[i]!, true), at + size), 0);
+    chunks.push(new Uint8Array(local.buffer), nameBytes, e.body);
+    central.push(new Uint8Array(entry.buffer), nameBytes);
+    offset += 30 + nameBytes.length + e.body.length;
+  }
+  const cdSize = central.reduce((n, c) => n + c.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, entries.length, true);
+  end.setUint16(10, entries.length, true);
+  end.setUint32(12, cdSize, true);
+  end.setUint32(16, offset, true);
+  const all = [...chunks, ...central, new Uint8Array(end.buffer)];
+  const out = new Uint8Array(all.reduce((n, c) => n + c.length, 0));
+  let at = 0;
+  for (const c of all) {
+    out.set(c, at);
+    at += c.length;
+  }
+  return out;
+}
+
 const encode = (s: string) => new TextEncoder().encode(s);
 const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 
@@ -343,6 +387,29 @@ async function hostileWorkbooks(): Promise<{ name: string; bytes: Uint8Array; ex
             const sheet = head + `<worksheet xmlns="${M}">` + (before ? "" : opening + spaces + closing) + "<sheetData/></worksheet>";
             const name = `${kind}-${length}-${deflated ? "deflated" : "stored"}.xlsx`;
             return { name, bytes: await zip(smallBook(sheet), deflated), expected: { refused: `xl/worksheets/sheet1.xml ${BOUND}` } };
+          }),
+        ),
+      ),
+    )),
+    // A problem in the text comes before damage the archive shows only after it: data after the end of the deflate
+    // stream, or a part that inflates to more than the archive records. Before, the command line refused the damage
+    // without reading the text of the piece that showed it, and the browser refused the larger part the same way.
+    ...(await Promise.all(
+      (["small", "large"] as const).flatMap((size) =>
+        (["problem", "clean"] as const).flatMap((what) =>
+          (["trailing", "larger"] as const).map(async (damage) => {
+            const padding = size === "large" ? 3_000_000 : 0;
+            const row2 = what === "problem" ? '<c r="B2" t="e"><v>#N/A</v></c>' : inline("B2", "1");
+            const text = encode(`${XML_DECLARATION}<worksheet xmlns="${M}"><sheetData><row r="1">${inline("A1", "id")}${inline("B1", "phone")}</row><row r="2">${inline("A2", "K1")}${row2}</row>${" ".repeat(padding)}</sheetData></worksheet>`);
+            const body = await deflate(text);
+            const entries: RawEntry[] = [];
+            for (const [partName, data] of smallBook("")) {
+              if (partName !== "xl/worksheets/sheet1.xml") entries.push({ name: partName, body: await deflate(data), deflated: true, crc: crc32(data), usize: data.length });
+              else if (damage === "trailing") entries.push({ name: partName, body: Uint8Array.from([...body, ...encode("PK\u0003\u0004 data after the end")]), deflated: true, crc: crc32(text), usize: text.length });
+              else entries.push({ name: partName, body, deflated: true, crc: crc32(text), usize: text.length - 1 - padding / 3 });
+            }
+            const refused = what === "problem" ? "worksheet 'S': cell B2 holds the error value #N/A" : "damaged ZIP archive (xl/worksheets/sheet1.xml does not inflate to the data the archive records)";
+            return { name: `${damage}-${what}-${size}.xlsx`, bytes: rawZip(entries), expected: { refused } };
           }),
         ),
       ),

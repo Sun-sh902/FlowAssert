@@ -642,11 +642,14 @@ export class Workbook {
           throw bad();
         }
         if (result.done) break;
-        const out = result.value;
+        // Of a part that inflates to more than the archive records, only the recorded size is read, then refused,
+        // so that a problem earlier in the text is met first whatever the size of the chunks (xlsx.Workbook.chunks).
+        const over = produced + result.value.length > entry.usize;
+        const out = over ? result.value.subarray(0, entry.usize - produced) : result.value;
         produced += out.length;
-        if (produced > entry.usize) throw bad();
         crc = crc32(out, crc);
-        yield out;
+        if (out.length) yield out;
+        if (over) throw bad();
       }
     } finally {
       reader.cancel().catch(() => undefined);

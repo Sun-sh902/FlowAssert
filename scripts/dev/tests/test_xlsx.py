@@ -267,3 +267,54 @@ def _refusal_of(parts, method):
         with pytest.raises(Refused) as e:
             list(xlsx.XlsxFile(str(path), []).full_rows())
         return str(e.value)
+
+
+def _book_with_sheet(sheet, **entry):
+    """A workbook whose worksheet part is `sheet`, deflated, with `entry` changing what the archive records of it."""
+    parts = w.parts(w.Book(sheets=[w.Sheet('S', [['id'], ['a']])]))
+    parts['xl/worksheets/sheet1.xml'] = sheet
+    entries = []
+    for name, data in parts.items():
+        e = {'name': name, 'data': w.deflate_raw(data), 'plain': data}
+        if name == 'xl/worksheets/sheet1.xml':
+            e.update(entry)
+            e['data'] = e.pop('data_with', e['data'])
+        entries.append(e)
+    return w.raw_zip(entries)
+
+
+_EARLY_PROBLEM = ('<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="%s"><sheetData><row r="1"><c r="A1" '
+                  't="inlineStr"><is><t>id</t></is></c><c r="B1" t="inlineStr"><is><t>phone</t></is></c></row>'
+                  '<row r="2"><c r="A2" t="inlineStr"><is><t>K1</t></is></c><c r="B2" t="e"><v>#N/A</v></c></row>'
+                  % xlsx.M_NS)
+_CELL = "worksheet 'S': cell B2 holds the error value #N/A"
+_DAMAGED = 'damaged ZIP archive (xl/worksheets/sheet1.xml does not inflate to the data the archive records)'
+
+
+@pytest.mark.parametrize('padding', [0, 3_000_000])
+def test_a_problem_in_the_text_comes_before_damage_the_archive_shows_after_it(tmp_path, padding):
+    # The text inflated before a damage is read first, as the browser reads it, so a problem in that text is the one
+    # refused. Before, the command line refused data after the end of the deflate stream, and a part that inflates to
+    # more than the archive records, before reading the text of the piece that showed it.
+    text = (_EARLY_PROBLEM + ' ' * padding + '</sheetData></worksheet>').encode('utf-8')
+    deflated = w.deflate_raw(text)
+    cases = {
+        'trailing': dict(data_with=deflated + b'PK\x03\x04 data after the end of the stream', usize=len(text)),
+        'larger': dict(usize=len(text) - 1 - padding // 3),
+    }
+    for kind, entry in cases.items():
+        path = tmp_path / f'{kind}.xlsx'
+        path.write_bytes(_book_with_sheet(text, **entry))
+        with pytest.raises(Refused) as e:
+            list(xlsx.XlsxFile(str(path), []).full_rows())
+        assert str(e.value) == f'{path}: {_CELL}', kind
+    # With no earlier problem, the damage itself is refused.
+    clean = (_EARLY_PROBLEM.replace('t="e"><v>#N/A</v>', 't="inlineStr"><is><t>1</t></is>') + ' ' * padding
+             + '</sheetData></worksheet>').encode('utf-8')
+    for kind, entry in {'trailing': dict(data_with=w.deflate_raw(clean) + b'more', usize=len(clean)),
+                        'larger': dict(usize=len(clean) - 1)}.items():
+        path = tmp_path / f'clean-{kind}.xlsx'
+        path.write_bytes(_book_with_sheet(clean, **entry))
+        with pytest.raises(Refused) as e:
+            list(xlsx.XlsxFile(str(path), []).full_rows())
+        assert str(e.value) == f'{path}: {_DAMAGED}', kind

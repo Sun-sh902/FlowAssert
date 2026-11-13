@@ -110,7 +110,7 @@
     "scripts/dev/tests/test_sheets_source.py": 210,
     "scripts/dev/tests/test_spec.py": 303,
     "scripts/dev/tests/test_workflows.py": 26,
-    "scripts/dev/tests/test_xlsx.py": 121,
+    "scripts/dev/tests/test_xlsx.py": 123,
     "scripts/dev/tests/test_exports.py": 331
    }
   }
