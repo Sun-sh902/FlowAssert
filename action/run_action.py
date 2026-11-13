@@ -223,8 +223,22 @@ def _cell(text):
     return str(text).replace("\\", "\\\\").replace("|", "\\|").replace("\r", " ").replace("\n", " ")
 
 
+def _span(text):
+    """Text, such as a worksheet's name as repr writes it, as a code span in a Markdown table cell: nothing in it is
+    read as a link, an image, an HTML tag or emphasis. A pipe is escaped, as a table needs even inside a code span,
+    and a line break becomes a space."""
+    text = str(text).replace("\r", " ").replace("\n", " ").replace("|", "\\|")
+    run = longest = 0
+    for c in text:
+        run = run + 1 if c == "`" else 0
+        longest = max(longest, run)
+    fence = "`" * (longest + 1)
+    pad = " " if text.startswith("`") or text.endswith("`") or (text[:1] == " " and text[-1:] == " ") else ""
+    return f"{fence}{pad}{text}{pad}{fence}"
+
+
 def input_rows(report):
-    """Each side: what it was read as, and its digests."""
+    """Each side: what it was read as, as Markdown for a table cell, and its digests."""
     inputs = report.get("inputs", {})
     rows = []
     for side, title in (("source", "Source"), ("destination", "Destination")):
@@ -233,7 +247,8 @@ def input_rows(report):
         sheet = inputs.get(f"{side}_sheet")
         crm = inputs.get(f"{side}_hubspot")
         if book:
-            kind = f"worksheet {book.get('worksheet', '')} of an .xlsx workbook"
+            # The name comes from the workbook, which another system may have written: shown, never rendered.
+            kind = f"worksheet {_span(repr(book.get('worksheet', '')))} of an .xlsx workbook"
             digests = f"`{digest}` (canonical form), file `{book.get('file_sha256', '')}`"
         elif sheet:
             revision = sheet.get("revision")
@@ -248,7 +263,7 @@ def input_rows(report):
         else:
             kind = "CSV file"
             digests = f"`{digest}`"
-        rows.append((title, kind, digests))
+        rows.append((title, kind if book else _cell(kind), digests))
     return rows
 
 
@@ -312,7 +327,7 @@ def run_summary(report, inputs, keys=True):
             text += f"| {name} | {_stated(premise.get('stated'))} | {applied(name, premise, premises, report.get('inputs', {}))} |\n"
     text += "\n| Input | Read as | SHA-256 |\n| --- | --- | --- |\n"
     for title, kind, digests in input_rows(report):
-        text += f"| {title} | {_cell(kind)} | {digests} |\n"
+        text += f"| {title} | {kind} | {digests} |\n"
     text += "\n"
     directory = inputs["export-dir"]
     if directory and os.path.isdir(directory):

@@ -104,7 +104,7 @@
   "offline": {
    "about": "The command-line checker, the GitHub Action's wrapper, the Google Sheets source, the HubSpot Contacts destination, the 1.0 commitment (the specification's cases, the JSON Schemas, the conformance runner), the workflows and the .xlsx reader (CI job offline), per file. Run on every supported Python; the count is the same on each.",
    "files": {
-    "scripts/dev/tests/test_action.py": 123,
+    "scripts/dev/tests/test_action.py": 127,
     "scripts/dev/tests/test_hubspot_destination.py": 104,
     "scripts/dev/tests/test_offline_verify.py": 385,
     "scripts/dev/tests/test_sheets_source.py": 210,

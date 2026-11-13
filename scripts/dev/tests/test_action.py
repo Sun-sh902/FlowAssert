@@ -630,7 +630,7 @@ def test_a_workbook_source_and_the_records_to_resend(tmp_path, capsys, monkeypat
     part = run_part(summary)
     report = json.loads((folder / 'report.json').read_text(encoding='utf-8'))
     book = report['inputs']['source_workbook']
-    assert (f"| Source | worksheet {book['worksheet']} of an .xlsx workbook | `{report['inputs']['source_sha256']}` "
+    assert (f"| Source | worksheet `{book['worksheet']!r}` of an .xlsx workbook | `{report['inputs']['source_sha256']}` "
             f"(canonical form), file `{book['file_sha256']}` |") in part
     files = sorted(p.name for p in (tmp_path / 'resend').iterdir())
     assert files and f'Records to resend, in {tmp_path / "resend"}: ' in part
@@ -664,3 +664,28 @@ def test_a_sheet_to_hubspot_check_leaks_no_credential(tmp_path, capsys, monkeypa
     for text in texts:
         for secret in (SHEET_TOKEN, HUBSPOT_TOKEN, 'LEAK-CANARY'):
             assert secret not in text
+
+
+@pytest.mark.parametrize('name, shown', [
+    ('[Verified, see details](https://attacker.example/) <img src="https://attacker.example/p.png"> | x',
+     '`\'[Verified, see details](https://attacker.example/) <img src="https://attacker.example/p.png"> \\| x\'`'),
+    ('a `tick`', "``'a `tick`'``"),
+    ('two\nlines', "`'two\\nlines'`"),
+    ('', "`''`"),
+])
+def test_a_worksheet_name_is_shown_in_the_run_summary_and_never_rendered(tmp_path, capsys, name, shown):
+    # The name comes from the workbook, which another system may have written. Before, it went into the run summary's
+    # table as Markdown, so a name could put a link or an image (an <img> GitHub loads) into the summary.
+    sys.path.insert(0, str(ROOT / 'offline' / 'bench'))
+    import xlsx_writer as w
+    book = w.Book(sheets=[w.Sheet('S', [['id', 'phone'], ['K1', '1']])])
+    parts = w.parts(book)
+    parts['xl/workbook.xml'] = parts['xl/workbook.xml'].replace(
+        b'name="S"', b'name=' + w.quoteattr(name).encode('utf-8').replace(b'\n', b'&#10;'))
+    (tmp_path / 'source.xlsx').write_bytes(w.zip_bytes(parts.items()))
+    (tmp_path / 'destination.csv').write_text('id,phone\nK1,2\n', encoding='utf-8')
+    code, printed, out, summary = act(tmp_path, capsys, source=str(tmp_path / 'source.xlsx'), source_format='xlsx',
+                                      destination=str(tmp_path / 'destination.csv'), key='id', fields='phone')
+    assert out['state'] == 'Mismatch'
+    rows = [line for line in run_part(summary).split('\n') if line.startswith('| Source |')]
+    assert len(rows) == 1 and rows[0].startswith(f'| Source | worksheet {shown} of an .xlsx workbook | `'), rows
