@@ -19,6 +19,7 @@ import { check, reportHtml, reportJson } from "../../offline/check";
 import { REPO_ROOT } from "../fixtures/sources";
 import { parseArgs } from "./cli-args";
 import { CsvReader, LineReader } from "../../offline/csv";
+import { DuplicateMember, JsonError, pyLoads, type PyValue } from "../../offline/pyjson";
 import { generateCase, random } from "./random-cases";
 
 const COUNT = Number(process.env.FA_PARITY_COUNT ?? 300);
@@ -113,6 +114,85 @@ for text in json.load(sys.stdin):
         out.append({"rows": rows, "error": str(e), "line": reader.line_num})
 json.dump(out, sys.stdout)
 `;
+
+const JSON_READER = `
+import json, struct, sys
+def pairs(items):
+    out = {}
+    for name, value in items:
+        if name in out:
+            raise KeyError(name)
+        out[name] = value
+    return out
+def tagged(v):
+    depth = 0
+    while isinstance(v, list) and len(v) == 1 and isinstance(v[0], list):
+        depth, v = depth + 1, v[0]
+    if depth: return ["nested", depth, tagged(v)]
+    if isinstance(v, bool) or v is None: return ["c", v]
+    if isinstance(v, int): return ["i", str(v)]
+    if isinstance(v, float): return ["f", struct.pack(">d", v).hex()]
+    if isinstance(v, str): return ["s", v]
+    if isinstance(v, list): return ["a", [tagged(x) for x in v]]
+    return ["o", [[k, tagged(x)] for k, x in v.items()]]
+out = []
+for text in json.load(sys.stdin):
+    try:
+        out.append({"value": tagged(json.loads(text, object_pairs_hook=pairs))})
+    except json.JSONDecodeError as e:
+        out.append({"error": e.msg})
+    except KeyError as e:
+        out.append({"duplicate": e.args[0]})
+json.dump(out, sys.stdout)
+`;
+
+test(`json parity: ${COUNT * 4} random texts, nested up to 100,000 deep, read as json.loads reads them`, { timeout: 600_000 }, () => {
+  // The reader of configuration files and saved reports (pyjson.ts) against Python's json, as cli._read_json uses it:
+  // the value, or the message of the first problem, or the repeated member.
+  if (!usable) throw new Error(why);
+  const r = random(SEED + 1);
+  const tokens = ["[", "]", "{", "}", ",", ",", ":", '"a"', '"b"', '"a"', "1", "-0", "1.5", "1e400", "-1e-400", "12345678901234567890", "true", "false", "null", "NaN", "-Infinity", " ", "\n", '"\\u00e9"', '"\\x"', '"\\ud800"', "x", '"', "\t", "01", "1.", "-", "\u0001", '"\u0001"'];
+  const texts = Array.from({ length: COUNT * 4 }, () => {
+    let text = "";
+    for (let n = r.int(0, 30); n > 0; n--) text += r.pick(tokens);
+    return text;
+  });
+  texts.push("\ufeff{}", "[".repeat(100_000) + "]".repeat(100_000), `{"a": ${"[".repeat(100_000)}1${"]".repeat(100_000)}, "a": 2}`, "[".repeat(100_000) + "]".repeat(99_999));
+  const python = JSON.parse(execFileSync(PYTHON, ["-c", JSON_READER], { input: JSON.stringify(texts), maxBuffer: 1 << 28 }).toString()) as unknown[];
+  const tagged = (value: PyValue): unknown => {
+    // A run of one-item arrays as its depth, so that a value nested 100,000 deep is compared without recursion.
+    let v = value;
+    let depth = 0;
+    while (Array.isArray(v) && v.length === 1 && Array.isArray(v[0])) {
+      depth++;
+      v = v[0] as PyValue;
+    }
+    if (depth) return ["nested", depth, tagged(v)];
+    if (typeof v === "boolean" || v === null) return ["c", v];
+    if (typeof v === "bigint" || (typeof v === "number" && Number.isInteger(v) && !Object.is(v, -0) && Math.abs(v) <= Number.MAX_SAFE_INTEGER && !/[.eE]/.test(String(v)))) return ["i", String(v)];
+    if (typeof v === "number") {
+      const view = new DataView(new ArrayBuffer(8));
+      view.setFloat64(0, v);
+      return ["f", [...new Uint8Array(view.buffer)].map((b) => b.toString(16).padStart(2, "0")).join("")];
+    }
+    if (typeof v === "string") return ["s", v];
+    if (Array.isArray(v)) return ["a", v.map(tagged)];
+    return ["o", Object.entries(v).map(([k, x]) => [k, tagged(x as PyValue)])];
+  };
+  const differences: string[] = [];
+  texts.forEach((text, i) => {
+    let ours: unknown;
+    try {
+      ours = { value: tagged(pyLoads(text)) };
+    } catch (e) {
+      if (e instanceof DuplicateMember) ours = { duplicate: e.member };
+      else if (e instanceof JsonError) ours = { error: e.message };
+      else ours = { thrown: String(e) };
+    }
+    if (JSON.stringify(ours) !== JSON.stringify(python[i])) differences.push(`${JSON.stringify(text).slice(0, 200)}: python ${JSON.stringify(python[i]).slice(0, 200)}, browser ${JSON.stringify(ours).slice(0, 200)}`);
+  });
+  expect(differences.slice(0, 10)).toEqual([]);
+});
 
 test(`csv.reader parity: ${COUNT * 4} random texts of quotes, commas and line breaks`, { timeout: 600_000 }, () => {
   if (!usable) throw new Error(why);

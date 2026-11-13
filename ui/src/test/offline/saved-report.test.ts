@@ -27,6 +27,13 @@ function refusal(bytes: Uint8Array): NotAReport {
 }
 
 describe("reading a report", () => {
+  it("refuses a file nested far deeper than any report, rather than failing", () => {
+    // Before, the JSON reader ran out of call stack on it, and the import failed with no message at all.
+    for (const text of ["[".repeat(200_000) + "]".repeat(200_000), `{"schema_version": 1, "records": ${"[".repeat(200_000)}${"]".repeat(200_000)}}`]) {
+      expect(() => readReport(new TextEncoder().encode(text), "deep.json")).toThrow(NotAReport);
+    }
+  });
+
   it("finds the golden reports", () => {
     expect(goldenReports.length).toBeGreaterThanOrEqual(45);
   });

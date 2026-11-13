@@ -73,11 +73,9 @@ export function pyLoads(text: string): PyValue {
   const ws = () => {
     while (i < text.length && " \t\n\r".includes(text[i]!)) i++;
   };
-  const value = (): PyValue => {
-    ws();
+  /** A value that is not an array or an object, at i (after white space). */
+  const scalar = (): PyValue => {
     const ch = text[i];
-    if (ch === "{") return object();
-    if (ch === "[") return array();
     if (ch === '"') return string();
     if (text.startsWith("null", i)) return (i += 4), null;
     if (text.startsWith("true", i)) return (i += 4), true;
@@ -124,60 +122,80 @@ export function pyLoads(text: string): PyValue {
       i++;
     }
   };
-  const array = (): PyValue[] => {
-    i++;
-    const out: PyValue[] = [];
+  // Arrays and objects are read with a stack of the open ones, not by recursion, so that no nesting a file can hold
+  // exhausts the call stack: Python 3.15 reads a configuration nested 100,000 deep, and so must this. The checks are
+  // made in the order the recursive reader made them, so the first problem is the one Python names.
+  type Open = { array: PyValue[] } | { pairs: [string, PyValue][]; key: string };
+  const stack: Open[] = [];
+  /** The next member's name and ":" of an open object. */
+  const member = (open: { key: string }) => {
     ws();
-    if (text[i] === "]") return i++, out;
-    for (;;) {
-      out.push(value());
+    if (text[i] !== '"') fail("Expecting property name enclosed in double quotes");
+    open.key = string();
+    ws();
+    if (text[i] !== ":") fail("Expecting ':' delimiter");
+    i++;
+  };
+  // The duplicate check runs when the object closes, as object_pairs_hook does.
+  const close = (pairs: [string, PyValue][]) => {
+    const out: { [key: string]: PyValue } = Object.create(null) as { [key: string]: PyValue };
+    for (const [key, item] of pairs) {
+      if (Object.hasOwn(out, key)) throw new DuplicateMember(key);
+      out[key] = item;
+    }
+    return out;
+  };
+  if (text.startsWith("﻿")) fail("Unexpected UTF-8 BOM (decode using utf-8-sig)");
+  let result: PyValue;
+  value: for (;;) {
+    // A value begins: a scalar, an empty array or object, or one that opens and whose first member begins next.
+    ws();
+    let done: PyValue;
+    if (text[i] === "[") {
+      i++;
       ws();
+      if (text[i] !== "]") {
+        stack.push({ array: [] });
+        continue;
+      }
+      i++;
+      done = [];
+    } else if (text[i] === "{") {
+      i++;
+      ws();
+      if (text[i] !== "}") {
+        const open = { pairs: [], key: "" };
+        stack.push(open);
+        member(open);
+        continue;
+      }
+      i++;
+      done = close([]);
+    } else done = scalar();
+    // A value is complete: it goes into the innermost open array or object, which may then close in turn.
+    for (;;) {
+      const open = stack[stack.length - 1];
+      if (open === undefined) {
+        result = done;
+        break value;
+      }
+      if ("array" in open) open.array.push(done);
+      else open.pairs.push([open.key, done]);
+      ws();
+      const end = "array" in open ? "]" : "}";
       if (text[i] === ",") {
         i++;
         ws();
-        if (text[i] === "]") fail("Illegal trailing comma before end of array");
-        continue;
+        if (text[i] === end) fail(`Illegal trailing comma before end of ${"array" in open ? "array" : "object"}`);
+        if (!("array" in open)) member(open);
+        continue value;
       }
-      if (text[i] === "]") return i++, out;
-      fail("Expecting ',' delimiter");
-    }
-  };
-  const object = (): { [key: string]: PyValue } => {
-    i++;
-    // The duplicate check runs when the object closes, as object_pairs_hook does.
-    const pairs: [string, PyValue][] = [];
-    const close = () => {
+      if (text[i] !== end) fail("Expecting ',' delimiter");
       i++;
-      const out: { [key: string]: PyValue } = Object.create(null) as { [key: string]: PyValue };
-      for (const [key, item] of pairs) {
-        if (Object.hasOwn(out, key)) throw new DuplicateMember(key);
-        out[key] = item;
-      }
-      return out;
-    };
-    ws();
-    if (text[i] === "}") return close();
-    for (;;) {
-      ws();
-      if (text[i] !== '"') fail("Expecting property name enclosed in double quotes");
-      const key = string();
-      ws();
-      if (text[i] !== ":") fail("Expecting ':' delimiter");
-      i++;
-      pairs.push([key, value()]);
-      ws();
-      if (text[i] === ",") {
-        i++;
-        ws();
-        if (text[i] === "}") fail("Illegal trailing comma before end of object");
-        continue;
-      }
-      if (text[i] === "}") return close();
-      fail("Expecting ',' delimiter");
+      stack.pop();
+      done = "array" in open ? open.array : close(open.pairs);
     }
-  };
-  if (text.startsWith("\ufeff")) fail("Unexpected UTF-8 BOM (decode using utf-8-sig)");
-  const result = value();
+  }
   ws();
   if (i !== text.length) fail("Extra data");
   return result;

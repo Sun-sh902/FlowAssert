@@ -126,6 +126,20 @@ describe("checkCsv inputs", () => {
     expect(encoding.message).toBe("refused: --source-encoding must be one of: utf-8, utf-16, gb18030\n");
   });
 
+  test("a configuration nested far deeper than any configuration is read, and refused as the command line refuses it", async () => {
+    // Python 3.15 reads JSON nested 100,000 deep; before, this check's own reader ran out of call stack on it, and the
+    // check failed internally ("failed: RangeError", exit status 4).
+    const deep = "[".repeat(100_000) + "]".repeat(100_000);
+    for (const [config, message] of [
+      [`{"key": ${deep}}`, "refused: configuration: missing member fields\n"],
+      [`{"key": ["id", "id"], "fields": ${deep}}`, "refused: configuration: each field must be an object with source, destination and an optional rule\n"],
+      [`{"key": ["id", "id"], "fields": [${"{\"a\": ".repeat(50_000)}1${"}".repeat(50_000)}]}`, "refused: configuration: unknown member a in field\n"],
+    ] as const) {
+      const result = await checkCsv({ ...example(), config });
+      expect({ exit: result.exit, message: result.message }).toEqual({ exit: 2, message });
+    }
+  });
+
   test("a call that is not an object is refused, and nothing throws", async () => {
     for (const input of [undefined, null, "source.csv"]) {
       const result = await checkCsv(input as unknown as CheckCsvInput);
