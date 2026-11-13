@@ -6,10 +6,10 @@ node is not on npm, not listed in n8n's catalogue, and not verified by n8n. Thes
 
 ## 1. Before the first publish
 
-- [ ] Choose the email npm and n8n will show for the package, and set it in
-      `integrations/n8n-nodes-flowassert/package.json` (`author.email`). It is
-      `set-before-publishing@example.invalid` now; n8n's linter requires an email, and the publish workflow refuses to
-      run while the placeholder is there.
+- [x] The email npm and n8n will show for the package is set in
+      `integrations/n8n-nodes-flowassert/package.json` (`author.email`): the GitHub no-reply address, chosen for
+      1.1.0. n8n's linter requires an email, and the publish workflow refuses to run while an `example.invalid`
+      placeholder is there.
 - [ ] Release FlowAssert 1.1.0 first, so the node's README links and the checker version (1.1.0) match a release.
 - [ ] Read the package once as npm will publish it:
       `cd ui && npm ci && npm run build:lib && cd ../integrations/n8n-nodes-flowassert && npm ci && npm run build && npm pack --dry-run`.

@@ -3,7 +3,7 @@
 #   - uses: actions/setup-python@v5
 #     with:
 #       python-version: "3.13"
-#   - uses: Sun-sh902/FlowAssert@v1.0.0
+#   - uses: Sun-sh902/FlowAssert@v1.1.0
 #     with:
 #       source: exports/source.csv
 #       destination: exports/destination.csv

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (unreleased)
+## 1.1.0 (2026-11-12)
 
 The release that removes reasons not to try FlowAssert, or to stop after one check. Four highlights, in order: Excel
 workbooks checked directly; from finding to fixing, with the records to resend; an n8n community node; and scheduled
@@ -13,11 +13,10 @@ cohort state, exit status, refusals, printed summary, JSON report and HTML repor
 --html`, 289 of 289, pass without regenerating anything). The new options leave every existing command as it was.
 
 Not true of this release: no outside user, review or adoption is claimed. The Google Sheets source and the HubSpot
-destination, now also in the Action, have been tested against local fakes only. No GitHub workflow was run: the
-Action's 1.1.0 inputs and run summary were tested in-process against local fakes, and its self-test, the release
-workflow and the node's publish workflow were written and checked for structure only. The n8n node was tested in a
-local self-hosted n8n (2.47.5 and 2.46.4, on macOS), not on n8n Cloud; it is not published on npm, not listed in n8n's
-catalogue and not verified by n8n.
+destination, now also in the Action, have been tested against local fakes only. The Action's 1.1.0 inputs and run
+summary ran in its self-test on GitHub's runners, against the same local fakes. The node's publish workflow has never
+run. The n8n node was tested in a self-hosted n8n (2.47.5 and 2.46.4 on macOS, and 2.47.5 on Linux in CI), not on n8n
+Cloud; it is not published on npm, not listed in n8n's catalogue and not verified by n8n.
 
 ### Added
 
