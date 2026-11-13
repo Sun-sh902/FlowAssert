@@ -1346,7 +1346,8 @@ class WorksheetReader:
         """(text, form) of one cell, or a refusal."""
         kind = cell.kind
         v = cell.v
-        if not cell.has_v and (kind != "inlineStr" or cell.inline is None):
+        # An inline string's value is its <is> element; a <v> does not give it one.
+        if (cell.inline is None) if kind == "inlineStr" else not cell.has_v:
             if cell.has_f:
                 self.refuse(f"cell {cell.name()} {_FORMULA}")
             if kind == "n":

@@ -318,3 +318,33 @@ def test_a_problem_in_the_text_comes_before_damage_the_archive_shows_after_it(tm
         with pytest.raises(Refused) as e:
             list(xlsx.XlsxFile(str(path), []).full_rows())
         assert str(e.value) == f'{path}: {_DAMAGED}', kind
+
+
+@pytest.mark.parametrize('cell, refusal', [
+    ('<c r="B2" t="inlineStr"><v>0.5</v></c>', "cell B2 has no value"),
+    ('<c r="B2" t="inlineStr" s="0"><v>1</v></c>', "cell B2 has no value"),
+    ('<c r="B2" t="inlineStr"><f>A1</f><v>x</v></c>',
+     'cell B2 has a formula without a cached value; open and save the workbook in a spreadsheet program, which '
+     'stores the values'),
+])
+def test_an_inline_string_with_a_value_but_no_inline_text_is_refused(tmp_path, cell, refusal):
+    # Before, both readers failed internally on it (exit status 4, "failed: TypeError"): the check for a cell
+    # without a value let an inline string with a <v> through, and its text was then read from no <is>.
+    sheet = ('<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="%s"><sheetData><row r="1"><c r="A1" '
+             't="inlineStr"><is><t>id</t></is></c><c r="B1" t="inlineStr"><is><t>n</t></is></c></row><row r="2">'
+             '<c r="A2" t="inlineStr"><is><t>K1</t></is></c>%s</row></sheetData></worksheet>' % (xlsx.M_NS, cell))
+    parts = w.parts(w.Book(sheets=[w.Sheet('S', [['id'], ['a']])]))
+    parts['xl/worksheets/sheet1.xml'] = sheet.encode('utf-8')
+    assert _refusal_of(parts, w.zipfile.ZIP_DEFLATED).endswith(f"book.xlsx: worksheet 'S': {refusal}")
+    (tmp_path / 'source.xlsx').write_bytes(w.zip_bytes(parts.items()))
+    (tmp_path / 'destination.csv').write_text('id,n\nK1,1\n', encoding='utf-8')
+    stderr = io.StringIO()
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        with contextlib.redirect_stderr(stderr):
+            code = cli.main(['--source', 'source.xlsx', '--source-format', 'xlsx', '--destination', 'destination.csv',
+                             '--key', 'id', '--field', 'n'])
+    finally:
+        os.chdir(cwd)
+    assert (code, stderr.getvalue()) == (2, f"refused: source.xlsx: worksheet 'S': {refusal}\n")

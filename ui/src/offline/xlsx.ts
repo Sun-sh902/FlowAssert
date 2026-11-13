@@ -1461,7 +1461,8 @@ export class WorksheetReader {
   textOf(cell: CellState): [string, Form | null] {
     const kind = cell.kind;
     const v = cell.v;
-    if (!cell.hasV && (kind !== "inlineStr" || cell.inline === null)) {
+    // An inline string's value is its <is> element; a <v> does not give it one.
+    if (kind === "inlineStr" ? cell.inline === null : !cell.hasV) {
       if (cell.hasF) this.refuse(`cell ${cellName(cell)} ${FORMULA}`);
       if (kind === "n") return ["", null];
       if (["s", "str", "b", "d", "e", "inlineStr"].includes(kind)) this.refuse(`cell ${cellName(cell)} has no value`);

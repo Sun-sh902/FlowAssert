@@ -414,6 +414,16 @@ async function hostileWorkbooks(): Promise<{ name: string; bytes: Uint8Array; ex
         ),
       ),
     )),
+    // An inline string with a <v> and no <is> has no value. Before, both readers failed internally on it.
+    ...(await Promise.all(
+      [
+        ['<c r="B2" t="inlineStr"><v>0.5</v></c>', "cell B2 has no value"],
+        ['<c r="B2" t="inlineStr"><f>A1</f><v>x</v></c>', "cell B2 has a formula without a cached value; open and save the workbook in a spreadsheet program, which stores the values"],
+      ].map(async ([cell, refusal], i) => {
+        const sheet = `${XML_DECLARATION}<worksheet xmlns="${M}"><sheetData><row r="1">${inline("A1", "id")}${inline("B1", "n")}</row><row r="2">${inline("A2", "K1")}${cell}</row></sheetData></worksheet>`;
+        return { name: `inline-string-without-text-${i}.xlsx`, bytes: await zip(smallBook(sheet), true), expected: { refused: `worksheet 'S': ${refusal}` } };
+      }),
+    )),
   ];
 }
 
