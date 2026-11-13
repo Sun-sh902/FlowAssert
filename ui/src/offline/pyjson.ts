@@ -145,7 +145,7 @@ export function pyLoads(text: string): PyValue {
     }
     return out;
   };
-  if (text.startsWith("﻿")) fail("Unexpected UTF-8 BOM (decode using utf-8-sig)");
+  if (text.startsWith("\ufeff")) fail("Unexpected UTF-8 BOM (decode using utf-8-sig)");
   let result: PyValue;
   value: for (;;) {
     // A value begins: a scalar, an empty array or object, or one that opens and whose first member begins next.
