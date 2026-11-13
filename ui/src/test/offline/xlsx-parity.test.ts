@@ -307,3 +307,65 @@ describe.skipIf(skip)(skip ? why : "with Python", () => {
     }
   });
 });
+
+// ---------- Hostile workbooks found by fuzzing the two readers against each other (review of 2026-11-13) ----------
+
+const encode = (s: string) => new TextEncoder().encode(s);
+const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+
+/** The parts of a one-sheet workbook with inline strings and no styles: `sheet` is the worksheet's text. */
+function smallBook(sheet: string, sheetElement = '<sheet name="S" sheetId="1" r:id="rId1"/>'): [string, Uint8Array][] {
+  return [
+    ["[Content_Types].xml", encode(`${XML_DECLARATION}<Types xmlns="${CT}"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>`)],
+    ["_rels/.rels", encode(`${XML_DECLARATION}<Relationships xmlns="${PR}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`)],
+    ["xl/workbook.xml", encode(`${XML_DECLARATION}<workbook xmlns="${M}" xmlns:r="${R}"><sheets>${sheetElement}</sheets></workbook>`)],
+    ["xl/_rels/workbook.xml.rels", encode(`${XML_DECLARATION}<Relationships xmlns="${PR}"><Relationship Id="rId1" Type="${R}/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`)],
+    ["xl/worksheets/sheet1.xml", encode(sheet)],
+  ];
+}
+
+const inline = (ref: string, text: string) => `<c r="${ref}" t="inlineStr"><is><t>${text}</t></is></c>`;
+const SHEET = `${XML_DECLARATION}<worksheet xmlns="${M}"><sheetData><row r="1">${inline("A1", "id")}${inline("B1", "phone")}</row><row r="2">${inline("A2", "K1")}${inline("B2", "1")}</row></sheetData></worksheet>`;
+
+/** Each hostile workbook, and what both readers must make of it. */
+async function hostileWorkbooks(): Promise<{ name: string; bytes: Uint8Array; expected: { worksheet: string } | { refused: string } }[]> {
+  return [
+    // ECMA-376 requires a sheet's name; without one, both readers record an empty name (the schema's worksheet is a string).
+    { name: "sheet-without-a-name.xlsx", bytes: await zip(smallBook(SHEET, '<sheet sheetId="1" r:id="rId1"/>'), true), expected: { worksheet: "" } },
+  ];
+}
+
+async function readWithTypeScript(name: string, bytes: Uint8Array): Promise<{ rows?: string[][]; sha256?: string; member?: unknown; refused?: string }> {
+  const rows: string[][] = [];
+  try {
+    const read = await readXlsx({ name, blob: new Blob([bytes as Uint8Array<ArrayBuffer>]) }, null, (values) => void rows.push(values));
+    return { rows: [read.header, ...rows], sha256: read.sha256, member: read.member };
+  } catch (e) {
+    if (!(e instanceof Refused)) throw e;
+    return { refused: e.message };
+  }
+}
+
+describe("hostile workbooks found by fuzzing", () => {
+  test("the TypeScript reader reads each as the design note says", async () => {
+    for (const { name, bytes, expected } of await hostileWorkbooks()) {
+      const read = await readWithTypeScript(name, bytes);
+      if ("refused" in expected) expect({ name, refused: read.refused }).toEqual({ name, refused: `${name}: ${expected.refused}` });
+      else expect({ name, worksheet: (read.member as { worksheet: unknown } | undefined)?.worksheet }).toEqual({ name, worksheet: expected.worksheet });
+    }
+  });
+});
+
+describe.skipIf(skip)(skip ? why : "hostile workbooks, with Python", () => {
+  test("each is read the same way by both readers: rows, digest, report member or refusal", async () => {
+    const root = mkdtempSync(join(tmpdir(), "fa-xlsx-hostile-"));
+    try {
+      const books = await hostileWorkbooks();
+      for (const { name, bytes } of books) writeFileSync(join(root, name), bytes);
+      const expected = JSON.parse(python(["read", root], "")) as Record<string, unknown>;
+      for (const { name, bytes } of books) expect({ name, ...(await readWithTypeScript(name, bytes)) }).toEqual({ name, ...(expected[name] as object) });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

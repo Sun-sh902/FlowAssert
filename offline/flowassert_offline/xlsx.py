@@ -1551,7 +1551,10 @@ class XlsxFile:
         self.rows = reader.count
         self.sha256 = digest.hexdigest()
         self.member = {
-            "format": "xlsx", "worksheet": reader.name, "worksheet_state": reader.state, "sheets": reader.sheet_count,
+            # A sheet element without a name attribute is recorded with an empty name, as xlsx.ts records it: the
+            # schema's worksheet is a string.
+            "format": "xlsx", "worksheet": "" if reader.name is None else reader.name, "worksheet_state": reader.state,
+            "sheets": reader.sheet_count,
             "date_system": "1904" if reader.date1904 else "1900", "file_sha256": file_digest.hexdigest(),
             "file_bytes": size, "inflated_bytes": workbook.inflated, "columns": width, "rows": reader.count,
             "cells": dict(forms, formula=counts[0]), "hidden_rows": counts[1],

@@ -52,7 +52,7 @@
    "src/test/offline/sheet-report.test.tsx": 40,
    "src/test/offline/streaming.test.ts": 107,
    "src/test/offline/xlsx-fixtures.test.ts": 8,
-   "src/test/offline/xlsx-parity.test.ts": 4,
+   "src/test/offline/xlsx-parity.test.ts": 6,
    "src/test/offline/xlsx-report.test.ts": 39,
    "src/test/overview.test.tsx": 10,
    "src/test/p3a-aud-002-validator.test.ts": 224,
@@ -110,7 +110,7 @@
     "scripts/dev/tests/test_sheets_source.py": 210,
     "scripts/dev/tests/test_spec.py": 303,
     "scripts/dev/tests/test_workflows.py": 26,
-    "scripts/dev/tests/test_xlsx.py": 105,
+    "scripts/dev/tests/test_xlsx.py": 106,
     "scripts/dev/tests/test_exports.py": 331
    }
   }

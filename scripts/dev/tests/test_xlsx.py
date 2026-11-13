@@ -180,3 +180,33 @@ def test_number_text_follows_ecmascript():
                     (1.5, '1.5'), (-2.5e-7, '-2.5e-7'), (100.0, '100'), (123456789012345680000.0, '123456789012345680000'),
                     (5e-324, '5e-324'), (1.7976931348623157e308, '1.7976931348623157e+308')):
         assert xlsx.number_text(x) == text
+
+
+# --- Found by fuzzing the two readers against each other (review of 2026-11-13) ---------------------------------
+
+def test_a_sheet_without_a_name_is_recorded_with_an_empty_name(tmp_path):
+    # ECMA-376 requires the name, but a hostile file can leave it out. xlsx.ts records it as '', and the schema's
+    # worksheet is a string, so the command line records it the same way, in the report and in the summary.
+    parts = w.parts(w.Book(sheets=[w.Sheet('Contacts', [['id', 'phone'], ['K1', '1']])]))
+    parts['xl/workbook.xml'] = parts['xl/workbook.xml'].replace(b' name="Contacts"', b'')
+    (tmp_path / 'source.xlsx').write_bytes(w.zip_bytes(parts.items()))
+    (tmp_path / 'destination.csv').write_text('id,phone\nK1,1\nK2,2\n', encoding='utf-8')
+    f = xlsx.XlsxFile(str(tmp_path / 'source.xlsx'), [])
+    list(f.full_rows())
+    assert f.member['worksheet'] == ''
+    stdout = io.StringIO()
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        with contextlib.redirect_stdout(stdout):
+            code = cli.main(['--source', 'source.xlsx', '--source-format', 'xlsx', '--destination', 'destination.csv',
+                             '--key', 'id', '--field', 'phone', '--json', 'report.json'])
+    finally:
+        os.chdir(cwd)
+    assert code == 3
+    assert "Source read from worksheet '' of an .xlsx workbook: cells as stored, not as displayed.\n" in stdout.getvalue()
+    report = json.loads((tmp_path / 'report.json').read_text(encoding='utf-8'))
+    assert report['inputs']['source_workbook']['worksheet'] == ''
+    import json_schema
+    schema = json.loads((ROOT / 'docs/schema/report-v4.schema.json').read_text(encoding='utf-8'))
+    assert json_schema.validate(schema, report) == []
