@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- The engine page: never shown. It loads the packaged checker and the host script from flowassert://engine and
+<!-- The engine page: never shown. It loads the packaged checker, the app's readers and the host script from flowassert://engine and
      nothing else; it may connect only to flowassert://engine, from which it reads the inputs' bytes. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src flowassert://engine; connect-src flowassert://engine; base-uri 'none'; form-action 'none'">
 <title>FlowAssert engine</title>
 <script src="flowassert://engine/flowassert-check.js"></script>
+<script src="flowassert://engine/flowassert-app.js"></script>
 <script src="flowassert://engine/host.js"></script>
 </head>
 <body></body>

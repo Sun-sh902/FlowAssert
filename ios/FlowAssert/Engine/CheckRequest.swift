@@ -38,6 +38,8 @@ struct CheckRequest: Sendable {
     var redactValues = false
     var maxBytes: String?
     var maxRows: String?
+    /// Also open the JSON report with the saved-report reader, so that the result is read from the report.
+    var openReport = false
 }
 
 /// One file of the records to resend, as the checker wrote it.
@@ -62,4 +64,6 @@ struct CheckResult: Sendable, Equatable {
     var exports: [CheckExport]?
     /// How long `checkCsv` took in the page, by the page's clock.
     var milliseconds: Double
+    /// The JSON report, opened with the saved-report reader, when the request asked for it and there is one.
+    var report: OpenedReport?
 }

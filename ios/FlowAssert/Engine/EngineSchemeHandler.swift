@@ -17,6 +17,7 @@ final class EngineSchemeHandler: NSObject, WKURLSchemeHandler {
         "/engine.html": ("engine", "html", "text/html; charset=utf-8"),
         "/host.js": ("host", "js", "text/javascript; charset=utf-8"),
         "/flowassert-check.js": ("flowassert-check", "js", "text/javascript; charset=utf-8"),
+        "/flowassert-app.js": ("flowassert-app", "js", "text/javascript; charset=utf-8"),
     ]
 
     private var inputs: [String: Data] = [:]

@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "build:pages": "tsc -b && vite build --mode pages",
     "build:lib": "vite build --config vite.lib.config.ts",
+    "build:app": "vite build --config vite.app.config.ts",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "test": "vitest run",

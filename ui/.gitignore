@@ -13,6 +13,7 @@ dist-ssr
 dist-pages
 # the packaged checker (npm run build:lib); built in CI, never committed
 dist-lib
+dist-app
 *.local
 
 # Editor directories and files

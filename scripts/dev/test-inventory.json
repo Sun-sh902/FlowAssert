@@ -28,6 +28,7 @@
    "src/test/lookup-gate.test.ts": 102,
    "src/test/markdown-links.test.ts": 77,
    "src/test/offline/api.test.ts": 105,
+   "src/test/offline/app-bundle.test.ts": 157,
    "src/test/offline/bundle.test.ts": 65,
    "src/test/offline/chardiff.test.ts": 10,
    "src/test/offline/compare.test.ts": 42,

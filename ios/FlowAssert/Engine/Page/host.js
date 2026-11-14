@@ -1,9 +1,10 @@
 "use strict";
 /*
- * The app's side of the engine page. It only carries things between Swift and the packaged checker
- * (flowassert-check.js, the global FlowAssert): it reads the inputs' bytes from flowassert://engine/input/TOKEN, hands
- * them to FlowAssert.checkCsv with the premises the person stated, and returns the checker's result as it is. It
- * decides nothing and changes no byte of what the checker returns.
+ * The app's side of the engine page. It only carries things between Swift and the two scripts the page loads: the
+ * packaged checker (flowassert-check.js, the global FlowAssert), which runs every check, and the app's readers
+ * (flowassert-app.js, the global FlowAssertApp: the browser's file profile, worksheet listing, saved-report reader,
+ * explorer and character diff). It reads the inputs' bytes from flowassert://engine/input/TOKEN and returns what the
+ * scripts return. It decides nothing and changes no byte of what they return.
  */
 (() => {
   const ORIGIN = "iPhone and iPad app";
@@ -32,11 +33,17 @@
     return out;
   };
 
+  const appFile = async (side) => {
+    const f = await file(side);
+    return { name: f.name, bytes: f.content, encoding: f.encoding, format: f.format, worksheet: f.worksheet };
+  };
+
   window.host = {
     status() {
       return { version: FlowAssert.VERSION, hostProblem: FlowAssert.hostProblem(ENCODINGS) };
     },
 
+    /** One check, and its JSON report opened with the saved-report reader, so the result is read from the report. */
     async check(request) {
       const input = {
         source: await file(request.source),
@@ -52,7 +59,18 @@
       };
       const started = performance.now();
       const result = await FlowAssert.checkCsv(input);
-      return { ...result, milliseconds: performance.now() - started };
+      const milliseconds = performance.now() - started;
+      const report = request.open && result.json !== null ? FlowAssertApp.open(new TextEncoder().encode(result.json), "report.json") : null;
+      return { ...result, milliseconds, report };
     },
+
+    profile: async (side) => FlowAssertApp.profile(await appFile(side)),
+    sheets: async (side) => FlowAssertApp.sheets(await appFile(side)),
+    configuration: (key, fields, scope) => FlowAssertApp.configuration(key, fields, scope),
+    open: async (token, name) => FlowAssertApp.open(await bytes(token), name),
+    query: (id, q) => FlowAssertApp.query(id, q),
+    window: (id, start, count) => FlowAssertApp.window(id, start, count),
+    release: (id) => FlowAssertApp.release(id),
+    diff: (a, b) => FlowAssertApp.diff(a, b),
   };
 })();

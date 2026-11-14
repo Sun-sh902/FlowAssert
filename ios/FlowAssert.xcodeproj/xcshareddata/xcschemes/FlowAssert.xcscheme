@@ -39,6 +39,17 @@
                ReferencedContainer = "container:FlowAssert.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F1A500000000000000000070"
+               BuildableName = "FlowAssertUITests.xctest"
+               BlueprintName = "FlowAssertUITests"
+               ReferencedContainer = "container:FlowAssert.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

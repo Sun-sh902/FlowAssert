@@ -13,6 +13,14 @@ this section grows with the work.
   its own: it runs the packaged checker, `flowassert-check.js`, in WebKit, and every golden case the CSV check page can
   run, every workbook golden case, every conformance case and the hostile workbooks of the .xlsx parity test give the
   command line's results byte for byte there (`ios/FlowAssertTests/EngineParityTests.swift`).
+- **The app checks files** (step 3 of the work): CSV files and `.xlsx` workbooks chosen from Files, dropped on iPad or
+  opened from another app; the encoding or worksheet; the key, fields, rules, scope and an imported or exported
+  configuration; the premises with the CSV check page's words; the command line's details, redaction and limits; a
+  result read from the report itself, with its records, the records to resend, the JSON and HTML reports to share or
+  save, and reports kept on the device or imported. VoiceOver reads each verdict first.
+- **`flowassert-app.js`** (`npm run build:app`): the browser's file profile, worksheet listing, saved-report reader,
+  explorer and character diff as one script for the app's engine page. It checks nothing; `flowassert-check.js` is
+  unchanged by it.
 - **A premise origin, `iPhone and iPad app`**, recorded on every premise of a check the app runs, as
   [Compatibility in 1.x](docs/compatibility.md) allows a new origin. It is listed in [Report format](docs/report-format.md)
   and in the description of `origin` in the JSON Schemas, whose validation is unchanged. The schema descriptions now

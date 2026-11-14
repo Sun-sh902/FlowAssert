@@ -147,6 +147,7 @@ final class CheckerEngine: NSObject {
         if request.redactValues { body["redactValues"] = true }
         if let maxBytes = request.maxBytes { body["maxBytes"] = maxBytes }
         if let maxRows = request.maxRows { body["maxRows"] = maxRows }
+        if request.openReport { body["open"] = true }
 
         let value = try await webView.callAsyncJavaScript("return await host.check(request)", arguments: ["request": body], contentWorld: .page)
         return try Self.result(value)
@@ -179,10 +180,104 @@ final class CheckerEngine: NSObject {
                 return CheckExport(file: file, rows: rows, meaning: meaning, formulaFields: formula, text: text)
             }
         }
+        var report: OpenedReport?
+        if let opened = d["report"] as? [String: Any], opened["ok"] as? Bool == true {
+            report = try decode(OpenedReport.self, opened)
+        }
         return CheckResult(
             exit: exit, state: state, summary: summary, message: message,
             json: d["json"] as? String, html: d["html"] as? String, exports: exports,
-            milliseconds: (d["milliseconds"] as? NSNumber)?.doubleValue ?? 0)
+            milliseconds: (d["milliseconds"] as? NSNumber)?.doubleValue ?? 0, report: report)
+    }
+
+    private static func decode<T: Decodable>(_ type: T.Type, _ value: Any?) throws -> T {
+        guard let value, JSONSerialization.isValidJSONObject(value) || value is String || value is NSNumber else {
+            throw EngineError.unexpected("no value for \(T.self)")
+        }
+        let data = try JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed])
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    // MARK: The app's readers (flowassert-app.js): before a check, and after it, on the report.
+
+    /// Runs `body` in the page, one call at a time with the checks.
+    private func call(_ body: String, _ arguments: [String: Any] = [:]) async throws -> Any? {
+        await acquire()
+        defer { release() }
+        _ = try await start()
+        guard let webView else { throw EngineError.pageDidNotLoad("no page") }
+        return try await webView.callAsyncJavaScript(body, arguments: arguments, contentWorld: .page)
+    }
+
+    private func side(_ file: EngineFile, token: String) -> [String: Any] {
+        var out: [String: Any] = ["name": file.name, "token": token]
+        if let encoding = file.encoding { out["encoding"] = encoding }
+        if let format = file.format { out["format"] = format }
+        if let worksheet = file.worksheet { out["worksheet"] = worksheet }
+        return out
+    }
+
+    /// The file profile, or the refusal a check would give the file.
+    func profile(_ file: EngineFile) async throws -> ProfileResult {
+        let token = handler.register(file.bytes)
+        defer { handler.release([token]) }
+        return try Self.decode(ProfileResult.self, try await call("return await host.profile(side)", ["side": side(file, token: token)]))
+    }
+
+    /// A workbook's sheets, before any is read.
+    func sheets(_ file: EngineFile) async throws -> SheetsResult {
+        let token = handler.register(file.bytes)
+        defer { handler.release([token]) }
+        return try Self.decode(SheetsResult.self, try await call("return await host.sheets(side)", ["side": side(file, token: token)]))
+    }
+
+    /// The configuration file of these choices, as the CSV check page writes it.
+    func configuration(key: (String, String), fields: [(String, String, String)], scope: String) async throws -> String {
+        let value = try await call("return host.configuration(key, fields, scope)", [
+            "key": [key.0, key.1], "fields": fields.map { [$0.0, $0.1, $0.2] }, "scope": scope,
+        ])
+        guard let text = value as? String else { throw EngineError.unexpected("no configuration") }
+        return text
+    }
+
+    /// Opens a report with the saved-report reader; a file that is not a valid FlowAssert report is refused.
+    func open(_ bytes: Data, name: String) async throws -> OpenResult {
+        let token = handler.register(bytes)
+        defer { handler.release([token]) }
+        let value = try await call("return await host.open(token, name)", ["token": token, "name": name])
+        guard let d = value as? [String: Any] else { throw EngineError.unexpected("no report") }
+        if d["ok"] as? Bool == true { return .opened(try Self.decode(OpenedReport.self, d)) }
+        return .refused(check: d["check"] as? String ?? "", message: d["message"] as? String ?? "")
+    }
+
+    /// Lists the records of an open report that match, as the browser's explorer does.
+    func query(_ id: Int, state: String?, rule: Int?, status: String?, search: String, list: String = "source", order: String = "asc") async throws -> Matched {
+        var q: [String: Any] = ["list": list, "search": search, "order": order]
+        q["state"] = state ?? NSNull()
+        q["rule"] = rule ?? NSNull()
+        q["status"] = status ?? NSNull()
+        return try Self.decode(Matched.self, try await call("return host.query(id, q)", ["id": id, "q": q]))
+    }
+
+    /// `count` records of the last query, from `start`.
+    func window(_ id: Int, start: Int, count: Int) async throws -> [ReportItem] {
+        try Self.decode([ReportItem].self, try await call("return host.window(id, start, count)", ["id": id, "start": start, "count": count]))
+    }
+
+    func release(report id: Int) async {
+        _ = try? await call("host.release(id); return true", ["id": id])
+    }
+
+    func diff(_ a: String, _ b: String) async throws -> ValueDiff {
+        try Self.decode(ValueDiff.self, try await call("return host.diff(a, b)", ["a": a, "b": b]))
+    }
+
+    /// Ends whatever the page is doing, a check included, by closing it; the next call loads it again.
+    func cancel() {
+        webView?.stopLoading()
+        webView = nil
+        started = nil
+        loading = nil
     }
 }
 
