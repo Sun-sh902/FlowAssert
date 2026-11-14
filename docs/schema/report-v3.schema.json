@@ -598,7 +598,7 @@
       ]
     },
     "origin": {
-      "description": "Where the statement came from: command-line option, browser form, JavaScript call or n8n Code node. A reader shows a value it does not know as it is.",
+      "description": "Where the statement came from: command-line option, browser form, JavaScript call, n8n Code node, n8n node (1.1.0) or iPhone and iPad app (1.2.0). A reader shows a value it does not know as it is.",
       "type": "string"
     },
     "premises": {

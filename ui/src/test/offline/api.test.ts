@@ -48,7 +48,7 @@ describe("checkCsv on the golden cases", () => {
 
 describe("checkCsv inputs", () => {
   test("the origins a caller may choose", async () => {
-    expect(API_ORIGINS).toEqual(["JavaScript call", "n8n Code node", "n8n node"]);
+    expect(API_ORIGINS).toEqual(["JavaScript call", "n8n Code node", "n8n node", "iPhone and iPad app"]);
     expect((await checkCsv(example())).json).toContain('"origin": "JavaScript call"');
     expect((await checkCsv({ ...example(), origin: "n8n Code node" })).json).toContain('"origin": "n8n Code node"');
     for (const origin of ["command-line option", "browser form", "javascript call", ""]) {
@@ -57,7 +57,7 @@ describe("checkCsv inputs", () => {
         exit: 2,
         state: "refused",
         summary: "",
-        message: "refused: origin must be one of: JavaScript call, n8n Code node, n8n node\n",
+        message: "refused: origin must be one of: JavaScript call, n8n Code node, n8n node, iPhone and iPad app\n",
         json: null,
         html: null,
       });
@@ -222,6 +222,18 @@ describe("checkCsv and its host", () => {
   test("the golden folder is where the cases are", () => {
     expect(GOLDEN.endsWith(join("offline", "golden"))).toBe(true);
     expect(pageCases.length).toBeGreaterThanOrEqual(50);
+  });
+});
+
+describe("1.2.0: the iPhone and iPad app", () => {
+  test("the origin iPhone and iPad app is recorded on every premise, and nothing else changes", async () => {
+    expect(API_ORIGINS).toContain("iPhone and iPad app");
+    const result = await checkCsv({ ...example(), origin: "iPhone and iPad app" });
+    const report = JSON.parse(result.json!) as { premises: Record<string, { origin: string }> };
+    expect(Object.values(report.premises).every((p) => p.origin === "iPhone and iPad app")).toBe(true);
+    const call = await checkCsv(example());
+    expect(result.json).toBe(call.json!.replace(/"evaluated_at": "[^"]*"/, () => result.json!.match(/"evaluated_at": "[^"]*"/)![0]).replaceAll('"origin": "JavaScript call"', '"origin": "iPhone and iPad app"'));
+    expect(result.summary).toBe(call.summary);
   });
 });
 

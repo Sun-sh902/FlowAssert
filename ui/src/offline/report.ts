@@ -22,7 +22,7 @@ export const LIMITS =
  * checker (api.ts), which says whether it is any JavaScript, the n8n example's Code node, or the n8n community node
  * (1.1.0).
  */
-export const ORIGINS = { cli: "command-line option", browser: "browser form", javascript: "JavaScript call", n8n: "n8n Code node", n8nNode: "n8n node" } as const;
+export const ORIGINS = { cli: "command-line option", browser: "browser form", javascript: "JavaScript call", n8n: "n8n Code node", n8nNode: "n8n node", app: "iPhone and iPad app" } as const;
 export type Origin = (typeof ORIGINS)[keyof typeof ORIGINS];
 
 export interface Report extends Omit<EvaluationResult, "premises"> {

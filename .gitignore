@@ -29,3 +29,9 @@ ui/test-results-local/
 # packaging output
 offline/build/
 offline/*.egg-info/
+
+# the iPhone and iPad app: generated test cases and local builds
+ios/build/
+ios/DerivedData/
+xcuserdata/
+*.xcuserstate

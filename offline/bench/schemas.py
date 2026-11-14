@@ -112,8 +112,9 @@ def defs():
         "otherPremise": obj("A premise a later release may add: still a statement FlowAssert did not verify.",
                             {"stated": {"type": ["boolean", "integer", "null"]}, "origin": ref("origin")},
                             ["stated", "origin"]),
-        "origin": {"description": "Where the statement came from: command-line option, browser form, JavaScript call "
-                                  "or n8n Code node. A reader shows a value it does not know as it is.", **STRING},
+        "origin": {"description": "Where the statement came from: command-line option, browser form, JavaScript call, "
+                                  "n8n Code node, n8n node (1.1.0) or iPhone and iPad app (1.2.0). A reader shows a value "
+                                  "it does not know as it is.", **STRING},
         "premises": obj(
             "Every premise stated or not stated at this run. FlowAssert verifies none of them.",
             {"source_complete": ref("statement"), "destination_complete": ref("statement"),

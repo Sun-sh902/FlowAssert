@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.2.0 (unreleased)
+
+Work towards an app for iPhone and iPad that runs the same check as the command line. Not released, and not finished:
+this section grows with the work.
+
+**Every verdict of every existing case is unchanged, and no golden file changed.**
+
+### Added
+
+- **The iPhone and iPad app** (`ios/`, [design note](docs/design/1.2-ios-app.md)), in progress. It has no checker of
+  its own: it runs the packaged checker, `flowassert-check.js`, in WebKit, and every golden case the CSV check page can
+  run, every workbook golden case, every conformance case and the hostile workbooks of the .xlsx parity test give the
+  command line's results byte for byte there (`ios/FlowAssertTests/EngineParityTests.swift`).
+- **A premise origin, `iPhone and iPad app`**, recorded on every premise of a check the app runs, as
+  [Compatibility in 1.x](docs/compatibility.md) allows a new origin. It is listed in [Report format](docs/report-format.md)
+  and in the description of `origin` in the JSON Schemas, whose validation is unchanged. The schema descriptions now
+  also name `n8n node`, which 1.1.0 added.
+- **`FlowAssert.hostProblem`** in the packaged checker: the check `checkCsv` makes of its host before a check, so that
+  a host can ask it once and show the answer. `checkCsv` and `VERSION` are unchanged.
+
+### Changed
+
+- `checkCsv` accepts the origin `iPhone and iPad app`, so its refusal of an unknown origin lists it:
+  `origin must be one of: JavaScript call, n8n Code node, n8n node, iPhone and iPad app`, as 1.1.0 added `n8n node`.
+- The n8n example holds the rebuilt packaged checker (`ui/scripts/n8n/build_workflow.mjs`).
+
 ## 1.1.0 (2026-11-12)
 
 The release that removes reasons not to try FlowAssert, or to stop after one check. Four highlights, in order: Excel

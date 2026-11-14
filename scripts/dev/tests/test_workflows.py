@@ -270,8 +270,9 @@ LATEST = {'actions/checkout': 'v7', 'actions/setup-node': 'v7', 'actions/setup-p
 
 @pytest.mark.parametrize('path', WORKFLOWS, ids=[p.name for p in WORKFLOWS])
 def test_every_action_is_a_known_action_at_its_current_major_version(path):
-    # The examples use FlowAssert's own Action at the version the CHANGELOG's latest section names.
-    own = re.search(r'^## (\d+\.\d+\.\d+)', (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8'), re.M).group(1)
+    # The examples use FlowAssert's own Action at the version the CHANGELOG's latest dated section names: the latest
+    # release, not a version in progress, which has an undated "(unreleased)" section.
+    own = re.search(r'^## (\d+\.\d+\.\d+) \(\d{4}-\d{2}-\d{2}\)$', (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8'), re.M).group(1)
     for uses in _uses(parse(path.read_text(encoding='utf-8'))):
         if uses.startswith('./'):
             continue

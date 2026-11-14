@@ -39,13 +39,20 @@ describe("the packaged checker", () => {
     }
     const context = host();
     expect(Object.keys(context).sort()).toEqual(["FlowAssert", "TextDecoder", "TextEncoder"]);
-    expect(Object.keys(context.FlowAssert).sort()).toEqual(["VERSION", "checkCsv"]);
+    expect(Object.keys(context.FlowAssert).sort()).toEqual(["VERSION", "checkCsv", "hostProblem"]);
     expect(context.FlowAssert.VERSION).toBe(VERSION);
     expect(context.crypto).toBeUndefined();
   });
 
   test("stays small enough to paste into a workflow's code step", () => {
     expect(new TextEncoder().encode(bundle).length).toBeLessThan(160_000);
+  });
+
+  test("hostProblem answers null in a host that has what the check needs, and names what is missing", () => {
+    const context = host() as unknown as { FlowAssert: { hostProblem: (encodings: string[]) => string | null } };
+    expect(context.FlowAssert.hostProblem(["utf-8", "utf-16", "gb18030"])).toBeNull();
+    const bare = host({ TextEncoder }) as unknown as { FlowAssert: { hostProblem: (encodings: string[]) => string | null } };
+    expect(bare.FlowAssert.hostProblem(["utf-8"])).toBe("has no TextDecoder");
   });
 
   test("dist-lib, when it has been built, is this build", () => {

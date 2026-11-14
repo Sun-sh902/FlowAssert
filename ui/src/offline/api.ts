@@ -24,8 +24,8 @@ import { sha256 } from "./sha256";
 /** The FlowAssert version this checker belongs to; the same as flowassert_offline.__version__. */
 export const VERSION = "1.1.0";
 
-/** The origins a caller may record for its premises. */
-export const API_ORIGINS = [ORIGINS.javascript, ORIGINS.n8n, ORIGINS.n8nNode] as const;
+/** The origins a caller may record for its premises; "iPhone and iPad app" is the app's, from 1.2.0. */
+export const API_ORIGINS = [ORIGINS.javascript, ORIGINS.n8n, ORIGINS.n8nNode, ORIGINS.app] as const;
 export type ApiOrigin = (typeof API_ORIGINS)[number];
 
 /** A file's content: its bytes (a Uint8Array, such as a Node.js Buffer, or an ArrayBuffer), or text for utf-8 only. */
