@@ -104,6 +104,7 @@ struct ReportView: View {
                         kept = app.reports.keep(Data(json.utf8), report: report, imported: false, name: "flowassert-report.json") != nil
                     } label: {
                         Label(kept ? "Kept on this device" : "Keep this report on this device", systemImage: kept ? "checkmark" : "tray.and.arrow.down")
+                            .contentTransition(.symbolEffect(.replace))
                     }
                     .disabled(kept)
                     .accessibilityIdentifier("keep-report")

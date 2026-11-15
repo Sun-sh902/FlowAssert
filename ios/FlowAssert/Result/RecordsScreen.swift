@@ -12,8 +12,10 @@ final class RecordsPager {
     var list = "source"
     private(set) var matched: Matched?
     private var pages: [Int: [ReportItem]] = [:]
-    private var loading: Set<Int> = []
-    private var generation = 0
+    // Bookkeeping only: if rows observed it, marking a page as loading would redraw every row on screen, and each
+    // redrawn placeholder would ask again.
+    @ObservationIgnored private var loading: Set<Int> = []
+    @ObservationIgnored private var generation = 0
 
     init(engine: CheckerEngine, report: OpenedReport, state: String?) {
         self.engine = engine
@@ -32,15 +34,21 @@ final class RecordsPager {
         await load(page: 0, generation: mine)
     }
 
+    /// The row if its page is loaded. Reading never loads: a placeholder row asks for its page with `need`.
     func item(_ index: Int) -> ReportItem? {
         let p = index / Self.page
-        if let items = pages[p] { return index - p * Self.page < items.count ? items[index - p * Self.page] : nil }
-        if !loading.contains(p) { Task { await load(page: p, generation: generation) } }
-        return nil
+        guard let items = pages[p] else { return nil }
+        let i = index - p * Self.page
+        return i < items.count ? items[i] : nil
+    }
+
+    /// Loads the page that holds a row, once however many of its rows ask.
+    func need(_ index: Int) async {
+        await load(page: index / Self.page, generation: generation)
     }
 
     private func load(page p: Int, generation mine: Int) async {
-        guard !loading.contains(p) else { return }
+        guard pages[p] == nil, !loading.contains(p) else { return }
         loading.insert(p)
         let items = (try? await engine.window(report.id, start: p * Self.page, count: Self.page)) ?? []
         guard mine == generation else { return }
@@ -105,7 +113,8 @@ struct RecordsScreen: View {
                                 RecordRow(item: item)
                             }
                         } else {
-                            Text("…").foregroundStyle(.secondary).accessibilityLabel("Loading")
+                            RecordRow.placeholder
+                                .task { await pager.need(i) }
                         }
                     }
                 }
@@ -144,6 +153,26 @@ struct RecordsScreen: View {
 
 struct RecordRow: View {
     var item: ReportItem
+
+    /// A row whose page is still being read: the same fonts and height as a record's row, so the list does not move
+    /// when the record arrives.
+    static var placeholder: some View {
+        HStack(spacing: 12) {
+            Text("000000").font(.footnote.monospacedDigit())
+            Text("SYN-0000000").font(.body.monospaced()).lineLimit(1)
+            Spacer(minLength: 8)
+            // VerdictMark's shape and size without its colour: colour is only for a verdict.
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: Verdict.unverified.symbol)
+                Text(Verdict.unverified.rawValue)
+            }
+            .font(.subheadline.weight(.semibold))
+        }
+        .foregroundStyle(.tertiary)
+        .redacted(reason: .placeholder)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading")
+    }
 
     var body: some View {
         HStack(spacing: 12) {

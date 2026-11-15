@@ -10,7 +10,17 @@ struct SavedReportsView: View {
 
     var body: some View {
         List {
-            if app.reports.entries.isEmpty {
+            if let name = app.reading {
+                Section {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text("Reading \(name)…").foregroundStyle(.secondary).lineLimit(2)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("reading-report")
+                }
+            }
+            if app.reports.entries.isEmpty && app.reading == nil {
                 Section {
                     Text("No report is kept on this device. After a check, Keep this report keeps its JSON report here. You can also import a JSON report written by the command line, the browser, the GitHub Action or n8n.")
                         .foregroundStyle(.secondary)
@@ -82,7 +92,11 @@ struct SavedReportScreen: View {
         }
         .task {
             bytes = app.reports.bytes(of: entry)
-            if let bytes { opened = try? await app.engine.open(bytes, name: entry.name) }
+            if let bytes {
+                let interval = Performance.signposter.beginInterval("Open report")
+                opened = try? await app.engine.open(bytes, name: entry.name)
+                Performance.signposter.endInterval("Open report", interval)
+            }
         }
     }
 }

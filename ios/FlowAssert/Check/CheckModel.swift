@@ -152,6 +152,8 @@ final class CheckModel {
 
     /// Takes a file for one side and reads what the page reads before a check: a workbook's sheets, the profile.
     func choose(_ side: Side, name: String, bytes: Data) async {
+        let interval = Performance.signposter.beginInterval("Open file")
+        defer { Performance.signposter.endInterval("Open file", interval) }
         var input = InputFile(name: name, bytes: bytes, format: InputFile.format(name: name, bytes: bytes))
         set(side, input)
         if side == .source { keySource = "" } else { keyDestination = "" }
@@ -302,6 +304,8 @@ final class CheckModel {
 
     func check() async {
         guard let request else { return }
+        let interval = Performance.signposter.beginInterval("Check")
+        defer { Performance.signposter.endInterval("Check", interval) }
         run = .running
         do {
             let result = try await engine.check(request)

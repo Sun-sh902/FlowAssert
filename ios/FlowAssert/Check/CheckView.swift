@@ -61,8 +61,25 @@ struct CheckView: View {
         .navigationDestination(isPresented: $showingResult) {
             ResultScreen(model: model)
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: model.finishedChecks)
+        // One haptic when a result arrives, at that moment, telling its kind apart; none for a check the person
+        // cancelled.
+        .sensoryFeedback(trigger: model.finishedChecks) { _, _ in outcomeFeedback }
         .animation(.state(reduceMotion), value: model.missing)
+    }
+}
+
+extension CheckView {
+    var outcomeFeedback: SensoryFeedback? {
+        switch model.run {
+        case .finished(let result):
+            switch result.state {
+            case "Verified": .success
+            case "Mismatch", "Unverified": .warning
+            default: .error
+            }
+        case .broken: .error
+        case .idle, .running: nil
+        }
     }
 }
 
@@ -81,22 +98,37 @@ struct ConfigurationDocument: FileDocument {
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper { FileWrapper(regularFileWithContents: Data(text.utf8)) }
 }
 
-/// The first screen, with nothing chosen: what a check takes. No example is loaded unless asked for.
+/// The first screen, with nothing chosen: the one question a check answers, set on the page itself in the icon's serif,
+/// what a check takes, and the example files. No example is loaded unless asked for.
 struct EmptyCheckSection: View {
     var model: CheckModel
 
     var body: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 14) {
                 Text("Did the expected records arrive?")
-                    .font(.title3.weight(.semibold))
-                Text("Choose the records that should have arrived and an export of the system they should have reached. FlowAssert compares them record by record and says Verified only with enough evidence. The files are read on this device.")
+                    .font(.system(.largeTitle, design: .serif, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Choose the records that should have arrived and an export of where they should be. FlowAssert compares them record by record, on this device, and says Verified only with enough evidence.")
                     .foregroundStyle(.secondary)
-                Button("Use the example files") { Task { await model.useExample() } }
-                    .accessibilityIdentifier("use-example")
-                    .padding(.top, 4)
+                Button { Task { await model.useExample() } } label: {
+                    HStack(spacing: 4) {
+                        Text("Use the example files")
+                        Image(systemName: "arrow.right").accessibilityHidden(true)
+                    }
+                    .fontWeight(.medium)
+                }
+                .buttonStyle(.borderless)
+                .tint(.primary)
+                .accessibilityIdentifier("use-example")
+                .padding(.top, 2)
             }
-            .padding(.vertical, 4)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+            // On the page, not in a card: its edges line up with the cards below.
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
         }
     }
 }
@@ -119,6 +151,7 @@ struct CheckButton: View {
                 .padding(.horizontal, 20)
                 .frame(minHeight: 52)
                 .modifier(Floating())
+                .transition(.opacity)
             } else {
                 Button {
                     Task { await model.check() }
@@ -129,8 +162,11 @@ struct CheckButton: View {
                 .modifier(FloatingButton())
                 .accessibilityIdentifier("run-check")
                 .accessibilityHint(model.missing.first ?? "Runs the check on this device.")
+                .transition(.opacity)
             }
         }
+        // A cross-fade, which moves nothing, so it stays the same with Reduce Motion on.
+        .animation(.smooth(duration: 0.2), value: running)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }

@@ -12,6 +12,8 @@ final class AppModel {
     /// A file opened from Files or another app's share sheet, until the person says what it is.
     var opening: (name: String, bytes: Data)?
     var section: AppSection = .check
+    /// The name of a report being read before it is kept: a large one takes the checker a few seconds.
+    var reading: String?
     /// The engine's own state: nil until loaded; a host problem makes the app refuse to check.
     var status: CheckerEngine.Status?
     var engineProblem: String?
@@ -57,6 +59,8 @@ final class AppModel {
 
     /// Reads a report with the saved-report reader and keeps it when it is one; returns the refusal otherwise.
     func importReport(_ bytes: Data, name: String) async -> String? {
+        reading = name
+        defer { reading = nil }
         do {
             switch try await engine.open(bytes, name: name) {
             case .opened(let report):
