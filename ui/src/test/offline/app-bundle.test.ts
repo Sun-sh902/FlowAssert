@@ -50,7 +50,7 @@ describe("the app's readers", () => {
     for (const pattern of [/\bimport\s*[({"'`*]/, /\bimport\./, /\brequire\s*\(/, /\bfetch\b/, /XMLHttpRequest/, /WebSocket/, /EventSource/, /sendBeacon/, /importScripts/, /\bprocess\./]) {
       expect(bundle, String(pattern)).not.toMatch(pattern);
     }
-    expect(Object.keys(app).sort()).toEqual(["VERSION", "codePoint", "configuration", "diff", "open", "profile", "query", "release", "sheets", "window"]);
+    expect(Object.keys(app).sort()).toEqual(["VERSION", "check", "codePoint", "configuration", "diff", "open", "profile", "query", "release", "sheets", "window"]);
     expect(app.VERSION).toBe(VERSION);
   });
 

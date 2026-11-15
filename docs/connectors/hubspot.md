@@ -1,6 +1,8 @@
 # HubSpot Contacts destination: design note
 
-Status: FlowAssert 1.0.0, command line only. Written before the code, and kept in step with it: the code, the golden
+Status: FlowAssert 1.0.0, the command line; from 1.2.0 also the iPhone and iPad app, through a TypeScript reader
+(`ui/src/offline/hubspot.ts`) held to every case of `offline/golden-hubspot/` ([the app's design note](../design/1.2-ios-app.md#connectors)).
+Written before the code, and kept in step with it: the code, the golden
 cases in `offline/golden-hubspot/` and `scripts/dev/tests/test_hubspot_destination.py` now follow it. Nothing here has been
 tried against HubSpot: no account was created and no request was sent to HubSpot with a credential. Every statement
 about HubSpot's behaviour comes from HubSpot's public documentation and is marked **[doc]**, with the page in

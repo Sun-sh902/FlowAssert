@@ -23,6 +23,14 @@ final class AppModel {
         self.reports = reports ?? ReportStore()
     }
 
+    /// Bumped when a credential is saved or removed, so the screens that show whether one is saved read it again.
+    var credentialsChanged = 0
+
+    func credentialSaved(_ kind: CredentialKind) -> Bool {
+        _ = credentialsChanged
+        return engine.credentials.isSaved(kind)
+    }
+
     func start() async {
         do {
             status = try await engine.start()
@@ -69,4 +77,4 @@ final class AppModel {
     }
 }
 
-enum AppSection: Hashable { case check, reports }
+enum AppSection: Hashable { case check, reports, credentials }

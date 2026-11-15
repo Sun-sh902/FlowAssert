@@ -18,6 +18,11 @@ this section grows with the work.
   configuration; the premises with the CSV check page's words; the command line's details, redaction and limits; a
   result read from the report itself, with its records, the records to resend, the JSON and HTML reports to share or
   save, and reports kept on the device or imported. VoiceOver reads each verdict first.
+- **The app reads from Google Sheets and HubSpot** (step 4): a source from one range of a spreadsheet, a destination
+  from HubSpot's contacts, read-only, with TypeScript readers (`sheets.ts`, `hubspot.ts`) that give every golden case of
+  `offline/golden-sheets/` and `offline/golden-hubspot/` byte for byte, records to resend included. The requests are sent
+  by Swift, which keeps the credentials in the Keychain of the device; they never reach JavaScript, a report, a log or a
+  file. Tested against the local fakes only.
 - **`flowassert-app.js`** (`npm run build:app`): the browser's file profile, worksheet listing, saved-report reader,
   explorer and character diff as one script for the app's engine page. It checks nothing; `flowassert-check.js` is
   unchanged by it.
@@ -30,6 +35,10 @@ this section grows with the work.
 
 ### Changed
 
+- The packaged checker, `flowassert-check.js`, has no connector: the readers are only in the app's script. Its own
+  behaviour is unchanged.
+- `pyLoads` (`pyjson.ts`) can refuse NaN and Infinity, as `json.loads(parse_constant=...)` does; by default it accepts
+  them, as before.
 - `checkCsv` accepts the origin `iPhone and iPad app`, so its refusal of an unknown origin lists it:
   `origin must be one of: JavaScript call, n8n Code node, n8n node, iPhone and iPad app`, as 1.1.0 added `n8n node`.
 - The n8n example holds the rebuilt packaged checker (`ui/scripts/n8n/build_workflow.mjs`).

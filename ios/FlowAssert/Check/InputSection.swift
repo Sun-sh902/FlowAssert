@@ -13,7 +13,12 @@ struct InputSection: View {
 
     var body: some View {
         Section {
-            if let input = model.input(side) {
+            KindPicker(model: model, side: side)
+            if side == .source && model.sourceKind == .sheet {
+                SheetFields(model: model)
+            } else if side == .destination && model.destinationKind == .hubspot {
+                HubSpotFields()
+            } else if let input = model.input(side) {
                 chosen(input)
             } else {
                 Button {
@@ -147,5 +152,83 @@ struct ProfileRows: View {
         if kinds.isEmpty { return "no line breaks" }
         if kinds.count == 1 { return "line endings \(kinds[0].0)" }
         return "line endings " + kinds.map { "\($0.0) \($0.1)" }.joined(separator: ", ")
+    }
+}
+
+/// File or connector, for one side.
+struct KindPicker: View {
+    @Bindable var model: CheckModel
+    var side: Side
+
+    var body: some View {
+        if side == .source {
+            Picker("Read from", selection: $model.sourceKind) {
+                Text("A file").tag(CheckModel.SourceKind.file)
+                Text("Google Sheets").tag(CheckModel.SourceKind.sheet)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("source-kind")
+        } else {
+            Picker("Read from", selection: $model.destinationKind) {
+                Text("A file").tag(CheckModel.DestinationKind.file)
+                Text("HubSpot contacts").tag(CheckModel.DestinationKind.hubspot)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("destination-kind")
+        }
+    }
+}
+
+/// A Google Sheets range: what the read shows and what it does not, in the design note's words, shortened
+/// (docs/connectors/google-sheets.md).
+struct SheetFields: View {
+    @Bindable var model: CheckModel
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        TextField("Spreadsheet ID", text: $model.spreadsheetId)
+            .textInputAutocapitalization(.never).autocorrectionDisabled().font(.body.monospaced())
+            .accessibilityIdentifier("spreadsheet-id")
+        TextField("Range, such as Leads!A1:F or Leads!A1:F500", text: $model.sheetRange)
+            .textInputAutocapitalization(.never).autocorrectionDisabled().font(.body.monospaced())
+            .accessibilityIdentifier("sheet-range")
+        Toggle(isOn: $model.skipRevision) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Do not read the file's version")
+                Text("Without it the report says the read cannot be tied to a revision. Needed with a token that has only the Sheets scope.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityIdentifier("skip-revision")
+        CredentialStatus(saved: app.credentialSaved(.sheetsToken) ? "an OAuth access token" : app.credentialSaved(.sheetsKey) ? "an API key" : nil)
+        Text("FlowAssert reads the range itself, read-only: the file's version before and after, and the values. It shows which values the range held when it was read, with no export step between. It does not show that the range holds every record that should exist: that stays your statement, below. The first row of the range is the header.")
+            .font(.footnote).foregroundStyle(.secondary)
+    }
+}
+
+/// HubSpot's contacts: what the read shows and what it does not (docs/connectors/hubspot.md), shortened.
+struct HubSpotFields: View {
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        LabeledContent("Object", value: "contacts")
+        CredentialStatus(saved: app.credentialSaved(.hubspotToken) ? "a private app access token" : nil)
+        Text("FlowAssert lists the contacts itself, read-only, page by page, with the properties you name as the key and the fields. It shows which contacts the API listed to this token at that time. It does not show that the object is complete: contacts the token cannot see, contacts changed during the read and archived contacts are not listed.")
+            .font(.footnote).foregroundStyle(.secondary)
+    }
+}
+
+struct CredentialStatus: View {
+    var saved: String?
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        if let saved {
+            LabeledContent("Credential", value: "Saved: \(saved)")
+        } else {
+            Button { app.section = .credentials } label: {
+                Label("No credential saved: add one in Credentials", systemImage: "key")
+            }
+        }
     }
 }

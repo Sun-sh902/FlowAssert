@@ -18,6 +18,8 @@
 import { reportHtml, reportJson } from "./check";
 import { useDigestWithoutSubtle, type Encoding } from "./csv";
 import { pageCheck } from "./pageCheck";
+import type { ConnectorSupport } from "./check";
+import type { Transport } from "./connector";
 import { ORIGINS } from "./report";
 import { sha256 } from "./sha256";
 
@@ -43,9 +45,31 @@ export interface CsvFileInput {
   worksheet?: string;
 }
 
+/**
+ * 1.2.0: a source read from one range of a Google Sheets spreadsheet, as --source-sheet ID --source-range RANGE reads
+ * it (docs/connectors/google-sheets.md); `timeout` and `skipRevision` as --source-timeout and --skip-source-revision.
+ */
+export interface SheetInput {
+  sheet: { spreadsheetId: string; range: string; timeout?: string | number; skipRevision?: boolean };
+}
+
+/** 1.2.0: a destination listed from HubSpot, as --destination-hubspot contacts reads it (docs/connectors/hubspot.md). */
+export interface HubSpotInput {
+  hubspot: { object: string; timeout?: string | number };
+}
+
 export interface CheckCsvInput {
-  source: CsvFileInput;
-  destination: CsvFileInput;
+  /** A sheet range or a HubSpot destination only where the caller can read them (the app's readers, appLib.ts). */
+  source: CsvFileInput | SheetInput;
+  destination: CsvFileInput | HubSpotInput;
+  /**
+   * 1.2.0, for a connector, where the caller can read one: what the command line reads from its environment
+   * (FLOWASSERT_SHEETS_TOKEN or FLOWASSERT_SHEETS_API_KEY, FLOWASSERT_HUBSPOT_TOKEN; their presence and form are checked
+   * as the command line checks them), and the transport that sends each request and adds the credential
+   * (connector.ts). The checker never sends a request itself; without a transport a connector's read is refused as a
+   * failed connection.
+   */
+  connectors?: { environ: Readonly<Record<string, string | undefined>>; transport: Transport };
   /**
    * The --config file: its text or bytes, or its value, such as { key: ["id", "id"], fields: [{ source: "phone",
    * destination: "phone", rule: "exact" }], scope: "source" }, written as JSON.stringify(config, null, 2) + "\n".
@@ -189,6 +213,14 @@ function configBytes(config: unknown): Uint8Array {
   return text(json + "\n", "config");
 }
 
+/** Without a transport, a connector's request has no answer: refused as a failed connection, as the command line would. */
+const noTransport: Transport = () => Promise.resolve({ failure: "connection" });
+
+function connectorOf<T extends object>(value: T, name: string): T & Record<string, unknown> {
+  if (typeof value !== "object" || value === null) throw new Refusal(`${name} must be an object`);
+  return value as T & Record<string, unknown>;
+}
+
 function premise(value: unknown, name: string): boolean {
   if (value === undefined) return false;
   if (typeof value !== "boolean") throw new Refusal(`${name} must be true or false`);
@@ -213,7 +245,7 @@ const refused = (message: string, exports: boolean): CheckCsvResult => ({
 });
 
 /** Run one check. It never throws: a refusal or a failure is a result, as the command line exits with 2 or 4. */
-export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
+export async function checkCsv(input: CheckCsvInput, support?: { readers: ConnectorSupport["readers"] }): Promise<CheckCsvResult> {
   const asked = typeof input === "object" && input !== null && input.exports !== undefined && input.exports !== false;
   try {
     if (typeof input !== "object" || input === null) throw new Refusal("checkCsv takes one object: source, destination, config and the premises");
@@ -224,13 +256,23 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
     if (redactValues && input.exports) throw new Refusal("exports cannot be combined with redactValues: the exported rows hold the values");
     const limits = { maxBytes: count(input.maxBytes, "maxBytes"), maxRows: count(input.maxRows, "maxRows") };
     if (!(API_ORIGINS as readonly string[]).includes(origin)) throw new Refusal(`origin must be one of: ${API_ORIGINS.join(", ")}`);
-    const encodings = [input.source, input.destination].filter((f) => f?.format !== "xlsx").map((f) => String(f?.encoding ?? "utf-8"));
+    // The packaged checker has no connector: a sheet or HubSpot side is read only with readers handed in (appLib.ts).
+    const isSheet = support !== undefined && typeof input.source === "object" && input.source !== null && "sheet" in input.source;
+    const isHubSpot = support !== undefined && typeof input.destination === "object" && input.destination !== null && "hubspot" in input.destination;
+    const files = [isSheet ? null : (input.source as CsvFileInput), isHubSpot ? null : (input.destination as CsvFileInput)].filter((f) => f !== null);
+    const encodings = files.filter((f) => f?.format !== "xlsx").map((f) => String(f?.encoding ?? "utf-8"));
     const problem = hostProblem(encodings);
     if (problem) throw new Refusal(`this JavaScript host ${problem}, which the check needs; ${NOT_ANOTHER_WAY}`);
     // For the configuration: crypto.subtle when the host has it; otherwise the pure SHA-256, which gives the same digests.
     useDigestWithoutSubtle(sha256);
-    const source = fileBytes(input.source, "source");
-    const destination = fileBytes(input.destination, "destination");
+    const sheet = isSheet ? connectorOf((input.source as SheetInput).sheet, "source sheet") : null;
+    const crm = isHubSpot ? connectorOf((input.destination as HubSpotInput).hubspot, "destination hubspot") : null;
+    if ((sheet || crm) && input.connectors !== undefined && (typeof input.connectors !== "object" || input.connectors === null || typeof input.connectors.transport !== "function")) {
+      throw new Refusal("connectors must be an object with environ and a transport function");
+    }
+    const none = { name: "", bytes: new Uint8Array(0), encoding: "utf-8" };
+    const source = sheet ? none : fileBytes(input.source as CsvFileInput, "source");
+    const destination = crm ? none : fileBytes(input.destination as CsvFileInput, "destination");
     const config = configBytes(input.config);
     const outcome = await pageCheck({
       source: { name: source.name, size: source.bytes.length, read: () => source.bytes },
@@ -238,10 +280,22 @@ export async function checkCsv(input: CheckCsvInput): Promise<CheckCsvResult> {
       // An unknown encoding name reaches the check as typed, and is refused there as the command line refuses it.
       sourceEncoding: source.encoding as Encoding,
       destinationEncoding: destination.encoding as Encoding,
-      sourceFormat: input.source.format === "xlsx" ? "xlsx" : "csv",
-      destinationFormat: input.destination.format === "xlsx" ? "xlsx" : "csv",
-      sourceWorksheet: input.source.worksheet,
-      destinationWorksheet: input.destination.worksheet,
+      sourceFormat: !sheet && (input.source as CsvFileInput).format === "xlsx" ? "xlsx" : "csv",
+      destinationFormat: !crm && (input.destination as CsvFileInput).format === "xlsx" ? "xlsx" : "csv",
+      sourceWorksheet: sheet ? undefined : (input.source as CsvFileInput).worksheet,
+      destinationWorksheet: crm ? undefined : (input.destination as CsvFileInput).worksheet,
+      ...(sheet
+        ? {
+            sourceSheet: {
+              spreadsheetId: String(sheet.spreadsheetId),
+              range: String(sheet.range),
+              ...(sheet.timeout !== undefined ? { timeout: String(sheet.timeout) } : {}),
+              ...(sheet.skipRevision === true ? { skipRevision: true } : {}),
+            },
+          }
+        : {}),
+      ...(crm ? { destinationHubspot: { object: String(crm.object), ...(crm.timeout !== undefined ? { timeout: String(crm.timeout) } : {}) } } : {}),
+      ...(support && (sheet || crm) ? { connectors: { environ: { ...input.connectors?.environ }, transport: input.connectors?.transport ?? noTransport, readers: support.readers } } : {}),
       config: { loaded: { name: "configuration", size: config.length, read: () => config } },
       sourceComplete: premise(input.sourceComplete, "sourceComplete"),
       destinationComplete: premise(input.destinationComplete, "destinationComplete"),

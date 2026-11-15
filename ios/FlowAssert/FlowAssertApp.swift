@@ -64,6 +64,9 @@ struct RootView: View {
                 Tab("Saved reports", systemImage: "tray.full", value: AppSection.reports) {
                     NavigationStack { SavedReportsView() }
                 }
+                Tab("Credentials", systemImage: "key", value: AppSection.credentials) {
+                    NavigationStack { CredentialsView() }
+                }
             }
             .tabViewStyle(.sidebarAdaptable)
         } else {
@@ -74,6 +77,9 @@ struct RootView: View {
                 NavigationStack { SavedReportsView() }
                     .tabItem { Label("Saved reports", systemImage: "tray.full") }
                     .tag(AppSection.reports)
+                NavigationStack { CredentialsView() }
+                    .tabItem { Label("Credentials", systemImage: "key") }
+                    .tag(AppSection.credentials)
             }
         }
     }
@@ -99,7 +105,11 @@ struct HostProblemView: View {
 enum TestHooks {
     static func apply(_ app: AppModel) async {
         let d = UserDefaults.standard
-        if d.bool(forKey: "uitestReset") { app.reports.deleteAll() }
+        if d.bool(forKey: "uitestReset") {
+            app.reports.deleteAll()
+            for kind in CredentialKind.allCases { try? app.engine.credentials.remove(kind) }
+            app.credentialsChanged += 1
+        }
         for side in Side.allCases {
             if let path = d.string(forKey: "uitest-\(side.rawValue)"), let bytes = try? Data(contentsOf: URL(fileURLWithPath: path)) {
                 await app.check.choose(side, name: (path as NSString).lastPathComponent, bytes: bytes)

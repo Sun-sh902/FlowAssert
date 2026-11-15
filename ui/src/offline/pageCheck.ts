@@ -12,7 +12,7 @@
  * in place of its encoding, which a workbook does not have.
  * The packaged checker (api.ts) runs this same check with an origin of its own.
  */
-import { canonicalConfig, check, type CheckOutcome, type InputFile } from "./check";
+import { canonicalConfig, check, type CheckArgs, type CheckOutcome, type InputFile } from "./check";
 import type { Encoding } from "./csv";
 import type { Scope } from "./evaluator";
 import { ORIGINS, type Origin } from "./report";
@@ -26,6 +26,14 @@ export interface ChosenConfig {
 export interface PageCheckInput {
   source: InputFile;
   destination: InputFile;
+  /**
+   * For the packaged checker (1.2.0), as --source-sheet with --source-range, --source-timeout and
+   * --skip-source-revision, or --destination-hubspot with --destination-timeout: that side is read by a connector,
+   * through `connectors`, and its file and encoding are not given. The page has no connector.
+   */
+  sourceSheet?: { spreadsheetId: string; range: string; timeout?: string; skipRevision?: boolean };
+  destinationHubspot?: { object: string; timeout?: string };
+  connectors?: CheckArgs["connectors"];
   sourceEncoding: Encoding;
   destinationEncoding: Encoding;
   /** A side read from an .xlsx workbook, and its worksheet when the workbook has several. Its encoding is not given. */
@@ -64,12 +72,17 @@ export function chosenConfigFile(config: ChosenConfig): InputFile {
 }
 
 export function pageCheck(input: PageCheckInput): Promise<CheckOutcome> {
+  const sheet = input.sourceSheet;
+  const crm = input.destinationHubspot;
   return check({
-    source: input.source,
-    destination: input.destination,
+    ...(sheet
+      ? { sourceSheet: sheet.spreadsheetId, sourceRange: sheet.range, ...(sheet.timeout !== undefined ? { sourceTimeout: sheet.timeout } : {}), ...(sheet.skipRevision ? { skipSourceRevision: true } : {}) }
+      : { source: input.source }),
+    ...(crm ? { destinationHubspot: crm.object, ...(crm.timeout !== undefined ? { destinationTimeout: crm.timeout } : {}) } : { destination: input.destination }),
+    ...(input.connectors ? { connectors: input.connectors } : {}),
     config: "loaded" in input.config ? input.config.loaded : chosenConfigFile(input.config.chosen),
-    sourceEncoding: input.sourceFormat === "xlsx" ? undefined : input.sourceEncoding,
-    destinationEncoding: input.destinationFormat === "xlsx" ? undefined : input.destinationEncoding,
+    sourceEncoding: input.sourceFormat === "xlsx" || sheet ? undefined : input.sourceEncoding,
+    destinationEncoding: input.destinationFormat === "xlsx" || crm ? undefined : input.destinationEncoding,
     ...(input.sourceFormat === "xlsx" ? { sourceFormat: "xlsx", sourceWorksheet: input.sourceWorksheet } : {}),
     ...(input.destinationFormat === "xlsx" ? { destinationFormat: "xlsx", destinationWorksheet: input.destinationWorksheet } : {}),
     sourceComplete: input.sourceComplete,

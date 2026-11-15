@@ -31,6 +31,19 @@ final class CheckerEngine: NSObject {
     }
 
     private let handler = EngineSchemeHandler()
+    let credentials: CredentialStore
+    private let transport: ConnectorTransport
+    #if DEBUG
+    /// Every value handed to the page as an argument, for the test that no credential reaches it.
+    private(set) var argumentsSent: [String] = []
+    var bytesServed: [Data] { handler.served }
+    #endif
+
+    init(credentials: CredentialStore = CredentialStore()) {
+        self.credentials = credentials
+        self.transport = ConnectorTransport(credentials: credentials)
+        super.init()
+    }
     private var webView: WKWebView?
     private var loading: CheckedContinuation<Void, Error>?
     private var started: Task<Status, Error>?
@@ -72,6 +85,8 @@ final class CheckerEngine: NSObject {
         if let rules = try? await Self.blockEverythingElse() {
             configuration.userContentController.add(rules)
         }
+        // The connectors' requests: the page asks, Swift sends (ConnectorTransport) and keeps the credential.
+        configuration.userContentController.addScriptMessageHandler(TransportBridge(engine: self), contentWorld: .page, name: "transport")
         let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 1, height: 1), configuration: configuration)
         view.navigationDelegate = self
         view.isInspectable = false
@@ -148,7 +163,25 @@ final class CheckerEngine: NSObject {
         if let maxBytes = request.maxBytes { body["maxBytes"] = maxBytes }
         if let maxRows = request.maxRows { body["maxRows"] = maxRows }
         if request.openReport { body["open"] = true }
+        if let sheet = request.sourceSheet {
+            var s: [String: Any] = ["spreadsheetId": sheet.spreadsheetId, "range": sheet.range]
+            if sheet.skipRevision { s["skipRevision"] = true }
+            if let t = sheet.timeout { s["timeout"] = t }
+            body["source"] = ["sheet": s]
+        }
+        if let crm = request.destinationHubspot {
+            var h: [String: Any] = ["object": crm.object]
+            if let t = crm.timeout { h["timeout"] = t }
+            body["destination"] = ["hubspot": h]
+        }
+        if request.sourceSheet != nil || request.destinationHubspot != nil {
+            // Which credentials are set, each as a placeholder of the accepted form; never a credential.
+            body["environ"] = credentials.environment()
+        }
 
+        #if DEBUG
+        argumentsSent.append(Self.describe(body))
+        #endif
         let value = try await webView.callAsyncJavaScript("return await host.check(request)", arguments: ["request": body], contentWorld: .page)
         return try Self.result(value)
     }
@@ -206,7 +239,38 @@ final class CheckerEngine: NSObject {
         defer { release() }
         _ = try await start()
         guard let webView else { throw EngineError.pageDidNotLoad("no page") }
+        #if DEBUG
+        argumentsSent.append(Self.describe(arguments))
+        #endif
         return try await webView.callAsyncJavaScript(body, arguments: arguments, contentWorld: .page)
+    }
+
+    #if DEBUG
+    static func describe(_ value: Any) -> String {
+        (try? JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed, .sortedKeys])).map { String(decoding: $0, as: UTF8.self) } ?? String(describing: value)
+    }
+    #endif
+
+    /// One request of a connector, asked by the page: sent by the transport, answered with the status and a one-time
+    /// token for the body, which the page reads through the scheme handler as it reads a file.
+    fileprivate func answer(_ message: Any) async -> [String: Any] {
+        #if DEBUG
+        argumentsSent.append(Self.describe(message))
+        #endif
+        guard let m = message as? [String: Any], let service = m["service"] as? String, let host = m["host"] as? String,
+              let target = m["target"] as? String, let credential = m["credential"] as? String,
+              let timeout = (m["timeout"] as? NSNumber)?.doubleValue, let maxBytes = (m["maxBytes"] as? NSNumber)?.intValue else {
+            return ["failure": "connection"]
+        }
+        let outcome = await transport.send(.init(service: service, host: host, target: target, credential: credential, timeout: timeout, maxBytes: maxBytes))
+        switch outcome {
+        case .failure(let why):
+            return ["failure": why]
+        case .response(let status, let body, let encoding):
+            var out: [String: Any] = ["status": status, "token": handler.register(body, once: true)]
+            if let encoding { out["contentEncoding"] = encoding }
+            return out
+        }
     }
 
     private func side(_ file: EngineFile, token: String) -> [String: Any] {
@@ -306,5 +370,20 @@ extension CheckerEngine: WKNavigationDelegate {
         // A page that ended (for memory, say) is loaded again for the next check; the check that was running fails.
         started = nil
         self.webView = nil
+    }
+}
+
+/// The page's way to the transport. Holds the engine weakly, so the page does not keep it alive.
+private final class TransportBridge: NSObject, WKScriptMessageHandlerWithReply {
+    weak var engine: CheckerEngine?
+
+    init(engine: CheckerEngine) {
+        self.engine = engine
+    }
+
+    @MainActor
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
+        guard let engine else { return (["failure": "connection"], nil) }
+        return (await engine.answer(message.body), nil)
     }
 }

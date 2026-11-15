@@ -1,6 +1,8 @@
 # Google Sheets source: design note
 
-Status: FlowAssert 0.7.0, command line only. Written before the code, and kept in step with it. Nothing here has been
+Status: FlowAssert 0.7.0, the command line; from 1.2.0 also the iPhone and iPad app, through a TypeScript reader
+(`ui/src/offline/sheets.ts`) held to every case of `offline/golden-sheets/` ([the app's design note](../design/1.2-ios-app.md#connectors)).
+Written before the code, and kept in step with it. Nothing here has been
 tried against Google: every statement about Google's behaviour comes from documentation, and is marked as such. The
 statements marked **[doc]** come from a document listed in [Sources](#sources); the statements marked
 **[unconfirmed]** come from Google documentation pages that could not be opened from the machine this was written on,

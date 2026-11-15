@@ -44,6 +44,13 @@ describe("the packaged checker", () => {
     expect(context.crypto).toBeUndefined();
   });
 
+  test("has no connector: no reader of Google Sheets or HubSpot, which only the app's bundle carries", async () => {
+    expect(bundle).not.toMatch(/googleapis|hubapi|FLOWASSERT_SHEETS_TOKEN|FLOWASSERT_HUBSPOT_TOKEN/);
+    // A side that names a connector is refused as any malformed side is, as before 1.2.0.
+    const result = await host().FlowAssert.checkCsv({ ...apiInput("example-page"), source: { sheet: { spreadsheetId: "x", range: "A!A1:B" } } } as unknown as CheckCsvInput);
+    expect(result.message).toBe("refused: source name must be a non-empty string\n");
+  });
+
   test("stays small enough to paste into a workflow's code step", () => {
     expect(new TextEncoder().encode(bundle).length).toBeLessThan(160_000);
   });

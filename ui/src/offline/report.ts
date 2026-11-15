@@ -4,6 +4,8 @@
  * the text in pieces, one record at a time, as the Python writers write it, so a large report is never one string
  * until the caller joins it (a Blob takes the pieces as they are).
  */
+import type { HubSpotMember } from "./hubspot";
+import type { SheetMember } from "./sheets";
 import { align, codePoint, codePoints, pieces, type Run } from "./chardiff";
 import { STATES, type Details, type EvaluationResult, type Premise, type Records, type RuleResult, type State } from "./evaluator";
 import { pyDumps, type PyValue } from "./pyjson";
@@ -13,6 +15,10 @@ import type { WorkbookMember } from "./xlsx";
 export const SCHEMA_VERSION = 1;
 /** A report in which either side was read from an .xlsx workbook (cli.WORKBOOK_SCHEMA_VERSION). */
 export const WORKBOOK_SCHEMA_VERSION = 4;
+/** A report whose source was read from a Google Sheets range (cli.SHEET_SCHEMA_VERSION). */
+export const SHEET_SCHEMA_VERSION = 2;
+/** A report whose destination was read from HubSpot (cli.HUBSPOT_SCHEMA_VERSION). */
+export const HUBSPOT_SCHEMA_VERSION = 3;
 export const MAX_DETAILS = 50;
 export const CLAIM = "At this evaluation, under the stated premises, the supplied destination rows satisfy the rules for the supplied source rows.";
 export const LIMITS =
@@ -29,7 +35,7 @@ export interface Report extends Omit<EvaluationResult, "premises"> {
   schema_version: number;
   details: Details;
   evaluated_at: string;
-  inputs: Record<string, string | boolean | WorkbookMember>;
+  inputs: Record<string, string | boolean | WorkbookMember | SheetMember | HubSpotMember>;
   premises: Record<string, Premise>;
   obligation: { type: "current_state"; key: string[]; fields: string[][]; comparison: string; rules?: string[]; scope?: string };
   claim: string | null;
@@ -74,6 +80,22 @@ const WORKBOOK_SIDES = [
   ["destination_workbook", "Destination"],
 ] as const;
 const workbookOf = (report: Report, side: string) => report.inputs?.[side] as WorkbookMember | undefined;
+const sheetOf = (report: Report) => report.inputs?.source_sheet as SheetMember | undefined;
+const hubspotOf = (report: Report) => report.inputs?.destination_hubspot as HubSpotMember | undefined;
+
+/** hubspot.summary_lines: what the summary says of a destination read from HubSpot. */
+export function* hubspotLines(member: HubSpotMember): Generator<string> {
+  yield `Destination read by FlowAssert from HubSpot: ${member.object}, ${member.rows} records in ${member.pages} pages, from ${member.read_at} to ${member.read_finished_at}; archived records were not read.`;
+  yield "This lists what the token could see at that time; it does not show that the object is complete.";
+}
+
+/** cli.sheet_lines: where a sheet source was read, and whether it is tied to a revision. */
+export function* sheetLines(sheet: SheetMember): Generator<string> {
+  yield `Source read by FlowAssert from Google Sheets: spreadsheet ${sheet.spreadsheet_id}, range ${sheet.range_returned}, at ${sheet.read_at}.`;
+  const revision = sheet.revision;
+  if (revision.available) yield `Drive version ${revision.before.version} before and after the values were read.`;
+  else yield `The read cannot be tied to a revision: ${revision.reason}.`;
+}
 
 /** cli.summary: the lines the command-line checker prints. */
 export function* summary(report: Report, maxDetails: number | bigint = MAX_DETAILS): Generator<string> {
@@ -81,6 +103,10 @@ export function* summary(report: Report, maxDetails: number | bigint = MAX_DETAI
   const total = report.expected_total;
   yield `${report.cohort_state}: ${report.source_rows_observed} rows of ${total === null ? "unknown total" : total}`;
   yield `Verified ${c.Verified} · Mismatch ${c.Mismatch} · Unverified ${c.Unverified}`;
+  const sheet = sheetOf(report);
+  if (sheet) yield* sheetLines(sheet);
+  const crm = hubspotOf(report);
+  if (crm) yield* hubspotLines(crm);
   for (const [side, label] of WORKBOOK_SIDES) {
     const book = workbookOf(report, side);
     if (book) yield* workbookLines(label, book);
@@ -92,7 +118,10 @@ export function* summary(report: Report, maxDetails: number | bigint = MAX_DETAI
     ["destination_count", "Destination", "absence and uniqueness stay unknown"],
   ] as const) {
     const count = premises[name];
-    if (count?.matched === false) yield `${label} count stated ${String(count.stated)}, file has ${count.observed} rows: ${consequence}.`;
+    if (count?.matched === false) {
+      if (crm && name === "destination_count") yield `${label} count stated ${String(count.stated)}, HubSpot listed ${count.observed} records: ${consequence}.`;
+      else yield `${label} count stated ${String(count.stated)}, ${sheet && name === "source_count" ? "range has" : "file has"} ${count.observed} rows: ${consequence}.`;
+    }
   }
   if (!report.source_population_known) yield "Source population unknown: the batch cannot be Verified.";
   if (!report.destination_coverage_sufficient) yield "Destination coverage not established: absence and uniqueness stay unknown.";
@@ -395,6 +424,10 @@ export function* writeHtml(report: Report): Generator<string> {
     yield "</section>\n";
   }
 
+  const sheet = sheetOf(report);
+  if (sheet) yield sheetHtml(sheet);
+  const crm = hubspotOf(report);
+  if (crm) yield hubspotHtml(crm);
   for (const [side, label] of WORKBOOK_SIDES) {
     const book = workbookOf(report, side);
     if (book) yield workbookHtml(label, book);
@@ -437,3 +470,36 @@ function workbookHtml(label: string, book: WorkbookMember): string {
 /** The records of a report, typed for callers that only read them. */
 export type ReportRecords = Records;
 export type { State };
+
+/** cli._write_sheet */
+function sheetHtml(sheet: SheetMember): string {
+  let out =
+    "<section>\n<h2>Source read from Google Sheets</h2>\n" +
+    "<p>FlowAssert read the source rows itself, read-only, so no export step could cut them short or edit them. This does not show that the range holds every record that should exist: that is the stated premise source_complete.</p>\n";
+  for (const line of sheetLines(sheet)) out += `<p>${h(line)}</p>\n`;
+  out += '<table class="facts">\n';
+  for (const [name, value] of Object.entries(sheet)) {
+    if (name === "revision") continue;
+    out += `<tr><th>${h(name)}</th><td>${h(value as Shown)}</td></tr>\n`;
+  }
+  const revision = sheet.revision;
+  if (revision.available) {
+    for (const moment of ["before", "after"] as const) {
+      for (const name of ["version", "modified_time"] as const) out += `<tr><th>revision ${moment} ${h(name)}</th><td>${h(revision[moment][name])}</td></tr>\n`;
+    }
+  } else out += `<tr><th>revision</th><td>${h(revision.reason)}</td></tr>\n`;
+  return out + "</table>\n</section>\n";
+}
+
+/** cli._write_hubspot */
+function hubspotHtml(crm: HubSpotMember): string {
+  let out =
+    "<section>\n<h2>Destination read from HubSpot</h2>\n" +
+    "<p>FlowAssert listed the records itself, read-only, page by page, so no export step could filter, cut them short or edit them. The read shows which records the API listed to this token at that time. It does not show that the object is complete:</p>\n<ul>\n<li>records the token cannot see are not listed;</li>\n" +
+    "<li>records changed during the read may be missed;</li>\n<li>archived records are not read.</li>\n</ul>\n" +
+    "<p>That the records cover the whole object is the stated premise destination_complete.</p>\n";
+  for (const line of hubspotLines(crm)) out += `<p>${h(line)}</p>\n`;
+  out += '<table class="facts">\n';
+  for (const [name, value] of Object.entries(crm)) out += `<tr><th>${h(name)}</th><td>${h(Array.isArray(value) ? value.join(", ") : (value as Shown))}</td></tr>\n`;
+  return out + "</table>\n</section>\n";
+}

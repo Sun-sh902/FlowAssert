@@ -63,9 +63,10 @@ export class JsonError extends Error {}
 /**
  * json.loads with an object_pairs_hook that refuses a duplicate member, as cli._read_json does. Numbers that are
  * integers come back as bigint when they do not fit a safe integer, so nothing is rounded; other numbers as number.
- * Python accepts NaN, Infinity and -Infinity, so this does too.
+ * Python accepts NaN, Infinity and -Infinity, so this does too, unless `parseConstant` is given: then it is called with
+ * the constant's name, as json.loads(parse_constant=...) calls it, and what it throws is thrown.
  */
-export function pyLoads(text: string): PyValue {
+export function pyLoads(text: string, { parseConstant }: { parseConstant?: (name: "NaN" | "Infinity" | "-Infinity") => never } = {}): PyValue {
   let i = 0;
   const fail = (msg: string): never => {
     throw new JsonError(msg);
@@ -80,9 +81,9 @@ export function pyLoads(text: string): PyValue {
     if (text.startsWith("null", i)) return (i += 4), null;
     if (text.startsWith("true", i)) return (i += 4), true;
     if (text.startsWith("false", i)) return (i += 5), false;
-    if (text.startsWith("NaN", i)) return (i += 3), Number.NaN;
-    if (text.startsWith("Infinity", i)) return (i += 8), Number.POSITIVE_INFINITY;
-    if (text.startsWith("-Infinity", i)) return (i += 9), Number.NEGATIVE_INFINITY;
+    if (text.startsWith("NaN", i)) return (i += 3), parseConstant ? parseConstant("NaN") : Number.NaN;
+    if (text.startsWith("Infinity", i)) return (i += 8), parseConstant ? parseConstant("Infinity") : Number.POSITIVE_INFINITY;
+    if (text.startsWith("-Infinity", i)) return (i += 9), parseConstant ? parseConstant("-Infinity") : Number.NEGATIVE_INFINITY;
     const m = /^-?(?:0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?/.exec(text.slice(i, i + 4096));
     if (!m) return fail("Expecting value");
     i += m[0].length;

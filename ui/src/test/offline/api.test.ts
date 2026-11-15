@@ -7,13 +7,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { API_ORIGINS, VERSION, checkCsv, type CheckCsvInput } from "../../offline/api";
+import { API_ORIGINS, VERSION, checkCsv, type CheckCsvInput, type CsvFileInput } from "../../offline/api";
 import { REPO_ROOT } from "../fixtures/sources";
 import { GOLDEN, apiInput, comparable, expectedResult, pageCases } from "./golden-cases";
 
 const STATES = { 0: "Verified", 1: "Mismatch", 3: "Unverified", 2: "refused", 4: "failed" } as const;
 
-const example = (): CheckCsvInput => ({
+const example = (): CheckCsvInput & { source: CsvFileInput; destination: CsvFileInput } => ({
   source: { name: "source.csv", content: readFileSync(join(REPO_ROOT, "offline/examples/source.csv")) },
   destination: { name: "destination.csv", content: readFileSync(join(REPO_ROOT, "offline/examples/destination.csv")) },
   config: { key: ["external_id", "external_id"], fields: [{ source: "phone", destination: "phone", rule: "exact" }], scope: "source" },

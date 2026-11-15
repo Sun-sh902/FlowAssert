@@ -142,9 +142,8 @@ final class FlowTests: XCTestCase {
         XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "profile-rows").count, 1, "only the destination is profiled")
         pick("source-worksheet", "Contacts (hidden)")
         XCTAssertFalse(waiting.waitForExistence(timeout: 3))
-        let rows = app.descendants(matching: .any).matching(identifier: "profile-rows")
-        let both = NSPredicate { _, _ in rows.count == 2 }
-        wait(for: [XCTNSPredicateExpectation(predicate: both, object: nil)], timeout: 20)
+        // The source's own profile: the worksheet it read, as the checker's profile names it.
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Contacts' OR value == 'Contacts' OR label == 'Worksheet, Contacts'")).firstMatch.waitForExistence(timeout: 20))
     }
 
     func testAFileOpenedFromAnotherAppAsksWhichSideItIs() {

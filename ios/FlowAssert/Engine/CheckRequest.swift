@@ -20,6 +20,21 @@ enum EngineConfig: Sendable {
     case loaded(Data)
 }
 
+/// A source read from one range of a Google Sheets spreadsheet (docs/connectors/google-sheets.md).
+struct SheetChoice: Sendable, Equatable {
+    var spreadsheetId: String
+    var range: String
+    var skipRevision = false
+    /// As --source-timeout takes it; nil is the command line's default, 60 seconds.
+    var timeout: String?
+}
+
+/// A destination listed from HubSpot (docs/connectors/hubspot.md).
+struct HubSpotChoice: Sendable, Equatable {
+    var object = "contacts"
+    var timeout: String?
+}
+
 /// Everything a check takes. The premises are the person's statements; each is false or absent unless stated.
 struct CheckRequest: Sendable {
     var source: EngineFile
@@ -40,6 +55,9 @@ struct CheckRequest: Sendable {
     var maxRows: String?
     /// Also open the JSON report with the saved-report reader, so that the result is read from the report.
     var openReport = false
+    /// A side read by a connector, in place of that side's file.
+    var sourceSheet: SheetChoice?
+    var destinationHubspot: HubSpotChoice?
 }
 
 /// One file of the records to resend, as the checker wrote it.

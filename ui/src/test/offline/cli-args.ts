@@ -34,11 +34,26 @@ export function inputFile(folder: string, path: string): InputFile {
   return { name: path, size: statSync(full).size, read: () => new Uint8Array(readFileSync(full)) };
 }
 
-/** The check arguments, and whether --json and --html were asked for. */
-export function parseArgs(argv: readonly string[], folder: string): CheckArgs {
+/** The check arguments of a case that reads two files. */
+export function parseArgs(argv: readonly string[], folder: string): CheckArgs & { source: InputFile; destination: InputFile } {
+  const args = parseAnyArgs(argv, folder);
+  if (!args.source || !args.destination) throw new Error("a case without two files: use parseAnyArgs");
+  return args as CheckArgs & { source: InputFile; destination: InputFile };
+}
+
+const CONNECTOR_VALUES: Record<string, keyof CheckArgs> = {
+  "--source-sheet": "sourceSheet",
+  "--source-range": "sourceRange",
+  "--source-timeout": "sourceTimeout",
+  "--destination-hubspot": "destinationHubspot",
+  "--destination-timeout": "destinationTimeout",
+};
+
+/** The check arguments of any case, connector cases included: a side a connector reads has no file. */
+export function parseAnyArgs(argv: readonly string[], folder: string): CheckArgs {
   const args: Record<string, unknown> = { field: [] };
-  let source = "";
-  let destination = "";
+  let source: string | undefined;
+  let destination: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const option = argv[i]!;
     if (option in FLAGS) args[FLAGS[option]!] = true;
@@ -49,13 +64,15 @@ export function parseArgs(argv: readonly string[], folder: string): CheckArgs {
     else if (option === "--mapping") args.mapping = inputFile(folder, argv[++i]!);
     else if (option === "--json" || option === "--html") i++;
     else if (option in VALUES) args[VALUES[option]!] = argv[++i]!;
+    else if (option in CONNECTOR_VALUES) args[CONNECTOR_VALUES[option]!] = argv[++i]!;
+    else if (option === "--skip-source-revision") args.skipSourceRevision = true;
     else throw new Error(`unexpected argument ${option}`);
   }
   if (!(args.field as string[]).length) delete args.field;
   return {
     ...(args as Partial<CheckArgs>),
-    source: inputFile(folder, source),
-    destination: inputFile(folder, destination),
-    sameFile: realpathSync(join(folder, source)) === realpathSync(join(folder, destination)),
+    ...(source !== undefined ? { source: inputFile(folder, source) } : {}),
+    ...(destination !== undefined ? { destination: inputFile(folder, destination) } : {}),
+    sameFile: source !== undefined && destination !== undefined && realpathSync(join(folder, source)) === realpathSync(join(folder, destination)),
   };
 }

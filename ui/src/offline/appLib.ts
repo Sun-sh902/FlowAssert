@@ -17,6 +17,9 @@ import { ANY, Explorer, type Query } from "./explore";
 import { profileCsv, profileXlsx, type ProfileResult } from "./profile";
 import { NotAReport, factsOfSaved, readReport, type SavedReport } from "./savedReport";
 import { listSheets } from "./xlsx";
+import { checkCsv as checkWith, type CheckCsvInput } from "./api";
+import { HubSpotDestination } from "./hubspot";
+import { SheetSource } from "./sheets";
 
 export const VERSION = "1.1.0";
 
@@ -55,6 +58,13 @@ export async function sheets(file: AppFile): Promise<SheetsResult> {
 export function configuration(key: [string, string], fields: [string, string, string][], scope: "source" | "exact"): string {
   return canonicalConfig({ key, fields, scope });
 }
+
+/**
+ * A check with a side read by a connector: a Google Sheets range as the source, HubSpot's contacts as the destination
+ * (docs/connectors/). It is checkCsv of the packaged checker, the same code, with the two readers, which only the app
+ * carries: the packaged checker stays free of them. A check of two files runs in flowassert-check.js.
+ */
+export const check = (input: CheckCsvInput) => checkWith(input, { readers: { sheet: SheetSource, hubspot: HubSpotDestination } });
 
 /* ---------- Reports ---------- */
 

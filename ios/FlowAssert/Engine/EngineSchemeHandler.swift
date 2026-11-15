@@ -21,11 +21,17 @@ final class EngineSchemeHandler: NSObject, WKURLSchemeHandler {
     ]
 
     private var inputs: [String: Data] = [:]
+    private var once: Set<String> = []
+    #if DEBUG
+    /// Every byte served to the page, for the test that no credential reaches it.
+    var served: [Data] = []
+    #endif
 
-    /// Makes `data` readable by the page once, under a new token.
-    func register(_ data: Data) -> String {
+    /// Makes `data` readable by the page under a new token; with `once`, only for one read.
+    func register(_ data: Data, once readOnce: Bool = false) -> String {
         let token = UUID().uuidString
         inputs[token] = data
+        if readOnce { once.insert(token) }
         return token
     }
 
@@ -48,6 +54,10 @@ final class EngineSchemeHandler: NSObject, WKURLSchemeHandler {
         if path.hasPrefix("/input/") {
             let token = String(path.dropFirst("/input/".count))
             guard let data = inputs[token] else { return fail(task, URLError(.fileDoesNotExist)) }
+            if once.remove(token) != nil { inputs[token] = nil }
+            #if DEBUG
+            served.append(data)
+            #endif
             return respond(task, url: url, type: "application/octet-stream", data: data)
         }
         fail(task, URLError(.fileDoesNotExist))

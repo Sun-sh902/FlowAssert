@@ -33,6 +33,16 @@
     return out;
   };
 
+  // A connector's request: Swift sends it and adds the credential, which never comes here; the body comes back as
+  // bytes through the scheme handler, as a file does.
+  async function transport(request) {
+    const reply = await window.webkit.messageHandlers.transport.postMessage(request);
+    if (reply.failure !== undefined) return { failure: reply.failure };
+    const out = { status: reply.status, body: await bytes(reply.token) };
+    if (reply.contentEncoding !== undefined) out.contentEncoding = reply.contentEncoding;
+    return out;
+  }
+
   const appFile = async (side) => {
     const f = await file(side);
     return { name: f.name, bytes: f.content, encoding: f.encoding, format: f.format, worksheet: f.worksheet };
@@ -43,11 +53,16 @@
       return { version: FlowAssert.VERSION, hostProblem: FlowAssert.hostProblem(ENCODINGS) };
     },
 
-    /** One check, and its JSON report opened with the saved-report reader, so the result is read from the report. */
+    /**
+     * One check, and its JSON report opened with the saved-report reader, so the result is read from the report. Two
+     * files are checked by the packaged checker; a side read by a connector by the same check in the app's script,
+     * which alone carries the readers.
+     */
     async check(request) {
+      const connected = request.source.sheet !== undefined || request.destination.hubspot !== undefined;
       const input = {
-        source: await file(request.source),
-        destination: await file(request.destination),
+        source: request.source.sheet !== undefined ? { sheet: request.source.sheet } : await file(request.source),
+        destination: request.destination.hubspot !== undefined ? { hubspot: request.destination.hubspot } : await file(request.destination),
         config: request.config.token !== undefined ? await bytes(request.config.token) : chosen(request.config.chosen),
         sourceComplete: request.sourceComplete,
         destinationComplete: request.destinationComplete,
@@ -57,8 +72,9 @@
         origin: ORIGIN,
         ...optional(request, ["exports", "details", "redactValues", "maxBytes", "maxRows"]),
       };
+      if (connected) input.connectors = { environ: request.environ ?? {}, transport };
       const started = performance.now();
-      const result = await FlowAssert.checkCsv(input);
+      const result = connected ? await FlowAssertApp.check(input) : await FlowAssert.checkCsv(input);
       const milliseconds = performance.now() - started;
       const report = request.open && result.json !== null ? FlowAssertApp.open(new TextEncoder().encode(result.json), "report.json") : null;
       return { ...result, milliseconds, report };

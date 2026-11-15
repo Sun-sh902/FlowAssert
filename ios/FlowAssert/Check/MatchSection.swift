@@ -10,9 +10,9 @@ struct MatchSection: View {
 
     var body: some View {
         Section {
-            ColumnPicker(title: "Key in the source", columns: model.source?.columns ?? [], selection: $model.keySource)
+            ColumnPicker(title: "Key in the source", columns: model.source?.columns ?? [], selection: $model.keySource, typed: model.sourceKind == .sheet)
                 .accessibilityIdentifier("key-source")
-            ColumnPicker(title: "Key in the destination", columns: model.destination?.columns ?? [], selection: $model.keyDestination)
+            ColumnPicker(title: "Key in the destination", columns: model.destination?.columns ?? [], selection: $model.keyDestination, typed: model.destinationKind == .hubspot)
                 .accessibilityIdentifier("key-destination")
         } header: {
             Text("Key")
@@ -23,7 +23,8 @@ struct MatchSection: View {
         Section {
             ForEach($model.fields) { $field in
                 FieldEditor(field: $field, sourceColumns: model.source?.columns ?? [], destinationColumns: model.destination?.columns ?? [],
-                            index: (model.fields.firstIndex { $0.id == field.id } ?? 0) + 1)
+                            index: (model.fields.firstIndex { $0.id == field.id } ?? 0) + 1,
+                            sourceTyped: model.sourceKind == .sheet, destinationTyped: model.destinationKind == .hubspot)
             }
             .onDelete { model.fields.remove(atOffsets: $0) }
             Button {
@@ -70,8 +71,23 @@ struct ColumnPicker: View {
     var title: String
     var columns: [String]
     @Binding var selection: String
+    /// A side read by a connector has no file to list columns from: its column (a sheet's header, a HubSpot
+    /// property's internal name) is typed.
+    var typed = false
 
     var body: some View {
+        if typed {
+            LabeledContent(title) {
+                TextField("Column", text: $selection)
+                    .multilineTextAlignment(.trailing).font(.body.monospaced())
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+            }
+        } else {
+            picker
+        }
+    }
+
+    private var picker: some View {
         Picker(title, selection: $selection) {
             Text("Choose").tag("")
             if !selection.isEmpty && !columns.contains(selection) {
@@ -87,12 +103,14 @@ struct FieldEditor: View {
     var sourceColumns: [String]
     var destinationColumns: [String]
     var index: Int
+    var sourceTyped = false
+    var destinationTyped = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ColumnPicker(title: "Source column", columns: sourceColumns, selection: $field.source)
+            ColumnPicker(title: "Source column", columns: sourceColumns, selection: $field.source, typed: sourceTyped)
                 .accessibilityIdentifier("field-\(index)-source")
-            ColumnPicker(title: "Destination column", columns: destinationColumns, selection: $field.destination)
+            ColumnPicker(title: "Destination column", columns: destinationColumns, selection: $field.destination, typed: destinationTyped)
                 .accessibilityIdentifier("field-\(index)-destination")
             Picker("Rule", selection: $field.rule) {
                 ForEach(FieldRow.Rule.allCases) { Text($0.label).tag($0) }

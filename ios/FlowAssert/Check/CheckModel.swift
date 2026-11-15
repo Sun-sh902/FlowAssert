@@ -103,6 +103,16 @@ final class CheckModel {
     let engine: CheckerEngine
     var source: InputFile?
     var destination: InputFile?
+
+    /// Where each side's rows come from: a file, or a connector read by FlowAssert itself.
+    enum SourceKind: String { case file, sheet }
+    enum DestinationKind: String { case file, hubspot }
+    var sourceKind: SourceKind = .file
+    var destinationKind: DestinationKind = .file
+    /// A Google Sheets range, as --source-sheet, --source-range and --skip-source-revision take them.
+    var spreadsheetId = ""
+    var sheetRange = ""
+    var skipRevision = false
     var keySource = ""
     var keyDestination = ""
     var fields: [FieldRow] = [FieldRow()]
@@ -253,8 +263,9 @@ final class CheckModel {
     /// What is still missing before a check can run, in order; empty when it can run.
     var missing: [String] {
         var out: [String] = []
-        if source == nil { out.append("Choose a source file.") }
-        if destination == nil { out.append("Choose a destination file.") }
+        if sourceKind == .file && source == nil { out.append("Choose a source file.") }
+        if sourceKind == .sheet && (spreadsheetId.isEmpty || sheetRange.isEmpty) { out.append("Enter the spreadsheet ID and the range.") }
+        if destinationKind == .file && destination == nil { out.append("Choose a destination file.") }
         if source?.profile == .chooseWorksheet { out.append("Choose the source worksheet.") }
         if destination?.profile == .chooseWorksheet { out.append("Choose the destination worksheet.") }
         if !usesLoadedConfiguration {
@@ -265,7 +276,10 @@ final class CheckModel {
     }
 
     var request: CheckRequest? {
-        guard let source, let destination, missing.isEmpty else { return nil }
+        guard missing.isEmpty else { return nil }
+        let none = InputFile(name: "", bytes: Data(), format: .csv)
+        let source = sourceKind == .sheet ? none : self.source ?? none
+        let destination = destinationKind == .hubspot ? none : self.destination ?? none
         let config: EngineConfig = usesLoadedConfiguration
             ? .loaded(loaded!.bytes)
             : .chosen(key: (keySource, keyDestination), fields: fields.filter { !$0.source.isEmpty || !$0.destination.isEmpty }.map { ($0.source, $0.destination, $0.ruleText) }, scope: scope)
@@ -281,6 +295,8 @@ final class CheckModel {
         r.maxBytes = maxBytes.isEmpty ? nil : maxBytes
         r.maxRows = maxRows.isEmpty ? nil : maxRows
         r.openReport = true
+        if sourceKind == .sheet { r.sourceSheet = SheetChoice(spreadsheetId: spreadsheetId, range: sheetRange, skipRevision: skipRevision) }
+        if destinationKind == .hubspot { r.destinationHubspot = HubSpotChoice() }
         return r
     }
 
@@ -305,6 +321,11 @@ final class CheckModel {
     func reset() {
         source = nil
         destination = nil
+        sourceKind = .file
+        destinationKind = .file
+        spreadsheetId = ""
+        sheetRange = ""
+        skipRevision = false
         keySource = ""
         keyDestination = ""
         fields = [FieldRow()]

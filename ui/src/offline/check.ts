@@ -13,6 +13,10 @@ import { DuplicateMember, JsonError, pyLoads, type PyValue } from "./pyjson";
 import { compareCodePoints, pyRepr, pyStrip } from "./pystr";
 import { CLAIM, LIMITS, MAX_DETAILS, ORIGINS, SCHEMA_VERSION, WORKBOOK_SCHEMA_VERSION, summaryText, writeHtml, writeJson, type Origin, type Report } from "./report";
 import { FORMATS, readXlsx, type Format, type WorkbookMember } from "./xlsx";
+import type { ConnectorHost, Transport } from "./connector";
+import type { HubSpotDestination } from "./hubspot";
+import { HUBSPOT_SCHEMA_VERSION, SHEET_SCHEMA_VERSION } from "./report";
+import type { SheetSource } from "./sheets";
 
 export { Refused };
 
@@ -35,8 +39,24 @@ export interface InputFile {
 }
 
 export interface CheckArgs {
-  source: InputFile;
-  destination: InputFile;
+  /** --source FILE; absent with sourceSheet. */
+  source?: InputFile;
+  /** --destination FILE; absent with destinationHubspot. */
+  destination?: InputFile;
+  /** --source-sheet ID, --source-range RANGE, --source-timeout SECONDS, --skip-source-revision (sheets.ts). */
+  sourceSheet?: string;
+  sourceRange?: string;
+  sourceTimeout?: string | number;
+  skipSourceRevision?: boolean;
+  /** --destination-hubspot OBJECT, --destination-timeout SECONDS (hubspot.ts). */
+  destinationHubspot?: string;
+  destinationTimeout?: string | number;
+  /**
+   * For a connector: the environment variables the command line would read (a credential's presence and form, a test
+   * endpoint), the transport that sends the requests and holds the credential (connector.ts), and the readers
+   * themselves (sheets.ts, hubspot.ts), handed in so that a build without connectors, the packaged checker, has none.
+   */
+  connectors?: ConnectorSupport;
   /** --key and --field as typed: "column" or "source:destination". */
   key?: string;
   field?: string[];
@@ -296,6 +316,8 @@ async function run(args: CheckArgs): Promise<[Report, CheckOutcome["exports"]]> 
   const destinationEncoding = choice("--destination-encoding", args.destinationEncoding, encodings, "utf-8");
   const sourceFormat: Format = choice("--source-format", args.sourceFormat, FORMATS, "csv");
   const destinationFormat: Format = choice("--destination-format", args.destinationFormat, FORMATS, "csv");
+  if (args.sourceFormat !== undefined && args.sourceSheet !== undefined) throw new Refused("--source-format does not apply to a sheet source");
+  if (args.destinationFormat !== undefined && args.destinationHubspot !== undefined) throw new Refused("--destination-format does not apply to a HubSpot destination");
   for (const [side, chosen, worksheet] of [["source", sourceFormat, args.sourceWorksheet], ["destination", destinationFormat, args.destinationWorksheet]] as const) {
     if (worksheet !== undefined && chosen !== "xlsx") throw new Refused(`--${side}-worksheet needs --${side}-format xlsx`);
   }
@@ -304,11 +326,15 @@ async function run(args: CheckArgs): Promise<[Report, CheckOutcome["exports"]]> 
   }
   const exporting = args.exportDir !== undefined || args.exportRecords === true;
   if (exporting && args.redactValues) throw new Refused("--export-dir cannot be combined with --redact-values: the exported rows hold the values");
+  const host = { environ: args.connectors?.environ ?? {}, transport: args.connectors?.transport ?? noTransport, now: args.now ?? utcNow };
+  const sheet = sheetSource(args, maxBytes, host);
+  const crm = hubspotDestination(args, maxBytes, host);
   const [{ key, fields, scope }, selectionSha] = await selection(args, maxBytes);
   if (new Set(fields.map(([s]) => s)).size !== fields.length) throw new Refused("a source field is repeated");
-  if (args.sameFile) throw new Refused("source and destination are the same file, so the check would not be independent");
-  checkSize(args.source, maxBytes);
-  checkSize(args.destination, maxBytes);
+  crm?.select([key[1], ...fields.map(([, d]) => d)], maxRows);
+  if (!sheet && !crm && args.sameFile) throw new Refused("source and destination are the same file, so the check would not be independent");
+  if (!sheet) checkSize(args.source!, maxBytes);
+  if (!crm) checkSize(args.destination!, maxBytes);
   const evaluation = new Evaluation({ key, fields, scope: scope ?? "source" }, {
     source_complete: args.sourceComplete === true,
     destination_complete: args.destinationComplete === true,
@@ -333,10 +359,26 @@ async function run(args: CheckArgs): Promise<[Report, CheckOutcome["exports"]]> 
     const read = await readCsv({ name: file.name, open: opener(file), encoding }, columns, onRow, maxRows, args.progress && ((b, r) => args.progress!(side, b, r)));
     return read.sha256;
   };
-  const sourceSha = await read("source", args.source, sourceEncoding, [key[0], ...fields.map(([s]) => s)], (v) => evaluation.addSource(v[0]!, v.slice(1)));
-  const destinationSha = await read("destination", args.destination, destinationEncoding, [key[1], ...fields.map(([, d]) => d)], (v) =>
-    evaluation.addDestination(v[0]!, v.slice(1)),
-  );
+  const sourceColumns = [key[0], ...fields.map(([s]) => s)];
+  const destinationColumns = [key[1], ...fields.map(([, d]) => d)];
+  const onSource = (v: string[]) => evaluation.addSource(v[0]!, v.slice(1));
+  const onDestination = (v: string[]) => evaluation.addDestination(v[0]!, v.slice(1));
+  let sourceSha: string;
+  if (sheet) {
+    sheet.select(sourceColumns, maxRows);
+    await sheet.read();
+    // The selected columns are each listed once (dict.fromkeys); the evaluator takes the key, then each field's column.
+    const at = sourceColumns.map((c) => sheet.columns.indexOf(c));
+    await sheet.rows((v) => onSource(at.map((i) => v[i]!)));
+    sourceSha = sheet.sha256!;
+  } else sourceSha = await read("source", args.source!, sourceEncoding, sourceColumns, onSource);
+  if (crm && exporting && (scope ?? "source") === "exact") crm.kept = []; // HubSpot is listed once: its records are kept for the destination-only rows
+  let destinationSha: string;
+  if (crm) {
+    const at = destinationColumns.map((c) => crm.columns.indexOf(c));
+    await crm.rows((v) => onDestination(at.map((i) => v[i]!)));
+    destinationSha = crm.sha256!;
+  } else destinationSha = await read("destination", args.destination!, destinationEncoding, destinationColumns, onDestination);
   args.evaluating?.(0, evaluation.keys.length);
   const result = evaluation.finish(details, args.evaluating);
   const identical = sourceSha === destinationSha;
@@ -355,7 +397,15 @@ async function run(args: CheckArgs): Promise<[Report, CheckOutcome["exports"]]> 
   };
   if (identical) inputs.identical_content_allowed = true;
   Object.assign(inputs, selectionSha);
-  if (books.source || books.destination) {
+  if (crm) {
+    // No destination encoding: the destination is not a file.
+    if (sheet) inputs.source_sheet = sheet.member!;
+    else if (args.sourceEncoding !== undefined) inputs.source_encoding = sourceEncoding;
+    inputs.destination_hubspot = crm.member!;
+  } else if (sheet) {
+    inputs.source_sheet = sheet.member!;
+    if (args.destinationEncoding !== undefined) inputs.destination_encoding = destinationEncoding;
+  } else if (books.source || books.destination) {
     // Only a CSV side has an encoding; it is recorded alone when it was stated.
     if (args.sourceEncoding !== undefined) inputs.source_encoding = sourceEncoding;
     if (args.destinationEncoding !== undefined) inputs.destination_encoding = destinationEncoding;
@@ -380,7 +430,7 @@ async function run(args: CheckArgs): Promise<[Report, CheckOutcome["exports"]]> 
   if (scope !== null) obligation.scope = scope;
   const report: Report = {
     ...result,
-    schema_version: books.source || books.destination ? WORKBOOK_SCHEMA_VERSION : SCHEMA_VERSION,
+    schema_version: books.source || books.destination ? WORKBOOK_SCHEMA_VERSION : crm ? HUBSPOT_SCHEMA_VERSION : sheet ? SHEET_SCHEMA_VERSION : SCHEMA_VERSION,
     details,
     evaluated_at: (args.now ?? utcNow)(),
     inputs,
@@ -394,14 +444,62 @@ async function run(args: CheckArgs): Promise<[Report, CheckOutcome["exports"]]> 
     for (const record of report.destination_only ?? []) record.key = "[redacted]";
   }
   if (!exporting) return [report, undefined];
-  const side = (file: InputFile, format: Format, encoding: Encoding, worksheet: string | undefined, sha256: string): ExportSide => ({ file, format, encoding, worksheet, sha256 });
+  const side = (file: InputFile | undefined, format: Format, encoding: Encoding, worksheet: string | undefined, sha256: string, rows?: () => Iterable<string[]>): ExportSide => ({ file: file!, format, encoding, worksheet, sha256, rows });
   const exported = await exportsOf(
     report,
-    side(args.source, sourceFormat, sourceEncoding, args.sourceWorksheet, sourceSha),
-    side(args.destination, destinationFormat, destinationEncoding, args.destinationWorksheet, destinationSha),
+    side(args.source, sourceFormat, sourceEncoding, args.sourceWorksheet, sourceSha, sheet ? () => sheet.fullRows() : undefined),
+    side(args.destination, destinationFormat, destinationEncoding, args.destinationWorksheet, destinationSha, crm ? () => crm.fullRows() : undefined),
     { maxRows, maxBytes },
   );
   return [report, exported];
+}
+
+/** What a check needs to read a side through a connector. */
+export interface ConnectorSupport {
+  environ: Readonly<Record<string, string | undefined>>;
+  transport: Transport;
+  readers: { sheet: typeof SheetSource; hubspot: typeof HubSpotDestination };
+}
+
+/** Without a transport, a connector's request has no answer; the command line would say the connection failed. */
+const noTransport: Transport = () => Promise.resolve({ failure: "connection" });
+
+/** The readers the caller handed in; a build without them cannot read a connector side at all. */
+function readers(args: CheckArgs): ConnectorSupport["readers"] {
+  if (!args.connectors?.readers) throw new Error("this build of the checker has no connectors");
+  return args.connectors.readers;
+}
+
+/** cli._sheet_source: the sheet source the options name, checked, or null for a file. */
+function sheetSource(args: CheckArgs, maxBytes: bigint, host: ConnectorHost): SheetSource | null {
+  if (args.sourceSheet === undefined) {
+    for (const [option, given] of [
+      ["--source-range", args.sourceRange !== undefined],
+      ["--source-timeout", args.sourceTimeout !== undefined],
+      ["--skip-source-revision", args.skipSourceRevision === true],
+    ] as const) {
+      if (given) throw new Refused(`${option} needs --source-sheet`);
+    }
+    return null;
+  }
+  if (args.source !== undefined) throw new Refused("--source and --source-sheet cannot be combined");
+  if (args.sourceRange === undefined) throw new Refused("--source-sheet needs --source-range");
+  if (args.sourceEncoding !== undefined) throw new Refused("--source-encoding does not apply to a sheet source");
+  const timeout = args.sourceTimeout === undefined ? undefined : Number(intArg("--source-timeout", args.sourceTimeout, 1));
+  return new (readers(args).sheet)(args.sourceSheet, args.sourceRange, { maxBytes, timeout, revision: !args.skipSourceRevision, host });
+}
+
+/** cli._hubspot_destination: the HubSpot destination the options name, checked, or null for a file. */
+function hubspotDestination(args: CheckArgs, maxBytes: bigint, host: ConnectorHost): HubSpotDestination | null {
+  if (args.destinationHubspot === undefined) {
+    if (args.destinationTimeout !== undefined) throw new Refused("--destination-timeout needs --destination-hubspot");
+    return null;
+  }
+  if (args.destination !== undefined) throw new Refused("--destination and --destination-hubspot cannot be combined");
+  if (args.destinationHubspot !== "contacts") throw new Refused("--destination-hubspot must be contacts");
+  if (args.destinationEncoding !== undefined) throw new Refused("--destination-encoding does not apply to a HubSpot destination");
+  const timeout = args.destinationTimeout === undefined ? undefined : Number(intArg("--destination-timeout", args.destinationTimeout, 1));
+  return new (readers(args).hubspot)(args.destinationHubspot, { maxBytes, timeout, host });
 }
 
 /** A file given whole is read through the same stream reader, as one chunk. */
@@ -421,6 +519,8 @@ export interface ExportSide {
   worksheet?: string;
   /** inputs.source_sha256 or inputs.destination_sha256: the file's bytes for CSV, the canonical form for a workbook. */
   sha256: string;
+  /** A side a connector read: its rows as read, the header first, already in memory (cli._rows_again). */
+  rows?: () => Iterable<string[]>;
 }
 
 /**
@@ -431,6 +531,15 @@ export async function exportsOf(report: Report, source: ExportSide, destination:
   const plan = new ExportPlan(report);
   const maxRows = limits.maxRows ?? MAX_ROWS;
   const again = async (s: ExportSide, onHeader: (header: string[]) => void, onRow: (values: string[]) => void) => {
+    if (s.rows) {
+      let first = true;
+      for (const row of s.rows()) {
+        if (first) onHeader(row);
+        else onRow(row);
+        first = false;
+      }
+      return;
+    }
     let digest: string;
     try {
       if (s.format === "xlsx") {
