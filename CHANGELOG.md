@@ -51,6 +51,11 @@ this section grows with the work.
   them, as before.
 - `checkCsv` accepts the origin `iPhone and iPad app`, so its refusal of an unknown origin lists it:
   `origin must be one of: JavaScript call, n8n Code node, n8n node, iPhone and iPad app`, as 1.1.0 added `n8n node`.
+- The `.xlsx` reader's pattern for the XML declaration (`xlsx.ts`) no longer has the `u` flag. The pattern is ASCII,
+  so what it accepts is unchanged; the JavaScriptCore of iOS 26 failed to match an ordinary
+  `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` with the flag, and the app refused valid workbooks there.
+  Found by the app's first CI run, on iOS 26.5; every engine case now gives the command line's result on iOS 26.5 and
+  27.2.
 - The n8n example holds the rebuilt packaged checker (`ui/scripts/n8n/build_workflow.mjs`).
 
 ## 1.1.0 (2026-11-12)

@@ -23,14 +23,24 @@ final class AppModel {
         self.engine = engine
         self.check = CheckModel(engine: engine)
         self.reports = reports ?? ReportStore()
+        savedCredentials = Self.readSaved(engine.credentials)
     }
 
-    /// Bumped when a credential is saved or removed, so the screens that show whether one is saved read it again.
-    var credentialsChanged = 0
+    /// Bumped when a credential is saved or removed: the Keychain is read again, once.
+    var credentialsChanged = 0 {
+        didSet { savedCredentials = Self.readSaved(engine.credentials) }
+    }
+
+    /// Which credentials are saved, as the Keychain said when the app started or after the last save or removal. The
+    /// screens read this, never the Keychain itself: a Keychain call while a screen draws would hold the main thread.
+    private(set) var savedCredentials: Set<CredentialKind> = []
 
     func credentialSaved(_ kind: CredentialKind) -> Bool {
-        _ = credentialsChanged
-        return engine.credentials.isSaved(kind)
+        savedCredentials.contains(kind)
+    }
+
+    private static func readSaved(_ store: CredentialStore) -> Set<CredentialKind> {
+        Set(CredentialKind.allCases.filter { store.isSaved($0) })
     }
 
     func start() async {

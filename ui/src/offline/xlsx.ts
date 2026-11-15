@@ -77,7 +77,9 @@ const DECLARATION = new RegExp(
   `^<\\?xml${WS}+version${WS}*=${WS}*(["'])1\\.[0-9]+\\1` +
     `(?:${WS}+encoding${WS}*=${WS}*(["'])([A-Za-z][A-Za-z0-9._-]*)\\2)?` +
     `(?:${WS}+standalone${WS}*=${WS}*(["'])(?:yes|no)\\4)?${WS}*\\?>$`,
-  "u",
+  // No "u" flag: the pattern is ASCII, so the flag changes nothing it accepts, and the JavaScriptCore of iOS 26
+  // (WebKit 26.5) fails to match `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` with it, which refused
+  // valid workbooks in the iPhone and iPad app. Without it every engine matches.
 );
 // XML 1.0 forbids these characters, so they are looked for.
 // eslint-disable-next-line no-control-regex

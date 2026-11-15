@@ -51,7 +51,8 @@ final class ConnectorFlowTests: XCTestCase {
 
         openTab("Check")
         let kind = app.segmentedControls["destination-kind"]
-        XCTAssertTrue(kind.waitForExistence(timeout: 5))
+        // Hosted CI machines are slow; the tab is drawn when the main thread is free.
+        XCTAssertTrue(kind.waitForExistence(timeout: 15))
         kind.buttons["HubSpot contacts"].tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Saved: a private app access token'")).firstMatch.waitForExistence(timeout: 5))
 
