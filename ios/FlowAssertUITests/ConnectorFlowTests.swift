@@ -71,7 +71,8 @@ final class ConnectorFlowTests: XCTestCase {
         let range = app.textFields["sheet-range"]
         range.tap()
         range.typeText("Leads!A1:C4\n")
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'No credential saved'")).firstMatch.exists)
+        // The row is drawn once the keyboard has gone: wait for it, as for every other element here.
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'No credential saved'")).firstMatch.waitForExistence(timeout: 10))
         let destination = app.segmentedControls["destination-kind"]
         var scrolls = 0
         while !(destination.exists && destination.isHittable && destination.frame.maxY < app.windows.firstMatch.frame.height - 160) && scrolls < 15 {

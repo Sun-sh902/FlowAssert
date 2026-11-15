@@ -6,6 +6,7 @@
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py playwright GATE REPORT.json   (--reporter=json; FIX02)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py matrix GATE results.json      (ui/scripts/dev/fix04-product-review.mjs)
     /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py n8n-node JUNIT.xml   (node --test --test-reporter=junit, 1.1.0)
+    /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py ios TESTS.json       (xcresulttool get test-results tests, 1.2.0)
 
 Compares the run with scripts/dev/test-inventory.json. FAIL when a mandatory suite is missing or unlisted, a suite
 has a different number of required tests, or any required test is skipped, pending or not passed. An optional
@@ -19,6 +20,9 @@ Responsive matrix (residual closeout R13): every inventoried cell (engine × the
 exactly once with no problem, and must carry the results of the checks it claims — layout, axe and scroll containers in
 every cell, the keyboard scroll of the History table at 768 and 1024, and twelve focus stops on the Overview. A screenshot
 without those results does not count.
+iPhone and iPad app (1.2.0): the run must cover an iPhone and an iPad simulator; every required test must have passed
+on each, and each optional test (it needs the local fakes, the large files or a measuring script) passed or was skipped
+on each, reported RAN or NOT RUN.
 Exit 0 = every required test executed and passed; 1 = FAIL; 2 = usage.
 """
 import json
@@ -132,6 +136,50 @@ def n8n_node(xml_path):
     return problems, [f"n8n node tests: {sum(counts.values())} in {len(counts)} files"]
 
 
+def ios(results):
+    """The app's XCTest and XCUITest run (1.2.0), from `xcrun xcresulttool get test-results tests`."""
+    inv = INVENTORY["ios"]
+    problems, notes = [], []
+    devices = [d.get("deviceName", "") for d in results.get("devices", [])]
+    for family in ("iPhone", "iPad"):
+        if not any(name.startswith(family) for name in devices):
+            problems.append(f"the run has no {family} simulator: {devices}")
+    seen = {}
+
+    def walk(node, suite):
+        kind = node.get("nodeType")
+        if kind == "Test Suite":
+            suite = node.get("name", "")
+        if kind == "Test Case":
+            name = node.get("name", "").removesuffix("()")
+            outcomes = {c.get("name", ""): c.get("result", "") for c in node.get("children", []) if c.get("nodeType") == "Device"}
+            seen[f"{suite}/{name}"] = outcomes or {devices[0] if devices else "": node.get("result", "")}
+            return
+        for child in node.get("children", []):
+            walk(child, suite)
+
+    for node in results.get("testNodes", []):
+        walk(node, "")
+    listed = set(inv["required"]) | set(inv["optional"])
+    for test in sorted(listed - set(seen)):
+        problems.append(f"{test}: mandatory test did not run")
+    for test in sorted(set(seen) - listed):
+        problems.append(f"{test}: test is not in scripts/dev/test-inventory.json")
+    for test in sorted(set(seen) & listed):
+        outcomes = seen[test]
+        for device in devices:
+            result = outcomes.get(device)
+            if test in inv["required"] and result != "Passed":
+                problems.append(f"{test} on {device}: required test {result or 'did not run'}")
+            elif test in inv["optional"] and result not in ("Passed", "Skipped"):
+                problems.append(f"{test} on {device}: optional test {result or 'did not run'}")
+        if test in inv["optional"]:
+            ran = sorted(d for d in devices if outcomes.get(d) == "Passed")
+            notes.append(f"{'RAN     ' if ran else 'NOT RUN '} {test}" + (f" on {', '.join(ran)}" if ran else f" — {inv['optional'][test]}"))
+    notes.insert(0, f"iOS tests: {len(inv['required'])} required and {len(inv['optional'])} optional, on {', '.join(devices)}")
+    return problems, notes
+
+
 def playwright(gate, report):
     inv = INVENTORY["playwright"].get(gate)
     if inv is None:
@@ -211,7 +259,7 @@ def matrix(gate, rows):
 
 def main():
     args = sys.argv[1:]
-    if not ((len(args) == 2 and args[0] in ("vitest", "pytest", "offline", "n8n-node")) or (len(args) == 3 and args[0] in ("playwright", "matrix"))):
+    if not ((len(args) == 2 and args[0] in ("vitest", "pytest", "offline", "n8n-node", "ios")) or (len(args) == 3 and args[0] in ("playwright", "matrix"))):
         print(__doc__, file=sys.stderr)
         return 2
     kind, path = args[0], args[-1]
@@ -230,6 +278,7 @@ def main():
             problems, notes = playwright(args[1], report)
     else:
         problems, notes = (vitest(json.loads(Path(path).read_text(encoding="utf-8"))) if kind == "vitest"
+                           else ios(json.loads(Path(path).read_text(encoding="utf-8"))) if kind == "ios"
                            else offline(path) if kind == "offline" else n8n_node(path) if kind == "n8n-node"
                            else pytest(path))
     for n in notes:

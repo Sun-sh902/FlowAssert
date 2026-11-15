@@ -177,3 +177,51 @@ jobs:
       # The CSV check, its saved reports and comparisons (real IndexedDB), the Pages build, the first-check help, and
       # an .xlsx workbook on the page.
       - run: npx playwright test e2e/check.spec.ts e2e/check-pages.spec.ts e2e/saved-reports.spec.ts e2e/first-check.spec.ts e2e/html-report.spec.ts e2e/workbook.spec.ts e2e/records-to-resend.spec.ts e2e/english-only.spec.ts --project chrome
+
+  ios:
+    name: iPhone and iPad app
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.15"
+      - run: npm ci
+        working-directory: ui
+      # The packaged checker and the app's readers, and the copies inside the app, which must be exactly these builds.
+      - run: npm run build:lib && npm run build:app
+        working-directory: ui
+      - name: The app holds these builds
+        run: node ios/scripts/checker.mjs --check
+      # What each engine case must give, from Node and from the command line, for EngineParityTests.
+      - run: node ios/scripts/engine-cases.mjs --python python
+      - name: The newest Xcode
+        run: |
+          newest=$(ls -d /Applications/Xcode_*.app | grep -iv beta | sort -V | tail -1)
+          sudo xcode-select -s "$newest"
+          xcodebuild -version
+      # The newest iPhone simulator and an iPad simulator. The build is signed ad hoc (no certificate, no team, no
+      # secret): unsigned, every Keychain call fails, and the credential tests could not run.
+      - name: Tests on an iPhone and an iPad simulator
+        run: |
+          destinations=()
+          while read -r d; do destinations+=(-destination "$d"); done < <(python3 ios/scripts/simulators.py)
+          python3 ios/scripts/simulators.py --names
+          xcodebuild test -project ios/FlowAssert.xcodeproj -scheme FlowAssert "${destinations[@]}" \
+            -derivedDataPath ios/DerivedData -resultBundlePath ios/build/tests.xcresult \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+      - name: Every inventoried test ran on both
+        if: always()
+        run: |
+          xcrun xcresulttool get test-results tests --path ios/build/tests.xcresult > ios/build/tests.json
+          /usr/bin/python3 -I -B scripts/dev/check_test_inventory.py ios ios/build/tests.json
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: ios-test-results
+          path: ios/build/tests.xcresult

@@ -23,6 +23,16 @@ this section grows with the work.
   `offline/golden-sheets/` and `offline/golden-hubspot/` byte for byte, records to resend included. The requests are sent
   by Swift, which keeps the credentials in the Keychain of the device; they never reach JavaScript, a report, a log or a
   file. Tested against the local fakes only.
+- **The app's icon, empty state and polish** (step 5), each chosen by the owner from directions shown on the
+  simulator: a monogram icon with its own dark, clear and tinted versions, and the check's question as the first
+  screen. Scripts measure the layout (`ios/scripts/measure-layout.sh`: the pixel grid, the margins, edges that nearly
+  line up) and the speed (`ios/scripts/measure-performance.sh`: launch, a 50 MB workbook, a 100,000-record report); the
+  haptic at the end of a check tells the result apart.
+- **The app in CI**: an `ios` job builds the packaged checker, fails when the copy inside the app is not that build,
+  and runs the app's tests on the newest iPhone simulator and an iPad simulator, signed ad hoc (no certificate, no
+  team) so that the Keychain works. `scripts/dev/check_test_inventory.py ios` holds the run to
+  `scripts/dev/test-inventory.json`. A privacy manifest says the app does not track and collects no data. How to build
+  it and install it on an iPhone with a free Apple account: [ios/README.md](ios/README.md).
 - **`flowassert-app.js`** (`npm run build:app`): the browser's file profile, worksheet listing, saved-report reader,
   explorer and character diff as one script for the app's engine page. It checks nothing; `flowassert-check.js` is
   unchanged by it.

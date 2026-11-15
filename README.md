@@ -112,6 +112,7 @@ A refused input (exit status 2) or an internal failure (4) has no result at all.
 - [Check in your browser](#check-in-your-browser)
 - [Use in GitHub Actions](#use-in-github-actions)
 - [Use in n8n](#use-in-n8n)
+- [Check on iPhone and iPad](#check-on-iphone-and-ipad)
 - [How verification works](#how-verification-works)
 - [Security model](#security-model)
 - [Known issues](#known-issues)
@@ -478,6 +479,19 @@ and 2.46.4.
 The packaged script is `flowassert-check.js`, built with `cd ui && npm run build:lib` (CI builds it on every run, to
 be attached to each release). It defines one global, `FlowAssert`, with `checkCsv` and `VERSION`, imports nothing and makes no request; other
 JavaScript hosts can call it the same way (see `ui/src/offline/api.ts`).
+
+## Check on iPhone and iPad
+
+The [iPhone and iPad app](ios/README.md), in progress towards 1.2.0 and not yet released, runs the same check: the
+packaged checker, `flowassert-check.js`, inside WebKit on the device, so every golden case gives the command line's
+result byte for byte there. It takes CSV files and Excel workbooks from Files, a Google Sheets source and a HubSpot
+destination (credentials kept in the device's Keychain), and shows the result, its records and the records to resend,
+with the JSON and HTML reports to share. Files and reports stay on the device; the only requests are the reads of a
+sheet or of HubSpot that the person starts. It is built from source with Xcode for now: it is not on the App Store.
+
+| iPhone | iPad |
+| --- | --- |
+| ![The result of the example check on an iPhone: Mismatch, 4 rows of 4](docs/readme/app-iphone.png) | ![The same result on an iPad, with the tabs at the top](docs/readme/app-ipad.png) |
 
 ## How verification works
 

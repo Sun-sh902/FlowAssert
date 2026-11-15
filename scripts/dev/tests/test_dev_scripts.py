@@ -83,8 +83,8 @@ def vitest_report(optional_present=True):
 
 
 def check(tmp_path, kind, payload):
-    path = tmp_path / ("report.json" if kind == "vitest" else "junit.xml")
-    path.write_text(json.dumps(payload) if kind == "vitest" else payload)
+    path = tmp_path / ("report.json" if kind in ("vitest", "ios") else "junit.xml")
+    path.write_text(json.dumps(payload) if kind in ("vitest", "ios") else payload)
     r = subprocess.run([sys.executable, "-I", "-B", str(ROOT / "scripts/dev/check_test_inventory.py"), kind, str(path)], capture_output=True, text=True)
     return r.returncode, r.stdout
 
@@ -150,6 +150,42 @@ def test_pytest_inventory_counts_and_custody_separation(tmp_path):
     custody = '<testcase classname="tests.test_service" name="test_protected_repository_integrity"/>'
     rc, out = check(tmp_path, "pytest", junit(n - 1, custody))
     assert rc == 1 and "custody test ran inside the portable gate" in out
+
+
+# ---------- check_test_inventory.py ios (1.2.0) ----------
+
+def xcresult(devices=("iPhone 18 Pro", "iPad Pro 11-inch (M5)"), optional="Skipped"):
+    """`xcrun xcresulttool get test-results tests` for a run of every inventoried test on each device."""
+    inv = INVENTORY["ios"]
+    suites = {}
+    for test, result in [(t, "Passed") for t in inv["required"]] + [(t, optional) for t in inv["optional"]]:
+        suite, name = test.split("/")
+        suites.setdefault(suite, []).append({"nodeType": "Test Case", "name": name + "()", "result": result,
+                                             "children": [{"nodeType": "Device", "name": d, "result": result} for d in devices]})
+    bundle = {"nodeType": "Unit test bundle", "name": "FlowAssertTests",
+              "children": [{"nodeType": "Test Suite", "name": s, "children": c} for s, c in suites.items()]}
+    return {"devices": [{"deviceName": d} for d in devices], "testNodes": [{"nodeType": "Test Plan", "name": "FlowAssert", "children": [bundle]}]}
+
+
+def test_ios_inventory_accepts_a_run_on_an_iphone_and_an_ipad(tmp_path):
+    rc, out = check(tmp_path, "ios", xcresult())
+    assert rc == 0 and "NOT RUN" in out
+    rc, out = check(tmp_path, "ios", xcresult(optional="Passed"))
+    assert rc == 0 and "RAN" in out and "NOT RUN" not in out
+
+
+def test_ios_inventory_needs_both_devices(tmp_path):
+    rc, out = check(tmp_path, "ios", xcresult(devices=("iPhone 18 Pro",)))
+    assert rc == 1 and "no iPad simulator" in out
+
+
+def test_ios_inventory_fails_a_skipped_required_test_and_an_unlisted_one(tmp_path):
+    results = xcresult()
+    suite = results["testNodes"][0]["children"][0]["children"][0]
+    suite["children"][0]["children"][1]["result"] = "Skipped"
+    suite["children"].append({"nodeType": "Test Case", "name": "testNew()", "children": [{"nodeType": "Device", "name": "iPhone 18 Pro", "result": "Passed"}]})
+    rc, out = check(tmp_path, "ios", results)
+    assert rc == 1 and "required test Skipped" in out and "not in scripts/dev/test-inventory.json" in out
 
 
 # ---------- check_test_inventory.py playwright (FIX02) ----------

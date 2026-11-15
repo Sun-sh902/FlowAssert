@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  FlowAssert does not track and collects no data: files, reports and credentials stay on the device. The app sends a
+  request only when the person starts a read of a Google Sheets range (sheets.googleapis.com, www.googleapis.com) or of
+  HubSpot contacts (api.hubapi.com), to that service and to no other host. It uses no API that needs a declared reason
+  in a Release build (the UI tests' launch arguments, read from UserDefaults, are compiled only into Debug builds).
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>

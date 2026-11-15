@@ -74,4 +74,16 @@ final class AppFilesTests: XCTestCase {
             XCTAssertNil(chinese.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)), file.lastPathComponent)
         }
     }
+
+    /// The privacy manifest the app is built with: no tracking, no tracking domains, no data collected, and no API that
+    /// needs a declared reason.
+    func testThePrivacyManifestSaysNoTrackingAndNoDataCollected() throws {
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "PrivacyInfo", withExtension: "xcprivacy"), "PrivacyInfo.xcprivacy is in the app")
+        let manifest = try XCTUnwrap(try PropertyListSerialization.propertyList(from: Data(contentsOf: url), format: nil) as? [String: Any])
+        XCTAssertEqual(manifest["NSPrivacyTracking"] as? Bool, false)
+        for key in ["NSPrivacyTrackingDomains", "NSPrivacyCollectedDataTypes", "NSPrivacyAccessedAPITypes"] {
+            XCTAssertEqual((manifest[key] as? [Any])?.count, 0, key)
+        }
+        XCTAssertEqual(Set(manifest.keys), ["NSPrivacyTracking", "NSPrivacyTrackingDomains", "NSPrivacyCollectedDataTypes", "NSPrivacyAccessedAPITypes"])
+    }
 }

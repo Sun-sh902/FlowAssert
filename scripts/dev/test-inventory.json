@@ -1873,5 +1873,54 @@
   "files": {
    "integrations/n8n-nodes-flowassert/test/node.test.mjs": 70
   }
+ },
+ "ios": {
+  "about": "The iPhone and iPad app (1.2.0): XCTest and XCUITest, run with xcodebuild on an iPhone and an iPad simulator, read from the result bundle with `xcrun xcresulttool get test-results tests`. Every required test must pass on each device; an optional test passes or is skipped, and is reported RAN or NOT RUN.",
+  "required": [
+   "AppFilesTests/testAKeptReportIsKeptAsItsBytesAndReopenedByTheReader",
+   "AppFilesTests/testSharedAndSavedFilesAreTheCheckersBytes",
+   "AppFilesTests/testTheAppsTextIsEnglishOnly",
+   "AppFilesTests/testTheExampleFilesAreTheCommandLinesFirstExample",
+   "AppFilesTests/testThePrivacyManifestSaysNoTrackingAndNoDataCollected",
+   "ConnectorFlowTests/testACredentialIsRefusedInTheCommandLinesWordsOrKeptAndNeverShownAgain",
+   "ConnectorFlowTests/testTheFormTakesASheetRangeAndHubSpotWithTypedColumns",
+   "ConnectorTransportTests/testABodyLargerThanTheLimitIsNotReadToTheEnd",
+   "ConnectorTransportTests/testARedirectIsAnsweredNotFollowed",
+   "ConnectorTransportTests/testATokenGoesOnlyIntoTheAuthorizationHeader",
+   "ConnectorTransportTests/testAnApiKeyIsTheLastQueryParameterPercentEncodedAndNoHeader",
+   "ConnectorTransportTests/testNoCompleteResponseWithinTheTimeoutIsATimeout",
+   "ConnectorTransportTests/testOnlyTheDocumentedHostsAreAskedAndOnlyWithASavedCredential",
+   "ConnectorTransportTests/testQuoteIsPythonsQuote",
+   "CredentialStoreTests/testACredentialOfAnotherFormIsRefusedInTheCommandLinesWords",
+   "CredentialStoreTests/testAKeptCredentialIsOnlyTheKeychainsAndTheCheckerIsToldOnlyThatItIsSet",
+   "CredentialStoreTests/testGoogleSheetsKeepsOneKindOfCredentialAtATime",
+   "EngineHostTests/testAnUnknownInputIsNotServed",
+   "EngineHostTests/testTheAppsOriginIsRecordedOnEveryPremise",
+   "EngineHostTests/testTheCheckerFindsEverythingItNeedsInThisWebKit",
+   "EngineHostTests/testThePageReachesNothingRemote",
+   "EngineHostTests/testThePageReadsItsOwnBlobs",
+   "EngineParityTests/testEveryCaseGivesWhatTheCommandLineAndNodeGive",
+   "EngineReaderTests/testAReportIsOpenedWithTheSavedReportReaderAndAnythingElseIsRefused",
+   "EngineReaderTests/testAWorkbooksSheetsAreListedBeforeAnyIsRead",
+   "EngineReaderTests/testTheConfigurationIsWrittenAsTheCsvCheckPageWritesIt",
+   "EngineReaderTests/testTheDiffDrawsInvisibleCharactersAsTokens",
+   "EngineReaderTests/testTheProfileOfACsvFileAndOfAFileACheckWouldRefuse",
+   "EngineReaderTests/testTheResultOfACheckIsReadFromItsReport",
+   "FlowTests/testAFileOpenedFromAnotherAppAsksWhichSideItIs",
+   "FlowTests/testAFileThatIsNotAReportIsRefusedAndNothingIsKept",
+   "FlowTests/testARefusalShowsTheCheckersMessageAndNoResult",
+   "FlowTests/testAReportOpenedFromAnotherAppIsReadAndKept",
+   "FlowTests/testAWorkbookWithSeveralSheetsIsReadOnlyAfterAWorksheetIsChosen",
+   "FlowTests/testTheExampleCheckShowsTheReportsVerdictRecordsAndValues"
+  ],
+  "optional": {
+   "ConnectorEndToEndTests/testASheetAgainstHubSpotGivesTheCommandLinesResultAndTheCredentialsStayInTheKeychain": "needs the local fakes: ios/scripts/test-connectors.sh",
+   "ConnectorFormEndToEndTests/testACheckFromTheFormAgainstTheLocalFakes": "needs the local fakes: ios/scripts/test-connectors.sh",
+   "EngineParityTests/testLargeInputs": "needs the large cases: node ios/scripts/engine-cases.mjs --large",
+   "LayoutMeasureTests/testMeasureEveryScreen": "a measurement: ios/scripts/measure-layout.sh",
+   "PerformanceTests/testLaunch": "a measurement: ios/scripts/measure-performance.sh",
+   "PerformanceTests/testOpeningA50MBWorkbook": "a measurement: ios/scripts/measure-performance.sh",
+   "PerformanceTests/testScrollingA100000RecordList": "a measurement: ios/scripts/measure-performance.sh"
+  }
  }
 }
