@@ -202,7 +202,7 @@ Comparison is exact unless you choose otherwise. When a destination reformats va
 | `trim` | After removing leading and trailing whitespace |
 | `casefold` | Ignoring letter case |
 | `digits` | Only the digits 0–9, so `+1 (212) 555-0101` equals `12125550101`. A value without digits is `Unverified` |
-| `date:FORMAT` | Both values read as dates with a Python `strptime` format. With `%z`, values are compared as instants in UTC. `2026-1-2` matches `2026-01-02` under `%Y-%m-%d`. A value that does not match the format is `Unverified` |
+| `date:FORMAT` | Both values read as dates with a Python `strptime` format. With `%z`, values are compared as instants in UTC, and a value without an offset is `Unverified`; a format with `%Z` (a zone name) is refused. `2026-1-2` matches `2026-01-02` under `%Y-%m-%d`. A value that does not match the format is `Unverified` |
 
 Choose a rule only when you know the difference does not matter: `digits` treats `555-0101` and `5550101` as the same phone, and `casefold` treats `Ada` and `ADA` as the same name. The report records each rule with the raw and the compared values. A configuration file cannot contain `--source-complete`, `--destination-complete` or the counts; you state those at each run. It cannot be combined with `--mapping`, `--key`, `--field` or `--scope`.
 

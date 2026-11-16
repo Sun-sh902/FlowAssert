@@ -103,10 +103,13 @@ describe("the records to resend, as the command line writes them", () => {
 
   test.skipIf(skip).each(skip ? ["(skipped)"] : cases)("%s", async (name) => {
     const folder = folderOf(name);
-    const c = JSON.parse(readFileSync(join(folder, "case.json"), "utf-8")) as { args: string[] };
+    const c = JSON.parse(readFileSync(join(folder, "case.json"), "utf-8")) as { args: string[]; command_line_only?: string };
     const outcome = await check({ ...parseArgs(c.args, folder), now: () => "2000-01-01T00:00:00Z", exportDir: EXPORT });
     const files = outcome.exit === 2 ? null : Object.fromEntries((outcome.exports?.files ?? []).map((f) => [f.file, hex(f.text)]).sort(([a], [b]) => compareCodePoints(a!, b!)));
-    expect({ exit: outcome.exit, stdout: outcome.stdout, stderr: outcome.stderr, files }).toEqual(python[name]);
+    // A case the browser refuses in its own words (golden.test.ts): both refuse and write nothing.
+    const stderr = c.command_line_only ? python[name]!.stderr : outcome.stderr;
+    if (c.command_line_only) expect(outcome.stderr).toMatch(/^refused: /);
+    expect({ exit: outcome.exit, stdout: outcome.stdout, stderr, files }).toEqual(python[name]);
   });
 });
 

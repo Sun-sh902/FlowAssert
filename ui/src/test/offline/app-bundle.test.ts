@@ -59,7 +59,7 @@ describe("the app's readers", () => {
   });
 
   test("the reports are found", () => {
-    expect(reports.length).toBe(93);
+    expect(reports.length).toBe(94);
   });
 
   test.each(reports)("%s is opened as the report it is, and its records are listed in its order", (path) => {

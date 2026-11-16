@@ -146,7 +146,7 @@ With `--details problems`, the default, a Verified record has only `key`, `sourc
 | `expected_normalized` | The source value as the rule compared it, or `null` when there was nothing to compare, such as a date that does not parse |
 | `actual_normalized` | The same for the destination value |
 
-A record is a Mismatch if any result fails, Verified if every result passes, and Unverified otherwise. An empty value is `unknown` under every rule. For `digits`, a value without the digits 0–9 is `unknown`; for `date:FORMAT`, a value that does not parse is `unknown`, and a value with a UTC offset is normalized to UTC. A date is normalized as ISO 8601, such as `2026-01-02T00:00:00`.
+A record is a Mismatch if any result fails, Verified if every result passes, and Unverified otherwise. An empty value is `unknown` under every rule. For `digits`, a value without the digits 0–9 is `unknown`; for `date:FORMAT`, a value that does not parse is `unknown`, and so is a value without the offset `%z` asks for, and a value with a UTC offset is normalized to UTC. A date is normalized as ISO 8601, such as `2026-01-02T00:00:00`.
 
 ## Destination-only records
 

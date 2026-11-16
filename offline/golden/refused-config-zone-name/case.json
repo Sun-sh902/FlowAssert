@@ -1,0 +1,14 @@
+{
+  "name": "refused-config-zone-name",
+  "args": [
+    "--source",
+    "source.csv",
+    "--destination",
+    "destination.csv",
+    "--config",
+    "config.json",
+    "--source-complete",
+    "--destination-complete"
+  ],
+  "command_line_only": "the browser check refuses %Z as a directive it does not support"
+}

@@ -109,6 +109,8 @@ A claim of conformance names the class, the FlowAssert version whose cases were 
   with `--bytes --html --connectors`.
 - **The browser check** runs every golden case in Vitest (`ui/src/test/offline/golden.test.ts`) byte for byte, every
   conformance case (`conformance.test.ts`), and 300 random cases against the command line (`random-parity.test.ts`).
+  A golden case whose `case.json` has `command_line_only` is refused by the browser in its own words, so only that it
+  refuses is checked: `refused-config-zone-name`, a format with `%Z`.
 - **The packaged JavaScript checker** runs every golden case the page can run, from the built file, in a context
   without `crypto` (`bundle.test.ts`).
 

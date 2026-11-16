@@ -76,6 +76,10 @@ A 1.x release may add:
 
 A rule, a scope, a record state or a rule status is not added in 1.x: a reader depends on the full set.
 
+**Corrections.** A verdict that the evidence does not establish is a defect, and a 1.x release may correct it even
+though the verdict changes; the changelog says so, and names who is affected. 1.2.1 corrects one: under a `%z` date
+format, a value without an offset is `unknown`, where Python 3.15 and the JavaScript checks gave a Mismatch.
+
 ## Deprecation
 
 Nothing listed under [What is stable](#what-is-stable) is removed in 1.x.
@@ -109,5 +113,5 @@ The web UI's saved-report pages follow these rules ([Comparing two reports](repo
 ## What would need 2.0
 
 Removing or renaming an option; changing a default or an exit status; changing the wording of a refusal or of a
-summary line; a rule, a scope or a state added or removed; a change to what a verdict is for the same input. None of
-these is planned.
+summary line; a rule, a scope or a state added or removed; a change to what a verdict is for the same input, other
+than a [correction](#how-additions-are-made). None of these is planned.

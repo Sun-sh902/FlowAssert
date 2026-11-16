@@ -1,5 +1,6 @@
 """Evaluator v2 and the offline CSV check. v1 fixtures are the semantic reference."""
 import codecs
+from datetime import datetime
 import gc
 import hashlib
 import html
@@ -1164,6 +1165,108 @@ def test_an_unknown_or_malformed_rule_is_refused(rule, message):
         evaluator_v2.parse_rule(rule)
     with pytest.raises(ValueError):
         evaluator_v2.evaluate({'key': ('key', 'key'), 'fields': [('phone', 'phone', rule)]}, [ROW], [ROW])
+
+
+# --- 1.2.1: %Z reads a zone name without its offset (R-01) ---------------------------------------
+
+def z_refusal(fmt):
+    return f"date format {fmt!r} uses %Z, which reads a time zone name without its offset; use %z"
+
+
+@pytest.mark.parametrize('fmt', ['%Y-%m-%d %H:%M %Z', '%Z %Y', '%Y%Z', '%Y %%%Z', '%Y %Z %Z', '%d %Z',
+                                 '%Y-%m-%d %H:%M %z %Z'])
+def test_a_date_format_with_Z_is_refused(fmt):
+    # The refusal comes before strptime is asked: '%d %Z' (no year) and '%Y %Z %Z' get it too, on every Python.
+    with pytest.raises(ValueError) as caught:
+        evaluator_v2.parse_rule('date:' + fmt)
+    assert str(caught.value) == z_refusal(fmt)
+
+
+@pytest.mark.parametrize('fmt', ['%Y %%Z', '%%Z %Y', '%Y-%m-%d %H:%M %z', '%Y %%%%Z'])
+def test_a_literal_Z_after_a_percent_sign_is_not_the_directive(fmt):
+    assert evaluator_v2.parse_rule('date:' + fmt) == 'date:' + fmt
+
+
+def test_a_literal_Z_is_compared_as_text():
+    result, cohort = rule_result('date:%Y %%Z', '2026 %Z', '2026 %Z')
+    assert result['status'] == 'pass' and cohort == 'Verified'
+
+
+def test_a_configuration_with_Z_is_refused_before_any_file_is_read(tmp_path, capsys):
+    path = config_file(tmp_path, config_fields(dict(FIELD, rule='date:%Y-%m-%d %H:%M %Z')))
+    code = verify.main(['--source', str(tmp_path / 'absent-source.csv'),
+                        '--destination', str(tmp_path / 'absent-destination.csv'), '--config', path])
+    printed = capsys.readouterr()
+    assert code == 2 and printed.out == ''
+    assert printed.err == f"refused: {path}: field 'p': {z_refusal('%Y-%m-%d %H:%M %Z')}\n"
+
+
+@pytest.mark.parametrize('tz', ['America/New_York', 'UTC'])
+def test_Z_is_refused_whatever_the_host_time_zone(tmp_path, tz):
+    # 10:00 EST is 15:00 UTC. Before 1.2.1, a host in New York read both values as 10:00 and gave Verified.
+    write(tmp_path / 's.csv', 'id,at\nK1,2026-01-05 10:00 EST\n')
+    write(tmp_path / 'd.csv', 'id,at\nK1,2026-01-05 10:00 UTC\n')
+    config_file(tmp_path, {'key': ['id', 'id'], 'fields': [
+        {'source': 'at', 'destination': 'at', 'rule': 'date:%Y-%m-%d %H:%M %Z'}]})
+    result = subprocess.run([sys.executable, str(ROOT / 'offline/verify.py'), '--source', 's.csv',
+                             '--destination', 'd.csv', '--config', 'config.json', '--source-complete',
+                             '--destination-complete', '--json', 'report.json'],
+                            cwd=str(tmp_path), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            env={**os.environ, 'TZ': tz, 'PYTHONIOENCODING': 'utf-8'})
+    assert (result.returncode, result.stdout) == (2, b'')
+    assert result.stderr.decode('utf-8') == f"refused: config.json: field 'at': {z_refusal('%Y-%m-%d %H:%M %Z')}\n"
+    assert not (tmp_path / 'report.json').exists()
+
+
+# --- 1.2.1: a value without the offset %z asks for (R-02) -----------------------------------------
+
+@pytest.mark.parametrize('rule,expected,actual,normalized', [
+    # Python 3.15 parses the first value without an offset; 3.9 to 3.14 do not parse it. It is unknown on each.
+    ('date:%Y-%m-%d %H:%M%z', '2026-01-05 10:00', '2026-01-05 10:00Z', (None, '2026-01-05T10:00:00+00:00')),
+    ('date:%Y-%m-%d %H:%M%z', '2026-01-05 10:00+0100', '2026-01-05 09:00', ('2026-01-05T09:00:00+00:00', None)),
+    ('date:%Y-%m-%d %H:%M%z', '2026-01-05 10:00', '2026-01-05 10:00', (None, None)),
+    ('date:%Y-%m-%d %H:%M %z', '2026-01-05 10:00 ', '2026-01-05 10:00 +0000', (None, '2026-01-05T10:00:00+00:00')),
+    ('date:%Y%m%d%z', '20260105', '20260105', (None, None)),
+])
+def test_a_value_without_the_offset_z_asks_for_is_unknown(rule, expected, actual, normalized):
+    result, cohort = rule_result(rule, expected, actual)
+    assert (result['status'], cohort) == ('unknown', 'Unverified')
+    assert result['reason'] == f"value does not match date format {rule[5:]!r}"
+    assert (result['expected_normalized'], result['actual_normalized']) == normalized
+
+
+def test_a_value_without_the_offset_colon_z_asks_for_is_unknown():
+    try:
+        datetime.strptime('+00:00', '%:z')
+    except ValueError:
+        # strptime knows %:z from Python 3.15 (3.14.7 and 3.14.10 do not); where it does not, the format is malformed.
+        with pytest.raises(ValueError, match='malformed date format'):
+            evaluator_v2.parse_rule('date:%Y-%m-%d %H:%M%:z')
+        return
+    result, _ = rule_result('date:%Y-%m-%d %H:%M%:z', '2026-01-05 10:00', '2026-01-05 10:00+00:00')
+    assert (result['status'], result['expected_normalized']) == ('unknown', None)
+
+
+@pytest.mark.parametrize('expected,actual,status', [
+    ('2026-01-05 18:00+08:00', '2026-01-05 10:00Z', 'pass'), ('2026-01-05 10:00-0100', '2026-01-05 10:00Z', 'fail'),
+])
+def test_values_with_an_offset_are_still_compared_as_instants(expected, actual, status):
+    result, _ = rule_result('date:%Y-%m-%d %H:%M%z', expected, actual)
+    assert result['status'] == status
+
+
+def test_a_literal_z_after_a_percent_sign_asks_for_no_offset():
+    result, _ = rule_result('date:%Y %%z', '2026 %z', '2026 %z')
+    assert (result['status'], result['expected_normalized']) == ('pass', '2026-01-01T00:00:00')
+
+
+def test_a_value_without_an_offset_gives_unverified_not_mismatch(tmp_path, capsys):
+    path = config_file(tmp_path, {'key': ['k', 'k'], 'fields': [
+        {'source': 't', 'destination': 't', 'rule': 'date:%Y-%m-%d %H:%M%z'}]})
+    code, out, _, report = check(tmp_path, capsys, 'k,t\nK1,2026-01-05 10:00\n', 'k,t\nK1,2026-01-05 10:00Z\n',
+                                 '--config', path, '--source-complete', '--destination-complete')
+    assert code == 3 and out.startswith('Unverified: 1 rows of 1')
+    assert report['cohort_state'] == 'Unverified' and report['claim'] is None
 
 
 def test_redaction_removes_normalized_values_from_records():

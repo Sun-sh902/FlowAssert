@@ -364,8 +364,8 @@ Differences from the command line:
 
 | | Browser | Command line |
 | --- | --- | --- |
-| Date formats | `%Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%` only; any other directive is refused as not supported in the browser | Every `strptime` directive |
-| Python version differences | Follows Python 3.15: `%d` needs a year directive, `%z` may be absent from a value | Depends on the Python running it |
+| Date formats | `%Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%` only; any other directive is refused as not supported in the browser | Every `strptime` directive except `%Z`, which both refuse: it reads a zone name without its offset |
+| Python version differences | Follows Python 3.15: `%d` needs a year directive. A value without the offset `%z` asks for is `unknown`, as on every Python | Depends on the Python running it |
 | Selection | Always a configuration: the report records `config_file_sha256`, `obligation.rules`, `obligation.scope` and both encodings | `--key`/`--field`, `--mapping` or `--config` |
 | Options | Default limits (200 MiB, 1,000,000 rows), `--details problems`, no redaction | Every option |
 | The same file twice | Refused when both choices have the same name, size, modification time and bytes; the browser does not reveal paths | Refused when the paths resolve to the same file |

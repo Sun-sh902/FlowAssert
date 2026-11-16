@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.2.1 (unreleased)
+
+Two corrections to the `date:FORMAT` rule, from the code review of 2026-11-13. No existing golden, conformance or
+comparison file changed: their cases use only formats that parse the same on every Python. New cases:
+`golden/refused-config-zone-name`, `golden/date-offset-absent-unknown` and `conformance/rule-date-offset-absent-unknown`.
+
+### Fixed
+
+- **A date format with `%Z` is refused on the command line and in the Action** (R-01), before any file is read, with
+  exit status 2 and `date format 'FORMAT' uses %Z, which reads a time zone name without its offset; use %z`. Python's
+  `strptime` reads `%Z` as a name and gives no offset, so `10:00 EST` and `10:00 UTC` were compared as the same time,
+  and which names it read depended on the host's time zone: on a host in New York such a check gave Verified, with the
+  claim, for values five hours apart; on a host in UTC, Unverified. The input was wrongly accepted, so this is a
+  correction refusal in the sense of [Compatibility in 1.x](docs/compatibility.md#how-additions-are-made). Affected:
+  a configuration whose date format has `%Z`; write the values with an offset and use `%z`. `%%Z` is a literal and is
+  not refused. The browser check, the packaged checker, the n8n node and the app refused `%Z` already, and keep their
+  message.
+- **Under a `%z` format, a value without an offset is `unknown`** (R-02), with the reason
+  `value does not match date format 'FORMAT'`, so its record and the batch are Unverified (exit status 3). Python 3.15,
+  the browser check, the packaged checker, the n8n node and the app parsed such a value as a time without an offset and
+  called it different from one with an offset: a **Mismatch** (exit status 1) that nothing showed. Python 3.9 to 3.14
+  do not parse such a value, so their result was already Unverified, and every implementation now agrees. This changes
+  a verdict, Mismatch to Unverified, on Python 3.15 and in the JavaScript checks, which
+  [Compatibility in 1.x](docs/compatibility.md#what-would-need-20) lists among the changes that need 2.0; it is made in
+  1.2.1 as the correction of a Mismatch given without enough evidence, and that exception is now written there.
+  Affected: a check with a `%z` (or `%:z`) format whose values do not all have an offset, run on Python 3.15 or in
+  JavaScript. A value with an offset is compared as an instant in UTC, as before.
+
 ## 1.2.0 (2026-11-15)
 
 An app for iPhone and iPad that runs the same check as the command line, on the device, with files, a Google Sheets

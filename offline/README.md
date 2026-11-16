@@ -90,7 +90,7 @@ Comparison is exact by default: spaces, case and phone formats count as differen
 | `trim` | After removing leading and trailing whitespace |
 | `casefold` | After Unicode case folding |
 | `digits` | Only the digits 0–9. A value without any is Unverified, not a match |
-| `date:FORMAT` | Both values parsed with Python's `datetime.strptime` and `FORMAT`, then compared. A value with a UTC offset (`%z`) is compared as an instant in UTC. Parsing is lenient about leading zeros, so `2026-1-2` matches `2026-01-02` under `%Y-%m-%d`. A value that does not parse is Unverified, not a Mismatch |
+| `date:FORMAT` | Both values parsed with Python's `datetime.strptime` and `FORMAT`, then compared. A value with a UTC offset (`%z`) is compared as an instant in UTC, and with `%z` a value without an offset is Unverified. A format with `%Z` is refused: it reads a zone name without its offset. Parsing is lenient about leading zeros, so `2026-1-2` matches `2026-01-02` under `%Y-%m-%d`. A value that does not parse is Unverified, not a Mismatch |
 
 Rules are never inferred. An empty value is Unverified under every rule. For a rule other than `exact`, the report records the rule, both raw values and both normalized values. The configuration file cannot state completeness or counts, so they are chosen at each run. It is refused if it has any other member, a duplicate member, an unknown rule, a malformed date format or a repeated source field. Its SHA-256 is recorded in `inputs`.
 
