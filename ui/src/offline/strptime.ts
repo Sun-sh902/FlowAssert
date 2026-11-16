@@ -8,7 +8,8 @@
  * literal matching spelled out as character classes, then reads the groups in format order as _strptime does.
  *
  * Known differences between Python versions, followed here as 3.15 behaves: %d needs a year directive (3.15 refuses the
- * format); %z may be absent from the value (3.14+); ' also matches U+02BC. A format that repeats a directive cannot
+ * format); %z may be absent from the value (3.15 accepts such a value, 3.14.7 and earlier reject it, and the date rule
+ * gives it no value on either: see normalizeDate); ' also matches U+02BC. A format that repeats a directive cannot
  * compile in Python, and parse_rule refuses it; so does this module, with the same message.
  */
 import { caseGroup, decimalValue, pyRepr, pyStrip } from "./pystr";
@@ -208,8 +209,9 @@ const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
 /**
  * datetime.strptime(value, format), then astimezone(timezone.utc) when it has an offset, then isoformat(): the value
- * the date rule compares. Throws PyValueError when Python raises ValueError, and also when the conversion to UTC
- * leaves the years 1–9999, where Python raises OverflowError and _normalize gives no value either way.
+ * the date rule compares. Throws PyValueError when Python raises ValueError, and also where _normalize gives no value
+ * although Python parses: when the conversion to UTC leaves the years 1–9999 (Python raises OverflowError), and when
+ * the format has %z and the value has no offset (1.2.1: such a value is not an instant).
  */
 export function normalizeDate(value: string, format: DateFormat | string): string {
   const f = typeof format === "string" ? compileFormat(format) : format;
@@ -324,7 +326,10 @@ export function normalizeDate(value: string, format: DateFormat | string): strin
   if (second > 59) throw new PyValueError("second must be in 0..59");
   const iso = (y: number, mo: number, d: number, h: number, mi: number, sec: number, us: number) =>
     `${pad(y, 4)}-${pad(mo, 2)}-${pad(d, 2)}T${pad(h, 2)}:${pad(mi, 2)}:${pad(sec, 2)}${us ? "." + pad(us, 6) : ""}`;
-  if (gmtoff === null) return iso(year, month, day, hour, minute, second, fraction);
+  if (gmtoff === null) {
+    if (f.order.includes("z")) throw new PyValueError(`time data ${pyRepr(value)} has no UTC offset for %z`);
+    return iso(year, month, day, hour, minute, second, fraction);
+  }
   // timezone(timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)) must be strictly within one day.
   const offset = BigInt(gmtoff) * 1_000_000n + BigInt(gmtoffFraction);
   const oneDay = 86_400_000_000n;

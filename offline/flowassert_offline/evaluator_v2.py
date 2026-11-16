@@ -24,8 +24,9 @@ Each field has one comparison rule, chosen by the caller and never inferred:
   digits       only the digits 0-9; no digits is unknown, not a match
   date:FORMAT  both parsed with datetime.strptime; a value that does not parse is unknown.
                A value with a UTC offset is compared as an instant, in UTC; an instant
-               outside the years 1-9999 in UTC is unknown too. A format with %Z is refused:
-               strptime reads a zone name without its offset
+               outside the years 1-9999 in UTC is unknown too, and so is a value without the
+               offset %z asks for. A format with %Z is refused: strptime reads a zone name
+               without its offset
 An empty value is unknown under every rule.
 
 The obligation's scope is "source" (each source record is checked) or "exact"
@@ -51,6 +52,8 @@ DETAILS = ("problems", "all")
 _STATE_CODE = {name: code for code, name in enumerate(STATES)}
 _EMPTY = "empty value; a missing value is not assumed to be a difference"
 _DATE_SAMPLE = datetime(2001, 2, 3, 4, 5, 6, 7000, tzinfo=timezone.utc)
+# The directives that read a UTC offset.
+_OFFSET = frozenset(("z", ":z"))
 # How Python 3.15's TimeRE.pattern finds a directive, after the substitutions it makes first.
 _DIRECTIVE = re.compile(r"%[-_0^#]*[0-9]*([OE]?[:\\]?.?)")
 
@@ -116,11 +119,15 @@ def _normalize(rule, value):
         parsed = datetime.strptime(value, rule[5:])
     except ValueError:
         return None
-    if parsed.tzinfo is not None:
-        try:
-            parsed = parsed.astimezone(timezone.utc)
-        except OverflowError:
-            return None  # the instant is outside the years 1-9999 in UTC
+    if parsed.tzinfo is None:
+        if _directives(rule[5:]) & _OFFSET:
+            # Python 3.15 parses a value without the offset the format asks for; it is not an instant.
+            return None
+        return parsed.isoformat()
+    try:
+        parsed = parsed.astimezone(timezone.utc)
+    except OverflowError:
+        return None  # the instant is outside the years 1-9999 in UTC
     return parsed.isoformat()
 
 

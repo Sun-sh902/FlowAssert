@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "acquisition_authenticity": "not_authenticated",
+  "business_truth": "Not assessed",
+  "claim": null,
+  "cohort_state": "Unverified",
+  "counts": {
+    "Mismatch": 0,
+    "Pending": 0,
+    "Unverified": 2,
+    "Verified": 1
+  },
+  "destination_coverage_sufficient": true,
+  "destination_rows_without_key": 0,
+  "details": "problems",
+  "evaluated_at": "2000-01-01T00:00:00Z",
+  "evaluator": "v2-current-state-1",
+  "existed_by_deadline": "Not assessed",
+  "expected_total": 3,
+  "inputs": {
+    "config_file_sha256": "4149c75c88787ac143b8634ee1a9fa17e1348bf47991e0253b3d6693a5a924e3",
+    "destination_complete_stated": true,
+    "destination_encoding": "utf-8",
+    "destination_sha256": "dc8ec165ebb92d1afd9918479663489ea5156da3854c7b059c933f4553b3a50b",
+    "identical_content": false,
+    "source_complete_stated": true,
+    "source_encoding": "utf-8",
+    "source_sha256": "c3988dbd53e810f17ad82da2d6892079cd907a3047cffa1f402aff28572413c4"
+  },
+  "limitations": "Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.",
+  "obligation": {
+    "comparison": "per-field-rule",
+    "fields": [
+      [
+        "t",
+        "t"
+      ]
+    ],
+    "key": [
+      "k",
+      "k"
+    ],
+    "rules": [
+      "date:%Y-%m-%d %H:%M%z"
+    ],
+    "scope": "source",
+    "type": "current_state"
+  },
+  "premises": {
+    "destination_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "destination_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    },
+    "source_complete": {
+      "origin": "command-line option",
+      "stated": true
+    },
+    "source_count": {
+      "matched": null,
+      "observed": 3,
+      "origin": "command-line option",
+      "stated": null
+    }
+  },
+  "records": [
+    {
+      "candidates": 1,
+      "key": "K1",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:t": {
+          "actual": "2026-01-05 10:00Z",
+          "actual_normalized": "2026-01-05T10:00:00+00:00",
+          "expected": "2026-01-05 10:00",
+          "expected_normalized": null,
+          "reason": "value does not match date format '%Y-%m-%d %H:%M%z'",
+          "rule": "date:%Y-%m-%d %H:%M%z",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 0,
+      "state": "Unverified"
+    },
+    {
+      "candidates": 1,
+      "key": "K2",
+      "rules": {
+        "existence": {
+          "reason": "candidate observed",
+          "status": "pass"
+        },
+        "field:t": {
+          "actual": "2026-01-05 10:00",
+          "actual_normalized": null,
+          "expected": "2026-01-05 10:00",
+          "expected_normalized": null,
+          "reason": "value does not match date format '%Y-%m-%d %H:%M%z'",
+          "rule": "date:%Y-%m-%d %H:%M%z",
+          "status": "unknown"
+        },
+        "uniqueness": {
+          "reason": "one row in stated complete destination",
+          "status": "pass"
+        }
+      },
+      "source_row": 1,
+      "state": "Unverified"
+    },
+    {
+      "key": "K3",
+      "source_row": 2,
+      "state": "Verified"
+    }
+  ],
+  "source_population_known": true,
+  "source_rows_observed": 3,
+  "workflow_execution": "Not assessed"
+}

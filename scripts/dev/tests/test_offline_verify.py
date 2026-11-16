@@ -1217,6 +1217,55 @@ def test_Z_is_refused_whatever_the_host_time_zone(tmp_path, tz):
     assert not (tmp_path / 'report.json').exists()
 
 
+# --- 1.2.1: a value without the offset %z asks for (R-02) -----------------------------------------
+
+@pytest.mark.parametrize('rule,expected,actual,normalized', [
+    # Python 3.15 parses the first value without an offset; 3.9 to 3.14 do not parse it. It is unknown on each.
+    ('date:%Y-%m-%d %H:%M%z', '2026-01-05 10:00', '2026-01-05 10:00Z', (None, '2026-01-05T10:00:00+00:00')),
+    ('date:%Y-%m-%d %H:%M%z', '2026-01-05 10:00+0100', '2026-01-05 09:00', ('2026-01-05T09:00:00+00:00', None)),
+    ('date:%Y-%m-%d %H:%M%z', '2026-01-05 10:00', '2026-01-05 10:00', (None, None)),
+    ('date:%Y-%m-%d %H:%M %z', '2026-01-05 10:00 ', '2026-01-05 10:00 +0000', (None, '2026-01-05T10:00:00+00:00')),
+    ('date:%Y%m%d%z', '20260105', '20260105', (None, None)),
+])
+def test_a_value_without_the_offset_z_asks_for_is_unknown(rule, expected, actual, normalized):
+    result, cohort = rule_result(rule, expected, actual)
+    assert (result['status'], cohort) == ('unknown', 'Unverified')
+    assert result['reason'] == f"value does not match date format {rule[5:]!r}"
+    assert (result['expected_normalized'], result['actual_normalized']) == normalized
+
+
+def test_a_value_without_the_offset_colon_z_asks_for_is_unknown():
+    if sys.version_info < (3, 12):
+        # %:z is a directive from Python 3.12; before it, the format is malformed.
+        with pytest.raises(ValueError, match='malformed date format'):
+            evaluator_v2.parse_rule('date:%Y-%m-%d %H:%M%:z')
+        return
+    result, _ = rule_result('date:%Y-%m-%d %H:%M%:z', '2026-01-05 10:00', '2026-01-05 10:00+00:00')
+    assert (result['status'], result['expected_normalized']) == ('unknown', None)
+
+
+@pytest.mark.parametrize('expected,actual,status', [
+    ('2026-01-05 18:00+08:00', '2026-01-05 10:00Z', 'pass'), ('2026-01-05 10:00-0100', '2026-01-05 10:00Z', 'fail'),
+])
+def test_values_with_an_offset_are_still_compared_as_instants(expected, actual, status):
+    result, _ = rule_result('date:%Y-%m-%d %H:%M%z', expected, actual)
+    assert result['status'] == status
+
+
+def test_a_literal_z_after_a_percent_sign_asks_for_no_offset():
+    result, _ = rule_result('date:%Y %%z', '2026 %z', '2026 %z')
+    assert (result['status'], result['expected_normalized']) == ('pass', '2026-01-01T00:00:00')
+
+
+def test_a_value_without_an_offset_gives_unverified_not_mismatch(tmp_path, capsys):
+    path = config_file(tmp_path, {'key': ['k', 'k'], 'fields': [
+        {'source': 't', 'destination': 't', 'rule': 'date:%Y-%m-%d %H:%M%z'}]})
+    code, out, _, report = check(tmp_path, capsys, 'k,t\nK1,2026-01-05 10:00\n', 'k,t\nK1,2026-01-05 10:00Z\n',
+                                 '--config', path, '--source-complete', '--destination-complete')
+    assert code == 3 and out.startswith('Unverified: 1 rows of 1')
+    assert report['cohort_state'] == 'Unverified' and report['claim'] is None
+
+
 def test_redaction_removes_normalized_values_from_records():
     obligation = {'key': ('key', 'key'), 'fields': [('phone', 'phone', 'digits')]}
     result = evaluator_v2.evaluate(obligation, [{'key': 'K1', 'phone': '+1 555'}], [{'key': 'K1', 'phone': '1556'}],

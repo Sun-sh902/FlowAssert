@@ -1,0 +1,7 @@
+Unverified: 3 rows of 3
+Verified 1 · Mismatch 0 · Unverified 2
+  record 1 K1: Unverified
+    field:t unknown: value does not match date format '%Y-%m-%d %H:%M%z' ('2026-01-05 10:00' vs '2026-01-05 10:00Z'), compared as (None vs '2026-01-05T10:00:00+00:00')
+  record 2 K2: Unverified
+    field:t unknown: value does not match date format '%Y-%m-%d %H:%M%z' ('2026-01-05 10:00' vs '2026-01-05 10:00'), compared as (None vs None)
+Files and completeness statements are not authenticated. Not assessed: whether a workflow ran, whether the source is true, whether a record existed by a past deadline.

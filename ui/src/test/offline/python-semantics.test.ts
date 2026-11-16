@@ -121,6 +121,21 @@ describe("date rule", () => {
     expect(compare("2026 %Z", "2026 %Z", "date:%Y %%Z").status).toBe("pass");
   });
 
+  test("a value without the offset %z asks for has nothing to compare, as on every Python since 1.2.1 (R-02)", () => {
+    const rule = "date:%Y-%m-%d %H:%M%z";
+    const reason = "value does not match date format '%Y-%m-%d %H:%M%z'";
+    expect(compare("2026-01-05 10:00", "2026-01-05 10:00Z", rule)).toEqual({
+      status: "unknown", reason, rule, expected: "2026-01-05 10:00", actual: "2026-01-05 10:00Z",
+      expected_normalized: null, actual_normalized: "2026-01-05T10:00:00+00:00",
+    });
+    expect(compare("2026-01-05 10:00", "2026-01-05 10:00", rule)).toMatchObject({ status: "unknown", reason, expected_normalized: null, actual_normalized: null });
+    expect(compare("2026-01-05 10:00 ", "2026-01-05 10:00 +0000", "date:%Y-%m-%d %H:%M %z").status).toBe("unknown");
+    expect(() => normalizeDate("20260105", "%Y%m%d%z")).toThrow(PyValueError);
+    expect(compare("2026-01-05 18:00+08:00", "2026-01-05 10:00Z", rule).status).toBe("pass");
+    expect(compare("2026-01-05 10:00-0100", "2026-01-05 10:00Z", rule).status).toBe("fail");
+    expect(compare("2026 %z", "2026 %z", "date:%Y %%z")).toMatchObject({ status: "pass", expected_normalized: "2026-01-01T00:00:00" });
+  });
+
   test("a repeated directive, which Python's re.compile cannot compile, is refused with parse_rule's message", () => {
     expect(() => parseRule("date:%Y %Y")).toThrow(new EvaluatorError("date format '%Y %Y' repeats a directive"));
     expect(() => parseRule("date:%H %H %Y")).toThrow(new EvaluatorError("date format '%H %H %Y' repeats a directive"));

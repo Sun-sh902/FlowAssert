@@ -164,6 +164,13 @@ CASES = {
          "config.json": canonical_config({"key": ["k", "k"], "fields": [
              {"source": "t", "destination": "t", "rule": "date:%Y-%m-%d %H:%M %z"}], "scope": "source"})},
         ["--config", "config.json", "--allow-identical-content"]),
+    # A value without the offset %z asks for is not an instant (1.2.1, R-02): unknown, never a Mismatch, on every
+    # Python. K1 and K2 have none on one or both sides; K3 has an offset on each and names one instant.
+    "date-offset-absent-unknown": (
+        {"source.csv": utf8("k,t\nK1,2026-01-05 10:00\nK2,2026-01-05 10:00\nK3,2026-01-05 18:00+08:00\n"),
+         "destination.csv": utf8("k,t\nK1,2026-01-05 10:00Z\nK2,2026-01-05 10:00\nK3,2026-01-05 10:00Z\n")},
+        page({"key": ["k", "k"], "fields": [{"source": "t", "destination": "t", "rule": "date:%Y-%m-%d %H:%M%z"}],
+              "scope": "source"}, source_complete=True, destination_complete=True)),
     # Both scopes, with and without each premise.
     "scope-exact-source-known": ({"source.csv": UNSAFE_SOURCE, "destination.csv": UNSAFE_DESTINATION},
                                  page({**KP, "key": ["id", "id"], "fields": [

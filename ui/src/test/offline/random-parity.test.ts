@@ -8,7 +8,8 @@
  *
  * FA_PYTHON names the interpreter (default python3) and FA_PARITY_SEED the first seed (default 20260302). The browser
  * follows Python 3.15 where Python versions differ (see strptime.ts), so with an older interpreter both tests are
- * skipped, saying so; with FA_PARITY_REQUIRED=1 (CI's parity job) they fail instead, as they do without Python.
+ * skipped, saying so; with FA_PARITY_REQUIRED=1 (CI's parity job) they fail instead, as they do without Python. The
+ * date parity test compares the date rule on values with and without the offset %z asks for (1.2.1, R-02).
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -16,6 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { check, reportHtml, reportJson } from "../../offline/check";
+import { compare } from "../../offline/evaluator";
 import { REPO_ROOT } from "../fixtures/sources";
 import { parseArgs } from "./cli-args";
 import { CsvReader, LineReader } from "../../offline/csv";
@@ -192,6 +194,36 @@ test(`json parity: ${COUNT * 4} random texts, nested up to 100,000 deep, read as
     if (JSON.stringify(ours) !== JSON.stringify(python[i])) differences.push(`${JSON.stringify(text).slice(0, 200)}: python ${JSON.stringify(python[i]).slice(0, 200)}, browser ${JSON.stringify(ours).slice(0, 200)}`);
   });
   expect(differences.slice(0, 10)).toEqual([]);
+});
+
+const DATE_COMPARE = `
+import json, sys
+sys.path.insert(0, sys.argv[1])
+from flowassert_offline.evaluator_v2 import _compare
+json.dump([_compare(e, a, rule) for e, a, rule in json.load(sys.stdin)], sys.stdout)
+`;
+
+test("date parity: values with and without the offset %z asks for, compared as the command line compares them", () => {
+  if (!usable) throw new Error(why);
+  const formats = ["%Y-%m-%d %H:%M%z", "%Y-%m-%d %H:%M %z", "%Y-%m-%dT%H:%M:%S%z", "%Y%m%d%z", "%d/%m/%Y %I:%M %p%z"];
+  const offsets = ["", "Z", "+0000", "-00:00", "+05:30", "-0800", "+01:02:03", " ", "z"];
+  const pairs: [string, string, string][] = [];
+  for (const format of formats) {
+    const values = offsets.map((offset) => {
+      const base = format.replace(" %z", "").replace("%z", "");
+      const text = base.replace("%Y", "2026").replace("%m", "01").replace("%d", "05").replace("%H", "10").replace("%M", "00").replace("%S", "00").replace("%I", "10").replace("%p", "AM");
+      return format.includes(" %z") && offset ? text + " " + offset.trimStart() : text + offset;
+    });
+    for (const e of values) for (const a of values) pairs.push([e, a, "date:" + format]);
+  }
+  const python = JSON.parse(execFileSync(PYTHON, ["-I", "-c", DATE_COMPARE, join(REPO_ROOT, "offline")], { input: JSON.stringify(pairs), maxBuffer: 1 << 28 }).toString()) as unknown[];
+  const ours = pairs.map(([e, a, rule]) => compare(e, a, rule));
+  const differences = pairs.flatMap((p, i) => (JSON.stringify(ours[i]) === JSON.stringify(python[i]) ? [] : [`${JSON.stringify(p)}: python ${JSON.stringify(python[i])}, browser ${JSON.stringify(ours[i])}`]));
+  expect(differences.slice(0, 10)).toEqual([]);
+  // A value that parses without an offset is never compared: the field is unknown, not a Mismatch.
+  const withoutOffset = pairs.filter(([e, a]) => !/(Z|[+-]\d\d:?\d\d(:?\d\d)?)$/.test(e) || !/(Z|[+-]\d\d:?\d\d(:?\d\d)?)$/.test(a));
+  expect(withoutOffset.length).toBeGreaterThan(100);
+  for (const [e, a, rule] of withoutOffset) expect(compare(e, a, rule).status, `${e} vs ${a} under ${rule}`).toBe("unknown");
 });
 
 test(`csv.reader parity: ${COUNT * 4} random texts of quotes, commas and line breaks`, { timeout: 600_000 }, () => {
