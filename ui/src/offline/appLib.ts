@@ -21,7 +21,7 @@ import { checkCsv as checkWith, type CheckCsvInput } from "./api";
 import { HubSpotDestination } from "./hubspot";
 import { SheetSource } from "./sheets";
 
-export const VERSION = "1.1.0";
+export const VERSION = "1.2.0";
 
 /** A file as the app hands it over: its name, its bytes, and how the person asked for it to be read. */
 export interface AppFile {

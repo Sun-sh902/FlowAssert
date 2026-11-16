@@ -6,12 +6,12 @@ Drawn up on 2026-11-02, updated on 2026-11-04 after 0.6.0 was released, with the
 
 | Item | State |
 | --- | --- |
-| Released | 0.1.1 to 0.6.0 (2026-11-02 to 11-04), 1.0.0 (2026-11-11); 0.7.0 was not released on its own and was folded into 1.0.0 |
+| Released | 0.1.1 to 0.6.0 (2026-11-02 to 11-04), 1.0.0 (2026-11-11), 1.1.0 (2026-11-12), 1.2.0 (2026-11-15); 0.7.0 was not released on its own and was folded into 1.0.0 |
 | Connectors | The command line can read a Google Sheets source and a HubSpot contacts destination, read-only; both have been tested only against local fakes, not yet on real accounts |
 | Offline CSV check | The command line can be installed; it supports UTF-8, UTF-16, GB18030 and comparison rules; there is a specification, JSON Schemas and a runnable conformance suite, and the browser version and the command line agree byte for byte |
 | Browser version | Online demo at https://sun-sh902.github.io/FlowAssert/ ; files are not uploaded; large files are read as streams; choosing a file shows its profile, with warnings before the check; results can be browsed record by record, with character differences marked; reports can be saved and compared |
 | Workflows | GitHub Action; n8n example (tested only on a self-hosted n8n 2.46.4, not on n8n Cloud) |
-| iPhone and iPad app | In progress for 1.2.0, not released: the packaged checker in WebKit, files, Google Sheets and HubSpot; see "1.2.0: the iPhone and iPad app" below |
+| iPhone and iPad app | Released in 1.2.0 (2026-11-15), built from source with Xcode, not on the App Store: the packaged checker in WebKit, files, Google Sheets and HubSpot; see "1.2.0: the iPhone and iPad app" below |
 | Service | Local and read-only, handles only 5 synthetic cases |
 | Tests and CI | 3712 frontend, 1095 command-line and 80 Chrome tests in CI; 8 CI jobs, plus the Action's self-test on 3 operating systems; release files carry build provenance attestations |
 | Users | As of 2026-11-12: 2 stars, 0 forks, 8 unique visitors in two weeks, at most 1 outside download of the release files; the first outside trial feedback, [#2](https://github.com/Sun-sh902/FlowAssert/issues/2) (2026-11-07, from the n8n forum), whose suggestion was implemented in 1.0.0; no known long-term user yet |
@@ -126,7 +126,7 @@ Maintenance is not a failure: the project has complete tests, documents and an o
 
 Not in 1.1.0: other connectors (such as Airtable or Salesforce), considered only when a user asks for one.
 
-### 1.2.0: the iPhone and iPad app (in progress, from 2026-11-14)
+### 1.2.0: the iPhone and iPad app (released 2026-11-15)
 
 An app for iPhone and iPad that runs the same check, on the device ([ios/README.md](../ios/README.md), [design
 note](design/1.2-ios-app.md)).
@@ -138,8 +138,8 @@ note](design/1.2-ios-app.md)).
 | Connectors | A Google Sheets source and a HubSpot contacts destination, read-only, with readers in TypeScript held to the command line's golden cases | Credentials only in the Keychain, never in JavaScript, a report, a log or a file; tested only against the local fakes |
 | Design | Chosen by the owner from shown directions: a grouped form, a monogram icon, the check's question as the empty state | Colour only for verdicts; each verdict has its own shape too |
 
-Waiting for the owner before a release: Google sign-in (OAuth) in the app, a paid Apple Developer Program membership
-for TestFlight and the App Store, the live checks of both connectors on test accounts, and the release itself.
+Still waiting for the owner: Google sign-in (OAuth) in the app, a paid Apple Developer Program membership for
+TestFlight and the App Store, and the live checks of both connectors on test accounts.
 
 ### 0.1.1 Fixes and foundations (about 6 hours, aiming for November)
 

@@ -33,7 +33,7 @@ node is not on npm, not listed in n8n's catalogue, and not verified by n8n. Thes
 
 ## 4. Publish
 
-- [ ] Tag the commit to publish, with the package's version: `git tag n8n-node-v1.1.0 && git push origin n8n-node-v1.1.0`.
+- [ ] Tag the commit to publish, with the package's version: `git tag n8n-node-v1.2.0 && git push origin n8n-node-v1.2.0`.
 - [ ] Watch `.github/workflows/n8n-node-publish.yml`: it checks that the tag names the version and that the email is
       set, builds the checker and the node, runs the unit tests, then `npm run release` (n8n's `n8n-node release`:
       lint, build, `npm publish` with provenance).

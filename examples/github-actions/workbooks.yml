@@ -28,7 +28,7 @@ jobs:
         run: mkdir -p "flowassert/$GITHUB_RUN_ID"
       - name: Check the warehouse's orders against the shop's
         id: flowassert
-        uses: Sun-sh902/FlowAssert@v1.1.0
+        uses: Sun-sh902/FlowAssert@v1.2.0
         with:
           source: data/orders-shop.xlsx
           source-format: xlsx

@@ -1,29 +1,38 @@
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.2.0 (2026-11-15)
 
-Work towards an app for iPhone and iPad that runs the same check as the command line. Not released, and not finished:
-this section grows with the work.
+An app for iPhone and iPad that runs the same check as the command line, on the device, with files, a Google Sheets
+source and a HubSpot destination; and the fixes of the code review of 2026-11-13.
 
-**Every verdict of every existing case is unchanged, and no golden file changed.**
+**Every verdict of every existing case is unchanged, and no golden file changed**: `golden.py --check`,
+`comparison_cases.py --check`, `schemas.py --check` and `conformance.py --connectors --bytes --html`, 289 of 289, pass
+without regenerating anything. Some hostile workbooks, which no golden case holds, now get a different refusal, or a
+refusal where a check failed internally (see Fixed).
+
+Not true of this release: no outside user, review or adoption is claimed; the code review of 2026-11-13 was made by an
+AI agent for the owner, not the outside review the roadmap lists. The app is built from source with Xcode: it is not on
+the App Store or TestFlight. Its tests ran on iOS 26.5 and 27.2 simulators, iPhone and iPad, and in CI; on a real
+iPhone it was tried by the owner with small files only, and not on iOS 17 or 18. Its Google Sheets and HubSpot reads
+have been tested against local fakes only.
 
 ### Added
 
-- **The iPhone and iPad app** (`ios/`, [design note](docs/design/1.2-ios-app.md)), in progress. It has no checker of
+- **The iPhone and iPad app** (`ios/`, [design note](docs/design/1.2-ios-app.md)). It has no checker of
   its own: it runs the packaged checker, `flowassert-check.js`, in WebKit, and every golden case the CSV check page can
   run, every workbook golden case, every conformance case and the hostile workbooks of the .xlsx parity test give the
   command line's results byte for byte there (`ios/FlowAssertTests/EngineParityTests.swift`).
-- **The app checks files** (step 3 of the work): CSV files and `.xlsx` workbooks chosen from Files, dropped on iPad or
+- **The app checks files**: CSV files and `.xlsx` workbooks chosen from Files, dropped on iPad or
   opened from another app; the encoding or worksheet; the key, fields, rules, scope and an imported or exported
   configuration; the premises with the CSV check page's words; the command line's details, redaction and limits; a
   result read from the report itself, with its records, the records to resend, the JSON and HTML reports to share or
   save, and reports kept on the device or imported. VoiceOver reads each verdict first.
-- **The app reads from Google Sheets and HubSpot** (step 4): a source from one range of a spreadsheet, a destination
+- **The app reads from Google Sheets and HubSpot**: a source from one range of a spreadsheet, a destination
   from HubSpot's contacts, read-only, with TypeScript readers (`sheets.ts`, `hubspot.ts`) that give every golden case of
   `offline/golden-sheets/` and `offline/golden-hubspot/` byte for byte, records to resend included. The requests are sent
   by Swift, which keeps the credentials in the Keychain of the device; they never reach JavaScript, a report, a log or a
   file. Tested against the local fakes only.
-- **The app's icon, empty state and polish** (step 5), each chosen by the owner from directions shown on the
+- **The app's icon, empty state and polish**, each chosen by the owner from directions shown on the
   simulator: a monogram icon with its own dark, clear and tinted versions, and the check's question as the first
   screen. Scripts measure the layout (`ios/scripts/measure-layout.sh`: the pixel grid, the margins, edges that nearly
   line up) and the speed (`ios/scripts/measure-performance.sh`: launch, a 50 MB workbook, a 100,000-record report); the
@@ -57,6 +66,29 @@ this section grows with the work.
   Found by the app's first CI run, on iOS 26.5; every engine case now gives the command line's result on iOS 26.5 and
   27.2.
 - The n8n example holds the rebuilt packaged checker (`ui/scripts/n8n/build_workflow.mjs`).
+- The n8n node, `n8n-nodes-flowassert`, is version 1.2.0, with this release's packaged checker. It is still not
+  published on npm.
+- The Action's run summary shows a worksheet's name as code, written as `repr` writes it (`'Contacts'`), so that a
+  name a workbook gives is never rendered as a link, an image or HTML.
+
+### Fixed
+
+From the code review of 2026-11-13. Each fix has a regression test; none changes a golden file.
+
+- A workbook cell with `t="inlineStr"`, a `<v>` and no `<is>` made both workbook readers fail internally (exit status
+  4); it is now refused as `cell … has no value`, or with the formula refusal.
+- A sheet without a `name` attribute was recorded as `null` (`worksheet None` in the summary) on the command line,
+  against schema v4, and as `""` in the browser; both now record `""`.
+- Markup that runs past the 65,536-character tag bound, a malformed tag, comment, processing instruction or CDATA
+  section among it, is refused for the bound on every side, whatever the size of the pieces a part is read in. It
+  could be refused as not well-formed on one side and for the bound on the other.
+- Both workbook readers hand on the text inflated before late damage in an archive (data after a deflate stream's end,
+  a part that inflates to more than the archive records) before refusing it, so that an earlier problem in the text is
+  the one named, on the command line as in the browser. Spec section 15 says so.
+- The browser check, `checkCsv` and the saved-report import read JSON nested to any depth, as Python 3.15 does; a
+  configuration nested 100,000 deep made them fail with a `RangeError`. The command line on older Pythons is unchanged.
+- The n8n node takes a total an expression gives as a number; it failed the item with `value.trim is not a function`.
+- Spec section 15 says that Python 3.9 and 3.10 refuse a CSV line holding a NUL, with their own text.
 
 ## 1.1.0 (2026-11-12)
 

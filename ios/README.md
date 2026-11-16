@@ -5,7 +5,7 @@ checker, `flowassert-check.js`, in a hidden WebKit view, and its parity tests ho
 line's result byte for byte. The [design note](../docs/design/1.2-ios-app.md) explains how it is built, what the owner
 chose, and the measurements.
 
-In progress towards 1.2.0: not released, not on the App Store or TestFlight. It is built from source with Xcode.
+Released in 1.2.0 as source: it is not on the App Store or TestFlight, and is built from source with Xcode.
 
 ## What it needs
 

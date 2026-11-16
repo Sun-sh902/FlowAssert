@@ -25,7 +25,7 @@ jobs:
         run: mkdir -p "flowassert/$GITHUB_RUN_ID"
       - name: Check that the sheet's leads reached HubSpot
         id: flowassert
-        uses: Sun-sh902/FlowAssert@v1.1.0
+        uses: Sun-sh902/FlowAssert@v1.2.0
         env:
           # Read by FlowAssert from the environment only. Never put a credential in an input.
           FLOWASSERT_SHEETS_TOKEN: ${{ secrets.FLOWASSERT_SHEETS_TOKEN }}

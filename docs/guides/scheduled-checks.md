@@ -18,7 +18,7 @@ prints, stores or summarises them. An input's value can appear in the log of the
 never an input.
 
 ```yaml
-- uses: Sun-sh902/FlowAssert@v1.1.0
+- uses: Sun-sh902/FlowAssert@v1.2.0
   env:
     FLOWASSERT_SHEETS_TOKEN: ${{ secrets.FLOWASSERT_SHEETS_TOKEN }}
     FLOWASSERT_HUBSPOT_TOKEN: ${{ secrets.FLOWASSERT_HUBSPOT_TOKEN }}

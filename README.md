@@ -6,12 +6,14 @@ FlowAssert compares a source file, the records that should have arrived, with an
 
 Version 1.0.0 freezes the report format, specifies the check, publishes JSON Schemas and a conformance suite, and builds every release file with a provenance attestation anyone can verify ([What 1.0 promises](#what-10-promises)).
 
-Version 1.1.0 (not yet released) adds, with every verdict unchanged:
+Version 1.1.0 added, with every verdict unchanged:
 
 - **Excel workbooks, checked directly**: one worksheet of an `.xlsx` file, read as stored, in every part of FlowAssert ([guide](docs/guides/excel.md)).
 - **The records to fix**: after a check, CSV files of the rows that did not arrive, that differ or that are duplicated, and, kept apart, those whose status is unknown ([guide](docs/guides/records-to-fix.md)).
 - **An n8n community node**, [`n8n-nodes-flowassert`](integrations/n8n-nodes-flowassert/README.md), for a self-hosted n8n (not yet published).
 - **Scheduled checks in the GitHub Action**, from a Google Sheets range to HubSpot, with a run summary ([guide](docs/guides/scheduled-checks.md)).
+
+Version 1.2.0 adds an [app for iPhone and iPad](#check-on-iphone-and-ipad) that runs the same check on the device, built from source with Xcode, and the fixes of a code review.
 
 > [!IMPORTANT]
 > **Early-stage project with one maintainer.** It is not production software.
@@ -427,7 +429,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - uses: Sun-sh902/FlowAssert@v1.1.0
+      - uses: Sun-sh902/FlowAssert@v1.2.0
         id: flowassert
         with:
           source: exports/source.csv
@@ -482,7 +484,7 @@ JavaScript hosts can call it the same way (see `ui/src/offline/api.ts`).
 
 ## Check on iPhone and iPad
 
-The [iPhone and iPad app](ios/README.md), in progress towards 1.2.0 and not yet released, runs the same check: the
+The [iPhone and iPad app](ios/README.md), new in 1.2.0, runs the same check: the
 packaged checker, `flowassert-check.js`, inside WebKit on the device, so every golden case gives the command line's
 result byte for byte there. It takes CSV files and Excel workbooks from Files, a Google Sheets source and a HubSpot
 destination (credentials kept in the device's Keychain), and shows the result, its records and the records to resend,
