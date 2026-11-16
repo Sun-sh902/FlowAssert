@@ -2,7 +2,9 @@
  * Byte-for-byte parity with the command-line checker: every case in offline/golden/ (written by
  * offline/bench/golden.py from the Python CLI) is run through the TypeScript check, and the exit status, the printed
  * summary, the refusal and both reports must be identical. A case the page can run is also run as the page runs it,
- * where only the premises' origin differs: "browser form" instead of "command-line option".
+ * where only the premises' origin differs: "browser form" instead of "command-line option". A case marked
+ * `command_line_only` is refused by the command line in words the browser does not use (1.2.1: a format with %Z): the
+ * browser must refuse it too, with its own message, and write nothing.
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -20,6 +22,7 @@ const EVALUATED_AT = () => "2000-01-01T00:00:00Z";
 interface GoldenCase {
   name: string;
   args: string[];
+  command_line_only?: string;
   page?: {
     source_encoding: Encoding;
     destination_encoding: Encoding;
@@ -65,6 +68,12 @@ describe("golden reports", () => {
     const folder = join(GOLDEN, name);
     const c = JSON.parse(readFileSync(join(folder, "case.json"), "utf-8")) as GoldenCase;
     const outcome = await check({ ...parseArgs(c.args, folder), now: EVALUATED_AT });
+    if (c.command_line_only) {
+      expect(expected(folder)).toMatchObject({ exit: 2, stdout: "", json: null, html: null });
+      expect(actual(outcome)).toMatchObject({ exit: 2, stdout: "", json: null, html: null });
+      expect(outcome.stderr).toMatch(/^refused: config\.json: field '[^']*': date format '[^']*' uses %Z, which the browser check does not support; it supports %Y .*\n$/);
+      return;
+    }
     expect(actual(outcome)).toEqual(expected(folder));
   });
 

@@ -13,8 +13,9 @@ printed summary), `stderr.txt`, and `report.json` and `report.html` when it wrot
 the files as `source.csv` and `destination.csv`, the names the browser shows.
 
 A case marked `page` is also run through the browser page's code (ui/src/test/offline/golden.test.ts) with the
-premises' origin "browser form": its output must be the same apart from that origin. Every case must give the same
-output on every supported Python version; CI checks this one on 3.9, 3.11 and 3.14.
+premises' origin "browser form": its output must be the same apart from that origin. A case marked
+`command_line_only` (1.2.1) is one the browser refuses in its own words; its tests check that it refuses, not the text.
+Every case must give the same output on every supported Python version; CI checks this one on 3.9, 3.11 and 3.14.
 
 The cases whose source is a Google Sheets range (0.7.0) are written to offline/golden-sheets/ instead, because the
 browser cannot run them: it makes no request to Google. Each holds `sheet-responses.json`, the synthetic responses a
@@ -310,6 +311,12 @@ CASES = {
     "refused-config-repeated-directive": ({"config.json": canonical_config(
         {"key": ["k", "k"], "fields": [{"source": "p", "destination": "p", "rule": "date:%Y-%m-%d %Y"}]})},
         ["--config", "config.json"]),
+    # %Z reads a zone name without its offset (1.2.1, R-01): 10:00 EST and 10:00 UTC are five hours apart.
+    "refused-config-zone-name": (
+        {"source.csv": utf8("id,at\nK1,2026-01-05 10:00 EST\n"), "destination.csv": utf8("id,at\nK1,2026-01-05 10:00 UTC\n"),
+         "config.json": canonical_config({"key": ["id", "id"], "fields": [
+             {"source": "at", "destination": "at", "rule": "date:%Y-%m-%d %H:%M %Z"}], "scope": "source"})},
+        ["--config", "config.json", "--source-complete", "--destination-complete"]),
     "refused-config-repeated-field": ({"config.json": canonical_config(
         {"key": ["k", "k"], "fields": [{"source": "p", "destination": "p"}, {"source": "p", "destination": "q"}]})},
         ["--config", "config.json"]),
@@ -334,6 +341,11 @@ CASES = {
     "unsafe-values-details-all": ({"source.csv": UNSAFE_SOURCE, "destination.csv": UNSAFE_DESTINATION},
                                   ["--key", "id", "--field", "名前", "--field", "note", "--details", "all",
                                    "--source-complete", "--destination-complete", "--redact-values"]),
+}
+
+# Cases whose refusal the browser gives in its own words, so it runs them without comparing the text: name -> why.
+COMMAND_LINE_ONLY = {
+    "refused-config-zone-name": "the browser check refuses %Z as a directive it does not support",
 }
 
 # The scenarios of offline/examples/scenarios/ (0.6.0): each expectation of scenarios.json is a case the page runs,
@@ -693,6 +705,8 @@ def _files(name, spec):
     if "--source" not in args:
         args = ["--source", "source.csv", "--destination", "destination.csv"] + args
     case["args"] = args
+    if name in COMMAND_LINE_ONLY:
+        case["command_line_only"] = COMMAND_LINE_ONLY[name]
     return files, case
 
 

@@ -113,6 +113,14 @@ describe("date rule", () => {
     for (const rule of ["date:%Y %a", "date:%Y %e", "date:%Y %:z", "date:%c"]) expect(() => parseRule(rule)).toThrow(/does not support/);
   });
 
+  test("a format with %Z keeps the browser's own refusal, which the command line words differently since 1.2.1 (R-01)", () => {
+    expect(() => parseRule("date:%Y-%m-%d %H:%M %Z")).toThrow(
+      new EvaluatorError("date format '%Y-%m-%d %H:%M %Z' uses %Z, which the browser check does not support; it supports %Y %m %d %H %M %S %f %z %b %B %y %p %I %j %%"),
+    );
+    expect(parseRule("date:%Y %%Z")).toBe("date:%Y %%Z");
+    expect(compare("2026 %Z", "2026 %Z", "date:%Y %%Z").status).toBe("pass");
+  });
+
   test("a repeated directive, which Python's re.compile cannot compile, is refused with parse_rule's message", () => {
     expect(() => parseRule("date:%Y %Y")).toThrow(new EvaluatorError("date format '%Y %Y' repeats a directive"));
     expect(() => parseRule("date:%H %H %Y")).toThrow(new EvaluatorError("date format '%H %H %Y' repeats a directive"));

@@ -1,0 +1,14 @@
+{
+  "key": [
+    "id",
+    "id"
+  ],
+  "fields": [
+    {
+      "source": "at",
+      "destination": "at",
+      "rule": "date:%Y-%m-%d %H:%M %Z"
+    }
+  ],
+  "scope": "source"
+}

@@ -24,7 +24,8 @@ Each field has one comparison rule, chosen by the caller and never inferred:
   digits       only the digits 0-9; no digits is unknown, not a match
   date:FORMAT  both parsed with datetime.strptime; a value that does not parse is unknown.
                A value with a UTC offset is compared as an instant, in UTC; an instant
-               outside the years 1-9999 in UTC is unknown too
+               outside the years 1-9999 in UTC is unknown too. A format with %Z is refused:
+               strptime reads a zone name without its offset
 An empty value is unknown under every rule.
 
 The obligation's scope is "source" (each source record is checked) or "exact"
@@ -41,6 +42,7 @@ import re
 from array import array
 from collections.abc import Sequence
 from datetime import datetime, timezone
+from functools import lru_cache
 
 VERSION = "v2-current-state-1"
 STATES = ("Verified", "Mismatch", "Pending", "Unverified")
@@ -49,6 +51,16 @@ DETAILS = ("problems", "all")
 _STATE_CODE = {name: code for code, name in enumerate(STATES)}
 _EMPTY = "empty value; a missing value is not assumed to be a difference"
 _DATE_SAMPLE = datetime(2001, 2, 3, 4, 5, 6, 7000, tzinfo=timezone.utc)
+# How Python 3.15's TimeRE.pattern finds a directive, after the substitutions it makes first.
+_DIRECTIVE = re.compile(r"%[-_0^#]*[0-9]*([OE]?[:\\]?.?)")
+
+
+@lru_cache(maxsize=64)
+def _directives(fmt):
+    """The directives of a format as strptime finds them, without the %: in '%%Z', '%' and no 'Z'."""
+    text = re.sub(r"([\\.^$*+?\(\){}\[\]|])", r"\\\1", fmt)
+    text = re.sub(r"\s+", r"\\s+", text)
+    return frozenset(m.group()[1:] for m in _DIRECTIVE.finditer(text))
 
 
 def _key(value):
@@ -76,6 +88,9 @@ def parse_rule(rule):
             raise ValueError(f"date rule {rule!r} has no format")
         if "%" not in fmt.replace("%%", ""):
             raise ValueError(f"date format {fmt!r} has no directive")
+        if "Z" in _directives(fmt):
+            # strptime reads %Z as a name and gives no offset; which names it knows depends on the host.
+            raise ValueError(f"date format {fmt!r} uses %Z, which reads a time zone name without its offset; use %z")
         try:
             datetime.strptime(_DATE_SAMPLE.strftime(fmt), fmt)
         except ValueError as e:

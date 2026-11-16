@@ -1166,6 +1166,57 @@ def test_an_unknown_or_malformed_rule_is_refused(rule, message):
         evaluator_v2.evaluate({'key': ('key', 'key'), 'fields': [('phone', 'phone', rule)]}, [ROW], [ROW])
 
 
+# --- 1.2.1: %Z reads a zone name without its offset (R-01) ---------------------------------------
+
+def z_refusal(fmt):
+    return f"date format {fmt!r} uses %Z, which reads a time zone name without its offset; use %z"
+
+
+@pytest.mark.parametrize('fmt', ['%Y-%m-%d %H:%M %Z', '%Z %Y', '%Y%Z', '%Y %%%Z', '%Y %Z %Z', '%d %Z',
+                                 '%Y-%m-%d %H:%M %z %Z'])
+def test_a_date_format_with_Z_is_refused(fmt):
+    # The refusal comes before strptime is asked: '%d %Z' (no year) and '%Y %Z %Z' get it too, on every Python.
+    with pytest.raises(ValueError) as caught:
+        evaluator_v2.parse_rule('date:' + fmt)
+    assert str(caught.value) == z_refusal(fmt)
+
+
+@pytest.mark.parametrize('fmt', ['%Y %%Z', '%%Z %Y', '%Y-%m-%d %H:%M %z', '%Y %%%%Z'])
+def test_a_literal_Z_after_a_percent_sign_is_not_the_directive(fmt):
+    assert evaluator_v2.parse_rule('date:' + fmt) == 'date:' + fmt
+
+
+def test_a_literal_Z_is_compared_as_text():
+    result, cohort = rule_result('date:%Y %%Z', '2026 %Z', '2026 %Z')
+    assert result['status'] == 'pass' and cohort == 'Verified'
+
+
+def test_a_configuration_with_Z_is_refused_before_any_file_is_read(tmp_path, capsys):
+    path = config_file(tmp_path, config_fields(dict(FIELD, rule='date:%Y-%m-%d %H:%M %Z')))
+    code = verify.main(['--source', str(tmp_path / 'absent-source.csv'),
+                        '--destination', str(tmp_path / 'absent-destination.csv'), '--config', path])
+    printed = capsys.readouterr()
+    assert code == 2 and printed.out == ''
+    assert printed.err == f"refused: {path}: field 'p': {z_refusal('%Y-%m-%d %H:%M %Z')}\n"
+
+
+@pytest.mark.parametrize('tz', ['America/New_York', 'UTC'])
+def test_Z_is_refused_whatever_the_host_time_zone(tmp_path, tz):
+    # 10:00 EST is 15:00 UTC. Before 1.2.1, a host in New York read both values as 10:00 and gave Verified.
+    write(tmp_path / 's.csv', 'id,at\nK1,2026-01-05 10:00 EST\n')
+    write(tmp_path / 'd.csv', 'id,at\nK1,2026-01-05 10:00 UTC\n')
+    config_file(tmp_path, {'key': ['id', 'id'], 'fields': [
+        {'source': 'at', 'destination': 'at', 'rule': 'date:%Y-%m-%d %H:%M %Z'}]})
+    result = subprocess.run([sys.executable, str(ROOT / 'offline/verify.py'), '--source', 's.csv',
+                             '--destination', 'd.csv', '--config', 'config.json', '--source-complete',
+                             '--destination-complete', '--json', 'report.json'],
+                            cwd=str(tmp_path), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            env={**os.environ, 'TZ': tz, 'PYTHONIOENCODING': 'utf-8'})
+    assert (result.returncode, result.stdout) == (2, b'')
+    assert result.stderr.decode('utf-8') == f"refused: config.json: field 'at': {z_refusal('%Y-%m-%d %H:%M %Z')}\n"
+    assert not (tmp_path / 'report.json').exists()
+
+
 def test_redaction_removes_normalized_values_from_records():
     obligation = {'key': ('key', 'key'), 'fields': [('phone', 'phone', 'digits')]}
     result = evaluator_v2.evaluate(obligation, [{'key': 'K1', 'phone': '+1 555'}], [{'key': 'K1', 'phone': '1556'}],

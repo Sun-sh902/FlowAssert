@@ -4,7 +4,8 @@
  *
  *  - Every golden case is run again with each input fed in chunks: for an input of at most 4 KiB, as two chunks split
  *    at every byte offset and as a stream of one-byte chunks; for a larger one, at offsets from a seeded generator.
- *    The exit status, the summary, the refusal and both reports must be the golden ones.
+ *    The exit status, the summary, the refusal and both reports must be the golden ones (for a case marked
+ *    `command_line_only`, the refusal is the browser's own, as when the files are read whole).
  *  - Generated files of every encoding, with quoted line breaks, CR LF and characters of two to four bytes, are read
  *    in chunks cut at random offsets and must give the rows, the digest and the line endings of the file read whole.
  *  - The pieces the reader decodes are always the same 8192 bytes, whatever the chunks are.
@@ -61,7 +62,8 @@ describe("a golden case gives its golden reports however its files are cut into 
 
   test.each(names)("%s", async (name) => {
     const folder = join(GOLDEN, name);
-    const args = parseArgs((JSON.parse(readFileSync(join(folder, "case.json"), "utf-8")) as { args: string[] }).args, folder);
+    const c = JSON.parse(readFileSync(join(folder, "case.json"), "utf-8")) as { args: string[]; command_line_only?: string };
+    const args = parseArgs(c.args, folder);
     const golden = {
       exit: Number(text(folder, "exit_status.txt")),
       stdout: text(folder, "stdout.txt"),
@@ -69,6 +71,8 @@ describe("a golden case gives its golden reports however its files are cut into 
       json: text(folder, "report.json"),
       html: text(folder, "report.html"),
     };
+    // A case the browser refuses in its own words (golden.test.ts): the same refusal as the files read whole.
+    if (c.command_line_only) golden.stderr = (await outcomeOf(args)).stderr;
     const { next, int } = random(20261109 + name.length);
     void next;
     for (const side of ["source", "destination"] as const) {
