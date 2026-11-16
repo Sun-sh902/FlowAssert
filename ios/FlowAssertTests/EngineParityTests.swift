@@ -194,9 +194,9 @@ final class EngineParityTests: XCTestCase {
         let outcomes = try await run(groups: ["golden", "xlsx", "conformance", "hostile"], results: "engine-results.json")
         let counts = Dictionary(grouping: outcomes, by: \.group).mapValues(\.count)
         // The suite cannot pass by running nothing.
-        XCTAssertEqual(counts["golden"], 59)
+        XCTAssertEqual(counts["golden"], 60)
         XCTAssertEqual(counts["xlsx"], 71)
-        XCTAssertEqual(counts["conformance"], 38)
+        XCTAssertEqual(counts["conformance"], 39)
         XCTAssertEqual(counts["hostile"], 31)
         print("engine parity: \(outcomes.count) cases, \(outcomes.filter { !$0.differences.isEmpty }.count) with a difference")
     }
