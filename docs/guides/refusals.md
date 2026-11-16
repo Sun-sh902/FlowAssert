@@ -290,7 +290,13 @@ Python's `strptime` cannot use the format; the error in brackets is Python's. Ch
 
 A directive such as `%Y` appears twice. Use each directive once.
 
-In the browser, a date format can also be refused with `date format 'FORMAT' uses %X, which the browser check does not support; it supports %Y %m %d …`: the browser reads only the directives the message lists. Use the command line for that format.
+### `FILE: field 'NAME': date format 'FORMAT' uses %Z, which reads a time zone name without its offset; use %z`
+
+`%Z` reads a time zone name such as `EST` and gives no offset, so `10:00 EST` and `10:00 UTC` would be compared as the
+same time, and which names it reads depends on the computer's time zone. Write the values with an offset, such as
+`2026-01-05 10:00 -0500`, and use `%z`. `%%Z` is a literal `%Z`, not the directive. Refused since 1.2.1.
+
+In the browser, a date format can also be refused with `date format 'FORMAT' uses %X, which the browser check does not support; it supports %Y %m %d …`: the browser reads only the directives the message lists. Use the command line for that format, unless it is `%Z`, which the command line refuses too.
 
 ## Options
 
