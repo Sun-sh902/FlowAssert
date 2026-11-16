@@ -1,5 +1,6 @@
 """Evaluator v2 and the offline CSV check. v1 fixtures are the semantic reference."""
 import codecs
+from datetime import datetime
 import gc
 import hashlib
 import html
@@ -1235,8 +1236,10 @@ def test_a_value_without_the_offset_z_asks_for_is_unknown(rule, expected, actual
 
 
 def test_a_value_without_the_offset_colon_z_asks_for_is_unknown():
-    if sys.version_info < (3, 12):
-        # %:z is a directive from Python 3.12; before it, the format is malformed.
+    try:
+        datetime.strptime('+00:00', '%:z')
+    except ValueError:
+        # strptime knows %:z from Python 3.15 (3.14.7 and 3.14.10 do not); where it does not, the format is malformed.
         with pytest.raises(ValueError, match='malformed date format'):
             evaluator_v2.parse_rule('date:%Y-%m-%d %H:%M%:z')
         return
